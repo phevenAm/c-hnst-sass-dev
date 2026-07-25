@@ -36,14 +36,16 @@ const TodoListCard = () => {
                   {isShowCompleted ? "Hide completed" : "Show completed"}
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={() => setModalOpen(true)}>
+              <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
                 + Todo
               </Button>
             </div>
           </div>
-          <div className={styles.actionList}>
-            <TodoList todos={todos} />
-          </div>
+          {!isShowCompleted && (
+            <div className={styles.actionList}>
+              <TodoList todos={todos} />
+            </div>
+          )}
 
           <div className={styles.completedSection}>
             {isShowCompleted && (
