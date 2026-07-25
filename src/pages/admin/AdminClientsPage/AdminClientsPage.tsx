@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -191,6 +191,14 @@ export default function AdminClientsPage() {
     () => fetchQuestionnaires(),
     "Failed to fetch questionnaires:",
   );
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setShowTokenModal(true);
+      setSearchParams({}); // clear it so back/refresh doesn't re-open
+    }
+  }, [searchParams, setSearchParams]);
 
   const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus);
   if (guard) return guard;

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { ArticleIcon, DocumentIcon, LinkIcon, VideoIcon } from "@components/shared/Icons/Icons";
-import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 import type { Resource } from "@models/globalTypes";
@@ -64,6 +64,15 @@ export default function AdminResourcesPage() {
   const [typeFilter, setTypeFilter] = useState<(typeof RESOURCE_TYPES)[number]>("all");
 
   const resourcesStatus = useAppSelector((state: RootState) => state.resources.status);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setShowForm(true);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   useFetchOnIdle(
     (state: RootState) => state.resources.status,
