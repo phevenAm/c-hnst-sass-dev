@@ -43,6 +43,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    @media (max-width: 800px) {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
   }
 }
 

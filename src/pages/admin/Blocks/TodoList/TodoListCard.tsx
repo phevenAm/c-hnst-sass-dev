@@ -4,7 +4,7 @@ import { RootState } from "@/store";
 
 import { Button, Card } from "@/components/shared";
 import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
-import { fetchAllTodos } from "@/store/slices/TodoSlice";
+import { fetchAllTodos, selectCompletedTodos, selectOutstandingTodos } from "@/store/slices/TodoSlice";
 import TodoList from "./TodoList";
 import TodoListModal from "./TodoListModal/TodoListModal";
 
@@ -12,6 +12,7 @@ import styles from "./TodoListCard.module.scss";
 
 const TodoListCard = () => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [isShowCompleted, setIsShowCompleted] = useState(false);
 
   useFetchOnIdle(
     (state: RootState) => state.todos.status,
@@ -19,7 +20,9 @@ const TodoListCard = () => {
     "Failed to fetch todo items",
   );
 
-  const todos = useAppSelector((state: RootState) => state.todos.todos);
+  // const todos = useAppSelector((state: RootState) => state.todos.todos);
+  const todos = useAppSelector(selectOutstandingTodos);
+  const todosCompleted = useAppSelector(selectCompletedTodos);
 
   return (
     <>
@@ -27,14 +30,30 @@ const TodoListCard = () => {
         <div className={styles.cardPad}>
           <div className={styles.cardHeader}>
             <h2>Todo list</h2>
-            <div className={styles.CreateTodo}>
-              <Button variant="ghost" size="sm" onClick={() => setModalOpen(true)}>
+            <div className={styles.todoButtons}>
+              {todosCompleted && (
+                <Button size="sm" variant="ghost" onClick={() => setIsShowCompleted(!isShowCompleted)}>
+                  {isShowCompleted ? "Hide completed" : "Show completed"}
+                </Button>
+              )}
+              <Button variant="primary" size="sm" onClick={() => setModalOpen(true)}>
                 + Todo
               </Button>
             </div>
           </div>
-          <div className={styles.actionList}>
-            <TodoList todos={todos} />
+          {!isShowCompleted && (
+            <div className={styles.actionList}>
+              <TodoList todos={todos} />
+            </div>
+          )}
+
+          <div className={styles.completedSection}>
+            {isShowCompleted && (
+              <>
+                <h3>Completed</h3>
+                <TodoList todos={todosCompleted} />
+              </>
+            )}
           </div>
         </div>
       </Card>

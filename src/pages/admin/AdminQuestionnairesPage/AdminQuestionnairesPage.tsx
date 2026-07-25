@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
@@ -504,6 +505,15 @@ export default function AdminQuestionnairesPage() {
   const [editingQ, setEditingQ] = useState<Questionnaire | null>(null);
   const [isAssigningQ, setIsAssigningQ] = useState<Questionnaire | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setShowBuilder(true);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   useFetchOnIdle(
     (state: RootState) => state.questionnaires.status,

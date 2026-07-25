@@ -18,12 +18,29 @@
   }
 }
 
-.CreateTodo {
+.todoButtons {
   display: flex;
+  gap: $sp-3;
   align-items: center;
 }
 
 .actionList {
   display: flex;
   flex-direction: column;
+}
+
+.completedSection {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  margin-top: $sp-5;
+  border-top: 1px solid var(--bg-muted);
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    padding-top: $sp-3;
+  }
 }

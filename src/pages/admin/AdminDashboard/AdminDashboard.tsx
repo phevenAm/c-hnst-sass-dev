@@ -115,12 +115,6 @@ export default function AdminDashboard() {
     to: "/admin/scheduler",
   };
 
-  const quickActions = [
-    { to: "/admin/questionnaires", label: "New questionnaire", color: "teal" },
-    { to: "/admin/resources", label: "Create a new resource", color: "stone" },
-    { to: "/admin/clients", label: "Create sign-up token", color: "warm" },
-  ];
-
   return (
     <div className="page">
       <div className="inner">
@@ -132,17 +126,17 @@ export default function AdminDashboard() {
           <Card className={styles.quickActionsCard}>
             <p className={styles.quickActionsLabel}>Quick actions</p>
             <div className={styles.quickActionsRow}>
-              <Link to="/admin/questionnaires" title="New questionnaire">
+              <Link to="/admin/questionnaires?new=true" title="New questionnaire">
                 <div className={`${styles.metricIcon} ${styles.teal}`}>
                   <ClipboardIcon />
                 </div>
               </Link>
-              <Link to="/admin/resources" title="New resource">
+              <Link to="/admin/resources?new=true" title="New resource">
                 <div className={`${styles.metricIcon} ${styles.stone}`}>
                   <BookIcon />
                 </div>
               </Link>
-              <Link to="/admin/clients" title="Create sign-up token">
+              <Link to="/admin/clients?new=true" title="Create sign-up token">
                 <div className={`${styles.metricIcon} ${styles.coral}`}>
                   <KeyIcon />
                 </div>
