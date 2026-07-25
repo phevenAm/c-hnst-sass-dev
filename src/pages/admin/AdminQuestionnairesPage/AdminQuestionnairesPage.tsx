@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
