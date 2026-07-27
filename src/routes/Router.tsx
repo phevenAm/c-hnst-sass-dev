@@ -69,8 +69,23 @@ function AppLayout() {
 }
 
 function SubscriptionGate({ children }: { children: React.ReactNode }) {
-  const { isAdmin, practiceSettings, loading } = useAuth();
-  if (loading) return <Spinner />;
+  const { isAdmin, practiceSettings, loading, refreshPracticeSettings } = useAuth();
+  const [searchParams] = useSearchParams();
+  const justSubscribed = searchParams.get("subscribed") === "true";
+  const [verifying, setVerifying] = useState(justSubscribed);
+
+  useEffect(() => {
+    if (!justSubscribed) return;
+    // Give the Stripe webhook a moment to update the DB, then re-check
+    const timer = setTimeout(async () => {
+      await refreshPracticeSettings();
+      setVerifying(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading || verifying) return <Spinner />;
+
   if (
     isAdmin &&
     practiceSettings &&
