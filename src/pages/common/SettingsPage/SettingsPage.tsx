@@ -290,8 +290,6 @@ const SettingsPage = () => {
             </div>
           </Card>
         )}
-      </div>
-
         {/* ── Stripe Connect card (admin only) ── */}
         {isAdmin && (
           <Card className={styles.card}>
@@ -318,9 +316,10 @@ const SettingsPage = () => {
           </Card>
         )}
       </div>
-  isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />;
-  </div>
-  )
+
+      {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
+    </div>
+  );
 };
 
 export default SettingsPage;
