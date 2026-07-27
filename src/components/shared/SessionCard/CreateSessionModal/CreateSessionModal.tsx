@@ -5,6 +5,7 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import Lookup from "@components/shared/Lookup/Lookup";
 import Modal from "@components/shared/Modal/Modal";
 
 import { useAuth } from "@/context/AuthContext";
@@ -59,8 +60,11 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
     if (!sessionAddress.trim() || !authUser) return;
     const updated = [...new Set([...savedLocations, sessionAddress.trim()])];
     setSavingLocation(true);
-    await supabase.from("practice_settings").update({ saved_locations: updated }).eq("admin_id", authUser.id);
-    setSavedLocations(updated);
+    const { error } = await supabase
+      .from("practice_settings")
+      .update({ saved_locations: updated })
+      .eq("admin_id", authUser.id);
+    if (!error) setSavedLocations(updated);
     setSavingLocation(false);
   };
 
@@ -242,50 +246,25 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
               Remote
             </label>
           </div>
-          <input
-            className={styles.input}
-            type={location === "remote" ? "url" : "text"}
-            placeholder={location === "in_person" ? "e.g. 15 London Rd, LD5 4EO (optional)" : "Meeting link (optional)"}
-            value={sessionAddress}
-            onChange={(e) => setSessionAddress(e.target.value)}
-          />
-
-          {location === "in_person" && savedLocations.length > 0 && (
-            <div className={styles.savedLocations}>
-              {savedLocations.map((loc) => (
-                <button
-                  key={loc}
-                  type="button"
-                  className={styles.locationChip}
-                  onClick={() => setSessionAddress(loc)}
-                  title={loc}
-                >
-                  {loc}
-                  <span
-                    className={styles.locationChipRemove}
-                    role="button"
-                    aria-label={`Remove ${loc}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveLocation(loc);
-                    }}
-                  >
-                    ×
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {location === "in_person" && sessionAddress.trim() && !savedLocations.includes(sessionAddress.trim()) && (
-            <button
-              type="button"
-              className={styles.saveLocationBtn}
-              onClick={handleSaveLocation}
-              disabled={savingLocation}
-            >
-              {savingLocation ? "Saving…" : "+ Save this location"}
-            </button>
+          {location === "in_person" ? (
+            <Lookup
+              value={sessionAddress}
+              onChange={setSessionAddress}
+              options={savedLocations}
+              onSave={handleSaveLocation}
+              onRemove={handleRemoveLocation}
+              saving={savingLocation}
+              saveLabel="+ Save this location"
+              placeholder="e.g. 15 London Rd, LD5 4EO (optional)"
+            />
+          ) : (
+            <input
+              className={styles.input}
+              type="url"
+              placeholder="Meeting link (optional)"
+              value={sessionAddress}
+              onChange={(e) => setSessionAddress(e.target.value)}
+            />
           )}
         </fieldset>
 

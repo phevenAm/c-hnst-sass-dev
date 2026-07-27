@@ -1,4 +1,5 @@
 export { default as Avatar } from "./Avatar/Avatar";
+export { default as Badge } from "./Badge/Badge";
 export { default as Button } from "./Button/Button";
 export { default as Card } from "./Card/Card";
 export { default as DemoBanner } from "./DemoBanner/DemoBanner";
@@ -12,6 +13,7 @@ export {
   ChevronDown,
   ClipboardIcon,
   CloseIcon,
+  CopyIcon,
   DocumentIcon,
   EditIcon,
   LinkIcon,
@@ -26,6 +28,7 @@ export {
   UsersIcon,
   VideoIcon,
 } from "./Icons/Icons";
+export { default as Lookup } from "./Lookup/Lookup";
 export { default as Modal } from "./Modal/Modal";
 export { default as Navbar } from "./Navbar/Navbar";
 export { default as ProgressChart } from "./ProgressChart/ProgressChart";

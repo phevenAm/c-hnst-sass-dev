@@ -4,39 +4,6 @@
   padding: 1rem 0;
 }
 
-.tabs {
-  display: flex;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  overflow: hidden;
-  margin-bottom: 1.25rem;
-}
-
-.tab {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: background 0.15s, color 0.15s;
-
-  & + & {
-    border-left: 1px solid var(--border);
-  }
-
-  &:hover:not(.tabActive) {
-    background: var(--bg-subtle);
-  }
-}
-
-.tabActive {
-  background: var(--accent);
-  color: #fff;
-}
 
 .panel {
   display: flex;
@@ -52,25 +19,32 @@
 }
 
 .details {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.5rem 1.25rem;
-  background: var(--bg-subtle);
-  border-radius: var(--r-md);
-  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   margin: 0;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--bg-muted);
+  border-radius: var(--r-sm);
+  padding: 0.6rem 1rem;
 
   dt {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    display: flex;
-    align-items: center;
+    width: 120px;
+    flex-shrink: 0;
   }
 
   dd {
     margin: 0;
+    flex: 1;
     display: flex;
     align-items: center;
   }
@@ -79,6 +53,13 @@
 .plainDd {
   font-size: 0.9rem;
   color: var(--text-primary);
+}
+
+.amountValue {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 // Clickable copy row — the whole dd value becomes the button
@@ -123,6 +104,7 @@
 .mono {
   font-family: monospace;
   letter-spacing: 0.04em;
+  text-align: left;
 }
 
 .bold {
@@ -131,19 +113,20 @@
 
 // Card tab amount display
 .cardAmount {
-  background: var(--bg-subtle);
+  background: var(--bg-muted);
   border-radius: var(--r-md);
   padding: 1rem 1.25rem;
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .cardAmountValue {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .cardAmountFee {

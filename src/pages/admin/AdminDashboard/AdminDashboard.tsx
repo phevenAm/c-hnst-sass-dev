@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import Avatar from "@components/shared/Avatar/Avatar";
+import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { BookIcon, CheckIcon, ClipboardIcon, KeyIcon, RescheduleIcon, UsersIcon } from "@components/shared/Icons/Icons";
@@ -196,9 +197,9 @@ export default function AdminDashboard() {
                             <p className={styles.clientMeta}>Joined {u.created_at?.split("T")[0]}</p>
                           </div>
                           {nextSession && (
-                            <span className={nextSession.paid ? styles.paidBadge : styles.unpaidBadge}>
+                            <Badge variant={nextSession.paid ? "success" : "warning"}>
                               {nextSession.paid ? "Paid" : "Unpaid"}
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </Link>

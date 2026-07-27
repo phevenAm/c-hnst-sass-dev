@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 
 import Button from "@components/shared/Button/Button";
+import { CopyIcon } from "@components/shared/Icons/Icons";
 import Modal from "@components/shared/Modal/Modal";
+import ToggleButtonTabs from "@components/shared/ToggleButtonTabs/ToggleButtonTabs";
 
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase.js";
-import type { Session, SessionBlockMeta } from "@/models/globalTypes";
+import type { Session } from "@/models/globalTypes";
 
 import styles from "./PaymentModal.module.scss";
 
@@ -27,7 +29,7 @@ function formatSortCode(raw: string): string {
   return digits.length === 6 ? `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4, 6)}` : raw;
 }
 
-function CopyRow({ label, value, mono, bold }: { label: string; value: string; mono?: boolean; bold?: boolean }) {
+function CopyRow({ label, value, mono, large }: { label: string; value: string; mono?: boolean; large?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -37,38 +39,22 @@ function CopyRow({ label, value, mono, bold }: { label: string; value: string; m
   };
 
   return (
-    <>
+    <div className={styles.detailRow}>
       <dt>{label}</dt>
       <dd>
         <button
           type="button"
-          className={`${styles.copyBtn} ${mono ? styles.mono : ""} ${bold ? styles.bold : ""}`}
+          className={`${styles.copyBtn} ${mono ? styles.mono : ""} ${large ? styles.amountValue : ""}`}
           onClick={handleCopy}
           title="Click to copy"
         >
           {value}
           <span className={`${styles.copyIcon} ${copied ? styles.copyIconDone : ""}`}>
-            {copied ? (
-              "✓"
-            ) : (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-            )}
+            {copied ? "✓" : <CopyIcon />}
           </span>
         </button>
       </dd>
-    </>
+    </div>
   );
 }
 
@@ -80,9 +66,8 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState("");
 
-  const meta = session.metadata as SessionBlockMeta | null;
-  const isBlock = !!meta?.block_id;
   const pricePounds = (session.price_pence / 100).toFixed(2);
+  const cardTotalPounds = ((session.price_pence * 1.02) / 100).toFixed(2);
 
   useEffect(() => {
     if (!session.created_by) {
@@ -128,26 +113,14 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
       ) : (
         <>
           {hasBankDetails && (
-            <div className={styles.tabs} role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "bank"}
-                className={`${styles.tab} ${tab === "bank" ? styles.tabActive : ""}`}
-                onClick={() => setTab("bank")}
-              >
-                Bank transfer
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "card"}
-                className={`${styles.tab} ${tab === "card" ? styles.tabActive : ""}`}
-                onClick={() => setTab("card")}
-              >
-                Pay by card
-              </button>
-            </div>
+            <ToggleButtonTabs
+              leftButtonTitle="Bank transfer"
+              rightButtonTitle="Pay with Stripe"
+              leftButtonAction={() => setTab("bank")}
+              rightButtonAction={() => setTab("card")}
+              activeTab={tab === "bank" ? "left" : "right"}
+              fullWidth
+            />
           )}
 
           {tab === "bank" && hasBankDetails && bankDetails && (
@@ -158,17 +131,17 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
 
               <dl className={styles.details}>
                 {bankDetails.bank_name && (
-                  <>
+                  <div className={styles.detailRow}>
                     <dt>Bank</dt>
                     <dd className={styles.plainDd}>{bankDetails.bank_name}</dd>
-                  </>
+                  </div>
                 )}
                 {bankDetails.bank_account_name && (
                   <CopyRow label="Account name" value={bankDetails.bank_account_name} />
                 )}
                 <CopyRow label="Sort code" value={formatSortCode(bankDetails.bank_sort_code!)} mono />
                 <CopyRow label="Account number" value={bankDetails.bank_account_number!} mono />
-                <CopyRow label="Amount" value={`£${pricePounds}`} bold />
+                <CopyRow label="Amount" value={`£${pricePounds}`} mono />
                 {bankDetails.bank_payment_reference && (
                   <CopyRow label="Reference" value={bankDetails.bank_payment_reference} mono />
                 )}
@@ -192,8 +165,10 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
               <p className={styles.intro}>Pay securely by card through Stripe.</p>
 
               <div className={styles.cardAmount}>
-                <span className={styles.cardAmountValue}>£{pricePounds}</span>
-                <span className={styles.cardAmountFee}>+ ~2% card processing fee</span>
+                <span className={styles.cardAmountValue}>£{cardTotalPounds}</span>
+                <span className={styles.cardAmountFee}>
+                  includes 2% Stripe processing fee (session fee £{pricePounds})
+                </span>
               </div>
 
               {hasBankDetails && (
@@ -216,7 +191,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
                   Cancel
                 </Button>
                 <Button onClick={handleStripePayment} disabled={isRedirecting || isDemo}>
-                  {isRedirecting ? "Redirecting…" : `Pay £${isBlock ? "block" : pricePounds} by card`}
+                  {isRedirecting ? "Redirecting…" : `Pay £${cardTotalPounds} with Stripe`}
                 </Button>
               </div>
             </div>
