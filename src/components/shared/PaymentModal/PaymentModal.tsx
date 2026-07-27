@@ -27,6 +27,51 @@ function formatSortCode(raw: string): string {
   return digits.length === 6 ? `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4, 6)}` : raw;
 }
 
+function CopyRow({ label, value, mono, bold }: { label: string; value: string; mono?: boolean; bold?: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd>
+        <button
+          type="button"
+          className={`${styles.copyBtn} ${mono ? styles.mono : ""} ${bold ? styles.bold : ""}`}
+          onClick={handleCopy}
+          title="Click to copy"
+        >
+          {value}
+          <span className={`${styles.copyIcon} ${copied ? styles.copyIconDone : ""}`}>
+            {copied ? (
+              "✓"
+            ) : (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+          </span>
+        </button>
+      </dd>
+    </>
+  );
+}
+
 const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   const { isDemo } = useAuth();
   const [tab, setTab] = useState<"bank" | "card">("bank");
@@ -108,34 +153,24 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
           {tab === "bank" && hasBankDetails && bankDetails && (
             <div className={styles.panel}>
               <p className={styles.intro}>
-                Transfer the fee directly to the bank account below. Your session will be confirmed once payment is
-                received.
+                Transfer the fee directly to the bank account below. Click any value to copy it.
               </p>
 
               <dl className={styles.details}>
                 {bankDetails.bank_name && (
                   <>
                     <dt>Bank</dt>
-                    <dd>{bankDetails.bank_name}</dd>
+                    <dd className={styles.plainDd}>{bankDetails.bank_name}</dd>
                   </>
                 )}
                 {bankDetails.bank_account_name && (
-                  <>
-                    <dt>Account name</dt>
-                    <dd>{bankDetails.bank_account_name}</dd>
-                  </>
+                  <CopyRow label="Account name" value={bankDetails.bank_account_name} />
                 )}
-                <dt>Sort code</dt>
-                <dd className={styles.mono}>{formatSortCode(bankDetails.bank_sort_code!)}</dd>
-                <dt>Account number</dt>
-                <dd className={styles.mono}>{bankDetails.bank_account_number}</dd>
-                <dt>Amount</dt>
-                <dd className={styles.bold}>£{pricePounds}</dd>
+                <CopyRow label="Sort code" value={formatSortCode(bankDetails.bank_sort_code!)} mono />
+                <CopyRow label="Account number" value={bankDetails.bank_account_number!} mono />
+                <CopyRow label="Amount" value={`£${pricePounds}`} bold />
                 {bankDetails.bank_payment_reference && (
-                  <>
-                    <dt>Reference</dt>
-                    <dd className={styles.mono}>{bankDetails.bank_payment_reference}</dd>
-                  </>
+                  <CopyRow label="Reference" value={bankDetails.bank_payment_reference} mono />
                 )}
               </dl>
 
@@ -154,16 +189,12 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
 
           {tab === "card" && (
             <div className={styles.panel}>
-              <p className={styles.intro}>
-                Pay securely by card. A small processing fee is applied by the payment provider.
-              </p>
+              <p className={styles.intro}>Pay securely by card through Stripe.</p>
 
-              <dl className={styles.details}>
-                <dt>Session fee</dt>
-                <dd>£{pricePounds}</dd>
-                <dt>Card processing</dt>
-                <dd>~2%</dd>
-              </dl>
+              <div className={styles.cardAmount}>
+                <span className={styles.cardAmountValue}>£{pricePounds}</span>
+                <span className={styles.cardAmountFee}>+ ~2% card processing fee</span>
+              </div>
 
               {hasBankDetails && (
                 <p className={styles.note}>

@@ -70,12 +70,54 @@
   }
 
   dd {
-    font-size: 0.9rem;
-    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
   }
+}
+
+.plainDd {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+// Clickable copy row — the whole dd value becomes the button
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0.15rem 0.4rem;
+  margin: -0.15rem -0.4rem;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: background 0.12s;
+
+  &:hover {
+    background: var(--bg-card);
+  }
+}
+
+.copyIcon {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+
+  .copyBtn:hover & {
+    color: var(--text-secondary);
+  }
+}
+
+.copyIconDone {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .mono {
@@ -85,6 +127,28 @@
 
 .bold {
   font-weight: 600;
+}
+
+// Card tab amount display
+.cardAmount {
+  background: var(--bg-subtle);
+  border-radius: var(--r-md);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.cardAmountValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.cardAmountFee {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .note {
