@@ -40,7 +40,6 @@ export default function AdminClientsPageDetailed() {
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const responsesStatus = useAppSelector((state: RootState) => state.responses.status);
-  const sessionsStatus = useAppSelector((state: RootState) => state.sessions.status);
   const clientResponses = useAppSelector(selectResponsesByUser(clientId ?? ""));
 
   const counsellorName = useCounsellorName();
@@ -205,7 +204,7 @@ export default function AdminClientsPageDetailed() {
 
   const maxPageSize = 4;
 
-  const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus, sessionsStatus);
+  const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus);
   if (guard) return guard;
 
   if (!client) {
