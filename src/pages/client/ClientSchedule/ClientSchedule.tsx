@@ -150,17 +150,24 @@ const ClientSchedule = () => {
   // upcomingSessions[0] is featured in the strip above, so list starts at [1]
   const sessionsToRender = activeTabs === "past" ? pastSessions : upcomingSessions.slice(1);
 
-  const emptyMessage =
-    activeTabs === "past"
-      ? "No past sessions"
-      : upcomingSessions.length > 0
-        ? "No other upcoming sessions"
-        : "Nothing booked yet";
+  let emptyMessage = "Nothing booked yet";
+
+  if (activeTabs === "past") {
+    emptyMessage = "No past sessions";
+  } else if (upcomingSessions.length > 0) {
+    emptyMessage = "No other upcoming sessions";
+  }
 
   return (
     <div className="page">
       <div className="inner">
         <h1 className={styles.heading}>My Sessions</h1>
+
+        {/* TODO Section 5 — client attendance summary
+            Add a small stat strip here between the heading and the next session card.
+            Show: sessions attended · sessions missed · attendance %
+            Data comes from allSessions (already fetched) — filter by attended field.
+            Keep it encouraging, not clinical. Admin aggregate view lives in AdminScheduler. */}
 
         {upcomingSessions[0] ? (
           <NextSessionStrip session={upcomingSessions[0]} />

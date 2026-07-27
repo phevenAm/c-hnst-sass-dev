@@ -248,6 +248,13 @@ export default function AdminClientsPageDetailed() {
           ← Back to clients
         </Button>
 
+        {/* TODO Section 5 — per-client attendance stats strip
+            Add a small stats row here between the back button and the profile hero.
+            Data comes from the sessions already fetched below (clientSessions).
+            Show: total sessions · attended · no-shows · attendance % · unpaid count
+            Derive from clientSessions: filter by status/attended fields, count each bucket.
+            Aggregate view across all clients lives in AdminScheduler. */}
+
         {/* Profile hero */}
         <div className={styles.hero}>
           <div className={styles.heroLeft}>
