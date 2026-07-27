@@ -20,9 +20,12 @@
 //   - If admin has already marked session as paid → reminder email only (no payment prompt)
 //   - Cancellation or date change always fires a notification email to the client
 //
-// PLANNED: Attendance analytics (overlaps with Section 5)
-//   - Per-client stats: attendance rate, late payments, cancellations, with dates
-//   - Could live here or be folded into AdminClientsPageDetailed stats bar
+// PLANNED: Attendance analytics — aggregate view (Section 5)
+//   - Sits here because this is the bird's-eye view across ALL clients
+//   - Stats strip or card above the calendar: total sessions, overall attendance %, no-show count, unpaid count
+//   - Per-client breakdown in a table: client name | sessions | attended | no-shows | attendance %
+//   - Per-client detail lives in AdminClientsPageDetailed (see comment there)
+//   - Client's own summary lives in ClientSchedule (see comment there)
 
 const AdminScheduler = () => {
   return (

@@ -40,7 +40,6 @@ export default function AdminClientsPageDetailed() {
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const responsesStatus = useAppSelector((state: RootState) => state.responses.status);
-  const sessionsStatus = useAppSelector((state: RootState) => state.sessions.status);
   const clientResponses = useAppSelector(selectResponsesByUser(clientId ?? ""));
 
   const counsellorName = useCounsellorName();
@@ -205,7 +204,7 @@ export default function AdminClientsPageDetailed() {
 
   const maxPageSize = 4;
 
-  const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus, sessionsStatus);
+  const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus);
   if (guard) return guard;
 
   if (!client) {
@@ -247,6 +246,13 @@ export default function AdminClientsPageDetailed() {
         <Button variant="ghost" size="sm" onClick={() => navigate("/admin/clients")}>
           ← Back to clients
         </Button>
+
+        {/* TODO Section 5 — per-client attendance stats strip
+            Add a small stats row here between the back button and the profile hero.
+            Data comes from the sessions already fetched below (clientSessions).
+            Show: total sessions · attended · no-shows · attendance % · unpaid count
+            Derive from clientSessions: filter by status/attended fields, count each bucket.
+            Aggregate view across all clients lives in AdminScheduler. */}
 
         {/* Profile hero */}
         <div className={styles.hero}>

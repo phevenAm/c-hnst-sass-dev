@@ -29,6 +29,7 @@ import { createTag, deleteTag, fetchTags, selectAllTags, selectTagsStatus, updat
 import { fetchAllUsers, selectClientUsers } from "@store/slices/userDirectorySlice";
 
 import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { supabase } from "@/lib/supabase.js";
 
 import styles from "./AdminQuestionnairesPage.module.scss";
 
@@ -341,6 +342,9 @@ function AssignModal({
           user_id: userId,
         }),
       );
+      supabase.functions.invoke("notify-questionnaire-assigned", {
+        body: { user_id: userId, questionnaire_id: questionnaire.id },
+      });
     }
   };
 
