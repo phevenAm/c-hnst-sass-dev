@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import Lookup from "@components/shared/Lookup/Lookup";
 import Modal from "@components/shared/Modal/Modal";
 
 import { useAuth } from "@/context/AuthContext";
@@ -40,6 +41,39 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
   const [error, setError] = useState("");
+  const [savedLocations, setSavedLocations] = useState<string[]>([]);
+  const [savingLocation, setSavingLocation] = useState(false);
+
+  useEffect(() => {
+    if (!authUser) return;
+    supabase
+      .from("practice_settings")
+      .select("saved_locations")
+      .eq("admin_id", authUser.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.saved_locations) setSavedLocations(data.saved_locations as string[]);
+      });
+  }, [authUser?.id]);
+
+  const handleSaveLocation = async () => {
+    if (!sessionAddress.trim() || !authUser) return;
+    const updated = [...new Set([...savedLocations, sessionAddress.trim()])];
+    setSavingLocation(true);
+    const { error } = await supabase
+      .from("practice_settings")
+      .update({ saved_locations: updated })
+      .eq("admin_id", authUser.id);
+    if (!error) setSavedLocations(updated);
+    setSavingLocation(false);
+  };
+
+  const handleRemoveLocation = async (loc: string) => {
+    if (!authUser) return;
+    const updated = savedLocations.filter((l) => l !== loc);
+    await supabase.from("practice_settings").update({ saved_locations: updated }).eq("admin_id", authUser.id);
+    setSavedLocations(updated);
+  };
 
   const handleSave = async () => {
     if (isDemo) {
@@ -212,15 +246,26 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
               Remote
             </label>
           </div>
-          <input
-            className={styles.input}
-            type={location === "remote" ? "url" : "text"}
-            placeholder={
-              location === "in_person" ? "e.g Location 15 Lodon, LD5 4EO (optional)" : "Meeting link (optional)"
-            }
-            value={sessionAddress}
-            onChange={(e) => setSessionAddress(e.target.value)}
-          />
+          {location === "in_person" ? (
+            <Lookup
+              value={sessionAddress}
+              onChange={setSessionAddress}
+              options={savedLocations}
+              onSave={handleSaveLocation}
+              onRemove={handleRemoveLocation}
+              saving={savingLocation}
+              saveLabel="+ Save this location"
+              placeholder="e.g. 15 London Rd, LD5 4EO (optional)"
+            />
+          ) : (
+            <input
+              className={styles.input}
+              type="url"
+              placeholder="Meeting link (optional)"
+              value={sessionAddress}
+              onChange={(e) => setSessionAddress(e.target.value)}
+            />
+          )}
         </fieldset>
 
         {!session && (

@@ -1,0 +1,43 @@
+.container {
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: var(--spacing-xl);
+}
+
+.heading {
+  font-size: 1.75rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.price {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  li {
+    color: var(--text-secondary);
+
+    &::before {
+      content: "✓ ";
+      color: var(--accent);
+      font-weight: 600;
+    }
+  }
+}
+
+.error {
+  color: var(--color-danger);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.9rem;
+}

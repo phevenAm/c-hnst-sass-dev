@@ -8,6 +8,7 @@ export type ToggleButtonTabsTypes = {
   rightButtonTitle: string;
   rightButtonAction: () => void;
   activeTab: string;
+  fullWidth?: boolean;
 };
 export type toggleTypes = "left" | "right";
 const ToggleButtonTabs = ({
@@ -16,9 +17,10 @@ const ToggleButtonTabs = ({
   leftButtonAction,
   rightButtonAction,
   activeTab,
+  fullWidth,
 }: ToggleButtonTabsTypes) => {
   return (
-    <div className={styles.sessionTabs}>
+    <div className={`${styles.sessionTabs} ${fullWidth ? styles.sessionTabsFullWidth : ""}`}>
       <button
         type="button"
         className={activeTab === "left" ? styles.sessionTabActive : styles.sessionTab}

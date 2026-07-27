@@ -5,13 +5,13 @@ import dayjs from "dayjs";
 import Button from "@components/shared/Button";
 import { useToast } from "@context/ToastContext";
 
+import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import { supabase } from "@/lib/supabase.js";
 import { Session, SessionBlockMeta, SessionEvent } from "@/models/globalTypes";
 import CancelSessionModal from "./CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "./ClientRescheduleModal/ClientRescheduleModal";
 import CreateSessionModal from "./CreateSessionModal/CreateSessionModal";
 import DeleteSessionModal from "./DeleteSessionModal/DeleteSessionModal";
-import PaySessionModal from "./PaySessionModal/PaySessionModal";
 import useSessionCard from "./useSessionCard";
 
 import styles from "./SessionCard.module.scss";
@@ -176,7 +176,7 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
 
       {isDeleteModalOpen && <DeleteSessionModal id={session.id} onClose={() => setIsDeleteModalOpen(false)} />}
       {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
-      {isPayModalOpen && <PaySessionModal session={session} onClose={() => setIsPayModalOpen(false)} />}
+      {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
       {isRescheduleModalOpen && (
         <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
       )}

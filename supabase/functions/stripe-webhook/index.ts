@@ -18,15 +18,34 @@ Deno.serve(async (req) => {
     return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // ── Subscription billing events (platform account, no event.account) ──────────
+  if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
+    const sub = event.data.object as Stripe.Subscription;
+    await supabase
+      .from("practice_settings")
+      .update({ subscription_status: sub.status, stripe_subscription_id: sub.id })
+      .eq("billing_customer_id", sub.customer as string);
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as Stripe.Subscription;
+    await supabase
+      .from("practice_settings")
+      .update({ subscription_status: "canceled", stripe_subscription_id: null })
+      .eq("billing_customer_id", sub.customer as string);
+  }
+
+  // ── Session payment events (from connected counsellor accounts) ───────────────
+  if (event.type === "checkout.session.completed") {
     const checkoutSession = event.data.object as Stripe.Checkout.Session;
     const paymentIntentId = checkoutSession.payment_intent as string;
     const amountPounds = ((checkoutSession.amount_total ?? 0) / 100).toFixed(2);
     const { session_id, block_id } = checkoutSession.metadata ?? {};
 
     let clientId: string | null = null;
+    let adminId: string | null = null;
     let sessionDescription = "a counselling session";
     let sessionDate: string | null = null;
 
@@ -66,19 +85,21 @@ Deno.serve(async (req) => {
     }
 
     if (clientId) {
-      const [{ data: clientProfile }, { data: adminRow }] = await Promise.all([
-        supabase.from("users").select("first_name, last_name").eq("id", clientId).single(),
-        supabase.from("users").select("id").eq("role", "admin").limit(1).single(),
-      ]);
+      // Look up the client's admin — not a hardcoded first-admin query
+      const { data: clientUser } = await supabase
+        .from("users")
+        .select("first_name, last_name, admin_id")
+        .eq("id", clientId)
+        .single();
 
-      const clientName = clientProfile
-        ? `${clientProfile.first_name ?? ""} ${clientProfile.last_name ?? ""}`.trim()
+      adminId = clientUser?.admin_id ?? null;
+      const clientName = clientUser
+        ? `${clientUser.first_name ?? ""} ${clientUser.last_name ?? ""}`.trim()
         : "A client";
 
       const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
       const resendKey = Deno.env.get("RESEND_API_KEY");
       const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
-      const adminEmail = Deno.env.get("ADMIN_EMAIL");
 
       const html = emailTemplate({
         label: "Payment Received",
@@ -96,25 +117,26 @@ Deno.serve(async (req) => {
         footerNote: "This email was sent because a client completed a payment through the WithMe portal.",
       });
 
-      await Promise.all([
-        adminRow
-          ? supabase.from("notifications").insert({
-              user_id: adminRow.id,
-              type: "payment_received",
-              message: `${clientName} paid £${amountPounds} for ${sessionDescription}`,
-            })
-          : Promise.resolve(),
+      if (adminId) {
+        const { data: adminUser } = await supabase.from("users").select("email").eq("id", adminId).single();
 
-        adminEmail && resendKey && fromEmail
-          ? sendEmail({
-              to: adminEmail,
-              subject: `Payment received — ${clientName} (£${amountPounds})`,
-              html,
-              resendKey,
-              fromEmail,
-            })
-          : Promise.resolve(),
-      ]);
+        await Promise.all([
+          supabase.from("notifications").insert({
+            user_id: adminId,
+            type: "payment_received",
+            message: `${clientName} paid £${amountPounds} for ${sessionDescription}`,
+          }),
+          adminUser?.email && resendKey && fromEmail
+            ? sendEmail({
+                to: adminUser.email,
+                subject: `Payment received — ${clientName} (£${amountPounds})`,
+                html,
+                resendKey,
+                fromEmail,
+              })
+            : Promise.resolve(),
+        ]);
+      }
     }
   }
 

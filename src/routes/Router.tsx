@@ -6,6 +6,7 @@ import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Footer from "../components/shared/Footer/Footer";
 import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
+import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
@@ -20,8 +21,11 @@ import ClientDashboard from "../pages/client/ClientDashboard/ClientDashboard";
 import ClientSchedule from "../pages/client/ClientSchedule//ClientSchedule";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import ResourcesPage from "../pages/client/ResourcesPage/ResourcesPage";
+import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/CounsellorSignupPage";
 import SettingsPage from "../pages/common/SettingsPage/SettingsPage";
 import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
+import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
+import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
 import { useAppSelector } from "../store/hooks";
 import { selectThemeMode } from "../store/slices/themeSlice";
 
@@ -64,6 +68,20 @@ function AppLayout() {
   );
 }
 
+function SubscriptionGate({ children }: { children: React.ReactNode }) {
+  const { isAdmin, practiceSettings, loading } = useAuth();
+  if (loading) return <Spinner />;
+  if (
+    isAdmin &&
+    practiceSettings &&
+    practiceSettings.subscription_status !== "active" &&
+    practiceSettings.subscription_status !== "trialing"
+  ) {
+    return <Navigate to="/subscribe" replace />;
+  }
+  return <>{children}</>;
+}
+
 function OnboardingGate() {
   const { userProfile, isAuthenticated, loading } = useAuth();
   const [show, setShow] = useState(false);
@@ -86,6 +104,7 @@ export default function AppRoutes() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/register" element={<CounsellorSignupPage />} />
 
           <Route
             element={
@@ -95,6 +114,8 @@ export default function AppRoutes() {
             }
           >
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
+            <Route path="/subscribe" element={<SubscribePage />} />
           </Route>
 
           <Route
@@ -113,7 +134,9 @@ export default function AppRoutes() {
           <Route
             element={
               <ProtectedRoute requiredRole="admin">
-                <AppLayout />
+                <SubscriptionGate>
+                  <AppLayout />
+                </SubscriptionGate>
               </ProtectedRoute>
             }
           >

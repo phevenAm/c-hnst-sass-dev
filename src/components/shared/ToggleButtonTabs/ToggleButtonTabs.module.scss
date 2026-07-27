@@ -26,6 +26,14 @@
     }
 }
 
+.sessionTabsFullWidth {
+    width: 100%;
+
+    button {
+        flex: 1;
+    }
+}
+
 .sessionTabActive {
     padding: $sp-2 $sp-5;
     border-radius: calc(var(--r-md) - 1px);

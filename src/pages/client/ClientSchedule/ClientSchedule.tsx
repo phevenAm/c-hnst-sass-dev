@@ -6,17 +6,18 @@ import dayjs from "dayjs";
 import { useAuth } from "@context/AuthContext";
 import { RootState } from "@/store";
 
-import { Card, SessionCard, ToggleButtonTabs } from "@/components/shared";
+import { Badge, Card, SessionCard, ToggleButtonTabs } from "@/components/shared";
 import Button from "@/components/shared/Button/Button";
+import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import CancelSessionModal from "@/components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "@/components/shared/SessionCard/ClientRescheduleModal/ClientRescheduleModal";
-import PaySessionModal from "@/components/shared/SessionCard/PaySessionModal/PaySessionModal";
 import useSessionCard from "@/components/shared/SessionCard/useSessionCard";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useToast } from "@/context/ToastContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import type { Session } from "@/models/globalTypes";
-import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 
 import styles from "./ClientSchedule.module.scss";
@@ -55,21 +56,36 @@ function NextSessionStrip({ session }: { session: Session }) {
             <span>{session.duration_minutes} min</span>
             <span>·</span>
             <span>{isOnline ? "Online" : "In person"}</span>
-            {session.address && isOnline && (
+            {session.address && (
               <>
                 <span>·</span>
-                <a href={session.address} target="_blank" rel="noreferrer" className={styles.joinLink}>
-                  Join meeting
-                </a>
+                {isOnline ? (
+                  <a href={session.address} target="_blank" rel="noreferrer" className={styles.joinLink}>
+                    Join meeting
+                  </a>
+                ) : (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(session.address)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.joinLink}
+                  >
+                    {session.address}
+                  </a>
+                )}
+              </>
+            )}
+            {session.price_pence > 0 && (
+              <>
+                <span>·</span>
+                <span>£{(session.price_pence / 100).toFixed(2)}</span>
               </>
             )}
           </div>
         </div>
 
         <div className={styles.stripRight}>
-          <span className={session.paid ? styles.paidBadge : styles.unpaidBadge}>
-            {session.paid ? "Paid" : "Unpaid"}
-          </span>
+          <Badge variant={session.paid ? "success" : "warning"}>{session.paid ? "Paid" : "Unpaid"}</Badge>
           <Button
             size="sm"
             variant="primary"
@@ -97,7 +113,7 @@ function NextSessionStrip({ session }: { session: Session }) {
         </div>
       </Card>
 
-      {isPayModalOpen && <PaySessionModal session={session} onClose={() => setIsPayModalOpen(false)} />}
+      {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
       {isRescheduleModalOpen && (
         <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
       )}
@@ -109,6 +125,7 @@ function NextSessionStrip({ session }: { session: Session }) {
 const ClientSchedule = () => {
   const { userProfile, isDemo, isAdmin } = useAuth();
   const { showToast } = useToast();
+  const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTabs, setActiveTabs] = useState<"past" | "upcoming">("upcoming");
 
@@ -123,6 +140,10 @@ const ClientSchedule = () => {
     (state: RootState) => state.sessions.status,
     userProfile ? () => fetchSessionsByClientId(userProfile.id) : null,
     "Failed to fetch client's sessions",
+  );
+
+  useRealtimeTable("sessions", userProfile?.id ? `client_id=eq.${userProfile.id}` : undefined, () =>
+    dispatch(fetchSessionsByClientId(userProfile!.id)),
   );
 
   const sessionStatus = useAppSelector((state) => state.sessions.status);
