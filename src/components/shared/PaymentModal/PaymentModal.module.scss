@@ -1,0 +1,127 @@
+.loading {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 1rem 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+
+  & + & {
+    border-left: 1px solid var(--border);
+  }
+
+  &:hover:not(.tabActive) {
+    background: var(--bg-subtle);
+  }
+}
+
+.tabActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.intro {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1.25rem;
+  background: var(--bg-subtle);
+  border-radius: var(--r-md);
+  padding: 1rem 1.25rem;
+  margin: 0;
+
+  dt {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+  }
+
+  dd {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.mono {
+  font-family: monospace;
+  letter-spacing: 0.04em;
+}
+
+.bold {
+  font-weight: 600;
+}
+
+.note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.testCard {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.625rem 0.875rem;
+  line-height: 1.6;
+
+  strong {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  code {
+    font-family: monospace;
+  }
+}
+
+.error {
+  font-size: 0.85rem;
+  color: var(--error);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}

@@ -8,9 +8,9 @@ import { RootState } from "@/store";
 
 import { Card, SessionCard, ToggleButtonTabs } from "@/components/shared";
 import Button from "@/components/shared/Button/Button";
+import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import CancelSessionModal from "@/components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "@/components/shared/SessionCard/ClientRescheduleModal/ClientRescheduleModal";
-import PaySessionModal from "@/components/shared/SessionCard/PaySessionModal/PaySessionModal";
 import useSessionCard from "@/components/shared/SessionCard/useSessionCard";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useToast } from "@/context/ToastContext";
@@ -97,7 +97,7 @@ function NextSessionStrip({ session }: { session: Session }) {
         </div>
       </Card>
 
-      {isPayModalOpen && <PaySessionModal session={session} onClose={() => setIsPayModalOpen(false)} />}
+      {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
       {isRescheduleModalOpen && (
         <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
       )}

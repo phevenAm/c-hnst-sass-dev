@@ -25,6 +25,16 @@ const BUSINESS_FIELDS = [
 
 type BusinessField = (typeof BUSINESS_FIELDS)[number]["key"];
 
+const BANK_FIELDS = [
+  { key: "bank_name", label: "Bank name", placeholder: "e.g. Barclays" },
+  { key: "bank_account_name", label: "Account name", placeholder: "e.g. Sarah Smith Therapy" },
+  { key: "bank_sort_code", label: "Sort code", placeholder: "e.g. 20-00-00" },
+  { key: "bank_account_number", label: "Account number", placeholder: "e.g. 12345678" },
+  { key: "bank_payment_reference", label: "Payment reference", placeholder: "e.g. WithMe — use your name as ref" },
+] as const;
+
+type BankField = (typeof BANK_FIELDS)[number]["key"];
+
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading } = useAuth();
   const { showToast } = useToast();
@@ -42,6 +52,15 @@ const SettingsPage = () => {
   });
   const [logoUrl, setLogoUrl] = useState("");
   const [savingBusiness, setSavingBusiness] = useState(false);
+
+  const [bankDetails, setBankDetails] = useState<Record<BankField, string>>({
+    bank_name: "",
+    bank_account_name: "",
+    bank_sort_code: "",
+    bank_account_number: "",
+    bank_payment_reference: "",
+  });
+  const [savingBank, setSavingBank] = useState(false);
 
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
@@ -62,6 +81,13 @@ const SettingsPage = () => {
         if (data) {
           setPracticeDetails(data as Record<BusinessField, string>);
           setLogoUrl(data.logo_url ?? "");
+          setBankDetails({
+            bank_name: data.bank_name ?? "",
+            bank_account_name: data.bank_account_name ?? "",
+            bank_sort_code: data.bank_sort_code ?? "",
+            bank_account_number: data.bank_account_number ?? "",
+            bank_payment_reference: data.bank_payment_reference ?? "",
+          });
         }
       });
   }, [isAdmin, userProfile?.id]);
@@ -81,6 +107,14 @@ const SettingsPage = () => {
       focus_keywords: keywords.length > 0 ? keywords : null,
     });
     setSaving(false);
+  };
+
+  const handleUpdateBank = async () => {
+    if (!userProfile?.id) return;
+    setSavingBank(true);
+    await supabase.from("practice_settings").update(bankDetails).eq("admin_id", userProfile.id);
+    setSavingBank(false);
+    showToast("Bank details updated.");
   };
 
   const handleUpdateBusiness = async () => {
@@ -223,6 +257,33 @@ const SettingsPage = () => {
             <div className={styles.actions}>
               <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBusiness}>
                 {savingBusiness ? "Saving…" : "Save business info"}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* ── Bank details card (admin only) ── */}
+        {isAdmin && (
+          <Card className={styles.card}>
+            <section className={styles.businessSection}>
+              <h2>Bank details</h2>
+              <p>Shown to clients as a payment option when they pay for a session.</p>
+              <form className={styles.form}>
+                {BANK_FIELDS.map(({ key, label, placeholder }) => (
+                  <div className={styles.field} key={key}>
+                    <label>{label}</label>
+                    <input
+                      value={bankDetails[key]}
+                      placeholder={placeholder}
+                      onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </form>
+            </section>
+            <div className={styles.actions}>
+              <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
+                {savingBank ? "Saving…" : "Save bank details"}
               </Button>
             </div>
           </Card>
