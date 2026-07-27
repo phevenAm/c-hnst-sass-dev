@@ -4,6 +4,7 @@ import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
 
 import { useToast } from "@/context/ToastContext";
+import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { updateSession } from "@/store/slices/sessionsSlice";
@@ -20,13 +21,9 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
   const handleCancel = async () => {
     try {
       await dispatch(updateSession({ id: session.id, status: "cancelled" })).unwrap();
+      supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
       showToast("Session cancelled.", "success");
       onClose();
-      // ! how can i automate refund or at elast flag on admin page that the client has cancelled and they need a refund. provided its within the wingow? maybe the modal should say that if its within 48 hours of the session start, no refund, otherwise they will be refuned
-
-      // admin will need an ElementInternals, and a marker on the users page that hte need to refund X. so maybe i might have to create a bell icons for notifications? these notifications will bascailly be the emails that will also be sent but can be seen in app?
-
-      // i dont know if i can offer redunces and stuff throught eh app, i dont know how somethin glike strip works
     } catch (error: any) {
       showToast(error?.message ?? "Failed to cancel session.", "danger");
     }

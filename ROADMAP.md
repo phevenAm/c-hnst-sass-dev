@@ -4,11 +4,12 @@
 
 | # | Section | Status | Depends on |
 |---|---------|--------|------------|
-| 1 | Check-ins rework: tag-based chart aggregation | In progress | — |
+| 1 | Check-ins rework: tag-based chart aggregation | ✅ Done | — |
+| 0 | Email-sending capability (Resend + Edge Function) | ✅ Done | — |
+| 3 | Scheduler (sessions, reminders, cancellation) | ✅ Done | — |
 | 2 | Show client reflections (free-text answers) | Queued | — |
-| 0 | Email-sending capability (Resend + Edge Function) | Queued | — |
-| 3 | Scheduler (sessions, reminders, cancellation) | Queued | 0 |
 | 6 | Audit log for admin actions | Queued | 3 |
+| A | Admin Scheduler page (bird's-eye calendar + stats) | Queued | 3 |
 | 4 | Safeguarding alert | Queued | 0 |
 | 5 | Attendance / cancellation analytics | Queued | 3 |
 | 7 | Intake → signup bridge (marketing site) | Queued | 0, 3 |
@@ -17,14 +18,29 @@
 
 ---
 
-## Section 0 — Email-sending capability
+## Section 0 — Email-sending capability ✅ Done
 
-Unblocks: 3, 4, 7, 8.
+- Provider: **Resend**. Edge Functions run Deno — uses `fetch` to Resend API directly (no npm package needed).
+- API key in Supabase secrets: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`, `ADMIN_EMAIL`.
+- Shared helpers in `supabase/functions/_shared/email.ts`: `emailTemplate`, `detailsTable`, `noteBox`, `para`, `sendEmail`, `formatDate`.
 
-- Provider: **Resend** (free tier, 3k emails/month). Edge Functions run Deno — import as `npm:resend`.
-- Single Edge Function `supabase/functions/send-email/index.ts` with generic `{ to, subject, html }` interface.
-- API key stored in Supabase secrets (`supabase secrets set RESEND_API_KEY=...`).
-- Cron mechanism: **pg_cron** (keeps scheduling logic next to the DB, not Netlify Scheduled Functions).
+**Deployed edge functions:**
+- `send-session-reminders` — pg_cron fires daily; emails clients 5 days before session (paid = reminder, unpaid = pay-or-lose-slot)
+- `send-payment-notification` — admin marks session paid → client gets confirmation email
+- `notify-session-booked` — admin creates session → client gets booking confirmation
+- `notify-session-cancelled` — session cancelled → client gets cancellation notice
+- `notify-session-rescheduled` — admin reschedules → client gets new date email
+- `notify-questionnaire-assigned` — questionnaire assigned → client gets check-in invite
+- `request-reschedule` — client requests reschedule → admin gets email + notification
+- `create-checkout-session` — client initiates Stripe checkout for a session
+- `cancel-session` — client/admin cancel with Stripe refund logic (outside 48h = full refund)
+- `stripe-webhook` — Stripe fires on payment.completed → marks session paid, emails admin
+
+**Still to wire up (frontend calls — Stephen's side):**
+- After `createSession` succeeds in `CreateSessionModal.tsx`: invoke `notify-session-booked`
+- After cancel in `CancelSessionModal.tsx`: invoke `notify-session-cancelled`
+- After `handleSessionUpdate` succeeds in `CreateSessionModal.tsx`: invoke `notify-session-rescheduled`
+- After `assignQuestionnaire` dispatch in `AdminQuestionnairesPage.tsx`: invoke `notify-questionnaire-assigned`
 
 ---
 

@@ -9,6 +9,7 @@ import Modal from "@components/shared/Modal/Modal";
 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { createSession, updateSession } from "@/store/slices/sessionsSlice";
@@ -90,6 +91,11 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
     const allSuccess = result.every((i) => i?.meta.requestStatus === "fulfilled");
 
     if (allSuccess) {
+      result.forEach((r) => {
+        if (r?.meta.requestStatus === "fulfilled") {
+          supabase.functions.invoke("notify-session-booked", { body: { session_id: (r.payload as Session).id } });
+        }
+      });
       showToast("Sessions saved!");
       onClose();
     } else {
@@ -123,6 +129,9 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
           status: "rescheduled",
         }),
       ).unwrap();
+      supabase.functions.invoke("notify-session-rescheduled", {
+        body: { session_id: sess.id, previous_date: sess.scheduled_at },
+      });
       onClose();
       setIsSaving(false);
       showToast("Session updated successfully.", "success");
