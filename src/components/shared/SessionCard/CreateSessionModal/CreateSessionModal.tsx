@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
 import type { Dayjs } from "dayjs";
@@ -40,6 +40,36 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
   const [error, setError] = useState("");
+  const [savedLocations, setSavedLocations] = useState<string[]>([]);
+  const [savingLocation, setSavingLocation] = useState(false);
+
+  useEffect(() => {
+    if (!authUser) return;
+    supabase
+      .from("practice_settings")
+      .select("saved_locations")
+      .eq("admin_id", authUser.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.saved_locations) setSavedLocations(data.saved_locations as string[]);
+      });
+  }, [authUser?.id]);
+
+  const handleSaveLocation = async () => {
+    if (!sessionAddress.trim() || !authUser) return;
+    const updated = [...new Set([...savedLocations, sessionAddress.trim()])];
+    setSavingLocation(true);
+    await supabase.from("practice_settings").update({ saved_locations: updated }).eq("admin_id", authUser.id);
+    setSavedLocations(updated);
+    setSavingLocation(false);
+  };
+
+  const handleRemoveLocation = async (loc: string) => {
+    if (!authUser) return;
+    const updated = savedLocations.filter((l) => l !== loc);
+    await supabase.from("practice_settings").update({ saved_locations: updated }).eq("admin_id", authUser.id);
+    setSavedLocations(updated);
+  };
 
   const handleSave = async () => {
     if (isDemo) {
@@ -215,12 +245,48 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
           <input
             className={styles.input}
             type={location === "remote" ? "url" : "text"}
-            placeholder={
-              location === "in_person" ? "e.g Location 15 Lodon, LD5 4EO (optional)" : "Meeting link (optional)"
-            }
+            placeholder={location === "in_person" ? "e.g. 15 London Rd, LD5 4EO (optional)" : "Meeting link (optional)"}
             value={sessionAddress}
             onChange={(e) => setSessionAddress(e.target.value)}
           />
+
+          {location === "in_person" && savedLocations.length > 0 && (
+            <div className={styles.savedLocations}>
+              {savedLocations.map((loc) => (
+                <button
+                  key={loc}
+                  type="button"
+                  className={styles.locationChip}
+                  onClick={() => setSessionAddress(loc)}
+                  title={loc}
+                >
+                  {loc}
+                  <span
+                    className={styles.locationChipRemove}
+                    role="button"
+                    aria-label={`Remove ${loc}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveLocation(loc);
+                    }}
+                  >
+                    ×
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {location === "in_person" && sessionAddress.trim() && !savedLocations.includes(sessionAddress.trim()) && (
+            <button
+              type="button"
+              className={styles.saveLocationBtn}
+              onClick={handleSaveLocation}
+              disabled={savingLocation}
+            >
+              {savingLocation ? "Saving…" : "+ Save this location"}
+            </button>
+          )}
         </fieldset>
 
         {!session && (
