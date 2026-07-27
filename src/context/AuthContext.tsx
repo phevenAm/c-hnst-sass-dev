@@ -11,9 +11,15 @@ type ProfileUpdates = Partial<
   Pick<UserProfile, "display_name" | "avatar_url" | "focus_keywords" | "onboarding_completed">
 >;
 
+type PracticeSettings = {
+  subscription_status: string;
+  stripe_connect_onboarded: boolean;
+};
+
 type AuthContextType = {
   authUser: AuthUser | null;
   userProfile: UserProfile | null;
+  practiceSettings: PracticeSettings | null;
   displayName: string | null;
   loading: boolean;
   error: string | null;
@@ -24,6 +30,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, meta?: Record<string, unknown>, accessToken?: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: ProfileUpdates) => Promise<void>;
+  refreshPracticeSettings: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +48,7 @@ export const useAuth = () => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [practiceSettings, setPracticeSettings] = useState<PracticeSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,8 +77,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentAuthUser) {
         const profileData = await fetchProfile(currentAuthUser);
         setUserProfile(profileData);
+
+        if (profileData?.role === "admin") {
+          const { data: settings } = await supabase
+            .from("practice_settings")
+            .select("subscription_status, stripe_connect_onboarded")
+            .eq("admin_id", currentAuthUser.id)
+            .single();
+          setPracticeSettings(settings ?? null);
+        } else {
+          setPracticeSettings(null);
+        }
       } else {
         setUserProfile(null);
+        setPracticeSettings(null);
       }
     }
 
@@ -197,6 +217,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [authUser, userProfile],
   );
 
+  const refreshPracticeSettings = useCallback(async () => {
+    if (!authUser || userProfile?.role !== "admin") return;
+    const { data } = await supabase
+      .from("practice_settings")
+      .select("subscription_status, stripe_connect_onboarded")
+      .eq("admin_id", authUser.id)
+      .single();
+    setPracticeSettings(data ?? null);
+  }, [authUser, userProfile?.role]);
+
   const signOut = useCallback(async () => {
     setError(null);
 
@@ -215,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       authUser,
       userProfile,
+      practiceSettings,
       displayName,
       error,
       loading,
@@ -225,8 +256,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       updateProfile,
+      refreshPracticeSettings,
     }),
-    [authUser, userProfile, displayName, error, loading, signIn, signUp, signOut, updateProfile],
+    [
+      authUser,
+      userProfile,
+      practiceSettings,
+      displayName,
+      error,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      updateProfile,
+      refreshPracticeSettings,
+    ],
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

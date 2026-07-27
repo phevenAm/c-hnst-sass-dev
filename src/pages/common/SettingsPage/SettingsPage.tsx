@@ -61,6 +61,7 @@ const SettingsPage = () => {
     bank_payment_reference: "",
   });
   const [savingBank, setSavingBank] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
 
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
@@ -88,6 +89,7 @@ const SettingsPage = () => {
             bank_account_number: data.bank_account_number ?? "",
             bank_payment_reference: data.bank_payment_reference ?? "",
           });
+          setStripeConnected(data.stripe_connect_onboarded ?? false);
         }
       });
   }, [isAdmin, userProfile?.id]);
@@ -290,9 +292,35 @@ const SettingsPage = () => {
         )}
       </div>
 
-      {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
-    </div>
-  );
+        {/* ── Stripe Connect card (admin only) ── */}
+        {isAdmin && (
+          <Card className={styles.card}>
+            <section className={styles.businessSection}>
+              <h2>Card payments</h2>
+              <p>
+                Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
+              </p>
+              {stripeConnected ? (
+                <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
+                    const redirect = `${window.location.origin}/settings/stripe-callback`;
+                    window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
+                  }}
+                >
+                  Connect Stripe account
+                </Button>
+              )}
+            </section>
+          </Card>
+        )}
+      </div>
+  isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />;
+  </div>
+  )
 };
 
 export default SettingsPage;

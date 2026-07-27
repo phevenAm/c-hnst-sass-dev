@@ -51,27 +51,22 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Session already paid" }), { status: 400, headers: corsHeaders });
     }
 
-    const { data: profile } = await supabase
-      .from("users")
-      .select("first_name, last_name, stripe_customer_id")
-      .eq("id", user.id)
+    // Fetch the counsellor's Stripe Connect account
+    const { data: practiceSettings } = await supabase
+      .from("practice_settings")
+      .select("stripe_connect_account_id, stripe_connect_onboarded")
+      .eq("admin_id", session.created_by)
       .single();
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-      apiVersion: "2024-06-20",
-    });
-
-    // Get or create Stripe customer so returning clients don't re-enter card details
-    let customerId = profile?.stripe_customer_id ?? null;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() : undefined,
-        metadata: { supabase_user_id: user.id },
+    if (!practiceSettings?.stripe_connect_onboarded || !practiceSettings?.stripe_connect_account_id) {
+      return new Response(JSON.stringify({ error: "Your counsellor has not connected their Stripe account yet." }), {
+        status: 422,
+        headers: corsHeaders,
       });
-      customerId = customer.id;
-      await supabase.from("users").update({ stripe_customer_id: customerId }).eq("id", user.id);
     }
+
+    const connectAccountId = practiceSettings.stripe_connect_account_id;
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
 
     // Determine amount — block sessions charge for the whole block at once
     const meta = session.metadata as { block_id?: string; block_total?: number } | null;
@@ -96,24 +91,27 @@ Deno.serve(async (req) => {
 
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "gbp",
-            unit_amount: amountPence,
-            product_data: { name: description },
+    // Direct charge on the counsellor's connected account — money goes straight to them, 0% platform fee
+    const checkoutSession = await stripe.checkout.sessions.create(
+      {
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "gbp",
+              unit_amount: amountPence,
+              product_data: { name: description },
+            },
+            quantity: 1,
           },
-          quantity: 1,
-        },
-      ],
-      metadata: checkoutMeta,
-      success_url: `${appUrl}/my-sessions?payment=success`,
-      cancel_url: `${appUrl}/my-sessions?payment=cancelled`,
-    });
+        ],
+        metadata: checkoutMeta,
+        success_url: `${appUrl}/my-sessions?payment=success`,
+        cancel_url: `${appUrl}/my-sessions?payment=cancelled`,
+      },
+      { stripeAccount: connectAccountId },
+    );
 
     return new Response(JSON.stringify({ url: checkoutSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -97,7 +97,18 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout-session", {
         body: { session_id: session.id },
       });
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) {
+        const msg: string = fnError.message ?? "";
+        if (msg.toLowerCase().includes("not connected") || msg.includes("422")) {
+          setError(
+            "Card payment isn't available yet. Please pay by bank transfer or ask your therapist to connect their Stripe account.",
+          );
+        } else {
+          setError(msg || "Something went wrong. Please try again.");
+        }
+        setIsRedirecting(false);
+        return;
+      }
       if (!data?.url) throw new Error("No checkout URL returned");
       window.location.href = data.url;
     } catch (err: any) {

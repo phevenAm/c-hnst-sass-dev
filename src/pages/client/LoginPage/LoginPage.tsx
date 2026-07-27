@@ -129,6 +129,12 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+          <p className={styles.footer}>
+            Are you a therapist?{" "}
+            <Link to="/register" className={styles.link}>
+              Register your practice
+            </Link>
+          </p>
         </div>
 
         <div className={styles.demoSection}>
