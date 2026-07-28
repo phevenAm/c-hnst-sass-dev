@@ -519,7 +519,18 @@
 .modalIntro {
   font-size: 0.85rem;
   color: var(--text-muted);
+  margin-bottom: $sp-4;
+}
+
+.purposeBox {
+  background: var(--bg-muted);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  padding: $sp-4 $sp-5;
   margin-bottom: $sp-6;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  line-height: 1.7;
 }
 
 .termSection {
@@ -552,6 +563,16 @@
 .agreeBtn {
   width: 100%;
   justify-content: center;
+}
+
+.termsBodyLink {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--accent-dark);
+  }
 }
 
 .declineBtn {

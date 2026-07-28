@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
@@ -48,7 +48,7 @@ const PRICING_FEATURES = [
   { text: "Practice analytics and PDF export", slide: 3 },
 ];
 
-const TERMS_SECTIONS = [
+const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   {
     title: "1. Introduction",
     body: "These Terms & Conditions govern your use of WithMe, operated by WithMe. By registering an account or subscribing, you agree to be bound by these Terms.",
@@ -67,7 +67,32 @@ const TERMS_SECTIONS = [
   },
   {
     title: "5. Clinical records",
-    body: "WithMe is a practice management tool covering scheduling, payments, client check-ins, and resources. It is not designed to store confidential clinical session notes. Per BACP guidance, session notes must be held in a separate, encrypted system with access controls, linked to clients by an identifier rather than name, and kept for a minimum of three years after the therapeutic relationship ends. You remain responsible for ensuring your record-keeping meets BACP guidelines and UK GDPR.",
+    body: (
+      <>
+        WithMe covers scheduling, payments, client check-ins, and resources. It is{" "}
+        <strong>not designed to store confidential clinical session notes</strong> — these must be kept in a separate,
+        encrypted system with access controls, linked to clients by an identifier rather than name, and retained for a
+        minimum of three years after the therapeutic relationship ends, in line with{" "}
+        <a
+          href="https://www.bacp.co.uk/media/20401/bacp-confidentiality-and-record-keeping-crp-gpia065-jan24.pdf"
+          target="_blank"
+          rel="noreferrer"
+          className={styles.termsBodyLink}
+        >
+          BACP record-keeping guidance (Jan 2024)
+        </a>{" "}
+        and{" "}
+        <a
+          href="https://www.bacp.co.uk/news/news-from-bacp/blogs/2025/blogs-and-vlogs/21-march-notes-and-record-keeping/"
+          target="_blank"
+          rel="noreferrer"
+          className={styles.termsBodyLink}
+        >
+          UK GDPR
+        </a>
+        . You remain solely responsible for your own record-keeping compliance.
+      </>
+    ),
   },
   {
     title: "6. Cancellation & account deletion",
@@ -266,6 +291,12 @@ export default function SubscribePage() {
             </div>
             <div className={styles.modalBody}>
               <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
+              <div className={styles.purposeBox}>
+                <strong>WithMe is a practice management tool</strong> for independent counsellors and therapists. It
+                helps you manage clients, schedule sessions, send questionnaires, and process payments. It is{" "}
+                <strong>not a clinical record system</strong> — confidential session notes must be stored separately in
+                a secure, encrypted solution that meets your professional obligations.
+              </div>
               {TERMS_SECTIONS.map(({ title: st, body }) => (
                 <div key={st} className={styles.termSection}>
                   <h3>{st}</h3>
