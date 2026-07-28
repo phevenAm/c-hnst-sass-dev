@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
 import { CheckIcon, ClipboardIcon, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
@@ -41,10 +41,45 @@ const SLIDES = [
 ];
 
 const PRICING_FEATURES = [
-  "Unlimited clients and sessions",
-  "Card payments via Stripe Connect",
-  "Client check-ins and questionnaires",
-  "Practice analytics and PDF export",
+  { text: "Unlimited clients and sessions", slide: 0 },
+  { text: "Card payments via Stripe Connect", slide: 2 },
+  { text: "Client check-ins and questionnaires", slide: 1 },
+  { text: "Practice analytics and PDF export", slide: 3 },
+];
+
+const TERMS_SECTIONS = [
+  {
+    title: "1. Introduction",
+    body: "These Terms & Conditions govern your use of WithMe, operated by WithMe. By registering an account or subscribing, you agree to be bound by these Terms.",
+  },
+  {
+    title: "2. Service description",
+    body: "WithMe is a practice management platform for independent counsellors and therapists — managing clients, sessions, questionnaires, and payments. Provided on a monthly subscription basis.",
+  },
+  {
+    title: "3. Subscription & payment",
+    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — WithMe takes no cut.",
+  },
+  {
+    title: "4. Data & privacy",
+    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. WithMe acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
+  },
+  {
+    title: "5. Acceptable use",
+    body: "You must not use the Platform for any unlawful purpose or in a way that could harm WithMe or any third party. You are responsible for maintaining the confidentiality of your credentials.",
+  },
+  {
+    title: "6. Cancellation & account deletion",
+    body: "Cancel your subscription at any time via Settings → Manage subscription. Delete your account and all data via Settings → Delete account. Deletion is permanent and cannot be undone.",
+  },
+  {
+    title: "7. Limitation of liability",
+    body: "The Platform is provided 'as is'. WithMe excludes all liability for indirect or consequential loss. Total liability in any 12-month period shall not exceed subscription fees paid in that period.",
+  },
+  {
+    title: "8. Governing law",
+    body: "These Terms are governed by the laws of England and Wales. Disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.",
+  },
 ];
 
 export default function SubscribePage() {
@@ -54,6 +89,7 @@ export default function SubscribePage() {
   const [error, setError] = useState("");
   const [current, setCurrent] = useState(0);
   const [agreed, setAgreed] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -79,6 +115,11 @@ export default function SubscribePage() {
   const goTo = (index: number) => {
     setCurrent(index);
     startAutoAdvance();
+  };
+
+  const handleAgree = () => {
+    setAgreed(true);
+    setTermsOpen(false);
   };
 
   const handleSubscribe = async () => {
@@ -121,14 +162,14 @@ export default function SubscribePage() {
               </div>
 
               <div className={styles.dots}>
-                {SLIDES.map((_, i) => (
+                {SLIDES.map((s, i) => (
                   <button
                     // biome-ignore lint/suspicious/noArrayIndexKey: stable order
                     key={i}
                     type="button"
                     className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
                     onClick={() => goTo(i)}
-                    aria-label={`Go to slide ${i + 1}`}
+                    aria-label={s.title}
                   />
                 ))}
               </div>
@@ -150,22 +191,28 @@ export default function SubscribePage() {
               <hr className={styles.divider} />
 
               <ul className={styles.featureList}>
-                {PRICING_FEATURES.map((f) => (
-                  <li key={f}>{f}</li>
+                {PRICING_FEATURES.map(({ text, slide: slideIdx }) => (
+                  <li key={text}>
+                    <button
+                      type="button"
+                      className={`${styles.featureBtn} ${slideIdx === current ? styles.featureBtnActive : ""}`}
+                      onClick={() => goTo(slideIdx)}
+                    >
+                      {text}
+                    </button>
+                  </li>
                 ))}
               </ul>
 
               <hr className={styles.divider} />
 
-              <label className={styles.termsLabel}>
-                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                <span>
-                  I agree to the{" "}
-                  <Link to="/terms" className={styles.termsLink}>
-                    Terms &amp; Conditions
-                  </Link>
-                </span>
-              </label>
+              {agreed ? (
+                <p className={styles.agreedNote}>Terms accepted</p>
+              ) : (
+                <button type="button" className={styles.termsBtn} onClick={() => setTermsOpen(true)}>
+                  Read &amp; accept Terms &amp; Conditions
+                </button>
+              )}
 
               {error && <p className={styles.error}>{error}</p>}
 
@@ -178,6 +225,37 @@ export default function SubscribePage() {
           </div>
         </div>
       </div>
+
+      {/* ── T&Cs modal ── */}
+      {termsOpen && (
+        <div className={styles.backdrop} onClick={() => setTermsOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Terms &amp; Conditions</h2>
+              <button type="button" className={styles.modalClose} onClick={() => setTermsOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
+              {TERMS_SECTIONS.map(({ title: st, body }) => (
+                <div key={st} className={styles.termSection}>
+                  <h3>{st}</h3>
+                  <p>{body}</p>
+                </div>
+              ))}
+            </div>
+            <div className={styles.modalFooter}>
+              <Button onClick={handleAgree} className={styles.agreeBtn}>
+                I agree — continue to payment
+              </Button>
+              <button type="button" className={styles.declineBtn} onClick={() => setTermsOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
