@@ -526,14 +526,15 @@
   margin-bottom: $sp-6;
 
   h3 {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     margin-bottom: $sp-2;
+    color: var(--text-primary);
   }
 
   p {
-    font-size: 0.925rem;
-    color: var(--text-secondary);
+    font-size: 0.875rem;
+    color: var(--text-primary);
     line-height: 1.75;
     margin: 0;
   }

@@ -67,7 +67,7 @@ const TERMS_SECTIONS = [
   },
   {
     title: "5. Acceptable use",
-    body: "You must not use the Platform for any unlawful purpose or in a way that could harm WithMe or any third party. You are responsible for maintaining the confidentiality of your credentials.",
+    body: "You may only use WithMe for lawful practice management purposes. You must not share your login credentials or attempt to access another practice's data. You are responsible for ensuring your use of the platform complies with your professional code of conduct and any applicable regulatory requirements.",
   },
   {
     title: "6. Cancellation & account deletion",
