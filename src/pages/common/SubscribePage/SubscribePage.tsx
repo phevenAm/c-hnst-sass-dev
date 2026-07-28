@@ -141,60 +141,59 @@ export default function SubscribePage() {
   const { Icon, title, description, points } = SLIDES[current];
 
   return (
-    <div className={styles.pageWrap}>
-      {/* ── Minimal header ── */}
-      <header className={styles.pageHeader}>
-        <div className={styles.logo}>
+    <main className={styles.page}>
+      <div className={styles.blobTop} aria-hidden="true" />
+      <div className={styles.blobBottom} aria-hidden="true" />
+
+      <div className={styles.container}>
+        {/* Logo */}
+        <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
             <LogoIcon />
           </div>
-          <span className={styles.logoText}>WithMe</span>
+          <h1 className={styles.logoTitle}>WithMe</h1>
+          <p className={styles.logoSub}>Start your subscription</p>
         </div>
-        <button type="button" className={styles.signOutBtn} onClick={signOut}>
-          Sign out
-        </button>
-      </header>
 
-      {/* ── Main content ── */}
-      <main className={styles.main}>
-        <div className={styles.grid}>
-          {/* ── Left: feature carousel ── */}
-          <div className={styles.left}>
-            <p className={styles.eyebrow}>Practice management</p>
-            <h1 className={styles.heading}>Everything you need to run your practice</h1>
+        {/* Wide card */}
+        <div className={styles.card}>
+          <div className={styles.grid}>
+            {/* ── Left: carousel ── */}
+            <div className={styles.left}>
+              <p className={styles.eyebrow}>Practice management</p>
+              <h2 className={styles.heading}>Everything you need to run your practice</h2>
 
-            <div className={styles.carousel}>
-              <div key={current} className={styles.slide}>
-                <div className={styles.slideIconWrap}>
-                  <Icon />
+              <div className={styles.carousel}>
+                <div key={current} className={styles.slide}>
+                  <div className={styles.slideIconWrap}>
+                    <Icon />
+                  </div>
+                  <h3 className={styles.slideTitle}>{title}</h3>
+                  <p className={styles.slideDesc}>{description}</p>
+                  <ul className={styles.slidePoints}>
+                    {points.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
                 </div>
-                <h2 className={styles.slideTitle}>{title}</h2>
-                <p className={styles.slideDesc}>{description}</p>
-                <ul className={styles.slidePoints}>
-                  {points.map((p) => (
-                    <li key={p}>{p}</li>
-                  ))}
-                </ul>
-              </div>
 
-              <div className={styles.dots}>
-                {SLIDES.map((s, i) => (
-                  <button
-                    // biome-ignore lint/suspicious/noArrayIndexKey: stable order
-                    key={i}
-                    type="button"
-                    className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
-                    onClick={() => goTo(i)}
-                    aria-label={s.title}
-                  />
-                ))}
+                <div className={styles.dots}>
+                  {SLIDES.map((s, i) => (
+                    <button
+                      // biome-ignore lint/suspicious/noArrayIndexKey: stable order
+                      key={i}
+                      type="button"
+                      className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
+                      onClick={() => goTo(i)}
+                      aria-label={s.title}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ── Right: pricing card ── */}
-          <div className={styles.right}>
-            <div className={styles.pricingCard}>
+            {/* ── Right: pricing ── */}
+            <div className={styles.right}>
               <p className={styles.planLabel}>WithMe Practice</p>
 
               <div className={styles.priceRow}>
@@ -246,7 +245,14 @@ export default function SubscribePage() {
             </div>
           </div>
         </div>
-      </main>
+
+        <p className={styles.footer}>
+          Wrong account?{" "}
+          <button type="button" className={styles.signOutLink} onClick={signOut}>
+            Sign out
+          </button>
+        </p>
+      </div>
 
       {/* ── T&Cs modal ── */}
       {termsOpen && (
@@ -278,6 +284,6 @@ export default function SubscribePage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
