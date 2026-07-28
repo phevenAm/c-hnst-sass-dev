@@ -33,6 +33,7 @@ export default function CounsellorSignupPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) navigate("/admin", { replace: true });
@@ -133,9 +134,24 @@ export default function CounsellorSignupPage() {
               </div>
             ))}
 
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" className={styles.link}>
+                  Terms &amp; Conditions
+                </Link>
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={submitting || !form.email || !form.password || !form.confirm}
+              disabled={submitting || !agreed || !form.email || !form.password || !form.confirm}
               className={styles.submitBtn}
             >
               {submitting ? "Creating account…" : "Create account"}

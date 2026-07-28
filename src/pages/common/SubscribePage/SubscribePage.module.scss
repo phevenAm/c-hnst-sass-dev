@@ -1,9 +1,13 @@
 .container {
-  max-width: 480px;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   padding-top: var(--spacing-xl);
+}
+
+.header {
+  margin-bottom: var(--spacing-lg);
 }
 
 .heading {
@@ -14,25 +18,148 @@
 .price {
   color: var(--text-secondary);
   font-size: 1.1rem;
-  margin-bottom: var(--spacing-lg);
 }
 
-.features {
+// ── Carousel ──────────────────────────────────────────────────────────────────
+
+.carousel {
+  width: 100%;
+  margin-bottom: var(--spacing-xl);
+}
+
+.slide {
+  display: flex;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: var(--bg-card);
+  border-radius: 12px;
+  min-height: 200px;
+  align-items: flex-start;
+  animation: slideIn 0.3s ease;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slideIcon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border-radius: 10px;
+  color: #fff;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+}
+
+.slideBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.slideTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-xs);
+}
+
+.slideDesc {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.5;
+}
+
+.slidePoints {
   list-style: none;
   padding: 0;
-  margin: 0 0 var(--spacing-lg);
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 
   li {
     color: var(--text-secondary);
+    font-size: 0.9rem;
 
     &::before {
-      content: "✓ ";
+      content: "✓  ";
       color: var(--accent);
       font-weight: 600;
     }
+  }
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: var(--spacing-md);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-muted);
+  border: 2px solid var(--border-color, #ccc);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+
+  &.activeDot {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.35);
+  }
+}
+
+// ── T&Cs + CTA ────────────────────────────────────────────────────────────────
+
+.termsLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.termsLink {
+  color: var(--accent);
+  text-decoration: underline;
+
+  &:hover {
+    opacity: 0.8;
   }
 }
 

@@ -36,7 +36,7 @@ const BANK_FIELDS = [
 type BankField = (typeof BANK_FIELDS)[number]["key"];
 
 const SettingsPage = () => {
-  const { userProfile, updateProfile, isAdmin, isDemo, loading } = useAuth();
+  const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings } = useAuth();
   const { showToast } = useToast();
   const [name, setName] = useState(userProfile?.display_name ?? "");
   const [imageUrl, setImageUrl] = useState(userProfile?.avatar_url ?? "");
@@ -62,6 +62,7 @@ const SettingsPage = () => {
   });
   const [savingBank, setSavingBank] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
+  const [loadingPortal, setLoadingPortal] = useState(false);
 
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
@@ -128,6 +129,19 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingBusiness(false);
     showToast("Business information updated.");
+  };
+
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("create-billing-portal-session");
+      if (fnError) throw new Error(fnError.message);
+      if (!data?.url) throw new Error("No portal URL returned");
+      window.location.href = data.url;
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+      setLoadingPortal(false);
+    }
   };
 
   // const guard = isPageStatusLoading();
@@ -313,6 +327,45 @@ const SettingsPage = () => {
                 </Button>
               )}
             </section>
+          </Card>
+        )}
+
+        {/* ── Subscription card (admin only) ── */}
+        {isAdmin && practiceSettings && (
+          <Card className={styles.card}>
+            <section className={styles.businessSection}>
+              <h2>Subscription</h2>
+              <p>
+                Status:{" "}
+                <strong
+                  style={{
+                    color:
+                      practiceSettings.subscription_status === "active" ||
+                      practiceSettings.subscription_status === "trialing"
+                        ? "var(--color-success)"
+                        : practiceSettings.subscription_status === "paused"
+                          ? "var(--color-warning, #f59e0b)"
+                          : "var(--color-danger)",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {practiceSettings.subscription_status}
+                </strong>
+              </p>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+                Manage your plan, update your payment method, or cancel through the Stripe billing portal.
+              </p>
+            </section>
+            <div className={styles.actions}>
+              <Button
+                variant="primary"
+                className={styles.saveButton}
+                onClick={handleManageSubscription}
+                disabled={loadingPortal}
+              >
+                {loadingPortal ? "Opening…" : "Manage subscription"}
+              </Button>
+            </div>
           </Card>
         )}
       </div>
