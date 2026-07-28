@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
