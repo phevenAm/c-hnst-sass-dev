@@ -1,52 +1,63 @@
-.container {
-  max-width: 560px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+.wrapper {
+  max-width: 980px;
   padding-top: var(--spacing-xl);
+  padding-bottom: var(--spacing-xxl);
 }
 
-.header {
-  margin-bottom: var(--spacing-lg);
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--spacing-xxl);
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Left column ───────────────────────────────────────────────────────────────
+
+.left {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: var(--spacing-sm);
 }
 
 .heading {
-  font-size: 1.75rem;
-  margin-bottom: var(--spacing-xs);
-}
-
-.price {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: var(--spacing-xl);
+  max-width: 480px;
 }
 
 // ── Carousel ──────────────────────────────────────────────────────────────────
 
 .carousel {
   width: 100%;
-  margin-bottom: var(--spacing-xl);
 }
 
 .slide {
-  display: flex;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xl);
   background: var(--bg-card);
-  border-radius: 12px;
-  min-height: 200px;
-  align-items: flex-start;
-  animation: slideIn 0.3s ease;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 14px;
+  padding: var(--spacing-xl);
+  min-height: 260px;
+  animation: fadeUp 0.3s ease;
 }
 
-@keyframes slideIn {
+@keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -54,31 +65,26 @@
   }
 }
 
-.slideIcon {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+.slideIconWrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
-  border-radius: 10px;
   color: #fff;
+  margin-bottom: var(--spacing-md);
 
   svg {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     fill: currentColor;
   }
 }
 
-.slideBody {
-  flex: 1;
-  min-width: 0;
-}
-
 .slideTitle {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: var(--spacing-xs);
 }
@@ -86,8 +92,8 @@
 .slideDesc {
   color: var(--text-secondary);
   font-size: 0.95rem;
-  margin-bottom: var(--spacing-md);
-  line-height: 1.5;
+  line-height: 1.6;
+  margin-bottom: var(--spacing-lg);
 }
 
 .slidePoints {
@@ -96,16 +102,20 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
 
   li {
-    color: var(--text-secondary);
     font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
 
     &::before {
-      content: "✓  ";
+      content: "✓";
       color: var(--accent);
-      font-weight: 600;
+      font-weight: 700;
+      flex-shrink: 0;
     }
   }
 }
@@ -114,7 +124,7 @@
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-lg);
 }
 
 .dot {
@@ -125,29 +135,119 @@
   border: 2px solid var(--border-color, #ccc);
   cursor: pointer;
   padding: 0;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
 
   &.activeDot {
     background: var(--accent);
     border-color: var(--accent);
-    transform: scale(1.35);
+    transform: scale(1.4);
   }
 }
 
-// ── T&Cs + CTA ────────────────────────────────────────────────────────────────
+// ── Right column: pricing card ────────────────────────────────────────────────
+
+.right {
+  @media (max-width: 720px) {
+    order: -1;
+  }
+}
+
+.pricingCard {
+  background: var(--bg-card);
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: var(--spacing-xl);
+  position: sticky;
+  top: 24px;
+}
+
+.planLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: var(--spacing-sm);
+}
+
+.priceRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.currency {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  padding-bottom: 6px;
+}
+
+.amount {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.period {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  padding-bottom: 8px;
+  margin-left: 4px;
+}
+
+.billingNote {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  margin: var(--spacing-lg) 0;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  li {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+
+    &::before {
+      content: "✓";
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+  }
+}
 
 .termsLabel {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   margin-bottom: var(--spacing-md);
   cursor: pointer;
 
   input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     accent-color: var(--accent);
     cursor: pointer;
     flex-shrink: 0;
@@ -157,14 +257,23 @@
 .termsLink {
   color: var(--accent);
   text-decoration: underline;
-
-  &:hover {
-    opacity: 0.8;
-  }
 }
 
 .error {
   color: var(--color-danger);
-  margin-bottom: var(--spacing-md);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.subscribeBtn {
+  width: 100%;
+  justify-content: center;
+}
+
+.secureNote {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-md);
+  margin-bottom: 0;
 }

@@ -40,6 +40,13 @@ const SLIDES = [
   },
 ];
 
+const PRICING_FEATURES = [
+  "Unlimited clients and sessions",
+  "Card payments via Stripe Connect",
+  "Client check-ins and questionnaires",
+  "Practice analytics and PDF export",
+];
+
 export default function SubscribePage() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -92,57 +99,84 @@ export default function SubscribePage() {
 
   return (
     <div className="page">
-      <div className={`inner ${styles.container}`}>
-        <header className={styles.header}>
-          <h1 className={styles.heading}>Start your WithMe subscription</h1>
-          <p className={styles.price}>£12 / month &mdash; cancel any time</p>
-        </header>
+      <div className={`inner ${styles.wrapper}`}>
+        <div className={styles.grid}>
+          {/* ── Left: feature carousel ── */}
+          <div className={styles.left}>
+            <p className={styles.eyebrow}>Practice management</p>
+            <h1 className={styles.heading}>Everything you need to run your practice</h1>
 
-        <div className={styles.carousel}>
-          <div key={current} className={styles.slide}>
-            <div className={styles.slideIcon}>
-              <Icon />
+            <div className={styles.carousel}>
+              <div key={current} className={styles.slide}>
+                <div className={styles.slideIconWrap}>
+                  <Icon />
+                </div>
+                <h2 className={styles.slideTitle}>{title}</h2>
+                <p className={styles.slideDesc}>{description}</p>
+                <ul className={styles.slidePoints}>
+                  {points.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className={styles.dots}>
+                {SLIDES.map((_, i) => (
+                  <button
+                    // biome-ignore lint/suspicious/noArrayIndexKey: stable order
+                    key={i}
+                    type="button"
+                    className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
+                    onClick={() => goTo(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                  />
+                ))}
+              </div>
             </div>
-            <div className={styles.slideBody}>
-              <h2 className={styles.slideTitle}>{title}</h2>
-              <p className={styles.slideDesc}>{description}</p>
-              <ul className={styles.slidePoints}>
-                {points.map((p) => (
-                  <li key={p}>{p}</li>
+          </div>
+
+          {/* ── Right: pricing card ── */}
+          <div className={styles.right}>
+            <div className={styles.pricingCard}>
+              <p className={styles.planLabel}>WithMe Practice</p>
+
+              <div className={styles.priceRow}>
+                <span className={styles.currency}>£</span>
+                <span className={styles.amount}>12</span>
+                <span className={styles.period}>/ month</span>
+              </div>
+              <p className={styles.billingNote}>Billed monthly &middot; Cancel any time</p>
+
+              <hr className={styles.divider} />
+
+              <ul className={styles.featureList}>
+                {PRICING_FEATURES.map((f) => (
+                  <li key={f}>{f}</li>
                 ))}
               </ul>
+
+              <hr className={styles.divider} />
+
+              <label className={styles.termsLabel}>
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/terms" className={styles.termsLink}>
+                    Terms &amp; Conditions
+                  </Link>
+                </span>
+              </label>
+
+              {error && <p className={styles.error}>{error}</p>}
+
+              <Button onClick={handleSubscribe} disabled={loading || !agreed} className={styles.subscribeBtn}>
+                {loading ? "Redirecting to payment…" : "Start subscription"}
+              </Button>
+
+              <p className={styles.secureNote}>Secure payment via Stripe</p>
             </div>
           </div>
-
-          <div className={styles.dots}>
-            {SLIDES.map((_, i) => (
-              <button
-                // biome-ignore lint/suspicious/noArrayIndexKey: stable order, not re-ordered
-                key={i}
-                type="button"
-                className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
-                onClick={() => goTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
-          </div>
         </div>
-
-        <label className={styles.termsLabel}>
-          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-          <span>
-            I agree to the{" "}
-            <Link to="/terms" className={styles.termsLink}>
-              Terms &amp; Conditions
-            </Link>
-          </span>
-        </label>
-
-        {error && <p className={styles.error}>{error}</p>}
-
-        <Button onClick={handleSubscribe} disabled={loading || !agreed}>
-          {loading ? "Redirecting to payment…" : "Subscribe — £12 / month"}
-        </Button>
       </div>
     </div>
   );
