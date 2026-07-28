@@ -517,24 +517,24 @@
 }
 
 .modalIntro {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: $sp-5;
+  margin-bottom: $sp-6;
 }
 
 .termSection {
-  margin-bottom: $sp-5;
+  margin-bottom: $sp-6;
 
   h3 {
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 700;
     margin-bottom: $sp-2;
   }
 
   p {
-    font-size: 0.82rem;
+    font-size: 0.925rem;
     color: var(--text-secondary);
-    line-height: 1.65;
+    line-height: 1.75;
     margin: 0;
   }
 }
