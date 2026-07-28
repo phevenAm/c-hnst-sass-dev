@@ -123,6 +123,16 @@ export default function AppRoutes() {
           <Route path="/register" element={<CounsellorSignupPage />} />
           <Route path="/terms" element={<TermsPage />} />
 
+          {/* Standalone — no navbar, own minimal header */}
+          <Route
+            path="/subscribe"
+            element={
+              <ProtectedRoute>
+                <SubscribePage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             element={
               <ProtectedRoute>
@@ -132,7 +142,6 @@ export default function AppRoutes() {
           >
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
-            <Route path="/subscribe" element={<SubscribePage />} />
           </Route>
 
           <Route

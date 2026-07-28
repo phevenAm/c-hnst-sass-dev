@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
-import { CheckIcon, ClipboardIcon, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
+import { CheckIcon, ClipboardIcon, LogoIcon, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
+import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
@@ -85,6 +86,7 @@ const TERMS_SECTIONS = [
 export default function SubscribePage() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
+  const { signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [current, setCurrent] = useState(0);
@@ -139,8 +141,22 @@ export default function SubscribePage() {
   const { Icon, title, description, points } = SLIDES[current];
 
   return (
-    <div className="page">
-      <div className={`inner ${styles.wrapper}`}>
+    <div className={styles.pageWrap}>
+      {/* ── Minimal header ── */}
+      <header className={styles.pageHeader}>
+        <div className={styles.logo}>
+          <div className={styles.logoMark}>
+            <LogoIcon />
+          </div>
+          <span className={styles.logoText}>WithMe</span>
+        </div>
+        <button type="button" className={styles.signOutBtn} onClick={signOut}>
+          Sign out
+        </button>
+      </header>
+
+      {/* ── Main content ── */}
+      <main className={styles.main}>
         <div className={styles.grid}>
           {/* ── Left: feature carousel ── */}
           <div className={styles.left}>
@@ -207,10 +223,16 @@ export default function SubscribePage() {
               <hr className={styles.divider} />
 
               {agreed ? (
-                <p className={styles.agreedNote}>Terms accepted</p>
+                <div className={styles.agreedBadge}>
+                  <span>✓</span> Terms &amp; Conditions accepted
+                </div>
               ) : (
                 <button type="button" className={styles.termsBtn} onClick={() => setTermsOpen(true)}>
-                  Read &amp; accept Terms &amp; Conditions
+                  <span className={styles.termsBtnLeft}>
+                    <span className={styles.termsBtnStep}>Required</span>
+                    <span className={styles.termsBtnLabel}>Read &amp; accept Terms &amp; Conditions</span>
+                  </span>
+                  <span className={styles.termsBtnArrow}>→</span>
                 </button>
               )}
 
@@ -220,11 +242,11 @@ export default function SubscribePage() {
                 {loading ? "Redirecting to payment…" : "Start subscription"}
               </Button>
 
-              <p className={styles.secureNote}>Secure payment via Stripe</p>
+              <p className={styles.secureNote}>🔒 Secure payment via Stripe</p>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* ── T&Cs modal ── */}
       {termsOpen && (
