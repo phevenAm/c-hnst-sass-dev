@@ -1,24 +1,153 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
+import { CheckIcon, ClipboardIcon, LogoIcon, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
+import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
 
 import styles from "./SubscribePage.module.scss";
 
+const SLIDES = [
+  {
+    Icon: UsersIcon,
+    title: "Your clients, organised",
+    description: "Manage client profiles, session history, questionnaires, and notes — all in one place.",
+    points: ["Client profiles and onboarding", "Custom questionnaires and responses", "Session notes and history"],
+  },
+  {
+    Icon: ClipboardIcon,
+    title: "Sessions made simple",
+    description: "Schedule appointments, track attendance, and stay on top of your caseload effortlessly.",
+    points: ["Book and reschedule sessions", "Real-time session status updates", "Calendar and schedule views"],
+  },
+  {
+    Icon: PaidIcon,
+    title: "Payments that just work",
+    description: "Accept bank transfers or Stripe card payments. Money goes directly to your account.",
+    points: [
+      "Bank transfer details shown to clients",
+      "Stripe card payments via Connect",
+      "No platform cut on client payments",
+    ],
+  },
+  {
+    Icon: CheckIcon,
+    title: "Real-time practice dashboard",
+    description: "See your whole practice at a glance — sessions, check-ins, and outstanding items.",
+    points: ["Upcoming sessions and schedule", "Client check-in tracking", "Analytics, PDF reports, and export"],
+  },
+];
+
+const PRICING_FEATURES = [
+  { text: "Unlimited clients and sessions", slide: 0 },
+  { text: "Card payments via Stripe Connect", slide: 2 },
+  { text: "Client check-ins and questionnaires", slide: 1 },
+  { text: "Practice analytics and PDF export", slide: 3 },
+];
+
+const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
+  {
+    title: "1. Introduction",
+    body: "These Terms & Conditions govern your use of WithMe, operated by WithMe. By registering an account or subscribing, you agree to be bound by these Terms.",
+  },
+  {
+    title: "2. Service description",
+    body: "WithMe is a practice management platform for independent counsellors and therapists — managing clients, sessions, questionnaires, and payments. Provided on a monthly subscription basis.",
+  },
+  {
+    title: "3. Subscription & payment",
+    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — WithMe takes no cut.",
+  },
+  {
+    title: "4. Data & privacy",
+    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. WithMe acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
+  },
+  {
+    title: "5. Clinical records",
+    body: (
+      <>
+        WithMe covers scheduling, payments, client check-ins, and resources. It is{" "}
+        <strong>not designed to store confidential clinical session notes</strong> — these must be kept in a separate,
+        encrypted system with access controls, linked to clients by an identifier rather than name, and retained for a
+        minimum of three years after the therapeutic relationship ends, in line with{" "}
+        <a
+          href="https://www.bacp.co.uk/media/20401/bacp-confidentiality-and-record-keeping-crp-gpia065-jan24.pdf"
+          target="_blank"
+          rel="noreferrer"
+          className={styles.termsBodyLink}
+        >
+          BACP record-keeping guidance (Jan 2024)
+        </a>{" "}
+        and{" "}
+        <a
+          href="https://www.bacp.co.uk/news/news-from-bacp/blogs/2025/blogs-and-vlogs/21-march-notes-and-record-keeping/"
+          target="_blank"
+          rel="noreferrer"
+          className={styles.termsBodyLink}
+        >
+          UK GDPR
+        </a>
+        . You remain solely responsible for your own record-keeping compliance.
+      </>
+    ),
+  },
+  {
+    title: "6. Cancellation & account deletion",
+    body: "Cancel your subscription at any time via Settings → Manage subscription. Delete your account and all data via Settings → Delete account. Deletion is permanent and cannot be undone.",
+  },
+  {
+    title: "7. Limitation of liability",
+    body: "The Platform is provided 'as is'. WithMe excludes all liability for indirect or consequential loss. Total liability in any 12-month period shall not exceed subscription fees paid in that period.",
+  },
+  {
+    title: "8. Governing law",
+    body: "These Terms are governed by the laws of England and Wales. Disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.",
+  },
+];
+
 export default function SubscribePage() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
+  const { signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [current, setCurrent] = useState(0);
+  const [agreed, setAgreed] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (searchParams.get("canceled") === "true") {
-      showToast("Subscription cancelled — you can try again any time.", "warning");
+      showToast("Checkout cancelled — you can try again any time.", "warning");
     }
   }, []);
+
+  const startAutoAdvance = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setCurrent((c) => (c + 1) % SLIDES.length);
+    }, 5000);
+  };
+
+  useEffect(() => {
+    startAutoAdvance();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const goTo = (index: number) => {
+    setCurrent(index);
+    startAutoAdvance();
+  };
+
+  const handleAgree = () => {
+    setAgreed(true);
+    setTermsOpen(false);
+  };
 
   const handleSubscribe = async () => {
     setLoading(true);
@@ -34,25 +163,158 @@ export default function SubscribePage() {
     }
   };
 
+  const { Icon, title, description, points } = SLIDES[current];
+
   return (
-    <div className="page">
-      <div className={`inner ${styles.container}`}>
-        <h1 className={styles.heading}>Start your WithMe subscription</h1>
-        <p className={styles.price}>£12 / month &mdash; cancel any time</p>
+    <main className={styles.page}>
+      <div className={styles.blobTop} aria-hidden="true" />
+      <div className={styles.blobBottom} aria-hidden="true" />
 
-        <ul className={styles.features}>
-          <li>Manage clients, sessions, questionnaires and resources</li>
-          <li>Accept payments by bank transfer or Stripe card</li>
-          <li>Real-time session tracking and practice dashboard</li>
-          <li>Client check-ins and progress overview</li>
-        </ul>
+      <div className={styles.container}>
+        {/* Logo */}
+        <div className={styles.logoWrap}>
+          <div className={styles.logoMark}>
+            <LogoIcon />
+          </div>
+          <h1 className={styles.logoTitle}>WithMe</h1>
+          <p className={styles.logoSub}>Start your subscription</p>
+        </div>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {/* Wide card */}
+        <div className={styles.card}>
+          <div className={styles.grid}>
+            {/* ── Left: carousel ── */}
+            <div className={styles.left}>
+              <p className={styles.eyebrow}>Practice management</p>
+              <h2 className={styles.heading}>Everything you need to run your practice</h2>
 
-        <Button onClick={handleSubscribe} disabled={loading}>
-          {loading ? "Redirecting to payment…" : "Subscribe — £12 / month"}
-        </Button>
+              <div className={styles.carousel}>
+                <div key={current} className={styles.slide}>
+                  <div className={styles.slideIconWrap}>
+                    <Icon />
+                  </div>
+                  <h3 className={styles.slideTitle}>{title}</h3>
+                  <p className={styles.slideDesc}>{description}</p>
+                  <ul className={styles.slidePoints}>
+                    {points.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className={styles.dots}>
+                  {SLIDES.map((s, i) => (
+                    <button
+                      // biome-ignore lint/suspicious/noArrayIndexKey: stable order
+                      key={i}
+                      type="button"
+                      className={`${styles.dot} ${i === current ? styles.activeDot : ""}`}
+                      onClick={() => goTo(i)}
+                      aria-label={s.title}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Right: pricing ── */}
+            <div className={styles.right}>
+              <p className={styles.planLabel}>WithMe Practice</p>
+
+              <div className={styles.priceRow}>
+                <span className={styles.currency}>£</span>
+                <span className={styles.amount}>12</span>
+                <span className={styles.period}>/ month</span>
+              </div>
+              <p className={styles.billingNote}>Billed monthly &middot; Cancel any time</p>
+
+              <hr className={styles.divider} />
+
+              <ul className={styles.featureList}>
+                {PRICING_FEATURES.map(({ text, slide: slideIdx }) => (
+                  <li key={text}>
+                    <button
+                      type="button"
+                      className={`${styles.featureBtn} ${slideIdx === current ? styles.featureBtnActive : ""}`}
+                      onClick={() => goTo(slideIdx)}
+                    >
+                      {text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              <hr className={styles.divider} />
+
+              {agreed ? (
+                <div className={styles.agreedBadge}>
+                  <span>✓</span> Terms &amp; Conditions accepted
+                </div>
+              ) : (
+                <button type="button" className={styles.termsBtn} onClick={() => setTermsOpen(true)}>
+                  <span className={styles.termsBtnLeft}>
+                    <span className={styles.termsBtnStep}>Required</span>
+                    <span className={styles.termsBtnLabel}>Read &amp; accept Terms &amp; Conditions</span>
+                  </span>
+                  <span className={styles.termsBtnArrow}>→</span>
+                </button>
+              )}
+
+              {error && <p className={styles.error}>{error}</p>}
+
+              <Button onClick={handleSubscribe} disabled={loading || !agreed} className={styles.subscribeBtn}>
+                {loading ? "Redirecting to payment…" : "Start subscription"}
+              </Button>
+
+              <p className={styles.secureNote}>🔒 Secure payment via Stripe</p>
+            </div>
+          </div>
+        </div>
+
+        <p className={styles.footer}>
+          Wrong account?{" "}
+          <button type="button" className={styles.signOutLink} onClick={signOut}>
+            Sign out
+          </button>
+        </p>
       </div>
-    </div>
+
+      {/* ── T&Cs modal ── */}
+      {termsOpen && (
+        <div className={styles.backdrop} onClick={() => setTermsOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Terms &amp; Conditions</h2>
+              <button type="button" className={styles.modalClose} onClick={() => setTermsOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
+              <div className={styles.purposeBox}>
+                <strong>WithMe is a practice management tool</strong> for independent counsellors and therapists. It
+                helps you manage clients, schedule sessions, send questionnaires, and process payments. It is{" "}
+                <strong>not a clinical record system</strong> — confidential session notes must be stored separately in
+                a secure, encrypted solution that meets your professional obligations.
+              </div>
+              {TERMS_SECTIONS.map(({ title: st, body }) => (
+                <div key={st} className={styles.termSection}>
+                  <h3>{st}</h3>
+                  <p>{body}</p>
+                </div>
+              ))}
+            </div>
+            <div className={styles.modalFooter}>
+              <Button onClick={handleAgree} className={styles.agreeBtn}>
+                I agree — continue to payment
+              </Button>
+              <button type="button" className={styles.declineBtn} onClick={() => setTermsOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }

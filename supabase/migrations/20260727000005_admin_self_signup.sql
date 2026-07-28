@@ -29,8 +29,7 @@ begin
     values (
       new.id,
       nullif(trim(coalesce(new.raw_user_meta_data->>'practice_name', '')), '')
-    )
-    on conflict (admin_id) do nothing;
+    );
   end if;
 
   return new;

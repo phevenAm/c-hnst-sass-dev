@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
@@ -26,6 +26,7 @@ import SettingsPage from "../pages/common/SettingsPage/SettingsPage";
 import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
 import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
 import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
+import TermsPage from "../pages/common/TermsPage/TermsPage";
 import { useAppSelector } from "../store/hooks";
 import { selectThemeMode } from "../store/slices/themeSlice";
 
@@ -69,8 +70,23 @@ function AppLayout() {
 }
 
 function SubscriptionGate({ children }: { children: React.ReactNode }) {
-  const { isAdmin, practiceSettings, loading } = useAuth();
-  if (loading) return <Spinner />;
+  const { isAdmin, practiceSettings, loading, refreshPracticeSettings } = useAuth();
+  const [searchParams] = useSearchParams();
+  const justSubscribed = searchParams.get("subscribed") === "true";
+  const [verifying, setVerifying] = useState(justSubscribed);
+
+  useEffect(() => {
+    if (!justSubscribed) return;
+    // Give the Stripe webhook a moment to update the DB, then re-check
+    const timer = setTimeout(async () => {
+      await refreshPracticeSettings();
+      setVerifying(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading || verifying) return <Spinner />;
+
   if (
     isAdmin &&
     practiceSettings &&
@@ -105,6 +121,17 @@ export default function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/register" element={<CounsellorSignupPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+
+          {/* Standalone — no navbar, own minimal header */}
+          <Route
+            path="/subscribe"
+            element={
+              <ProtectedRoute>
+                <SubscribePage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             element={
@@ -115,7 +142,6 @@ export default function AppRoutes() {
           >
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
-            <Route path="/subscribe" element={<SubscribePage />} />
           </Route>
 
           <Route

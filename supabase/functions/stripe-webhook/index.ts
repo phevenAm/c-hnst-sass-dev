@@ -37,6 +37,18 @@ Deno.serve(async (req) => {
       .eq("billing_customer_id", sub.customer as string);
   }
 
+  // ── Subscription checkout completed — activate account immediately ───────────
+  if (event.type === "checkout.session.completed") {
+    const cs = event.data.object as Stripe.Checkout.Session;
+    if (cs.mode === "subscription" && cs.metadata?.admin_id) {
+      await supabase
+        .from("practice_settings")
+        .update({ subscription_status: "active" })
+        .eq("admin_id", cs.metadata.admin_id);
+      return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });
+    }
+  }
+
   // ── Session payment events (from connected counsellor accounts) ───────────────
   if (event.type === "checkout.session.completed") {
     const checkoutSession = event.data.object as Stripe.Checkout.Session;
