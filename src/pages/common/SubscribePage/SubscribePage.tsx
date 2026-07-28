@@ -66,8 +66,8 @@ const TERMS_SECTIONS = [
     body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. WithMe acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
   },
   {
-    title: "5. Acceptable use",
-    body: "You may only use WithMe for lawful practice management purposes. You must not share your login credentials or attempt to access another practice's data. You are responsible for ensuring your use of the platform complies with your professional code of conduct and any applicable regulatory requirements.",
+    title: "5. Clinical records",
+    body: "WithMe is a practice management tool covering scheduling, payments, client check-ins, and resources. It is not designed to store confidential clinical session notes. Per BACP guidance, session notes must be held in a separate, encrypted system with access controls, linked to clients by an identifier rather than name, and kept for a minimum of three years after the therapeutic relationship ends. You remain responsible for ensuring your record-keeping meets BACP guidelines and UK GDPR.",
   },
   {
     title: "6. Cancellation & account deletion",
