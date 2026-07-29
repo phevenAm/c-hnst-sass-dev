@@ -13,6 +13,7 @@ type ProfileUpdates = Partial<
 
 type PracticeSettings = {
   subscription_status: string;
+  subscription_plan: string;
   stripe_connect_onboarded: boolean;
 };
 
@@ -26,6 +27,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isDemo: boolean;
+  isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, meta?: Record<string, unknown>, accessToken?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileData?.role === "admin") {
           const { data: settings } = await supabase
             .from("practice_settings")
-            .select("subscription_status, stripe_connect_onboarded")
+            .select("subscription_status, subscription_plan, stripe_connect_onboarded")
             .eq("admin_id", currentAuthUser.id)
             .single();
           setPracticeSettings(settings ?? null);
@@ -145,25 +147,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(message);
       }
 
-      const { data: tokenRow, error: tokenError } = await supabase
-        .from("platform_access_token")
-        .select("id, token, is_used")
-        .eq("token", cleanedToken)
-        .maybeSingle();
+      // Validate via a security-definer RPC rather than reading the token table
+      // directly: RLS keeps every practice's tokens private, and this only
+      // confirms the one token the signer already holds (no enumeration).
+      const { data: isTokenValid, error: tokenError } = await supabase.rpc("validate_platform_access_token", {
+        input_token: cleanedToken,
+      });
 
       if (tokenError) {
         setError(tokenError.message);
         throw new Error(tokenError.message);
       }
 
-      if (!tokenRow) {
-        const message = "Invalid access token.";
-        setError(message);
-        throw new Error(message);
-      }
-
-      if (tokenRow.is_used === true) {
-        const message = "This access token has already been used.";
+      if (!isTokenValid) {
+        const message = "Invalid or already-used access token.";
         setError(message);
         throw new Error(message);
       }
@@ -221,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!authUser || userProfile?.role !== "admin") return;
     const { data } = await supabase
       .from("practice_settings")
-      .select("subscription_status, stripe_connect_onboarded")
+      .select("subscription_status, subscription_plan, stripe_connect_onboarded")
       .eq("admin_id", authUser.id)
       .single();
     setPracticeSettings(data ?? null);
@@ -252,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!authUser,
       isAdmin: userProfile?.role === "admin",
       isDemo: userProfile?.is_demo ?? false,
+      isSuperAdmin: (userProfile as Record<string, unknown>)?.is_superadmin === true,
       signIn,
       signUp,
       signOut,

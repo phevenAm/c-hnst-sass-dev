@@ -48,6 +48,14 @@ const PRICING_FEATURES = [
   { text: "Practice analytics and PDF export", slide: 3 },
 ];
 
+type Plan = "website" | "app" | "bundle";
+
+const PLANS: Record<Plan, { label: string; monthly: number; desc: string }> = {
+  website: { label: "Website", monthly: 15, desc: "Branded client portal" },
+  app: { label: "App", monthly: 20, desc: "Practice management" },
+  bundle: { label: "Website + App", monthly: 29, desc: "Everything included" },
+};
+
 const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   {
     title: "1. Introduction",
@@ -117,6 +125,7 @@ export default function SubscribePage() {
   const [current, setCurrent] = useState(0);
   const [agreed, setAgreed] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [plan, setPlan] = useState<Plan>("app");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -153,7 +162,9 @@ export default function SubscribePage() {
     setLoading(true);
     setError("");
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("create-subscription-checkout");
+      const { data, error: fnError } = await supabase.functions.invoke("create-subscription-checkout", {
+        body: { plan },
+      });
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
       window.location.href = data.url;
@@ -162,6 +173,9 @@ export default function SubscribePage() {
       setLoading(false);
     }
   };
+
+  const selectedPlan = PLANS[plan];
+  const displayPrice = selectedPlan.monthly;
 
   const { Icon, title, description, points } = SLIDES[current];
 
@@ -219,11 +233,27 @@ export default function SubscribePage() {
 
             {/* ── Right: pricing ── */}
             <div className={styles.right}>
-              <p className={styles.planLabel}>WithMe Practice</p>
+              {/* Plan selector */}
+              <div className={styles.planCards}>
+                {(Object.entries(PLANS) as [Plan, (typeof PLANS)[Plan]][]).map(([key, p]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`${styles.planCard} ${plan === key ? styles.planCardActive : ""}`}
+                    onClick={() => setPlan(key)}
+                  >
+                    <span className={styles.planCardName}>{p.label}</span>
+                    <span className={styles.planCardPrice}>
+                      £{p.monthly}
+                      <span className={styles.planCardPer}>/mo</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
 
               <div className={styles.priceRow}>
                 <span className={styles.currency}>£</span>
-                <span className={styles.amount}>12</span>
+                <span className={styles.amount}>{displayPrice}</span>
                 <span className={styles.period}>/ month</span>
               </div>
               <p className={styles.billingNote}>Billed monthly &middot; Cancel any time</p>

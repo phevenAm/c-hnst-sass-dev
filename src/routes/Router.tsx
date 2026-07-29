@@ -27,6 +27,7 @@ import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
 import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
 import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
 import TermsPage from "../pages/common/TermsPage/TermsPage";
+import SuperAdminPage from "../pages/superadmin/SuperAdminPage/SuperAdminPage";
 import { useAppSelector } from "../store/hooks";
 import { selectThemeMode } from "../store/slices/themeSlice";
 
@@ -39,9 +40,10 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function RootRedirect() {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
   if (loading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 }
 
@@ -67,6 +69,13 @@ function AppLayout() {
       <Footer />
     </>
   );
+}
+
+function SuperAdminGate({ children }: { children: React.ReactNode }) {
+  const { isSuperAdmin, loading } = useAuth();
+  if (loading) return <Spinner />;
+  if (!isSuperAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
 }
 
 function SubscriptionGate({ children }: { children: React.ReactNode }) {
@@ -176,6 +185,17 @@ export default function AppRoutes() {
             <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
             {/* //! make admin/schedule/userSchedule route */}
           </Route>
+
+          <Route
+            path="/superadmin"
+            element={
+              <ProtectedRoute>
+                <SuperAdminGate>
+                  <SuperAdminPage />
+                </SuperAdminGate>
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<div>CAUGHT: {window.location.pathname}</div>} />

@@ -192,4 +192,31 @@ export type SessionEvent = {
   created_at: string;
 };
 
+// Recurring weekly availability template. day_of_week matches JS Date.getDay()
+// (0 = Sunday … 6 = Saturday). start_time / end_time are Postgres `time`
+// values, i.e. "HH:MM:SS" strings. Hand-typed until `npm run update-types`.
+export type AvailabilityRule = {
+  id: string;
+  admin_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  label: string | null;
+  created_at: string;
+};
+
+// One-off exception to the recurring template, tied to a specific date.
+//   is_blocked === true  → availability removed (holiday). Null times = whole day.
+//   is_blocked === false → an extra one-off window (start/end always present).
+export type AvailabilityOverride = {
+  id: string;
+  admin_id: string;
+  override_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  is_blocked: boolean;
+  label: string | null;
+  created_at: string;
+};
+
 export type Todo = Tables<"admin_todos">;

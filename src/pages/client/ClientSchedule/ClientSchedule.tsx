@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import type { View } from "react-big-calendar";
+import { Views } from "react-big-calendar";
 import { useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
@@ -9,6 +11,7 @@ import { RootState } from "@/store";
 import { Badge, Card, SessionCard, ToggleButtonTabs } from "@/components/shared";
 import Button from "@/components/shared/Button/Button";
 import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
+import SchedulerCalendar from "@/components/shared/SchedulerCalendar/SchedulerCalendar";
 import CancelSessionModal from "@/components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "@/components/shared/SessionCard/ClientRescheduleModal/ClientRescheduleModal";
 import useSessionCard from "@/components/shared/SessionCard/useSessionCard";
@@ -17,7 +20,9 @@ import { useToast } from "@/context/ToastContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import type { Session } from "@/models/globalTypes";
+import { availabilityEvents, clientSessionEvents } from "@/pages/admin/AdminScheduler/schedulerUtils";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 
 import styles from "./ClientSchedule.module.scss";
@@ -128,6 +133,9 @@ const ClientSchedule = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTabs, setActiveTabs] = useState<"past" | "upcoming">("upcoming");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calDate, setCalDate] = useState<Date>(new Date());
+  const [calView, setCalView] = useState<View>(Views.WORK_WEEK);
 
   useEffect(() => {
     if (searchParams.get("payment") === "success") {
@@ -142,9 +150,16 @@ const ClientSchedule = () => {
     "Failed to fetch client's sessions",
   );
 
+  // Availability powers the calendar view — the client's own RLS lets them read
+  // their counsellor's rules + overrides, so they can see open/blocked windows.
+  useFetchOnIdle((state: RootState) => state.availability.status, fetchAvailability, "Failed to fetch availability");
+
   useRealtimeTable("sessions", userProfile?.id ? `client_id=eq.${userProfile.id}` : undefined, () =>
     dispatch(fetchSessionsByClientId(userProfile!.id)),
   );
+
+  const rules = useAppSelector((state) => state.availability.rules);
+  const overrides = useAppSelector((state) => state.availability.overrides);
 
   const sessionStatus = useAppSelector((state) => state.sessions.status);
   const mySessions = (useAppSelector((state) => state.sessions.sessions) ?? [])
@@ -165,6 +180,12 @@ const ClientSchedule = () => {
     activeTab: activeTabs === "past" ? "left" : "right",
   };
 
+  // Calendar events: the client's own sessions + their counsellor's windows.
+  const calendarEvents = useMemo(
+    () => [...availabilityEvents(calDate, rules, overrides), ...clientSessionEvents(mySessions)],
+    [calDate, rules, overrides, mySessions],
+  );
+
   const guard = isPageStatusLoading(sessionStatus);
   if (guard) return guard;
 
@@ -182,7 +203,17 @@ const ClientSchedule = () => {
   return (
     <div className="page">
       <div className="inner">
-        <h1 className={styles.heading}>My Sessions</h1>
+        <div className={styles.headingRow}>
+          <h1 className={styles.heading}>My Sessions</h1>
+          <div className={styles.viewToggle}>
+            <Button size="sm" variant={showCalendar ? "ghost" : "primary"} onClick={() => setShowCalendar(false)}>
+              List
+            </Button>
+            <Button size="sm" variant={showCalendar ? "primary" : "ghost"} onClick={() => setShowCalendar(true)}>
+              Calendar
+            </Button>
+          </div>
+        </div>
 
         {/* TODO Section 5 — client attendance summary
             Add a small stat strip here between the heading and the next session card.
@@ -198,20 +229,33 @@ const ClientSchedule = () => {
           </Card>
         )}
 
-        <Card className={styles.sessionsList}>
-          <div className={styles.tabContainer}>
-            <ToggleButtonTabs {...tabsObj} />
-          </div>
-          {sessionsToRender.length === 0 ? (
-            <p className={styles.emptyList}>{emptyMessage}</p>
-          ) : (
-            <div className={styles.scrollable}>
-              {sessionsToRender.map((session) => (
-                <SessionCard key={session.id} session={session} isAdmin={isAdmin} isDemo={isDemo} />
-              ))}
+        {showCalendar ? (
+          <Card className={styles.calendarCard}>
+            <SchedulerCalendar
+              events={calendarEvents}
+              date={calDate}
+              view={calView}
+              onNavigate={setCalDate}
+              onView={setCalView}
+              height="60vh"
+            />
+          </Card>
+        ) : (
+          <Card className={styles.sessionsList}>
+            <div className={styles.tabContainer}>
+              <ToggleButtonTabs {...tabsObj} />
             </div>
-          )}
-        </Card>
+            {sessionsToRender.length === 0 ? (
+              <p className={styles.emptyList}>{emptyMessage}</p>
+            ) : (
+              <div className={styles.scrollable}>
+                {sessionsToRender.map((session) => (
+                  <SessionCard key={session.id} session={session} isAdmin={isAdmin} isDemo={isDemo} />
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
       </div>
     </div>
   );

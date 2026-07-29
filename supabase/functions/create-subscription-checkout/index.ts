@@ -7,6 +7,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type Plan = "website" | "app" | "bundle";
+
+function getPriceId(plan: Plan): string {
+  const ids: Record<Plan, string> = {
+    website: Deno.env.get("STRIPE_PRICE_WEBSITE")!,
+    app: Deno.env.get("STRIPE_PRICE_APP")!,
+    bundle: Deno.env.get("STRIPE_PRICE_BUNDLE")!,
+  };
+  const id = ids[plan];
+  if (!id) throw new Error(`Missing Stripe price ID for plan: ${plan}`);
+  return id;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -38,6 +51,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
+    // Plan from request body — default to 'app' for backwards compatibility
+    let plan: Plan = "app";
+    try {
+      const body = await req.json();
+      if (body?.plan && ["website", "app", "bundle"].includes(body.plan)) {
+        plan = body.plan as Plan;
+      }
+    } catch {
+      // No body or invalid JSON — use default
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
 
     const { data: settings } = await supabase
@@ -66,16 +90,17 @@ Deno.serve(async (req) => {
       customer: billingCustomerId,
       payment_method_types: ["card"],
       mode: "subscription",
-      line_items: [{ price: Deno.env.get("STRIPE_SUBSCRIPTION_PRICE_ID")!, quantity: 1 }],
+      line_items: [{ price: getPriceId(plan), quantity: 1 }],
       success_url: `${appUrl}/admin?subscribed=true`,
       cancel_url: `${appUrl}/subscribe`,
-      metadata: { admin_id: user.id },
+      metadata: { admin_id: user.id, plan },
     });
 
     return new Response(JSON.stringify({ url: checkoutSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return new Response(JSON.stringify({ error: message }), { status: 500, headers: corsHeaders });
   }
 });

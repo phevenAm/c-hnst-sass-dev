@@ -41,9 +41,10 @@ Deno.serve(async (req) => {
   if (event.type === "checkout.session.completed") {
     const cs = event.data.object as Stripe.Checkout.Session;
     if (cs.mode === "subscription" && cs.metadata?.admin_id) {
+      const plan = cs.metadata?.plan ?? "app";
       await supabase
         .from("practice_settings")
-        .update({ subscription_status: "active" })
+        .update({ subscription_status: "active", subscription_plan: plan })
         .eq("admin_id", cs.metadata.admin_id);
       return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });
     }

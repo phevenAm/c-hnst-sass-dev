@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
+import dayjs from "dayjs";
+
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
+import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
@@ -13,6 +16,7 @@ import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectActiveQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchResponsesByUser, selectUserResponses } from "@store/slices/responsesSlice";
+import { fetchSessionsByClientId } from "@store/slices/sessionsSlice";
 
 import styles from "./ClientDashboard.module.scss";
 
@@ -74,6 +78,22 @@ export default function ClientDashboard() {
     () => fetchResponsesByUser(authUser?.id ?? ""),
     "Failed to fetch user responses",
   );
+
+  useFetchOnIdle(
+    (state: RootState) => state.sessions.status,
+    authUser ? () => fetchSessionsByClientId(authUser.id) : null,
+    "Failed to fetch sessions",
+  );
+
+  const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
+  const nextSession = useMemo(() => {
+    const now = new Date();
+    return (
+      allSessions
+        .filter((s) => s.status !== "cancelled" && new Date(s.scheduled_at) > now)
+        .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] ?? null
+    );
+  }, [allSessions]);
 
   const latestResponse = chartResponses[chartResponses.length - 1] ?? null;
 
@@ -162,7 +182,33 @@ export default function ClientDashboard() {
           ))}
         </div>
 
-        {/* //!show upcomiing sessions and if they user hasnt paid yet / they need to cancel. user should be emailed 4 days in advance */}
+        <Card>
+          <div className={styles.cardPad}>
+            <h3 className={styles.cardTitle}>Next session</h3>
+            {nextSession ? (
+              <div className={styles.checkInRow}>
+                <div>
+                  <p className={styles.checkInTitle}>{dayjs(nextSession.scheduled_at).format("dddd D MMM · h:mma")}</p>
+                  <p className={styles.checkInFreq}>
+                    {nextSession.location === "in_person" ? "In person" : "Online"} · {nextSession.duration_minutes} min
+                  </p>
+                </div>
+                <div className={styles.nextSessionActions}>
+                  <Badge variant={nextSession.paid ? "success" : "warning"}>
+                    {nextSession.paid ? "Paid" : "Unpaid"}
+                  </Badge>
+                  <Link to="/my-sessions" style={{ textDecoration: "none" }}>
+                    <Button size="sm" variant="secondary">
+                      View
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <p className={styles.emptyText}>No upcoming sessions booked.</p>
+            )}
+          </div>
+        </Card>
 
         <div className={styles.chartWrap}>
           <ProgressChart responses={chartResponses} questions={allAssignedQuestions} title="Your Wellbeing Over Time" />

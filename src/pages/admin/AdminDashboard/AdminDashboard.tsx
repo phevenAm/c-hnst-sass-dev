@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
+import dayjs from "dayjs";
+
 import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { BookIcon, CheckIcon, ClipboardIcon, KeyIcon, RescheduleIcon, UsersIcon } from "@components/shared/Icons/Icons";
-import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -71,6 +72,17 @@ export default function AdminDashboard() {
     return map;
   }, [allSessions]);
 
+  // All upcoming (future, non-cancelled) sessions, soonest first.
+  const upcomingSessions = useMemo(() => {
+    const now = new Date();
+    return allSessions
+      .filter((s) => s.status !== "cancelled" && new Date(s.scheduled_at) > now)
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  }, [allSessions]);
+
+  const nextSession = upcomingSessions[0] ?? null;
+  const nextSessionClient = nextSession ? allClients.find((c) => c.id === nextSession.client_id) : undefined;
+
   const guard = isPageStatusLoading(usersStatus, questionnairesStatus, resourcesStatus);
   if (guard) return guard;
 
@@ -109,8 +121,8 @@ export default function AdminDashboard() {
   ];
 
   const schedulerMetric = {
-    label: "Scheduler",
-    value: null,
+    label: "Upcoming sessions",
+    value: upcomingSessions.length,
     icon: <RescheduleIcon />,
     color: "stone",
     to: "/admin/scheduler",
@@ -142,6 +154,11 @@ export default function AdminDashboard() {
                   <KeyIcon />
                 </div>
               </Link>
+              <Link to="/admin/scheduler?availability=1" title="Manage availability">
+                <div className={`${styles.metricIcon} ${styles.teal}`}>
+                  <RescheduleIcon />
+                </div>
+              </Link>
             </div>
           </Card>
         </div>
@@ -157,18 +174,65 @@ export default function AdminDashboard() {
               </Card>
             </Link>
           ))}
-          <WIP>
-            <Link to={schedulerMetric.to} style={{ textDecoration: "none" }}>
-              <Card className={styles.metricCard}>
-                <div className={`${styles.metricIcon} ${styles[schedulerMetric.color]}`}>{schedulerMetric.icon}</div>
-                <p className={styles.metricValue}>{schedulerMetric.value ?? 0}</p>
-                <p className={styles.metricLabel}>{schedulerMetric.label}</p>
-              </Card>
-            </Link>
-          </WIP>
+          <Link to={schedulerMetric.to} style={{ textDecoration: "none" }}>
+            <Card className={styles.metricCard}>
+              <div className={`${styles.metricIcon} ${styles[schedulerMetric.color]}`}>{schedulerMetric.icon}</div>
+              <p className={styles.metricValue}>{schedulerMetric.value ?? 0}</p>
+              <p className={styles.metricLabel}>{schedulerMetric.label}</p>
+            </Card>
+          </Link>
         </div>
 
         <div className={styles.bottomGrid}>
+          {/* Next session */}
+          <Card>
+            <div className={styles.cardPad}>
+              <div className={styles.cardHeader}>
+                <h2>Next session</h2>
+                <Link to="/admin/scheduler" style={{ textDecoration: "none" }}>
+                  <Button variant="ghost" size="sm">
+                    Open schedule
+                  </Button>
+                </Link>
+              </div>
+              {nextSession ? (
+                <Link
+                  to={nextSession.client_id ? `/admin/clients/${nextSession.client_id}` : "/admin/scheduler"}
+                  className={styles.clientRowLink}
+                >
+                  <div className={styles.clientRow}>
+                    <Avatar
+                      name={
+                        nextSessionClient
+                          ? nextSessionClient.display_name ||
+                            `${nextSessionClient.first_name} ${nextSessionClient.last_name}`
+                          : "Client"
+                      }
+                      color="teal"
+                      size={36}
+                    />
+                    <div className={styles.clientInfo}>
+                      <p className={styles.clientName}>
+                        {nextSessionClient
+                          ? `${nextSessionClient.first_name} ${nextSessionClient.last_name}`
+                          : "Client"}
+                      </p>
+                      <p className={styles.clientMeta}>
+                        {dayjs(nextSession.scheduled_at).format("ddd D MMM · h:mma")} ·{" "}
+                        {nextSession.location === "in_person" ? "In person" : "Online"}
+                      </p>
+                    </div>
+                    <Badge variant={nextSession.paid ? "success" : "warning"}>
+                      {nextSession.paid ? "Paid" : "Unpaid"}
+                    </Badge>
+                  </div>
+                </Link>
+              ) : (
+                <p className={styles.empty}>No upcoming sessions booked.</p>
+              )}
+            </div>
+          </Card>
+
           {/* Clients */}
           <Card>
             <div className={styles.cardPad}>
