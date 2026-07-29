@@ -81,11 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile(profileData);
 
         if (profileData?.role === "admin") {
+          // maybeSingle (not single): a demo admin — or any admin without a
+          // practice_settings row — legitimately has no row, and single() would
+          // 406 on zero rows. maybeSingle returns null cleanly.
           const { data: settings } = await supabase
             .from("practice_settings")
             .select("subscription_status, subscription_plan, stripe_connect_onboarded")
             .eq("admin_id", currentAuthUser.id)
-            .single();
+            .maybeSingle();
           setPracticeSettings(settings ?? null);
         } else {
           setPracticeSettings(null);
@@ -220,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .from("practice_settings")
       .select("subscription_status, subscription_plan, stripe_connect_onboarded")
       .eq("admin_id", authUser.id)
-      .single();
+      .maybeSingle();
     setPracticeSettings(data ?? null);
   }, [authUser, userProfile?.role]);
 
