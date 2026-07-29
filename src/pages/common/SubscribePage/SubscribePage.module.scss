@@ -237,6 +237,56 @@
   }
 }
 
+// ── Plan cards ────────────────────────────────────────────────────────────────
+
+.planCards {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  margin-bottom: $sp-5;
+}
+
+.planCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $sp-3 $sp-4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: var(--accent);
+    background: var(--bg-card);
+  }
+
+  &.planCardActive {
+    border-color: var(--accent);
+    background: var(--accent-subtle);
+  }
+}
+
+.planCardName {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.planCardPrice {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.planCardPer {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 // ── Right: pricing column ─────────────────────────────────────────────────────
 
 .right {
