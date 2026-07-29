@@ -12,12 +12,13 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 
 import { inspirationalQuotesApi } from "../services/inspirationalQuotesApi";
 import auditLogsReducer from "./slices/auditLogsSlice";
+import availabilityReducer from "./slices/availabilitySlice";
 import assignmentsReducer from "./slices/questionnaireAssignmentsSlice";
 import questionnairesReducer from "./slices/questionnairesSlice";
 import resourcesReducer from "./slices/resourcesSlice";
 import responsesReducer from "./slices/responsesSlice";
 import sessionsReducer from "./slices/sessionsSlice";
-import todoReducer from "./slices/TodoSlice.tsx";
+import todoReducer from "./slices/TodoSlice";
 import tagsReducer from "./slices/tagsSlice";
 import themeReducer from "./slices/themeSlice";
 import userDirectoryReducer from "./slices/userDirectorySlice";
@@ -30,6 +31,7 @@ export const store = configureStore({
     responses: responsesReducer,
     resources: resourcesReducer,
     sessions: sessionsReducer,
+    availability: availabilityReducer,
     tags: tagsReducer,
     theme: themeReducer,
     auditLogs: auditLogsReducer,

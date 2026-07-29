@@ -9,7 +9,12 @@ alter table public.users
 comment on column public.users.is_superadmin is
   'Platform owner flag. Grants access to /superadmin route and get-all-practices edge function.';
 
--- RLS: superadmin can read all users rows (needed for the admin panel)
+-- RLS: superadmin can read all users rows (needed for the admin panel).
+-- NOTE: this policy is recursive (queries public.users from a policy ON
+-- public.users) and is replaced by the security-definer version in
+-- 20260729000000_fix_superadmin_rls.sql. Kept here for migration history;
+-- the drop-if-exists makes this file safe to re-run.
+drop policy if exists "superadmin can read all users" on public.users;
 create policy "superadmin can read all users"
   on public.users
   for select

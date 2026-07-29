@@ -40,8 +40,9 @@ export default function Navbar() {
   };
 
   const adminLinks = [
-    { to: "/admin", label: "Dashboard" },
+    // { to: "/admin", label: "Dashboard" },
     { to: "/admin/clients", label: "Clients" },
+    { to: "/admin/scheduler", label: "Schedule" },
     { to: "/admin/questionnaires", label: "Check-ins" },
     { to: "/admin/resources", label: "Resources" },
   ];

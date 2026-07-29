@@ -1,0 +1,61 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-family: var(--font-serif);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subheading {
+  color: var(--text-secondary);
+  margin: var(--sp-1) 0 0;
+  font-size: 0.9rem;
+}
+
+.legend {
+  display: flex;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--r-sm);
+  display: inline-block;
+}
+
+// Legend swatches mirror the shared .cal-window / .cal-blocked ghost fills.
+.swatchWindow {
+  background-color: color-mix(in srgb, var(--accent-dark) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-dark) 45%, transparent);
+}
+
+.swatchBlocked {
+  background-color: color-mix(in srgb, var(--danger) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.swatchSession {
+  background: #3a5568;
+}
+
+.calendarCard {
+  padding: var(--sp-4);
+}

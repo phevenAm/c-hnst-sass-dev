@@ -162,6 +162,12 @@
   margin: 0;
 }
 
+.nextSessionActions {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+}
+
 // ── Resources teaser card ──────────────────────────────────
 .resourcesCard {
   height: 100%;

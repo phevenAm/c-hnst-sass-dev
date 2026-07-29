@@ -4,6 +4,28 @@
     margin-bottom: $sp-4;
 }
 
+.headingRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-4;
+    flex-wrap: wrap;
+
+    .heading {
+        margin-bottom: 0;
+    }
+}
+
+.viewToggle {
+    display: inline-flex;
+    gap: $sp-2;
+}
+
+.calendarCard {
+    padding: $sp-4;
+    margin-top: $sp-4;
+}
+
 // ── Next session strip ────────────────────────────────────
 .nextStrip {
     display: flex;

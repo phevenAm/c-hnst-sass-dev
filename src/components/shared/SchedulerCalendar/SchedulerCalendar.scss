@@ -1,0 +1,146 @@
+// Shared react-big-calendar theme + event styling for both the admin
+// scheduler and the client calendar. Plain (non-module) global CSS keyed on
+// the .portal-calendar wrapper, so both callers get identical styling and the
+// accessibility-driven overrides (hidden all-day row + duplicate time label)
+// live in one place.
+
+.portal-calendar {
+  // ─── Event chip content ─────────────────────────────────
+  .cal-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    line-height: 1.15;
+  }
+
+  .cal-chipTitle {
+    font-weight: 600;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cal-chipMeta {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ─── Availability + blocked "ghost" events ──────────────
+  // Faint colour tint + coloured border (green = open, red = blocked).
+  // Booked sessions are fully opaque so they read as the filled blocks.
+  .cal-window {
+    background-color: color-mix(in srgb, var(--accent-dark) 15%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-dark) 45%, transparent) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .cal-blocked {
+    background-color: color-mix(in srgb, var(--danger) 16%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent) !important;
+    color: var(--text-primary) !important;
+  }
+
+  // ─── react-big-calendar theme overrides ─────────────────
+  // RBC ships light-theme CSS; remap its greys onto our tokens for dark mode.
+  .rbc-calendar {
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+  }
+
+  .rbc-toolbar {
+    margin-bottom: var(--sp-4);
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+  }
+
+  .rbc-toolbar-label {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    color: var(--text-primary);
+  }
+
+  .rbc-toolbar button {
+    color: var(--text-primary);
+    border-color: var(--border);
+    border-radius: var(--r-md);
+  }
+
+  .rbc-toolbar button:hover,
+  .rbc-toolbar button:focus {
+    background: var(--bg-muted);
+    border-color: var(--border-strong);
+  }
+
+  .rbc-toolbar button.rbc-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+  }
+
+  .rbc-time-view,
+  .rbc-time-header,
+  .rbc-time-content,
+  .rbc-header,
+  .rbc-time-header-content,
+  .rbc-timeslot-group,
+  .rbc-day-slot,
+  .rbc-time-gutter,
+  .rbc-time-column {
+    border-color: var(--border) !important;
+  }
+
+  .rbc-header {
+    padding: var(--sp-2) 0;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom-color: var(--border) !important;
+  }
+
+  .rbc-today {
+    background: var(--accent-subtle);
+  }
+
+  // --text-secondary (not --text-muted) so time-axis labels clear AA contrast.
+  .rbc-label,
+  .rbc-time-gutter .rbc-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+  }
+
+  // The all-day row is unused (sessions always have a time) and its empty
+  // role="rowgroup" trips axe's "required children" rule — hide it.
+  .rbc-allday-cell {
+    display: none;
+  }
+
+  .rbc-current-time-indicator {
+    background: var(--accent);
+    height: 2px;
+  }
+
+  .rbc-event {
+    border-radius: var(--r-md);
+    padding: 3px 6px;
+    border: none;
+    box-shadow: var(--shadow-xs);
+  }
+
+  // RBC prints its own time range at the top of each event in time views;
+  // our custom chip already shows the time, so hide the duplicate.
+  .rbc-event-label {
+    display: none;
+  }
+
+  .rbc-event.rbc-selected {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
+  }
+
+  .rbc-off-range-bg {
+    background: var(--bg-muted);
+  }
+}

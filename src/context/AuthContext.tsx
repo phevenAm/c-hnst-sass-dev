@@ -147,25 +147,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(message);
       }
 
-      const { data: tokenRow, error: tokenError } = await supabase
-        .from("platform_access_token")
-        .select("id, token, is_used")
-        .eq("token", cleanedToken)
-        .maybeSingle();
+      // Validate via a security-definer RPC rather than reading the token table
+      // directly: RLS keeps every practice's tokens private, and this only
+      // confirms the one token the signer already holds (no enumeration).
+      const { data: isTokenValid, error: tokenError } = await supabase.rpc("validate_platform_access_token", {
+        input_token: cleanedToken,
+      });
 
       if (tokenError) {
         setError(tokenError.message);
         throw new Error(tokenError.message);
       }
 
-      if (!tokenRow) {
-        const message = "Invalid access token.";
-        setError(message);
-        throw new Error(message);
-      }
-
-      if (tokenRow.is_used === true) {
-        const message = "This access token has already been used.";
+      if (!isTokenValid) {
+        const message = "Invalid or already-used access token.";
         setError(message);
         throw new Error(message);
       }
