@@ -57,21 +57,6 @@ export default function AdminDashboard() {
 
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
 
-  const nextSessionByClientId = useMemo(() => {
-    const now = new Date();
-    const map: Record<string, { paid: boolean; date: Date }> = {};
-    for (const s of allSessions) {
-      const sessionDate = new Date(s.scheduled_at);
-      if (sessionDate <= now || s.status === "cancelled") continue;
-      const clientId = s.client_id ?? "";
-      const existing = map[clientId];
-      if (!existing || sessionDate < existing.date) {
-        map[clientId] = { paid: s.paid, date: sessionDate };
-      }
-    }
-    return map;
-  }, [allSessions]);
-
   // All upcoming (future, non-cancelled) sessions, soonest first.
   const upcomingSessions = useMemo(() => {
     const now = new Date();
@@ -230,47 +215,6 @@ export default function AdminDashboard() {
               ) : (
                 <p className={styles.empty}>No upcoming sessions booked.</p>
               )}
-            </div>
-          </Card>
-
-          {/* Clients */}
-          <Card>
-            <div className={styles.cardPad}>
-              <div className={styles.cardHeader}>
-                <h2>Your clients</h2>
-                <Link to="/admin/clients" style={{ textDecoration: "none" }}>
-                  <Button variant="ghost" size="sm">
-                    Manage
-                  </Button>
-                </Link>
-              </div>
-              <div className={styles.clientList}>
-                {allClients
-                  .filter((user) => user.role === "client")
-                  .slice(0, 4)
-                  .map((u) => {
-                    const nextSession = nextSessionByClientId[u.id];
-                    return (
-                      <Link key={u.id} to={`/admin/clients/${u.id}`} className={styles.clientRowLink}>
-                        <div className={styles.clientRow}>
-                          <Avatar name={u?.display_name || `${u.first_name} ${u.last_name}`} color="teal" size={36} />
-                          <div className={styles.clientInfo}>
-                            <p className={styles.clientName}>
-                              {u.first_name} {u.last_name}
-                            </p>
-                            <p className={styles.clientMeta}>Joined {u.created_at?.split("T")[0]}</p>
-                          </div>
-                          {nextSession && (
-                            <Badge variant={nextSession.paid ? "success" : "warning"}>
-                              {nextSession.paid ? "Paid" : "Unpaid"}
-                            </Badge>
-                          )}
-                        </div>
-                      </Link>
-                    );
-                  })}
-                {allClients.length === 0 && <p className={styles.empty}>No clients yet. Add one to get started.</p>}
-              </div>
             </div>
           </Card>
 

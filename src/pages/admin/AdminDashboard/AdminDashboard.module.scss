@@ -21,6 +21,7 @@
   align-items: center;
   gap: $sp-4;
   width: fit-content;
+  max-width: 100%;
 
   @media (max-width: 820px) {
     flex-direction: column;
@@ -30,6 +31,7 @@
   @media (max-width: 720px) {
     flex-direction: row;
     align-items: center;
+    width: 100%;
   }
 }
 
@@ -45,6 +47,7 @@
 
 .quickActionsRow {
   display: flex;
+  flex-wrap: wrap;
   gap: $sp-2;
 
   a {
@@ -77,7 +80,7 @@
 // ── Metric cards grid ──────────────────────────────────────
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, auto));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: $sp-4;
   margin-bottom: $sp-8;
 }
@@ -90,6 +93,10 @@
 
   &:hover {
     transform: translateY(-2px);
+  }
+
+  @media (max-width: 480px) {
+    padding: $sp-4;
   }
 }
 
