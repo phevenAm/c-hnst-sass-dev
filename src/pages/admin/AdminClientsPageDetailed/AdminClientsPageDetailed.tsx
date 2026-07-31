@@ -310,7 +310,7 @@ export default function AdminClientsPageDetailed() {
           <div className={styles.sectionHead}>
             {questionnaireOptions.length > 1 && (
               <div className={styles.progressControls}>
-                <label htmlFor="q-select">Questionnaire</label>
+                <label htmlFor="q-select">Survey</label>
                 <select
                   id="q-select"
                   value={selectedQuestionnaire?.id ?? ""}

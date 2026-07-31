@@ -116,7 +116,7 @@ function ClientRow({ user }: { user: UserProfile }) {
         <div className={styles.expandedChart}>
           {questionnaireOptions.length > 1 && (
             <div className={styles.progressControls}>
-              <label htmlFor={`questionnaire-${user.id}`}>Questionnaire</label>
+              <label htmlFor={`questionnaire-${user.id}`}>Survey</label>
               <select
                 id={`questionnaire-${user.id}`}
                 value={selectedQuestionnaire?.id ?? ""}
@@ -138,7 +138,7 @@ function ClientRow({ user }: { user: UserProfile }) {
               title={`${user.first_name}'s Progress`}
             />
           ) : (
-            <p className={styles.empty}>No questionnaire responses yet.</p>
+            <p className={styles.empty}>No survey responses yet.</p>
           )}
         </div>
       )}

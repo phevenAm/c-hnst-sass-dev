@@ -65,7 +65,7 @@ export const exportClientPDF = async ({
   doc.text(`Generated ${new Date().toLocaleDateString()}`, margin, 64);
 
   if (questionnaire) {
-    doc.text(`Questionnaire: ${questionnaire.title}`, margin, 70);
+    doc.text(`Survey: ${questionnaire.title}`, margin, 70);
   }
 
   if (responses.length > 0 && questionnaire) {

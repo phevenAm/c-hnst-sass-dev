@@ -638,9 +638,7 @@ export default function AdminQuestionnairesPage() {
               </div>
             </Card>
           ))}
-          {questionnaires.length === 0 && (
-            <p className={styles.empty}>No questionnaires yet. Create your first one above.</p>
-          )}
+          {questionnaires.length === 0 && <p className={styles.empty}>No surveys yet. Create your first one above.</p>}
         </div>
       </div>
 

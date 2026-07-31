@@ -166,7 +166,7 @@ export default function CheckInPage() {
   if (!currentQ) {
     return (
       <div className={styles.emptyState}>
-        <p>This questionnaire has no questions yet.</p>
+        <p>This survey has no questions yet.</p>
         <Button onClick={() => navigate("/dashboard")}>Back to dashboard</Button>
       </div>
     );
