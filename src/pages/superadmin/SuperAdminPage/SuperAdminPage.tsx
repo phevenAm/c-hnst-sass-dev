@@ -38,12 +38,25 @@ const PLAN_LABELS: Record<string, string> = {
   bundle: "Website + App",
 };
 
+type FeedbackRow = {
+  id: string;
+  type: "bug" | "feature";
+  message: string;
+  page: string | null;
+  status: "new" | "reviewing" | "done";
+  created_at: string;
+  submitter: { first_name: string | null; last_name: string | null } | null;
+};
+
+const FEEDBACK_STATUSES: FeedbackRow["status"][] = ["new", "reviewing", "done"];
+
 export default function SuperAdminPage() {
   const { signOut } = useAuth();
   const [practices, setPractices] = useState<Practice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +72,20 @@ export default function SuperAdminPage() {
     };
     load();
   }, []);
+
+  // Feedback inbox (RLS: superadmin reads all rows).
+  useEffect(() => {
+    supabase
+      .from("feedback")
+      .select("id, type, message, page, status, created_at, submitter:users(first_name, last_name)")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setFeedback((data as FeedbackRow[]) ?? []));
+  }, []);
+
+  const updateFeedbackStatus = async (id: string, status: FeedbackRow["status"]) => {
+    setFeedback((prev) => prev.map((f) => (f.id === id ? { ...f, status } : f)));
+    await supabase.from("feedback").update({ status }).eq("id", id);
+  };
 
   const filtered = practices.filter((p) => {
     const q = search.toLowerCase();
@@ -177,6 +204,67 @@ export default function SuperAdminPage() {
           </table>
         </div>
       )}
+
+      {/* ── Feedback inbox ── */}
+      <h2 className={styles.sectionTitle}>Feedback ({feedback.length})</h2>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Message</th>
+              <th>From</th>
+              <th>Page</th>
+              <th>When</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {feedback.length === 0 && (
+              <tr>
+                <td colSpan={6} className={styles.empty}>
+                  No feedback yet.
+                </td>
+              </tr>
+            )}
+            {feedback.map((f) => {
+              const from = [f.submitter?.first_name, f.submitter?.last_name].filter(Boolean).join(" ") || "—";
+              return (
+                <tr key={f.id}>
+                  <td>
+                    <span className={styles.planTag}>{f.type === "bug" ? "🐛 Bug" : "💡 Feature"}</span>
+                  </td>
+                  <td>{f.message}</td>
+                  <td>
+                    <span className={styles.ownerName}>{from}</span>
+                  </td>
+                  <td className={styles.dateCell}>{f.page ?? "—"}</td>
+                  <td className={styles.dateCell}>
+                    {new Date(f.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td>
+                    <select
+                      value={f.status}
+                      onChange={(e) => updateFeedbackStatus(f.id, e.target.value as FeedbackRow["status"])}
+                      className={styles.statusSelect}
+                    >
+                      {FEEDBACK_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
