@@ -1,0 +1,35 @@
+.card {
+  padding: var(--sp-5) var(--sp-4) var(--sp-4);
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-3);
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  margin: var(--sp-8) 0;
+}
+
+.tooltip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 6px 10px;
+  box-shadow: var(--shadow-md);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tooltipLabel {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
