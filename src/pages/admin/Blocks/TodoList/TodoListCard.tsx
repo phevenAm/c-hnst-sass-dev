@@ -10,7 +10,7 @@ import TodoListModal from "./TodoListModal/TodoListModal";
 
 import styles from "./TodoListCard.module.scss";
 
-const TodoListCard = () => {
+const TodoListCard = ({ embedded = false }: { embedded?: boolean }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [isShowCompleted, setIsShowCompleted] = useState(false);
 
@@ -28,8 +28,8 @@ const TodoListCard = () => {
     <>
       <Card>
         <div className={styles.cardPad}>
-          <div className={styles.cardHeader}>
-            <h2>Todo list</h2>
+          <div className={styles.cardHeader} style={embedded ? { justifyContent: "flex-end" } : undefined}>
+            {!embedded && <h2>Todo list</h2>}
             <div className={styles.todoButtons}>
               {todosCompleted && (
                 <Button size="sm" variant="ghost" onClick={() => setIsShowCompleted(!isShowCompleted)}>

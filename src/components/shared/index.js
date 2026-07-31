@@ -2,7 +2,9 @@ export { default as Avatar } from "./Avatar/Avatar";
 export { default as Badge } from "./Badge/Badge";
 export { default as Button } from "./Button/Button";
 export { default as Card } from "./Card/Card";
+export { default as CollapsibleSection } from "./CollapsibleSection/CollapsibleSection";
 export { default as DemoBanner } from "./DemoBanner/DemoBanner";
+export { default as DonutChart } from "./DonutChart/DonutChart";
 export { default as Footer } from "./Footer/Footer";
 export { default as IconButton } from "./IconButton/IconButton";
 export {

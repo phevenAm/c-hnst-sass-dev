@@ -225,3 +225,21 @@
   font-size: 0.875rem;
   padding: $sp-4 0;
 }
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: $sp-10 0 $sp-4;
+}
+
+.statusSelect {
+  padding: $sp-1 $sp-2;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+}

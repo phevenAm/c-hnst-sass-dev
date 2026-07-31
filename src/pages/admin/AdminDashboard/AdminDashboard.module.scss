@@ -85,6 +85,36 @@
   margin-bottom: $sp-8;
 }
 
+// ── Practice trends ────────────────────────────────────────
+.sectionHeading {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 $sp-4;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: $sp-5;
+}
+
+.sectionLink {
+  font-size: 0.8rem;
+  color: var(--accent-dark);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.needsAttention {
+  margin-bottom: $sp-8;
+}
+
 .metricCard {
   padding: $sp-6;
   text-decoration: none;

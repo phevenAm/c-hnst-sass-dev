@@ -14,8 +14,8 @@ const SLIDES = [
   {
     Icon: UsersIcon,
     title: "Your clients, organised",
-    description: "Manage client profiles, session history, questionnaires, and notes — all in one place.",
-    points: ["Client profiles and onboarding", "Custom questionnaires and responses", "Session notes and history"],
+    description: "Manage client profiles, session history, surveys, and notes — all in one place.",
+    points: ["Client profiles and onboarding", "Custom surveys and responses", "Session notes and history"],
   },
   {
     Icon: ClipboardIcon,
@@ -44,7 +44,7 @@ const SLIDES = [
 const PRICING_FEATURES = [
   { text: "Unlimited clients and sessions", slide: 0 },
   { text: "Card payments via Stripe Connect", slide: 2 },
-  { text: "Client check-ins and questionnaires", slide: 1 },
+  { text: "Client check-ins and surveys", slide: 1 },
   { text: "Practice analytics and PDF export", slide: 3 },
 ];
 
@@ -63,7 +63,7 @@ const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   },
   {
     title: "2. Service description",
-    body: "WithMe is a practice management platform for independent counsellors and therapists — managing clients, sessions, questionnaires, and payments. Provided on a monthly subscription basis.",
+    body: "WithMe is a practice management platform for independent counsellors and therapists — managing clients, sessions, surveys, and payments. Provided on a monthly subscription basis.",
   },
   {
     title: "3. Subscription & payment",
@@ -323,7 +323,7 @@ export default function SubscribePage() {
               <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
               <div className={styles.purposeBox}>
                 <strong>WithMe is a practice management tool</strong> for independent counsellors and therapists. It
-                helps you manage clients, schedule sessions, send questionnaires, and process payments. It is{" "}
+                helps you manage clients, schedule sessions, send surveys, and process payments. It is{" "}
                 <strong>not a clinical record system</strong> — confidential session notes must be stored separately in
                 a secure, encrypted solution that meets your professional obligations.
               </div>

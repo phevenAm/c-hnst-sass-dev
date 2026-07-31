@@ -1,0 +1,60 @@
+.section {
+  margin-bottom: var(--sp-5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-primary);
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+// Chevron points right when collapsed, rotates down when open.
+.chevron {
+  display: inline-flex;
+  color: var(--text-muted);
+  transform: rotate(-90deg);
+  transition: transform var(--transition-base);
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.open {
+  transform: rotate(0deg);
+}
+
+.headerRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}

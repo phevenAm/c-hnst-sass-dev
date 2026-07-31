@@ -20,8 +20,8 @@ export default function TermsPage() {
           <h2>2. Service description</h2>
           <p>
             WithMe is a practice management platform for independent counsellors and therapists. It provides tools for
-            managing clients, scheduling sessions, sending questionnaires, and accepting payments. The Platform is
-            provided on a subscription basis.
+            managing clients, scheduling sessions, sending surveys, and accepting payments. The Platform is provided on
+            a subscription basis.
           </p>
         </section>
 

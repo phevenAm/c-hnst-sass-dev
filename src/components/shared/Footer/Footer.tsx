@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../../context/AuthContext";
+import FeedbackModal from "../FeedbackModal/FeedbackModal";
 
 import styles from "./Footer.module.scss";
 
 export default function Footer() {
   const { isAdmin } = useAuth();
   const [now, setNow] = useState(new Date());
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -19,11 +21,25 @@ export default function Footer() {
       <span>
         <em>Abide:</em> WithMe
       </span>
+
       {isAdmin && (
-        <Link to="/admin/audit-logs" className={styles.auditLink}>
-          {now.toLocaleString()}
-        </Link>
+        <div className={styles.right}>
+          <button
+            type="button"
+            className={styles.feedbackBtn}
+            onClick={() => setFeedbackOpen(true)}
+            aria-label="Send feedback"
+            title="Send feedback or report a bug"
+          >
+            ?
+          </button>
+          <Link to="/admin/audit-logs" className={styles.auditLink}>
+            {now.toLocaleString()}
+          </Link>
+        </div>
       )}
+
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
     </footer>
   );
 }
