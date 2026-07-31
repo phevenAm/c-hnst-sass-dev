@@ -155,22 +155,15 @@ const sessionsSlice = createSlice({
         state.error = action.payload as string;
       })
       //---------------delete session
+      // Note: delete is a mutation, so it deliberately does NOT flip `status` to
+      // "loading". Page-level guards (isPageStatusLoading) key off `status`, and
+      // flipping it here made the whole page flash its loading skeleton on delete.
       .addCase(deleteSession.fulfilled, (state, action) => {
-        // const { showToast } = useToast();
         // action.payload is the deleted session id (string)
         state.sessions = state.sessions.filter((s) => s.id !== action.payload);
-        state.status = "succeeded";
-        // showToast("Session has been deleted", "success");
-      })
-      .addCase(deleteSession.pending, (state) => {
-        state.status = "loading";
       })
       .addCase(deleteSession.rejected, (state, action) => {
-        // action.payload is the deleted session id (string)
-        state.status = "failed";
-        // const { showToast } = useToast();
-
-        // showToast(`${action.payload}`, "danger");
+        state.error = action.payload as string;
       })
       .addCase("RESET_ALL", () => initialState);
   },

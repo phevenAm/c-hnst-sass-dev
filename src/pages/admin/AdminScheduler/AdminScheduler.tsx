@@ -117,16 +117,18 @@ const AdminScheduler = () => {
   const overrides = useAppSelector((s) => s.availability.overrides);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
 
-  // ----- events
-  const events = useMemo<SchedulerEvent[]>(
-    () => [...availabilityEvents(date, rules, overrides), ...sessionEvents(sessions, users)],
-    [date, rules, overrides, sessions, users],
-  );
-
   // ----- overview: sessions scoped to the selected client (or all)
   const filteredSessions = useMemo(
     () => (selectedClientId === "all" ? sessions : sessions.filter((s) => s.client_id === selectedClientId)),
     [sessions, selectedClientId],
+  );
+
+  // ----- events. The session layer honours the client filter so the calendar
+  // matches the overview + history below it; availability windows are
+  // practice-wide and always shown.
+  const events = useMemo<SchedulerEvent[]>(
+    () => [...availabilityEvents(date, rules, overrides), ...sessionEvents(filteredSessions, users)],
+    [date, rules, overrides, filteredSessions, users],
   );
 
   // Aggregate counts + payment totals in a single pass. Semantics match the
@@ -292,6 +294,14 @@ const AdminScheduler = () => {
             </label>
           }
         >
+          <div className={styles.statsGrid}>
+            {statCards.map((s) => (
+              <Card key={s.label} className={styles.statCard}>
+                <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
+                <p className={styles.statLabel}>{s.label}</p>
+              </Card>
+            ))}
+          </div>
           <div className={styles.chartsGrid}>
             <DonutChart
               title="Attendance"
@@ -311,15 +321,6 @@ const AdminScheduler = () => {
               centerValue={String(stats.total)}
               centerLabel={stats.total === 1 ? "session" : "sessions"}
             />
-          </div>
-
-          <div className={styles.statsGrid}>
-            {statCards.map((s) => (
-              <Card key={s.label} className={styles.statCard}>
-                <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
-                <p className={styles.statLabel}>{s.label}</p>
-              </Card>
-            ))}
           </div>
 
           {/* Session totals — lives under the overview, separated by a divider.

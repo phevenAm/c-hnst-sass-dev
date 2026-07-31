@@ -119,6 +119,12 @@
   padding: $sp-6;
 }
 
+// Next-session card needs the same rhythm as the stats row / chart above and
+// below it — without this the card butts straight up against the chart.
+.nextSessionCard {
+  margin-bottom: $sp-7;
+}
+
 .cardTitle {
   font-size: 1rem;
   font-weight: 600;

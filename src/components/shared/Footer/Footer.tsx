@@ -28,10 +28,9 @@ export default function Footer() {
             type="button"
             className={styles.feedbackBtn}
             onClick={() => setFeedbackOpen(true)}
-            aria-label="Send feedback"
-            title="Send feedback or report a bug"
+            title="Report a bug or request a feature"
           >
-            ?
+            Report an issue
           </button>
           <Link to="/admin/audit-logs" className={styles.auditLink}>
             {now.toLocaleString()}

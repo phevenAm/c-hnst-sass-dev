@@ -182,7 +182,7 @@ export default function ClientDashboard() {
           ))}
         </div>
 
-        <Card>
+        <Card className={styles.nextSessionCard}>
           <div className={styles.cardPad}>
             <h3 className={styles.cardTitle}>Next session</h3>
             {nextSession ? (

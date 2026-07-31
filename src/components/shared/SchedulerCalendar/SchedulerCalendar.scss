@@ -27,20 +27,28 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    opacity: 0.9;
+  }
+
+  // Session chips are solid client-colour fills; force crisp white text with a
+  // faint shadow so both the title and meta stay legible over any palette entry.
+  .rbc-event:not(.cal-window):not(.cal-blocked) .cal-chip {
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   }
 
   // ─── Availability + blocked "ghost" events ──────────────
   // Faint colour tint + coloured border (green = open, red = blocked).
   // Booked sessions are fully opaque so they read as the filled blocks.
   .cal-window {
-    background-color: color-mix(in srgb, var(--accent-dark) 15%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--accent-dark) 45%, transparent) !important;
+    background-color: color-mix(in srgb, var(--accent-dark) 30%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-dark) 75%, transparent) !important;
     color: var(--text-primary) !important;
   }
 
   .cal-blocked {
-    background-color: color-mix(in srgb, var(--danger) 16%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent) !important;
+    background-color: color-mix(in srgb, var(--danger) 30%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--danger) 75%, transparent) !important;
     color: var(--text-primary) !important;
   }
 
@@ -160,12 +168,12 @@
   .rbc-time-column,
   .rbc-day-bg + .rbc-day-bg,
   .rbc-time-content > * + * > * {
-    border-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
+    border-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
   }
 
   .rbc-header {
-    border-bottom-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
-    border-left-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
+    border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
+    border-left-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
   }
 
   // The half-hour divider inside each group — hide it for a cleaner grid.
