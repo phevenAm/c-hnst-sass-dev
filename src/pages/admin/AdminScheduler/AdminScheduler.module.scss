@@ -59,3 +59,167 @@
 .calendarCard {
   padding: var(--sp-4);
 }
+
+// ── Session overview ─────────────────────────────────────────
+// (Section headings/collapse chrome now live in the shared CollapsibleSection.)
+
+// Divider between the overview stats and the session totals below them.
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--sp-6) 0 var(--sp-4);
+}
+
+.totalsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.totalsLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+// Segmented period toggle (All / Day / Week / Month / Year).
+.periodToggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 2px;
+  gap: 2px;
+  background: var(--bg-card);
+}
+
+.periodBtn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.periodActive {
+  background: var(--accent);
+  color: var(--text-inverse);
+
+  &:hover {
+    color: var(--text-inverse);
+  }
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filterSelect {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  max-width: 220px;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+// ── Donut charts grid (the cards themselves live in the shared DonutChart) ──
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+
+.statCard {
+  padding: var(--sp-4);
+}
+
+.statValue {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-1);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+// Tone accents for individual stat values.
+.toneGood {
+  color: var(--success, #16a34a);
+}
+
+.toneBad {
+  color: var(--danger);
+}
+
+.toneWarn {
+  color: var(--warning);
+}
+
+.toneAccent {
+  color: var(--accent-dark);
+}
+
+// ── Session history list ─────────────────────────────────────
+.historyMeta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}

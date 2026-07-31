@@ -144,3 +144,32 @@
     background: var(--bg-muted);
   }
 }
+
+// ─── Dark mode: soften the grid ──────────────────────────────
+// RBC's full-strength --border lines read as a harsh bright grid against the
+// dark surface. Drop them to a low-contrast blend and remove the faint
+// intra-hour sub-line so the calendar looks calm rather than boxed-in.
+.dark .portal-calendar {
+  .rbc-time-view,
+  .rbc-time-header,
+  .rbc-time-content,
+  .rbc-time-header-content,
+  .rbc-timeslot-group,
+  .rbc-day-slot,
+  .rbc-time-gutter,
+  .rbc-time-column,
+  .rbc-day-bg + .rbc-day-bg,
+  .rbc-time-content > * + * > * {
+    border-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
+  }
+
+  .rbc-header {
+    border-bottom-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
+    border-left-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
+  }
+
+  // The half-hour divider inside each group — hide it for a cleaner grid.
+  .rbc-timeslot-group .rbc-time-slot + .rbc-time-slot {
+    border-top-color: transparent !important;
+  }
+}
