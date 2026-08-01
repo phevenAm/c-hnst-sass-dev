@@ -52,6 +52,14 @@
     color: var(--text-primary) !important;
   }
 
+  // Admin-only private events — a neutral slate with a dashed border, distinct
+  // from the green windows, red blocks and solid client-coloured sessions.
+  .cal-private {
+    background-color: color-mix(in srgb, var(--text-muted) 22%, transparent) !important;
+    border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent) !important;
+    color: var(--text-primary) !important;
+  }
+
   // ─── react-big-calendar theme overrides ─────────────────
   // RBC ships light-theme CSS; remap its greys onto our tokens for dark mode.
   .rbc-calendar {

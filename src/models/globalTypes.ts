@@ -219,4 +219,18 @@ export type AvailabilityOverride = {
   created_at: string;
 };
 
+// Admin-only private calendar event (supervision, admin time, personal
+// appointments). Renders on the admin's own scheduler only — the table has no
+// client-facing RLS policy, so clients can never read these rows. starts_at /
+// ends_at are timestamptz ISO strings. Hand-typed until `npm run update-types`.
+export type AdminPrivateEvent = {
+  id: string;
+  admin_id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  notes: string | null;
+  created_at: string;
+};
+
 export type Todo = Tables<"admin_todos">;

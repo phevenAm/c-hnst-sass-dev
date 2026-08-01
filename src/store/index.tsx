@@ -11,6 +11,7 @@ import { configureStore, Middleware } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 
 import { inspirationalQuotesApi } from "../services/inspirationalQuotesApi";
+import adminPrivateEventsReducer from "./slices/adminPrivateEventsSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
 import availabilityReducer from "./slices/availabilitySlice";
 import assignmentsReducer from "./slices/questionnaireAssignmentsSlice";
@@ -32,6 +33,7 @@ export const store = configureStore({
     resources: resourcesReducer,
     sessions: sessionsReducer,
     availability: availabilityReducer,
+    adminPrivateEvents: adminPrivateEventsReducer,
     tags: tagsReducer,
     theme: themeReducer,
     auditLogs: auditLogsReducer,

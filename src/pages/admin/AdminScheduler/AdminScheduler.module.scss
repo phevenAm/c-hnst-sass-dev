@@ -13,6 +13,12 @@
   margin: 0;
 }
 
+.headerActions {
+  display: inline-flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
 .subheading {
   color: var(--text-secondary);
   margin: var(--sp-1) 0 0;
@@ -54,6 +60,11 @@
 
 .swatchSession {
   background: #3a5568;
+}
+
+.swatchPrivate {
+  background-color: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent);
 }
 
 .calendarCard {

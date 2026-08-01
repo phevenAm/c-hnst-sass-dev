@@ -6,6 +6,12 @@ import { useSearchParams } from "react-router-dom";
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
 import { Button, Card, CollapsibleSection } from "@components/shared/index";
 import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
+import {
+  availabilityEvents,
+  privateEventEvents,
+  type SchedulerEvent,
+  sessionEvents,
+} from "@components/shared/SchedulerCalendar/schedulerUtils";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
 import type { RootState } from "@/store";
@@ -13,13 +19,14 @@ import type { RootState } from "@/store";
 import { useAuth } from "@/context/AuthContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
-import type { Session, UserProfile } from "@/models/globalTypes";
+import type { AdminPrivateEvent, Session, UserProfile } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { fetchPrivateEvents } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchAllSessions } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import AvailabilityEditor from "./AvailabilityEditor";
-import { availabilityEvents, type SchedulerEvent, sessionEvents } from "./schedulerUtils";
+import PrivateEventModal from "./PrivateEventModal";
 
 import styles from "./AdminScheduler.module.scss";
 
@@ -86,6 +93,10 @@ const AdminScheduler = () => {
   const [view, setView] = useState<View>(Views.WORK_WEEK);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
+  // Private-event modal: closed when false; `editingPrivate` is null for a new
+  // event or the row being edited.
+  const [isPrivateOpen, setIsPrivateOpen] = useState(false);
+  const [editingPrivate, setEditingPrivate] = useState<AdminPrivateEvent | null>(null);
   // Overview client filter: "all" or a specific client id.
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   // Session-totals period filter.
@@ -104,6 +115,7 @@ const AdminScheduler = () => {
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
   useFetchOnIdle((s: RootState) => s.userDirectory.status, fetchAllUsers, "Failed to load users");
   useFetchOnIdle((s: RootState) => s.availability.status, fetchAvailability, "Failed to load availability");
+  useFetchOnIdle((s: RootState) => s.adminPrivateEvents.status, fetchPrivateEvents, "Failed to load private events");
 
   // Any admin-side session change (from any device) refreshes the grid.
   // duration_minutes>=0 matches every row; RLS still scopes the stream to
@@ -115,6 +127,7 @@ const AdminScheduler = () => {
   const clients = useAppSelector(selectClientUsers);
   const rules = useAppSelector((s) => s.availability.rules);
   const overrides = useAppSelector((s) => s.availability.overrides);
+  const privateEvents = useAppSelector((s) => s.adminPrivateEvents.events);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
 
   // ----- overview: sessions scoped to the selected client (or all)
@@ -127,8 +140,12 @@ const AdminScheduler = () => {
   // matches the overview + history below it; availability windows are
   // practice-wide and always shown.
   const events = useMemo<SchedulerEvent[]>(
-    () => [...availabilityEvents(date, rules, overrides), ...sessionEvents(filteredSessions, users)],
-    [date, rules, overrides, filteredSessions, users],
+    () => [
+      ...availabilityEvents(date, rules, overrides),
+      ...privateEventEvents(privateEvents),
+      ...sessionEvents(filteredSessions, users),
+    ],
+    [date, rules, overrides, privateEvents, filteredSessions, users],
   );
 
   // Aggregate counts + payment totals in a single pass. Semantics match the
@@ -238,10 +255,18 @@ const AdminScheduler = () => {
     { label: "Outstanding", value: money(stats.outstandingPence), tone: styles.toneWarn },
   ];
 
+  const openNewPrivate = () => {
+    setEditingPrivate(null);
+    setIsPrivateOpen(true);
+  };
+
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
     if (r.type === "session") {
       setEditingSession(r.session);
+    } else if (r.type === "private") {
+      setEditingPrivate(r.event);
+      setIsPrivateOpen(true);
     } else {
       // Clicking a window (or blocked slot) jumps into the availability editor.
       setIsAvailabilityOpen(true);
@@ -265,7 +290,12 @@ const AdminScheduler = () => {
             <h1 className={styles.heading}>Schedule</h1>
             <p className={styles.subheading}>All sessions and your availability, one view.</p>
           </div>
-          <Button onClick={() => setIsAvailabilityOpen(true)}>Manage availability</Button>
+          <div className={styles.headerActions}>
+            <Button variant="secondary" onClick={openNewPrivate}>
+              Add private event
+            </Button>
+            <Button onClick={() => setIsAvailabilityOpen(true)}>Manage availability</Button>
+          </div>
         </div>
 
         {/* ── Session overview: aggregate stats, filterable by client ──
@@ -362,6 +392,9 @@ const AdminScheduler = () => {
             <span className={styles.legendItem}>
               <span className={`${styles.swatch} ${styles.swatchSession}`} /> Session
             </span>
+            <span className={styles.legendItem}>
+              <span className={`${styles.swatch} ${styles.swatchPrivate}`} /> Private
+            </span>
           </div>
 
           <Card className={styles.calendarCard}>
@@ -408,6 +441,8 @@ const AdminScheduler = () => {
 
       {/* The editor handles demo mode internally (writes are guarded + toasted). */}
       {isAvailabilityOpen && <AvailabilityEditor onClose={() => setIsAvailabilityOpen(false)} />}
+
+      {isPrivateOpen && <PrivateEventModal event={editingPrivate} onClose={() => setIsPrivateOpen(false)} />}
     </div>
   );
 };
