@@ -7,7 +7,7 @@ import localizedFormat from "dayjs/plugin/localizedFormat";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./SchedulerCalendar.scss";
 
-import type { SchedulerEvent } from "@/pages/admin/AdminScheduler/schedulerUtils";
+import type { SchedulerEvent } from "./schedulerUtils";
 
 // ============================================================
 // SHARED SCHEDULER CALENDAR
@@ -80,6 +80,9 @@ function eventPropGetter(event: SchedulerEvent) {
   }
   if (r.type === "blocked") {
     return { className: "cal-blocked" };
+  }
+  if (r.type === "private") {
+    return { className: "cal-private" };
   }
   return { className: "cal-window" };
 }

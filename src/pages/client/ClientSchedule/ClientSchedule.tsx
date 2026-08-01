@@ -3,129 +3,22 @@ import type { View } from "react-big-calendar";
 import { Views } from "react-big-calendar";
 import { useSearchParams } from "react-router-dom";
 
-import dayjs from "dayjs";
-
 import { useAuth } from "@context/AuthContext";
 import { RootState } from "@/store";
 
-import { Badge, Card, SessionCard, ToggleButtonTabs } from "@/components/shared";
+import { Card, NextSessionCard, SessionCard, ToggleButtonTabs } from "@/components/shared";
 import Button from "@/components/shared/Button/Button";
-import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import SchedulerCalendar from "@/components/shared/SchedulerCalendar/SchedulerCalendar";
-import CancelSessionModal from "@/components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
-import ClientRescheduleModal from "@/components/shared/SessionCard/ClientRescheduleModal/ClientRescheduleModal";
-import useSessionCard from "@/components/shared/SessionCard/useSessionCard";
+import { availabilityEvents, clientSessionEvents } from "@/components/shared/SchedulerCalendar/schedulerUtils";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useToast } from "@/context/ToastContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
-import type { Session } from "@/models/globalTypes";
-import { availabilityEvents, clientSessionEvents } from "@/pages/admin/AdminScheduler/schedulerUtils";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 
 import styles from "./ClientSchedule.module.scss";
-
-function formatStripDate(session: Session): string {
-  const scheduled = dayjs(session.scheduled_at);
-  if (scheduled.isSame(dayjs(), "day")) return `Today at ${scheduled.format("h:mma")}`;
-  if (scheduled.isSame(dayjs().add(1, "day"), "day")) return `Tomorrow at ${scheduled.format("h:mma")}`;
-  return scheduled.format("dddd D MMM · h:mma");
-}
-
-function NextSessionStrip({ session }: { session: Session }) {
-  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const { showToast } = useToast();
-  const { isWithin48Hours } = useSessionCard(session);
-  const { isDemo } = useAuth();
-
-  const isOnline = session.location !== "in_person";
-
-  const guardAction = (fn: () => void) => {
-    if (isWithin48Hours) {
-      showToast("Sessions cannot be changed within 48 hours of the appointment", "warning");
-      return;
-    }
-    fn();
-  };
-
-  return (
-    <>
-      <Card className={styles.nextStrip}>
-        <div className={styles.stripLeft}>
-          <p className={styles.stripDate}>{formatStripDate(session)}</p>
-          <div className={styles.stripMeta}>
-            <span>{session.duration_minutes} min</span>
-            <span>·</span>
-            <span>{isOnline ? "Online" : "In person"}</span>
-            {session.address && (
-              <>
-                <span>·</span>
-                {isOnline ? (
-                  <a href={session.address} target="_blank" rel="noreferrer" className={styles.joinLink}>
-                    Join meeting
-                  </a>
-                ) : (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(session.address)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.joinLink}
-                  >
-                    {session.address}
-                  </a>
-                )}
-              </>
-            )}
-            {session.price_pence > 0 && (
-              <>
-                <span>·</span>
-                <span>£{(session.price_pence / 100).toFixed(2)}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.stripRight}>
-          <Badge variant={session.paid ? "success" : "warning"}>{session.paid ? "Paid" : "Unpaid"}</Badge>
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={isDemo || session.paid}
-            onClick={() => guardAction(() => setIsPayModalOpen(true))}
-          >
-            Pay
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={isDemo}
-            onClick={() => guardAction(() => setIsRescheduleModalOpen(true))}
-          >
-            Reschedule
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            disabled={isDemo}
-            onClick={() => guardAction(() => setIsCancelModalOpen(true))}
-          >
-            Cancel
-          </Button>
-        </div>
-      </Card>
-
-      {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
-      {isRescheduleModalOpen && (
-        <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
-      )}
-      {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
-    </>
-  );
-}
 
 const ClientSchedule = () => {
   const { userProfile, isDemo, isAdmin } = useAuth();
@@ -222,7 +115,7 @@ const ClientSchedule = () => {
             Keep it encouraging, not clinical. Admin aggregate view lives in AdminScheduler. */}
 
         {upcomingSessions[0] ? (
-          <NextSessionStrip session={upcomingSessions[0]} />
+          <NextSessionCard session={upcomingSessions[0]} />
         ) : (
           <Card className={styles.nextStrip}>
             <p className={styles.noUpcoming}>No upcoming sessions booked</p>

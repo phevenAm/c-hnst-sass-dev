@@ -4,13 +4,13 @@ import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
+import { DAY_NAMES } from "@components/shared/SchedulerCalendar/schedulerUtils";
 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import type { AvailabilityOverride, AvailabilityRule } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createOverride, createRule, deleteOverride, deleteRule } from "@/store/slices/availabilitySlice";
-import { DAY_NAMES } from "./schedulerUtils";
 
 import styles from "./AvailabilityEditor.module.scss";
 

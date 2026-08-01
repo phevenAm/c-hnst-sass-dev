@@ -1,6 +1,12 @@
 import dayjs from "dayjs";
 
-import type { AvailabilityOverride, AvailabilityRule, Session, UserProfile } from "@/models/globalTypes";
+import type {
+  AdminPrivateEvent,
+  AvailabilityOverride,
+  AvailabilityRule,
+  Session,
+  UserProfile,
+} from "@/models/globalTypes";
 
 // ============================================================
 // SCHEDULER UTILS
@@ -15,7 +21,8 @@ import type { AvailabilityOverride, AvailabilityRule, Session, UserProfile } fro
 export type SchedulerResource =
   | { type: "session"; session: Session; color: string; clientName: string }
   | { type: "window"; label: string; source: "rule" | "override" }
-  | { type: "blocked"; label: string };
+  | { type: "blocked"; label: string }
+  | { type: "private"; event: AdminPrivateEvent };
 
 export type SchedulerEvent = {
   id: string;
@@ -107,6 +114,18 @@ export function clientSessionEvents(sessions: Session[]): SchedulerEvent[] {
     });
 }
 
+// Map the admin's private events → calendar events. Admin view only; clients
+// never receive these rows (no client RLS policy on admin_private_events).
+export function privateEventEvents(events: AdminPrivateEvent[]): SchedulerEvent[] {
+  return events.map((e) => ({
+    id: `private-${e.id}`,
+    title: e.title,
+    start: new Date(e.starts_at),
+    end: new Date(e.ends_at),
+    resource: { type: "private", event: e },
+  }));
+}
+
 // Expand recurring rules + overrides into window/blocked events for the
 // seven days of the week containing `focusDate`.
 //
@@ -167,6 +186,53 @@ export function availabilityEvents(
   }
 
   return events;
+}
+
+// A concrete bookable time range on a specific day.
+export type TimeWindow = { start: Date; end: Date };
+
+// Subtract interval `b` from window `w`, returning the 0–2 remaining pieces.
+function subtractInterval(w: TimeWindow, b: TimeWindow): TimeWindow[] {
+  // No overlap → window survives whole.
+  if (b.end.getTime() <= w.start.getTime() || b.start.getTime() >= w.end.getTime()) return [w];
+  const pieces: TimeWindow[] = [];
+  if (b.start.getTime() > w.start.getTime()) pieces.push({ start: w.start, end: b.start });
+  if (b.end.getTime() < w.end.getTime()) pieces.push({ start: b.end, end: w.end });
+  return pieces;
+}
+
+// The NET bookable windows for a single date, from the same rules + overrides
+// the calendar renders. Full-day block → nothing; extra-window overrides add
+// windows; partial block overrides are subtracted out. Used by the client
+// reschedule picker to constrain which days/times can be requested.
+export function bookableWindowsForDate(
+  date: Date,
+  rules: AvailabilityRule[],
+  overrides: AvailabilityOverride[],
+): TimeWindow[] {
+  const day = dayjs(date);
+  const dayStr = day.format("YYYY-MM-DD");
+  const dow = day.day();
+
+  const dayOverrides = overrides.filter((o) => o.override_date === dayStr);
+  if (dayOverrides.some((o) => o.is_blocked && !o.start_time)) return [];
+
+  let windows: TimeWindow[] = [];
+  rules
+    .filter((r) => r.day_of_week === dow)
+    .forEach((r) => windows.push({ start: at(day, r.start_time), end: at(day, r.end_time) }));
+  dayOverrides
+    .filter((o) => !o.is_blocked && o.start_time && o.end_time)
+    .forEach((o) => windows.push({ start: at(day, o.start_time!), end: at(day, o.end_time!) }));
+
+  dayOverrides
+    .filter((o) => o.is_blocked && o.start_time && o.end_time)
+    .forEach((o) => {
+      const block = { start: at(day, o.start_time!), end: at(day, o.end_time!) };
+      windows = windows.flatMap((w) => subtractInterval(w, block));
+    });
+
+  return windows.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
 export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

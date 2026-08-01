@@ -1,0 +1,51 @@
+@use "../../../styles/spacing" as *;
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-4;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-2;
+}
+
+.label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input,
+.textarea {
+    width: 100%;
+    padding: $sp-2 $sp-3;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+}
+
+.textarea {
+    resize: vertical;
+}
+
+.times {
+    display: flex;
+    gap: $sp-3;
+    flex-wrap: wrap;
+
+    > * {
+        flex: 1 1 45%;
+    }
+}
+
+.hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}

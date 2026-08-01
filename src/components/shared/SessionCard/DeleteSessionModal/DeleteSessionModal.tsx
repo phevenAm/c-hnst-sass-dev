@@ -18,10 +18,11 @@ const DeleteSessionModal = ({ id, onClose }: DeleteModalProps) => {
   const { showToast } = useToast();
   const { isDemo } = useAuth();
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
-      dispatch(deleteSession(id)).unwrap();
+      await dispatch(deleteSession(id)).unwrap();
       showToast("Session deleted", "success");
+      onClose();
     } catch (error) {
       showToast(error.message as string, "danger");
     }

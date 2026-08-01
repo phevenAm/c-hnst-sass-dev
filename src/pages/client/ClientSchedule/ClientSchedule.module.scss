@@ -27,7 +27,8 @@
     margin-top: $sp-4;
 }
 
-// ── Next session strip ────────────────────────────────────
+// ── Next session strip (empty state only — the populated card lives in
+//    NextSessionCard.module.scss) ─────────────────────────────────────
 .nextStrip {
     display: flex;
     align-items: center;
@@ -40,43 +41,6 @@
     border-left: 6px solid var(--accent);
     box-shadow: var(--shadow-md);
 }
-
-.stripLeft {
-    display: flex;
-    flex-direction: column;
-    gap: $sp-2;
-}
-
-.stripDate {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.stripMeta {
-    display: flex;
-    align-items: center;
-    gap: $sp-2;
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-}
-
-.joinLink {
-    color: var(--accent);
-    text-decoration: none;
-
-    &:hover {
-        text-decoration: underline;
-    }
-}
-
-.stripRight {
-    display: flex;
-    align-items: center;
-    gap: $sp-2;
-}
-
 
 .noUpcoming {
     margin: 0;

@@ -25,14 +25,12 @@
 }
 
 .feedbackBtn {
-  width: 22px;
-  height: 22px;
+  padding: var(--sp-1) var(--sp-3);
   border-radius: var(--r-full);
   border: 1px solid var(--border);
   background: var(--bg-muted);
   color: var(--text-secondary);
   font-size: 0.8rem;
-  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   display: flex;

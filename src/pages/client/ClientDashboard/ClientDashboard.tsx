@@ -1,12 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-import dayjs from "dayjs";
-
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
-import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
 import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
 import Spinner from "@components/shared/Spinner/Spinner";
 import { useAuth } from "@context/AuthContext";
@@ -182,33 +180,18 @@ export default function ClientDashboard() {
           ))}
         </div>
 
-        <Card>
-          <div className={styles.cardPad}>
-            <h3 className={styles.cardTitle}>Next session</h3>
-            {nextSession ? (
-              <div className={styles.checkInRow}>
-                <div>
-                  <p className={styles.checkInTitle}>{dayjs(nextSession.scheduled_at).format("dddd D MMM · h:mma")}</p>
-                  <p className={styles.checkInFreq}>
-                    {nextSession.location === "in_person" ? "In person" : "Online"} · {nextSession.duration_minutes} min
-                  </p>
-                </div>
-                <div className={styles.nextSessionActions}>
-                  <Badge variant={nextSession.paid ? "success" : "warning"}>
-                    {nextSession.paid ? "Paid" : "Unpaid"}
-                  </Badge>
-                  <Link to="/my-sessions" style={{ textDecoration: "none" }}>
-                    <Button size="sm" variant="secondary">
-                      View
-                    </Button>
-                  </Link>
-                </div>
+        <div className={styles.nextSessionCard}>
+          <h3 className={styles.cardTitle}>Next session</h3>
+          {nextSession ? (
+            <NextSessionCard session={nextSession} compact />
+          ) : (
+            <Card>
+              <div className={styles.cardPad}>
+                <p className={styles.emptyText}>No upcoming sessions booked.</p>
               </div>
-            ) : (
-              <p className={styles.emptyText}>No upcoming sessions booked.</p>
-            )}
-          </div>
-        </Card>
+            </Card>
+          )}
+        </div>
 
         <div className={styles.chartWrap}>
           <ProgressChart responses={chartResponses} questions={allAssignedQuestions} title="Your Wellbeing Over Time" />
