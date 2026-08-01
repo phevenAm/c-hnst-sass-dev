@@ -56,7 +56,7 @@ export default function TrendChart({
       ) : (
         <ResponsiveContainer width="100%" height={180}>
           {type === "bar" ? (
-            <BarChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
               <YAxis tick={axis} axisLine={false} tickLine={false} width={40} domain={yDomain} allowDecimals={false} />
@@ -67,7 +67,7 @@ export default function TrendChart({
               <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={38} />
             </BarChart>
           ) : (
-            <LineChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
               <YAxis tick={axis} axisLine={false} tickLine={false} width={40} domain={yDomain} />
