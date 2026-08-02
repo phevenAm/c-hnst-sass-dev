@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { LogoIcon, MailIcon } from "../../../components/shared/Icons/Icons";
-import { useAuth } from "../../../context/AuthContext";
+import { LogoIcon, MailIcon } from "@components/shared/Icons/Icons";
+import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import { useAuth } from "@context/AuthContext";
 
 import styles from "./SignUpPage.module.scss";
 
@@ -117,9 +118,12 @@ export default function SignUpPage() {
 
   return (
     <main className={`${styles.page} page`}>
-      <div className={styles.blobTop} aria-hidden="true" />
-      <div className={styles.blobBottom} aria-hidden="true" />
-
+      <ImageBlurBlock
+        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
+        photographer="Amirali Shaghaghi"
+        sourceLabel="Pexels"
+        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
+      />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
