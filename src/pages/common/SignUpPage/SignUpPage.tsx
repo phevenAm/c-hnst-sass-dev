@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { LogoIcon, MailIcon } from "@components/shared/Icons/Icons";
+import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
 import styles from "./SignUpPage.module.scss";

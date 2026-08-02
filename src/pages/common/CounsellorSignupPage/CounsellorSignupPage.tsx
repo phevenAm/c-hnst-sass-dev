@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { LogoIcon, MailIcon } from "@components/shared/Icons/Icons";
+import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
