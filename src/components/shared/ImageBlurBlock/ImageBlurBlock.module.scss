@@ -1,0 +1,74 @@
+.bgPanel {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translate(12%, -49%);
+  width: 100vw;
+  height: 100vh;
+  min-width: 400px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  z-index: 0;
+  // box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.bgPanel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.bgImage {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(1, 15, 15, 0.24), rgba(1, 15, 15, 0.24)), url('/pexels-amirali-shaghaghi-18428647.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: blur(4px);
+  opacity: 0.96;
+  pointer-events: none;
+}
+
+.photoCredit {
+  position: absolute;
+  left: 50%;
+  bottom: var(--sp-4);
+  transform: translateX(-50%);
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--r-md);
+  pointer-events: auto;
+
+  a {
+    color: rgba(255, 255, 255, 0.96);
+    text-decoration: underline;
+  }
+}
+
+@media (min-width: 800px) {
+  .bgPanel {
+    height: 65vh;
+    width: 50vw;
+  }
+}
+
+/* Ensure full-viewport coverage on small screens and reset horizontal offset */
+@media (max-width: 800px) {
+  .bgPanel {
+    left: 0;
+    right: 0;
+    transform: translate(0, -50%);
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+}

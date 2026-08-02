@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { LogoIcon, MailIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 
@@ -99,6 +100,12 @@ export default function CounsellorSignupPage() {
 
   return (
     <main className={`${styles.page} page`}>
+      <ImageBlurBlock
+        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
+        photographer="Amirali Shaghaghi"
+        sourceLabel="Pexels"
+        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
+      />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>

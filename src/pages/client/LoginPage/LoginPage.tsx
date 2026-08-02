@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useAuth } from "../../../context/AuthContext";
+import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import { useAuth } from "@context/AuthContext";
 
 import styles from "./LoginPage.module.scss";
 
@@ -67,6 +68,12 @@ export default function LoginPage() {
 
   return (
     <main className={`${styles.page} page`}>
+      <ImageBlurBlock
+        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
+        photographer="Amirali Shaghaghi"
+        sourceLabel="Pexels"
+        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
+      />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
