@@ -7,6 +7,7 @@ import Card from "@components/shared/Card/Card";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
+import { downloadSessionIcs } from "@/Helpers/calendarExport";
 import { formatSessionDate } from "@/Helpers/sessionDate";
 import type { Session } from "@/models/globalTypes";
 import PaymentModal from "../PaymentModal/PaymentModal";
@@ -45,7 +46,10 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
     <>
       <Card className={styles.nextStrip}>
         <div className={styles.stripLeft}>
-          <p className={styles.stripDate}>{formatSessionDate(session.scheduled_at)}</p>
+          <div className={styles.stripDateRow}>
+            <p className={styles.stripDate}>{formatSessionDate(session.scheduled_at)}</p>
+            <Badge variant={session.paid ? "success" : "warning"}>{session.paid ? "Paid" : "Unpaid"}</Badge>
+          </div>
           <div className={styles.stripMeta}>
             <span>{session.duration_minutes} min</span>
             <span>·</span>
@@ -69,26 +73,26 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                 )}
               </>
             )}
-            {session.price_pence > 0 && (
-              <>
-                <span>·</span>
-                <span>£{(session.price_pence / 100).toFixed(2)}</span>
-              </>
-            )}
           </div>
         </div>
 
         <div className={styles.stripRight}>
-          <Badge variant={session.paid ? "success" : "warning"}>{session.paid ? "Paid" : "Unpaid"}</Badge>
-
           {compact ? (
-            <Link to="/my-sessions" style={{ textDecoration: "none" }}>
-              <Button size="sm" variant="secondary">
-                View
+            <>
+              <Button size="sm" variant="secondary" onClick={() => downloadSessionIcs(session)}>
+                Add to calendar
               </Button>
-            </Link>
+              <Link to="/my-sessions" style={{ textDecoration: "none" }}>
+                <Button size="sm" variant="secondary">
+                  View
+                </Button>
+              </Link>
+            </>
           ) : (
             <>
+              <Button size="sm" variant="secondary" onClick={() => downloadSessionIcs(session)}>
+                Add to calendar
+              </Button>
               {!session.paid && (
                 <Button
                   size="sm"

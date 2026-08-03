@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import styles from "./ImageBlurBlock.module.scss";
 
 type ImageBlurBlockProps = {
@@ -32,7 +33,7 @@ export default function ImageBlurBlock({ imageUrl, photographer, sourceLabel, cr
         style={{ backgroundImage: `linear-gradient(rgba(1, 15, 15, 0.24), rgba(1, 15, 15, 0.24)), url('${imageUrl}')` }}
       />
       <p className={styles.photoCredit}>
-        Photo by {" "}
+        Photo by{" "}
         <a href={creditUrl} target="_blank" rel="noreferrer noopener">
           {photographer}
         </a>{" "}

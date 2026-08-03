@@ -6,7 +6,6 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
 import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
-import Spinner from "@components/shared/Spinner/Spinner";
 import { useAuth } from "@context/AuthContext";
 import type { Response } from "@models/globalTypes";
 import { useGetQuotesByTagQuery } from "@services/inspirationalQuotesApi";
@@ -165,7 +164,7 @@ export default function ClientDashboard() {
 
         {randomQuote ? (
           <section className={`${styles.quotes} ${styles.warm}`}>
-            <h3>{randomQuote?.content}</h3>
+            <h2>{randomQuote?.content}</h2>
             <small>{randomQuote?.author}</small>
           </section>
         ) : null}

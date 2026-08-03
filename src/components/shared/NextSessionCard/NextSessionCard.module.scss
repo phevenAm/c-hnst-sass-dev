@@ -10,7 +10,7 @@
     margin-bottom: $sp-4;
     flex-wrap: wrap;
     background: var(--bg-card);
-    border-left: 6px solid var(--accent);
+    border-top: 3px solid var(--accent);
     box-shadow: var(--shadow-md);
 }
 
@@ -18,6 +18,12 @@
     display: flex;
     flex-direction: column;
     gap: $sp-2;
+}
+
+.stripDateRow {
+    display: flex;
+    align-items: center;
+    gap: $sp-3;
 }
 
 .stripDate {
