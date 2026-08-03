@@ -11,6 +11,8 @@
   z-index: 0;
   // box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22);
   background: rgba(0, 0, 0, 0.02);
+  opacity: 0;
+  transition: opacity 360ms ease;
 }
 
 .bgPanel::after {
@@ -71,4 +73,12 @@
     height: 100vh;
     border-radius: 0;
   }
+}
+
+.loaded {
+  opacity: 1;
+}
+
+.loading {
+  opacity: 0;
 }
