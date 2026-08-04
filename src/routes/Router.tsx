@@ -13,6 +13,7 @@ import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClien
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
 import AdminClientsPageDetailed from "../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed";
 import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
+import AdminPaymentsPage from "../pages/admin/AdminPaymentsPage/AdminPaymentsPage";
 import AdminQuestionnairesPage from "../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage";
 import AdminResourcesPage from "../pages/admin/AdminResourcesPage/AdminResourcesPage";
 import AdminScheduler from "../pages/admin/AdminScheduler/AdminScheduler";
@@ -183,6 +184,7 @@ export default function AppRoutes() {
             <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
             <Route path="/admin/scheduler" element={<AdminScheduler />} />
             <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
+            <Route path="/admin/payments" element={<AdminPaymentsPage />} />
             {/* //! make admin/schedule/userSchedule route */}
           </Route>
 

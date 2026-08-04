@@ -43,6 +43,7 @@ export default function Navbar() {
     { to: "/admin", label: "Dashboard" },
     { to: "/admin/clients", label: "Clients" },
     { to: "/admin/scheduler", label: "Schedule" },
+    { to: "/admin/payments", label: "Payments" },
     { to: "/admin/questionnaires", label: "Check-ins" },
     { to: "/admin/resources", label: "Resources" },
   ];
