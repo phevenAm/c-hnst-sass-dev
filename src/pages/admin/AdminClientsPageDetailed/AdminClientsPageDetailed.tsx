@@ -18,7 +18,7 @@ import Spinner from "@/components/shared/Spinner/Spinner";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
 import { supabase } from "@/lib/supabase.js";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
@@ -32,7 +32,7 @@ export default function AdminClientsPageDetailed() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
 
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
@@ -135,6 +135,26 @@ export default function AdminClientsPageDetailed() {
   };
 
   const client = allUsers.find((u) => u.id === clientId);
+
+  const [codename, setCodename] = useState(client?.admin_codename ?? "");
+  const [savingCodename, setSavingCodename] = useState(false);
+
+  useEffect(() => {
+    setCodename(client?.admin_codename ?? "");
+  }, [client?.admin_codename]);
+
+  const handleSaveCodename = async () => {
+    if (!clientId) return;
+    setSavingCodename(true);
+    await supabase
+      .from("users")
+      .update({ admin_codename: codename.trim() || null })
+      .eq("id", clientId);
+    setSavingCodename(false);
+    showToast("Codename saved.");
+  };
+
+  const displayedClientName = client ? clientDisplayName(client, practiceSettings?.use_client_codenames ?? false) : "";
 
   const questionnaireOptions = useMemo(
     () => questionnaires.filter((q) => clientResponses.some((r) => r.questionnaire_id === q.id)),
@@ -257,11 +277,9 @@ export default function AdminClientsPageDetailed() {
         {/* Profile hero */}
         <div className={styles.hero}>
           <div className={styles.heroLeft}>
-            <Avatar name={`${client.first_name} ${client.last_name}`} imageSrc={client.avatar_url ?? ""} size={80} />
+            <Avatar name={displayedClientName} imageSrc={client.avatar_url ?? ""} size={80} />
             <div>
-              <h1 className={styles.heroName}>
-                {client.first_name} {client.last_name}
-              </h1>
+              <h1 className={styles.heroName}>{displayedClientName}</h1>
               <p className={styles.heroEmail}>{client.email}</p>
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
@@ -270,6 +288,18 @@ export default function AdminClientsPageDetailed() {
           </div>
 
           <div className={styles.heroActions}>
+            <div className={styles.codenameRow}>
+              <input
+                className={styles.codenameInput}
+                value={codename}
+                onChange={(e) => setCodename(e.target.value)}
+                placeholder="Codename (optional)"
+                maxLength={30}
+              />
+              <Button variant="secondary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
+                {savingCodename ? "Saving…" : "Save"}
+              </Button>
+            </div>
             <Button variant="secondary" size="sm" onClick={() => setNotesOpen(true)}>
               Notes
             </Button>

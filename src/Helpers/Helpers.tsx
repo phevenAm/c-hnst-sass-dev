@@ -1,6 +1,6 @@
 import { Button } from "@/components/shared";
 import Spinner from "@/components/shared/Spinner/Spinner";
-import type { Response } from "../models/globalTypes";
+import type { Response, UserProfile } from "../models/globalTypes";
 
 export const isQuestionnaireCheckInDue = (date: string, frequency: string) => {
   const now = new Date();
@@ -37,6 +37,14 @@ export const isAdultFromDob = (dob: string | null | undefined): boolean => {
   const hadBirthday = now >= new Date(now.getFullYear(), birth.getMonth(), birth.getDate());
   return age > 18 || (age === 18 && hadBirthday);
 };
+
+export function clientDisplayName(
+  client: Pick<UserProfile, "first_name" | "last_name" | "display_name" | "admin_codename">,
+  useCodenames = false,
+): string {
+  if (useCodenames && client.admin_codename) return client.admin_codename;
+  return client.display_name || `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim() || "Unnamed client";
+}
 
 export function isPageStatusLoading(...statuses: string[]) {
   if (statuses.some((s) => s === "loading" || s === "idle")) {

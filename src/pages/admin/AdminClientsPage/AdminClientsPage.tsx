@@ -15,7 +15,8 @@ import { fetchAllResponses, selectResponsesByUser } from "@store/slices/response
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
 import Search from "@/components/shared/Search/Search";
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { useAuth } from "@/context/AuthContext";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { getScoreAverage } from "../utils/AdminClientsPageUtils";
 import AccessTokenModal from "./modals/AccessTokenModal/AccessTokenModal";
 import DeleteClientModal from "./modals/DeleteClientModal/DeleteClientModal";
@@ -34,6 +35,8 @@ const getQuestionnaireForResponse = (response: Response | undefined, questionnai
 function ClientRow({ user }: { user: UserProfile }) {
   const allResponses = useAppSelector(selectResponsesByUser(user.id));
   const questionnaires = useAppSelector(selectAllQuestionnaires);
+  const { practiceSettings } = useAuth();
+  const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
 
   const questionnaireOptions = useMemo(
     () =>
@@ -74,12 +77,10 @@ function ClientRow({ user }: { user: UserProfile }) {
   return (
     <>
       <div className={styles.clientRow}>
-        <Avatar name={`${user.first_name} ${user.last_name}`} imageSrc={user.avatar_url ?? ""} size={40} />
+        <Avatar name={displayName} imageSrc={user.avatar_url ?? ""} size={40} />
 
         <div className={styles.clientMeta}>
-          <p className={styles.clientName}>
-            {user.first_name} {user.last_name}
-          </p>
+          <p className={styles.clientName}>{displayName}</p>
           <p className={styles.clientEmail}>{user.email}</p>
         </div>
 

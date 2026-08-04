@@ -74,6 +74,37 @@
   gap: $sp-2;
   flex-shrink: 0;
   padding-top: $sp-2;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.codenameRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.codenameInput {
+  padding: $sp-2 $sp-3;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: var(--font-sans);
+  width: 160px;
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
 }
 
 // ── Stats bar ────────────────────────────────────────────────

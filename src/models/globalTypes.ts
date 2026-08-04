@@ -75,6 +75,7 @@ export type UserProfile = Omit<Tables<"users">, "age" | "first_name" | "role" | 
   first_name: string;
   role: UserRole | string;
   disabled: boolean;
+  admin_codename?: string | null;
 };
 
 export type Questionnaire = Omit<Tables<"questionnaires">, "title" | "description" | "frequency" | "is_active"> & {

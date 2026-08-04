@@ -24,6 +24,15 @@ import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
 
 import styles from "./SettingsPage.module.scss";
 
+type AdminTab = "profile" | "practice" | "emails" | "account";
+
+const ADMIN_TABS: { id: AdminTab; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "practice", label: "Practice" },
+  { id: "emails", label: "Emails" },
+  { id: "account", label: "Account" },
+];
+
 const BUSINESS_FIELDS = [
   { key: "business_name", label: "Business name" },
   { key: "email", label: "Email" },
@@ -51,6 +60,7 @@ const SettingsPage = () => {
   const [keywords, setKeywords] = useState<string[]>(userProfile?.focus_keywords ?? []);
   const [saving, setSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminTab>("profile");
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
     business_name: "",
@@ -71,6 +81,9 @@ const SettingsPage = () => {
   const [savingBank, setSavingBank] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+
+  const [useCodenames, setUseCodenames] = useState(false);
+  const [savingCodenames, setSavingCodenames] = useState(false);
 
   const [reminderHours, setReminderHours] = useState(120);
   const [reminderSubject, setReminderSubject] = useState("");
@@ -109,6 +122,7 @@ const SettingsPage = () => {
           setReminderHours(data.reminder_hours_before ?? 120);
           setReminderSubject(data.reminder_email_subject ?? "");
           setReminderBody(data.reminder_email_body ?? "");
+          setUseCodenames(data.use_client_codenames ?? false);
         }
       });
   }, [isAdmin, userProfile?.id]);
@@ -147,6 +161,17 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingBusiness(false);
     showToast("Business information updated.");
+  };
+
+  const handleSaveCodenames = async () => {
+    if (!userProfile?.id) return;
+    setSavingCodenames(true);
+    await supabase
+      .from("practice_settings")
+      .update({ use_client_codenames: useCodenames })
+      .eq("admin_id", userProfile.id);
+    setSavingCodenames(false);
+    showToast("Client display settings saved.");
   };
 
   const handleSendTest = async (type: string) => {
@@ -194,8 +219,6 @@ const SettingsPage = () => {
     }
   };
 
-  // const guard = isPageStatusLoading();
-  // if (guard) return guard;
   if (loading || !userProfile)
     return (
       <div className="page">
@@ -208,180 +231,238 @@ const SettingsPage = () => {
       <div className={`inner ${styles.columns}`}>
         <div className={styles.pageHeader}>
           <h1>Settings</h1>
-          <p>{isAdmin ? "Update your profile and business information" : "Update or remove your profile"}</p>
+          <p>{isAdmin ? "Manage your profile, practice, and account" : "Update or remove your profile"}</p>
         </div>
 
-        {/* ── Profile card ── */}
-        <Card className={styles.card}>
-          <div className={styles.topRow}>
-            <section className={styles.left}>
-              <form className={styles.form}>
-                <h2 className={styles.sectionTitle}>Edit profile</h2>
-                <div className={styles.field}>
-                  <label htmlFor="displayName">
-                    Display name <small>(shown on your dashboard — use a nickname or short name)</small>
-                  </label>
-                  <input
-                    id="displayName"
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={40}
-                    value={name}
-                    placeholder="e.g. Alex"
-                    name="display name"
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label>Profile picture</label>
-                  <UploadAndDisplayImage userId={userProfile?.id ?? ""} onUpload={(url) => setImageUrl(url)} />
-                </div>
-              </form>
-            </section>
-
-            <section className={styles.right}>
-              <div className={styles.avatarCard}>
-                <Avatar name={name} imageSrc={imageUrl} color={avatarColor} size={210} />
-                <h2>{name}</h2>
-              </div>
-            </section>
+        {/* ── Tab bar (admin only) ── */}
+        {isAdmin && (
+          <div className={styles.tabs}>
+            {ADMIN_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+        )}
 
-          {!isAdmin && (
-            <section className={styles.keywords}>
-              <h2>Focus keywords</h2>
-              <p>Pick topics that shape the quotes you see on your dashboard.</p>
-              <div className={styles.chipList}>
-                {KEYWORDS.map((kw) => (
-                  <button
-                    key={kw}
-                    type="button"
-                    className={`${styles.chip} ${keywords.includes(kw) ? styles.chipSelected : ""}`}
-                    onClick={() => toggleKeyword(kw)}
-                  >
-                    {kw}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
+        {/* ── Profile tab ── */}
+        {(!isAdmin || activeTab === "profile") && (
+          <Card className={styles.card}>
+            <div className={styles.topRow}>
+              <section className={styles.left}>
+                <form className={styles.form}>
+                  <h2 className={styles.sectionTitle}>Edit profile</h2>
+                  <div className={styles.field}>
+                    <label htmlFor="displayName">
+                      Display name <small>(shown on your dashboard — use a nickname or short name)</small>
+                    </label>
+                    <input
+                      id="displayName"
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={40}
+                      value={name}
+                      placeholder="e.g. Alex"
+                      name="display name"
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label>Profile picture</label>
+                    <UploadAndDisplayImage userId={userProfile?.id ?? ""} onUpload={(url) => setImageUrl(url)} />
+                  </div>
+                </form>
+              </section>
 
-          <div className={styles.actions}>
-            <Button
-              variant="primary"
-              className={styles.saveButton}
-              onClick={async (e) => {
-                e.preventDefault();
-                await handleUpdateProfile();
-              }}
-            >
-              {saving ? "Updating profile..." : "Update profile"}
-            </Button>
-            {!isAdmin && !isDemo && (
-              <div className={styles.deleteAccountBlock}>
-                <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
-                  Delete account
+              <section className={styles.right}>
+                <div className={styles.avatarCard}>
+                  <Avatar name={name} imageSrc={imageUrl} color={avatarColor} size={210} />
+                  <h2>{name}</h2>
+                </div>
+              </section>
+            </div>
+
+            {!isAdmin && (
+              <section className={styles.keywords}>
+                <h2>Focus keywords</h2>
+                <p>Pick topics that shape the quotes you see on your dashboard.</p>
+                <div className={styles.chipList}>
+                  {KEYWORDS.map((kw) => (
+                    <button
+                      key={kw}
+                      type="button"
+                      className={`${styles.chip} ${keywords.includes(kw) ? styles.chipSelected : ""}`}
+                      onClick={() => toggleKeyword(kw)}
+                    >
+                      {kw}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div className={styles.actions}>
+              <Button
+                variant="primary"
+                className={styles.saveButton}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  await handleUpdateProfile();
+                }}
+              >
+                {saving ? "Updating profile..." : "Update profile"}
+              </Button>
+              {!isAdmin && !isDemo && (
+                <div className={styles.deleteAccountBlock}>
+                  <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
+                    Delete account
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* ── Practice tab (admin only) ── */}
+        {isAdmin && activeTab === "practice" && (
+          <>
+            {/* Business info */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Business information</h2>
+                <p>This information can be used across the app and in client communications.</p>
+                <form className={styles.form}>
+                  {BUSINESS_FIELDS.map(({ key, label }) => (
+                    <div className={styles.field} key={key}>
+                      <label>{label}</label>
+                      <input
+                        value={practiceDetails[key] ?? ""}
+                        onChange={(e) => setPracticeDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                  <div className={styles.field}>
+                    <label>Logo</label>
+                    {logoUrl ? (
+                      <>
+                        <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
+                        <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
+                          Remove logo
+                        </Button>
+                      </>
+                    ) : (
+                      <UploadAndDisplayImage
+                        userId={userProfile?.id ?? ""}
+                        bucket="logos"
+                        onUpload={(url) => setLogoUrl(url)}
+                      />
+                    )}
+                  </div>
+                </form>
+              </section>
+              <div className={styles.actions}>
+                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBusiness}>
+                  {savingBusiness ? "Saving…" : "Save business info"}
                 </Button>
               </div>
-            )}
-          </div>
-        </Card>
+            </Card>
 
-        {/* ── Business info card (admin only) ── */}
-        {isAdmin && (
-          <Card className={styles.card}>
-            <section className={styles.businessSection}>
-              <h2>Business information</h2>
-              <p>This information can be used across the app and in client communications.</p>
-              <form className={styles.form}>
-                {BUSINESS_FIELDS.map(({ key, label }) => (
-                  <div className={styles.field} key={key}>
-                    <label>{label}</label>
-                    <input
-                      value={practiceDetails[key] ?? ""}
-                      onChange={(e) => setPracticeDetails((prev) => ({ ...prev, [key]: e.target.value }))}
-                    />
-                  </div>
-                ))}
-                <div className={styles.field}>
-                  <label>Logo</label>
-                  {logoUrl ? (
-                    <>
-                      <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
-                      <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
-                        Remove logo
-                      </Button>
-                    </>
-                  ) : (
-                    <UploadAndDisplayImage
-                      userId={userProfile?.id ?? ""}
-                      bucket="logos"
-                      onUpload={(url) => setLogoUrl(url)}
-                    />
-                  )}
-                </div>
-              </form>
-            </section>
-            <div className={styles.actions}>
-              <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBusiness}>
-                {savingBusiness ? "Saving…" : "Save business info"}
-              </Button>
-            </div>
-          </Card>
-        )}
+            {/* Bank details */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Bank details</h2>
+                <p>Shown to clients as a payment option when they pay for a session.</p>
+                <form className={styles.form}>
+                  {BANK_FIELDS.map(({ key, label, placeholder }) => (
+                    <div className={styles.field} key={key}>
+                      <label>{label}</label>
+                      <input
+                        value={bankDetails[key]}
+                        placeholder={placeholder}
+                        onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </form>
+              </section>
+              <div className={styles.actions}>
+                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
+                  {savingBank ? "Saving…" : "Save bank details"}
+                </Button>
+              </div>
+            </Card>
 
-        {/* ── Bank details card (admin only) ── */}
-        {isAdmin && (
-          <Card className={styles.card}>
-            <section className={styles.businessSection}>
-              <h2>Bank details</h2>
-              <p>Shown to clients as a payment option when they pay for a session.</p>
-              <form className={styles.form}>
-                {BANK_FIELDS.map(({ key, label, placeholder }) => (
-                  <div className={styles.field} key={key}>
-                    <label>{label}</label>
+            {/* Stripe Connect */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Card payments</h2>
+                <p>
+                  Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
+                </p>
+                {stripeConnected ? (
+                  <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
+                      const redirect = `${window.location.origin}/settings/stripe-callback`;
+                      window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
+                    }}
+                  >
+                    Connect Stripe account
+                  </Button>
+                )}
+              </section>
+            </Card>
+
+            {/* Client codenames */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Client display</h2>
+                <p>
+                  Show a codename instead of a client's real name across your admin interface — useful for
+                  privacy-conscious workflows.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Use codenames</strong>
+                    <span>Show codenames instead of real names in your admin UI</span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
                     <input
-                      value={bankDetails[key]}
-                      placeholder={placeholder}
-                      onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={useCodenames}
+                      onChange={(e) => setUseCodenames(e.target.checked)}
                     />
-                  </div>
-                ))}
-              </form>
-            </section>
-            <div className={styles.actions}>
-              <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
-                {savingBank ? "Saving…" : "Save bank details"}
-              </Button>
-            </div>
-          </Card>
-        )}
-        {/* ── Stripe Connect card (admin only) ── */}
-        {isAdmin && (
-          <Card className={styles.card}>
-            <section className={styles.businessSection}>
-              <h2>Card payments</h2>
-              <p>
-                Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
-              </p>
-              {stripeConnected ? (
-                <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
-              ) : (
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                <p className={styles.toggleHint}>
+                  Set each client's codename from their profile page. If a client has no codename set, their real name
+                  is used as a fallback.
+                </p>
+              </section>
+              <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  onClick={() => {
-                    const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
-                    const redirect = `${window.location.origin}/settings/stripe-callback`;
-                    window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
-                  }}
+                  className={styles.saveButton}
+                  onClick={handleSaveCodenames}
+                  disabled={savingCodenames}
                 >
-                  Connect Stripe account
+                  {savingCodenames ? "Saving…" : "Save"}
                 </Button>
-              )}
-            </section>
-          </Card>
+              </div>
+            </Card>
+          </>
         )}
 
-        {/* ── Manage emails card (admin only) ── */}
-        {isAdmin && (
+        {/* ── Emails tab (admin only) ── */}
+        {isAdmin && activeTab === "emails" && (
           <WIP>
             <Card className={styles.card}>
               <section className={styles.businessSection}>
@@ -516,8 +597,8 @@ const SettingsPage = () => {
           </WIP>
         )}
 
-        {/* ── Subscription card (admin only) ── */}
-        {isAdmin && practiceSettings && (
+        {/* ── Account tab (admin only) ── */}
+        {isAdmin && activeTab === "account" && practiceSettings && (
           <Card className={styles.card}>
             <section className={styles.businessSection}>
               <h2>Subscription</h2>

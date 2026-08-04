@@ -15,6 +15,7 @@ type PracticeSettings = {
   subscription_status: string;
   subscription_plan: string;
   stripe_connect_onboarded: boolean;
+  use_client_codenames: boolean;
 };
 
 type AuthContextType = {
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // 406 on zero rows. maybeSingle returns null cleanly.
           const { data: settings } = await supabase
             .from("practice_settings")
-            .select("subscription_status, subscription_plan, stripe_connect_onboarded")
+            .select("subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames")
             .eq("admin_id", currentAuthUser.id)
             .maybeSingle();
           setPracticeSettings(settings ?? null);
@@ -221,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!authUser || userProfile?.role !== "admin") return;
     const { data } = await supabase
       .from("practice_settings")
-      .select("subscription_status, subscription_plan, stripe_connect_onboarded")
+      .select("subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames")
       .eq("admin_id", authUser.id)
       .maybeSingle();
     setPracticeSettings(data ?? null);
