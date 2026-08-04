@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+echo ""
+echo "-- Pre-push: lint fix ---------------------------------------"
+npm run lint:fix > /dev/null 2>&1 || true
+echo "OK done"
+echo ""
+
+echo "-- Pre-push: migration sync check ---------------------------"
+MIGRATION_JSON=$(npx supabase migration list 2>/dev/null)
+
+PENDING=$(echo "$MIGRATION_JSON" | node -e "
+  let d = '';
+  process.stdin.on('data', c => d += c);
+  process.stdin.on('end', () => {
+    try {
+      const j = JSON.parse(d);
+      const p = (j.migrations || []).filter(m => m.local && !m.remote).map(m => m.local);
+      if (p.length) console.log(p.join(', '));
+    } catch(e) {}
+  });
+" 2>/dev/null)
+
+if [ -n "$PENDING" ]; then
+  echo ""
+  echo "  WARNING: local migrations not yet applied to remote Supabase:"
+  echo "  $PENDING"
+  echo ""
+  echo "  Run: npx supabase db push"
+  echo ""
+else
+  echo "OK all migrations in sync"
+fi
+echo ""

@@ -59,6 +59,7 @@
     "update-types": "npx --yes supabase gen types typescript --project-id mxyfdvfbdrusbjiozuzx --schema public > src/models/database.types.ts --debug",
     "axe": "playwright test --ui",
     "axe:run": "playwright test",
-    "a11y": "node axe-scan.mjs"
+    "a11y": "node axe-scan.mjs",
+    "prepare": "node scripts/install-hooks.js"
   }
 }
