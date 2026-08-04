@@ -17,6 +17,43 @@ import useSessionCard from "../SessionCard/useSessionCard";
 
 import styles from "./NextSessionCard.module.scss";
 
+function MeetingIcon({ url }: { url: string }) {
+  const shared = { width: 14, height: 14, "aria-hidden": true, style: { flexShrink: 0 } as React.CSSProperties };
+  if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
+    return (
+      <svg {...shared} viewBox="0 0 16 16">
+        <rect width="16" height="16" rx="3" fill="#5558AF" />
+        <rect x="4" y="4" width="8" height="2" fill="white" />
+        <rect x="7" y="4" width="2" height="8" fill="white" />
+      </svg>
+    );
+  }
+  if (url.includes("meet.google.com")) {
+    return (
+      <svg {...shared} viewBox="0 0 16 16">
+        <rect width="16" height="16" rx="3" fill="#00AC47" />
+        <rect x="2" y="5" width="7" height="6" rx="1" fill="white" />
+        <path d="M10 8l4-2.5v5z" fill="white" />
+      </svg>
+    );
+  }
+  if (url.includes("zoom.us")) {
+    return (
+      <svg {...shared} viewBox="0 0 16 16">
+        <rect width="16" height="16" rx="3" fill="#2D8CFF" />
+        <rect x="2" y="5" width="7" height="6" rx="1" fill="white" />
+        <path d="M10 8l4-2.5v5z" fill="white" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...shared} viewBox="0 0 16 16" fill="currentColor">
+      <rect x="1" y="4" width="9" height="8" rx="1.5" />
+      <path d="M11 8l4-2.5v5z" />
+    </svg>
+  );
+}
+
 interface NextSessionCardProps {
   session: Session;
   /** Dashboard variant — badge + a "View" link only, no action buttons or modals. */
@@ -59,6 +96,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                 <span>·</span>
                 {isOnline ? (
                   <a href={session.address} target="_blank" rel="noreferrer" className={styles.joinLink}>
+                    <MeetingIcon url={session.address} />
                     Join meeting
                   </a>
                 ) : (
