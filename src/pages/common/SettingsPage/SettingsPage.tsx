@@ -24,13 +24,12 @@ import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
 
 import styles from "./SettingsPage.module.scss";
 
-type AdminTab = "profile" | "practice" | "emails" | "account";
+type AdminTab = "profile" | "practice" | "emails";
 
 const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "practice", label: "Practice" },
   { id: "emails", label: "Emails" },
-  { id: "account", label: "Account" },
 ];
 
 const BUSINESS_FIELDS = [
@@ -458,6 +457,45 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </Card>
+
+            {/* Subscription */}
+            {practiceSettings && (
+              <Card className={styles.card}>
+                <section className={styles.businessSection}>
+                  <h2>Subscription</h2>
+                  <p>
+                    Status:{" "}
+                    <strong
+                      style={{
+                        color:
+                          practiceSettings.subscription_status === "active" ||
+                          practiceSettings.subscription_status === "trialing"
+                            ? "var(--color-success)"
+                            : practiceSettings.subscription_status === "paused"
+                              ? "var(--color-warning, #f59e0b)"
+                              : "var(--color-danger)",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {practiceSettings.subscription_status}
+                    </strong>
+                  </p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+                    Manage your plan, update your payment method, or cancel through the Stripe billing portal.
+                  </p>
+                </section>
+                <div className={styles.actions}>
+                  <Button
+                    variant="primary"
+                    className={styles.saveButton}
+                    onClick={handleManageSubscription}
+                    disabled={loadingPortal}
+                  >
+                    {loadingPortal ? "Opening…" : "Manage subscription"}
+                  </Button>
+                </div>
+              </Card>
+            )}
           </>
         )}
 
@@ -595,45 +633,6 @@ const SettingsPage = () => {
               ))}
             </Card>
           </WIP>
-        )}
-
-        {/* ── Account tab (admin only) ── */}
-        {isAdmin && activeTab === "account" && practiceSettings && (
-          <Card className={styles.card}>
-            <section className={styles.businessSection}>
-              <h2>Subscription</h2>
-              <p>
-                Status:{" "}
-                <strong
-                  style={{
-                    color:
-                      practiceSettings.subscription_status === "active" ||
-                      practiceSettings.subscription_status === "trialing"
-                        ? "var(--color-success)"
-                        : practiceSettings.subscription_status === "paused"
-                          ? "var(--color-warning, #f59e0b)"
-                          : "var(--color-danger)",
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {practiceSettings.subscription_status}
-                </strong>
-              </p>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                Manage your plan, update your payment method, or cancel through the Stripe billing portal.
-              </p>
-            </section>
-            <div className={styles.actions}>
-              <Button
-                variant="primary"
-                className={styles.saveButton}
-                onClick={handleManageSubscription}
-                disabled={loadingPortal}
-              >
-                {loadingPortal ? "Opening…" : "Manage subscription"}
-              </Button>
-            </div>
-          </Card>
         )}
       </div>
 

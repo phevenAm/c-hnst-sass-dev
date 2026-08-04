@@ -14,6 +14,7 @@ import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/ques
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
+import Modal from "@/components/shared/Modal/Modal";
 import Spinner from "@/components/shared/Spinner/Spinner";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useAuth } from "@/context/AuthContext";
@@ -48,6 +49,7 @@ export default function AdminClientsPageDetailed() {
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
@@ -288,28 +290,11 @@ export default function AdminClientsPageDetailed() {
           </div>
 
           <div className={styles.heroActions}>
-            <div className={styles.codenameRow}>
-              <input
-                className={styles.codenameInput}
-                value={codename}
-                onChange={(e) => setCodename(e.target.value)}
-                placeholder="Codename (optional)"
-                maxLength={30}
-              />
-              <Button variant="secondary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
-                {savingCodename ? "Saving…" : "Save"}
-              </Button>
-            </div>
             <Button variant="secondary" size="sm" onClick={() => setNotesOpen(true)}>
               Notes
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExport}
-              disabled={exporting || selectedResponses.length === 0}
-            >
-              {exporting ? "Exporting…" : "Export PDF"}
+            <Button variant="secondary" size="sm" onClick={() => setIsConfigOpen(true)}>
+              Configure client
             </Button>
           </div>
         </div>
@@ -496,6 +481,44 @@ export default function AdminClientsPageDetailed() {
       </div>
 
       {notesOpen && <SessionNotesModal user={client} onClose={() => setNotesOpen(false)} />}
+
+      {isConfigOpen && (
+        <Modal
+          title="Configure client"
+          size="sm"
+          onClose={() => setIsConfigOpen(false)}
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExport}
+                disabled={exporting || selectedResponses.length === 0}
+              >
+                {exporting ? "Exporting…" : "Export PDF"}
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
+                {savingCodename ? "Saving…" : "Save codename"}
+              </Button>
+            </>
+          }
+        >
+          <label className={styles.configLabel}>
+            Codename
+            <input
+              className={styles.configInput}
+              value={codename}
+              onChange={(e) => setCodename(e.target.value)}
+              placeholder="Optional — replaces real name in admin UI"
+              maxLength={30}
+            />
+          </label>
+          <p className={styles.configHint}>
+            Set a codename to show instead of {client.first_name}'s real name across your admin. Leave blank to use
+            their real name.
+          </p>
+        </Modal>
+      )}
 
       {deleteOpen && (
         <DeleteClientModal

@@ -78,23 +78,24 @@
   justify-content: flex-end;
 }
 
-.codenameRow {
+.configLabel {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: $sp-2;
-  width: 100%;
-  justify-content: flex-end;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
-.codenameInput {
+.configInput {
   padding: $sp-2 $sp-3;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg-base);
   color: var(--text-primary);
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-family: var(--font-sans);
-  width: 160px;
+  width: 100%;
 
   &:focus {
     outline: 2px solid var(--accent);
@@ -105,6 +106,13 @@
   &::placeholder {
     color: var(--text-muted);
   }
+}
+
+.configHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: $sp-2 0 0;
+  line-height: 1.5;
 }
 
 // ── Stats bar ────────────────────────────────────────────────
