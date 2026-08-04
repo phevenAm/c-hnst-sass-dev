@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { KEYWORDS } from "@constants/constants";
 
@@ -11,6 +11,14 @@ import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
+import WIP from "@/components/shared/WIP/WIP";
+import {
+  previewPaymentReceived,
+  previewSessionBooked,
+  previewSessionCancelled,
+  previewSessionReminder,
+  previewSessionRescheduled,
+} from "@/emails/emailHelpers";
 import { supabase } from "@/lib/supabase";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
 
@@ -64,6 +72,13 @@ const SettingsPage = () => {
   const [stripeConnected, setStripeConnected] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
 
+  const [reminderHours, setReminderHours] = useState(120);
+  const [reminderSubject, setReminderSubject] = useState("");
+  const [reminderBody, setReminderBody] = useState("");
+  const [savingReminders, setSavingReminders] = useState(false);
+  const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
+  const [sendingTest, setSendingTest] = useState<string | null>(null);
+
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
   useEffect(() => {
@@ -91,6 +106,9 @@ const SettingsPage = () => {
             bank_payment_reference: data.bank_payment_reference ?? "",
           });
           setStripeConnected(data.stripe_connect_onboarded ?? false);
+          setReminderHours(data.reminder_hours_before ?? 120);
+          setReminderSubject(data.reminder_email_subject ?? "");
+          setReminderBody(data.reminder_email_body ?? "");
         }
       });
   }, [isAdmin, userProfile?.id]);
@@ -129,6 +147,38 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingBusiness(false);
     showToast("Business information updated.");
+  };
+
+  const handleSendTest = async (type: string) => {
+    setSendingTest(type);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("send-test-email", {
+        body: {
+          type,
+          ...(type === "reminder" ? { custom_body: reminderBody || undefined, hours_before: reminderHours } : {}),
+        },
+      });
+      if (fnError) throw new Error(fnError.message);
+      showToast("Test email sent — check your inbox.");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to send test email", "error");
+    }
+    setSendingTest(null);
+  };
+
+  const handleSaveReminderSettings = async () => {
+    if (!userProfile?.id) return;
+    setSavingReminders(true);
+    await supabase
+      .from("practice_settings")
+      .update({
+        reminder_hours_before: reminderHours,
+        reminder_email_subject: reminderSubject || null,
+        reminder_email_body: reminderBody || null,
+      })
+      .eq("admin_id", userProfile.id);
+    setSavingReminders(false);
+    showToast("Email settings saved.");
   };
 
   const handleManageSubscription = async () => {
@@ -328,6 +378,142 @@ const SettingsPage = () => {
               )}
             </section>
           </Card>
+        )}
+
+        {/* ── Manage emails card (admin only) ── */}
+        {isAdmin && (
+          <WIP>
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Manage emails</h2>
+                <p>Preview the emails your clients receive and send a test to your inbox.</p>
+              </section>
+
+              {[
+                {
+                  id: "reminder",
+                  label: "Session reminder",
+                  desc: "Sent to clients before their session",
+                  preview: previewSessionReminder(reminderBody || undefined, reminderHours),
+                },
+                {
+                  id: "session_booked",
+                  label: "Session confirmed",
+                  desc: "Sent to clients when a session is booked",
+                  preview: previewSessionBooked(),
+                },
+                {
+                  id: "session_cancelled",
+                  label: "Session cancelled",
+                  desc: "Sent to clients when a session is cancelled",
+                  preview: previewSessionCancelled(),
+                },
+                {
+                  id: "session_rescheduled",
+                  label: "Session rescheduled",
+                  desc: "Sent to clients when a session is rescheduled",
+                  preview: previewSessionRescheduled(),
+                },
+                {
+                  id: "payment_received",
+                  label: "Payment received",
+                  desc: "Sent to you when a client pays",
+                  preview: previewPaymentReceived(),
+                },
+              ].map((tpl) => (
+                <div key={tpl.id} className={styles.emailRow}>
+                  <button
+                    type="button"
+                    className={styles.emailRowHeader}
+                    onClick={() => setExpandedTemplate(expandedTemplate === tpl.id ? null : tpl.id)}
+                  >
+                    <div>
+                      <span className={styles.emailRowLabel}>{tpl.label}</span>
+                      <span className={styles.emailRowDesc}>{tpl.desc}</span>
+                    </div>
+                    <span className={styles.emailRowChevron}>{expandedTemplate === tpl.id ? "▲" : "▼"}</span>
+                  </button>
+
+                  {expandedTemplate === tpl.id && (
+                    <div className={styles.emailRowBody}>
+                      {tpl.id === "reminder" && (
+                        <div className={styles.reminderControls}>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderTiming">Send reminder</label>
+                            <select
+                              id="reminderTiming"
+                              value={reminderHours}
+                              onChange={(e) => setReminderHours(Number(e.target.value))}
+                              className={styles.select}
+                            >
+                              <option value={24}>1 day before</option>
+                              <option value={48}>2 days before</option>
+                              <option value={72}>3 days before</option>
+                              <option value={120}>5 days before (default)</option>
+                              <option value={168}>1 week before</option>
+                            </select>
+                          </div>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderSubject">
+                              Custom subject <small>(optional)</small>
+                            </label>
+                            <input
+                              id="reminderSubject"
+                              value={reminderSubject}
+                              onChange={(e) => setReminderSubject(e.target.value)}
+                              placeholder="e.g. Reminder: your session on {{date}}"
+                            />
+                          </div>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderBody">
+                              Custom message body{" "}
+                              <small>
+                                (optional — supports {"{{name}}"}, {"{{date}}"}, {"{{location}}"}, {"{{duration}}"})
+                              </small>
+                            </label>
+                            <textarea
+                              id="reminderBody"
+                              className={styles.textarea}
+                              rows={4}
+                              value={reminderBody}
+                              onChange={(e) => setReminderBody(e.target.value)}
+                              placeholder={"Hi {{name}}, just a reminder about your session on {{date}}."}
+                            />
+                          </div>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleSaveReminderSettings}
+                            disabled={savingReminders}
+                          >
+                            {savingReminders ? "Saving…" : "Save reminder settings"}
+                          </Button>
+                        </div>
+                      )}
+
+                      <iframe
+                        title={tpl.label}
+                        srcDoc={tpl.preview}
+                        className={styles.emailIframe}
+                        sandbox="allow-same-origin"
+                      />
+
+                      <div className={styles.emailRowActions}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleSendTest(tpl.id)}
+                          disabled={sendingTest === tpl.id}
+                        >
+                          {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </Card>
+          </WIP>
         )}
 
         {/* ── Subscription card (admin only) ── */}
