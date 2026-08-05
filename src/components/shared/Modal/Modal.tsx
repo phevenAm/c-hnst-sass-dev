@@ -51,7 +51,7 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <header className={styles.modalHeader}>
+        <div className={styles.modalHeader}>
           <h2 id="modal-title">{title}</h2>
           <Button
             type="button"
@@ -62,7 +62,7 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
           >
             <CloseIcon />
           </Button>
-        </header>
+        </div>
 
         <div className={styles.modalBody}>
           <div className={styles.children}>{children}</div>
