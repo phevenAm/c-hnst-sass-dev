@@ -21,6 +21,7 @@ import {
   previewSessionRescheduled,
 } from "@/emails/emailHelpers";
 import { supabase } from "@/lib/supabase";
+import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
 
 import styles from "./SettingsPage.module.scss";
@@ -62,6 +63,7 @@ const SettingsPage = () => {
   const [keywords, setKeywords] = useState<string[]>(userProfile?.focus_keywords ?? []);
   const [saving, setSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
@@ -324,6 +326,11 @@ const SettingsPage = () => {
               >
                 {saving ? "Updating profile..." : "Update profile"}
               </Button>
+              {!isDemo && (
+                <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
+                  Change password
+                </Button>
+              )}
               {!isAdmin && !isDemo && (
                 <div className={styles.deleteAccountBlock}>
                   <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
@@ -724,6 +731,7 @@ const SettingsPage = () => {
       </div>
 
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
+      {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
     </div>
   );
 };

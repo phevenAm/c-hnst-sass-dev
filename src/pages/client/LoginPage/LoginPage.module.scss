@@ -189,6 +189,29 @@
   }
 }
 
+.forgotLink {
+  display: block;
+  background: none;
+  border: none;
+  padding: $sp-2 0 0;
+  width: 100%;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--accent);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+  margin-top: $sp-2;
+}
+
 // ── Footer ─────────────────────────────────────────────────
 .footer {
   text-align: center;

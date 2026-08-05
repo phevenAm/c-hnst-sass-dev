@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import Button from "@components/shared/Button/Button";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
+
+import { supabase } from "@/lib/supabase";
 
 import styles from "./LoginPage.module.scss";
 
@@ -24,6 +28,76 @@ const LogoIcon = () => (
   </svg>
 );
 
+function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSend = async () => {
+    setSubmitting(true);
+    setError(null);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    setSubmitting(false);
+    if (err) setError(err.message);
+    else setSent(true);
+  };
+
+  return (
+    <Modal
+      title="Reset your password"
+      onClose={onClose}
+      size="sm"
+      actions={
+        sent ? (
+          <Button variant="primary" onClick={onClose}>
+            Done
+          </Button>
+        ) : (
+          <>
+            <Button variant="primary" onClick={handleSend} disabled={submitting || !email}>
+              {submitting ? "Sending…" : "Send reset link"}
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+          </>
+        )
+      }
+    >
+      {sent ? (
+        <p>Check your inbox — if that email is registered, you'll receive a reset link shortly.</p>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className={styles.modalForm}
+        >
+          {error && <p className={styles.error}>{error}</p>}
+          <div className={styles.field}>
+            <label htmlFor="forgot-email" className={styles.label}>
+              Email address
+            </label>
+            <input
+              id="forgot-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className={styles.input}
+            />
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, loading, isAuthenticated, isAdmin, error } = useAuth();
@@ -31,6 +105,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -123,6 +198,9 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 className={styles.input}
               />
+              <button type="button" className={styles.forgotLink} onClick={() => setShowForgotModal(true)}>
+                Forgot password?
+              </button>
             </div>
 
             <button type="submit" disabled={isLoading || !email || !password} className={styles.submitBtn}>
@@ -168,6 +246,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      {showForgotModal && <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />}
     </main>
   );
 }
