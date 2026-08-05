@@ -32,6 +32,8 @@
   --bg-card: #{$color-bg-card};
   --bg-muted: #{$color-bg-muted};
   --bg-overlay: #{$color-bg-overlay};
+  --bg-card-rgb: 255, 253, 249;
+  --border-rgb: 229, 224, 220;
 
   // Borders
   --border: #{$color-border};
@@ -110,6 +112,8 @@
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
   --bg-overlay: rgba(15, 31, 28, 0.92);
+  --bg-card-rgb: 22, 38, 34;
+  --border-rgb: 37, 79, 73;
 
   // Borders
   --border: #{$dark-border};

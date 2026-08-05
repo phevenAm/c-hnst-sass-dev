@@ -271,7 +271,14 @@ const SettingsPage = () => {
                   </div>
                   <div className={styles.field}>
                     <label>Profile picture</label>
-                    <UploadAndDisplayImage userId={userProfile?.id ?? ""} onUpload={(url) => setImageUrl(url)} />
+                    <UploadAndDisplayImage
+                      userId={userProfile?.id ?? ""}
+                      onUpload={async (url) => {
+                        setImageUrl(url);
+                        await updateProfile({ avatar_url: url });
+                        showToast("Profile photo updated.");
+                      }}
+                    />
                   </div>
                 </form>
               </section>

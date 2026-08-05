@@ -109,16 +109,14 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 }
 
 function OnboardingGate() {
-  const { userProfile, isAuthenticated, loading } = useAuth();
+  const { userProfile, isDemo, isAuthenticated, loading } = useAuth();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!loading && isAuthenticated && userProfile !== null && !userProfile.onboarding_completed) {
-      setShow(true);
-    }
+    setShow(!loading && isAuthenticated && !!userProfile && !userProfile.onboarding_completed);
   }, [loading, isAuthenticated, userProfile]);
 
-  if (!show) return null;
+  if (!show || isDemo) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
 }
 

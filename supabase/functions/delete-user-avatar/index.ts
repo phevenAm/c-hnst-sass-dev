@@ -12,8 +12,16 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const { error } = await supabase.storage.from("avatars").remove([`${user_id}.jpg`]);
-  if (error) console.error("Avatar cleanup failed:", error.message);
+  // Remove root-level file
+  await supabase.storage.from("avatars").remove([`${user_id}.jpg`]);
+
+  // Remove any legacy folder-based uploads
+  const { data: folderFiles } = await supabase.storage.from("avatars").list(user_id);
+  if (folderFiles && folderFiles.length > 0) {
+    const paths = folderFiles.map((f) => `${user_id}/${f.name}`);
+    const { error } = await supabase.storage.from("avatars").remove(paths);
+    if (error) console.error("Avatar folder cleanup failed:", error.message);
+  }
 
   return new Response("ok", { status: 200 });
 });
