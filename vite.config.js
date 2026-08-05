@@ -2,10 +2,27 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
+
+function versionJsonPlugin() {
+  return {
+    name: "generate-version-json",
+    buildStart() {
+      writeFileSync("./public/version.json", JSON.stringify({ version: pkg.version }));
+    },
+  };
+}
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
     react(),
+    versionJsonPlugin(),
     VitePWA({
       registerType: "autoUpdate",
       manifest: false,

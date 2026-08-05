@@ -10,6 +10,8 @@ import {
   BookIcon,
   CalendarIcon,
   ChatIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ClipboardIcon,
   HistoryIcon,
   HomeIcon,
@@ -30,7 +32,7 @@ const NAV = [
   { to: "/admin/cpd", label: "CPD Log", Icon: ArticleIcon, exact: false },
 ];
 
-export default function AdminSidebar({ collapsed }: { collapsed: boolean }) {
+export default function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation();
   const { isDemo } = useAuth();
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
@@ -98,19 +100,35 @@ export default function AdminSidebar({ collapsed }: { collapsed: boolean }) {
             </button>
           )}
 
-          <Link to="/admin/audit-logs" className={styles.bottomLink} title={collapsed ? "Audit logs" : undefined}>
+          <Link to="/admin/audit-logs" className={styles.bottomLink} title={collapsed ? "Activity log" : undefined}>
             <span className={styles.icon}>
               <HistoryIcon />
             </span>
-            <span className={styles.label}>Audit logs</span>
+            <span className={styles.label}>Activity log</span>
           </Link>
 
           <div className={styles.branding}>
             <span className={styles.label}>
-              <em>Abide:</em> WithMe
+              Powered by{" "}
+              <a href="https://clarity.app" target="_blank" rel="noopener noreferrer" className={styles.brandingLink}>
+                Clarity
+              </a>
+              {" · "}
+              <span className={styles.version}>v{__APP_VERSION__}</span>
             </span>
           </div>
         </div>
+
+        {/* Collapse/expand arrow on the right edge of the sidebar */}
+        <button
+          type="button"
+          className={styles.collapseBtn}
+          onClick={onToggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        </button>
       </aside>
 
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}

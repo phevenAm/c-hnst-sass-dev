@@ -10,6 +10,7 @@ import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
+import { useVersionCheck } from "../Hooks/useVersionCheck";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
@@ -75,6 +76,43 @@ function AppLayout() {
   );
 }
 
+function UpdateBanner() {
+  const isOutdated = useVersionCheck();
+  if (!isOutdated) return null;
+  return (
+    <div
+      style={{
+        background: "var(--accent-light)",
+        borderBottom: "1px solid var(--accent)",
+        padding: "8px 20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        fontSize: "0.85rem",
+        color: "var(--text-primary)",
+      }}
+    >
+      <span>A new version of the app is available.</span>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        style={{
+          background: "var(--accent)",
+          color: "var(--text-inverse)",
+          border: "none",
+          borderRadius: "var(--r-full)",
+          padding: "4px 14px",
+          cursor: "pointer",
+          fontFamily: "var(--font-sans)",
+          fontSize: "0.8rem",
+        }}
+      >
+        Reload now
+      </button>
+    </div>
+  );
+}
+
 function AdminLayout() {
   const location = useLocation();
   const topRef = useRef<HTMLDivElement>(null);
@@ -98,11 +136,12 @@ function AdminLayout() {
   return (
     <>
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
-      <DemoBanner />
       <div className="adminShell">
-        <AdminSidebar collapsed={sidebarCollapsed} />
+        <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
-          <AdminTopbar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+          <AdminTopbar />
+          <DemoBanner />
+          <UpdateBanner />
           <main id="main-content" tabIndex={-1}>
             <div className="page-content">
               <Outlet />

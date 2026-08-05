@@ -6,13 +6,13 @@ import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 
 import Avatar from "../Avatar/Avatar";
-import { MenuIcon, MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
+import { MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 import SkipToMain from "../SkipToMain/SkipToMain";
 
 import styles from "./AdminTopbar.module.scss";
 
-export default function AdminTopbar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export default function AdminTopbar() {
   const dispatch = useAppDispatch();
   const themeMode = useAppSelector(selectThemeMode);
   const { signOut, userProfile, displayName } = useAuth();
@@ -28,16 +28,6 @@ export default function AdminTopbar({ collapsed, onToggle }: { collapsed: boolea
   return (
     <header className={styles.topbar}>
       <SkipToMain />
-
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        aria-expanded={!collapsed}
-        className={styles.toggleBtn}
-      >
-        <MenuIcon />
-      </button>
 
       <div className={styles.actions}>
         <button
