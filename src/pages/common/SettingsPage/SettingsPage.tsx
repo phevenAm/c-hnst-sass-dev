@@ -478,60 +478,13 @@ const SettingsPage = () => {
             </section>
 
             <section className={styles.businessSection}>
-              <h3 className={styles.sectionSubtitle}>Accessibility</h3>
-              <label className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Stop animations</strong>
-                  <span>Disables all transitions and animations across the app</span>
-                </span>
-                <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
-                  <input
-                    type="checkbox"
-                    className={styles.toggleInput}
-                    checked={reduceMotion}
-                    onChange={(e) => setReduceMotion(e.target.checked)}
-                  />
-                  <span className={styles.toggleThumb} />
-                </span>
-              </label>
-            </section>
-
-            <section className={styles.businessSection}>
-              <h3 className={styles.sectionSubtitle}>Dashboard</h3>
-              {(
-                [
-                  { id: "dashboard-revenue", label: "Revenue chart", desc: "Monthly revenue trend on the dashboard" },
-                  { id: "dashboard-todos", label: "To-do list", desc: "Task list widget on the dashboard" },
-                ] as const
-              ).map(({ id, label, desc }) => (
-                <label key={id} className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>
-                    <strong>{label}</strong>
-                    <span>{desc}</span>
-                  </span>
-                  <span
-                    className={`${styles.toggleSwitch} ${!hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className={styles.toggleInput}
-                      checked={!hiddenSections.includes(id)}
-                      onChange={() => toggleSection(id)}
-                    />
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-              ))}
-            </section>
-
-            <section className={styles.businessSection}>
               <h3 className={styles.sectionSubtitle}>Clients</h3>
               {(
                 [
-                  { id: "clients-search", label: "Search bar", desc: "Search input on the clients list" },
+                  { id: "clients-search", label: "Hide search bar", desc: "Search input on the clients list" },
                   {
                     id: "client-progress-chart",
-                    label: "Progress chart",
+                    label: "Hide progress chart",
                     desc: "Survey progress chart on client detail pages",
                   },
                 ] as const
@@ -542,12 +495,12 @@ const SettingsPage = () => {
                     <span>{desc}</span>
                   </span>
                   <span
-                    className={`${styles.toggleSwitch} ${!hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
+                    className={`${styles.toggleSwitch} ${hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
                   >
                     <input
                       type="checkbox"
                       className={styles.toggleInput}
-                      checked={!hiddenSections.includes(id)}
+                      checked={hiddenSections.includes(id)}
                       onChange={() => toggleSection(id)}
                     />
                     <span className={styles.toggleThumb} />
@@ -578,6 +531,57 @@ const SettingsPage = () => {
                   {savingCodenames ? "Saving…" : "Save"}
                 </Button>
               </div>
+            </section>
+
+            <section className={styles.businessSection}>
+              <h3 className={styles.sectionSubtitle}>Dashboard</h3>
+              {(
+                [
+                  { id: "dashboard-todos", label: "Hide to-do list", desc: "Task list widget on the dashboard" },
+                  {
+                    id: "dashboard-revenue",
+                    label: "Hide revenue chart",
+                    desc: "Monthly revenue trend on the dashboard",
+                  },
+                ] as const
+              ).map(({ id, label, desc }) => (
+                <label key={id} className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>{label}</strong>
+                    <span>{desc}</span>
+                  </span>
+                  <span
+                    className={`${styles.toggleSwitch} ${hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={hiddenSections.includes(id)}
+                      onChange={() => toggleSection(id)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+              ))}
+            </section>
+
+            <section className={styles.businessSection}>
+              <h3 className={styles.sectionSubtitle}>Accessibility</h3>
+              <label className={styles.toggleRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Stop animations</strong>
+                  <span>Disables all transitions and animations across the app</span>
+                </span>
+                <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    className={styles.toggleInput}
+                    checked={reduceMotion}
+                    onChange={(e) => setReduceMotion(e.target.checked)}
+                  />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
             </section>
           </Card>
         )}

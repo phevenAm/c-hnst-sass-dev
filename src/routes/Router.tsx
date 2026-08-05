@@ -153,6 +153,12 @@ function AdminLayout() {
   );
 }
 
+function RoleAwareLayout() {
+  const { isAdmin } = useAuth();
+  if (isAdmin) return <AdminLayout />;
+  return <AppLayout />;
+}
+
 function SuperAdminGate({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useAuth();
   if (loading) return <Spinner />;
@@ -225,7 +231,7 @@ export default function AppRoutes() {
           <Route
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <RoleAwareLayout />
               </ProtectedRoute>
             }
           >

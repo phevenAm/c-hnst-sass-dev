@@ -14,8 +14,13 @@
 }
 
 .warning {
-  background: color-mix(in srgb, var(--warning) 14%, transparent);
-  color: var(--warning);
+  background: #fef3c7;
+  color: #92400e;
+
+  :global(.dark) & {
+    background: rgba(146, 64, 14, 0.25);
+    color: #fcd34d;
+  }
 }
 
 .danger {
