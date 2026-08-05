@@ -3,6 +3,8 @@ import type { View } from "react-big-calendar";
 import { Views } from "react-big-calendar";
 import { useSearchParams } from "react-router-dom";
 
+import dayjs from "dayjs";
+
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
 import { Button, Card, CollapsibleSection } from "@components/shared/index";
 import SchedulerCalendar, { type EventInteractionArgs } from "@components/shared/SchedulerCalendar/SchedulerCalendar";
@@ -16,6 +18,7 @@ import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModa
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
 import type { RootState } from "@/store";
 
+import Modal from "@/components/shared/Modal/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
@@ -96,6 +99,12 @@ const AdminScheduler = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>(Views.WORK_WEEK);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [pendingDrop, setPendingDrop] = useState<{
+    session: Session;
+    clientName: string;
+    start: Date;
+    prevDate: string;
+  } | null>(null);
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   // Private-event modal: closed when false; `editingPrivate` is null for a new
   // event or the row being edited.
@@ -114,6 +123,21 @@ const AdminScheduler = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // RBC's DnD addon triggers a DOM reflow on dragstart that causes the browser
+  // to scroll to the top. Save and restore scroll position around every drag.
+  useEffect(() => {
+    const onDragStart = () => {
+      const y = window.scrollY;
+      const onDragEnd = () => {
+        window.scrollTo({ top: y, behavior: "instant" });
+        window.removeEventListener("dragend", onDragEnd);
+      };
+      window.addEventListener("dragend", onDragEnd);
+    };
+    window.addEventListener("dragstart", onDragStart, { capture: true });
+    return () => window.removeEventListener("dragstart", onDragStart, { capture: true });
+  }, []);
 
   // ----- data
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
@@ -276,13 +300,40 @@ const AdminScheduler = () => {
       showToast("Demo mode — changes are not saved.");
       return;
     }
-    const prevDate = r.session.scheduled_at;
-    dispatch(updateSession({ id: r.session.id, scheduled_at: new Date(start).toISOString() })).then(() => {
+
+    const proposedStart = new Date(start as Date);
+    const { session } = r;
+    const proposedEnd = dayjs(proposedStart)
+      .add(session.duration_minutes ?? 50, "minute")
+      .toDate();
+
+    const hasOverlap = sessions.some((s) => {
+      if (s.id === session.id || s.status === "cancelled") return false;
+      const sStart = new Date(s.scheduled_at);
+      const sEnd = dayjs(sStart)
+        .add(s.duration_minutes ?? 50, "minute")
+        .toDate();
+      return proposedStart < sEnd && proposedEnd > sStart;
+    });
+
+    if (hasOverlap) {
+      showToast("That slot overlaps with another session — pick a different time.", "danger");
+      return;
+    }
+
+    setPendingDrop({ session, clientName: r.clientName, start: proposedStart, prevDate: session.scheduled_at });
+  };
+
+  const handleConfirmDrop = () => {
+    if (!pendingDrop) return;
+    const { session, start, prevDate } = pendingDrop;
+    dispatch(updateSession({ id: session.id, scheduled_at: start.toISOString() })).then(() => {
       supabase.functions.invoke("notify-session-rescheduled", {
-        body: { session_id: r.session.id, previous_date: prevDate },
+        body: { session_id: session.id, previous_date: prevDate },
       });
       showToast("Session rescheduled.", "success");
     });
+    setPendingDrop(null);
   };
 
   const editingClientName = useMemo(() => {
@@ -436,6 +487,31 @@ const AdminScheduler = () => {
           )}
         </CollapsibleSection>
       </div>
+
+      {pendingDrop && (
+        <Modal
+          title="Confirm reschedule"
+          size="sm"
+          onClose={() => setPendingDrop(null)}
+          actions={
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setPendingDrop(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleConfirmDrop}>
+                Confirm
+              </Button>
+            </>
+          }
+        >
+          <p className={styles.confirmText}>
+            Move <strong>{pendingDrop.clientName}</strong>'s session from{" "}
+            <strong>{dayjs(pendingDrop.prevDate).format("D MMM [at] h:mma")}</strong> to{" "}
+            <strong>{dayjs(pendingDrop.start).format("D MMM [at] h:mma")}</strong>?
+          </p>
+          <p className={styles.confirmNote}>The client will be notified of the change.</p>
+        </Modal>
+      )}
 
       {editingSession && (
         <CreateSessionModal

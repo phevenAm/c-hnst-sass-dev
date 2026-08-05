@@ -272,12 +272,51 @@ export default function AdminClientsPageDetailed() {
     activeTab: sessionsDateTab === "past" ? "left" : "right",
   };
 
+  const pendingRequests = rescheduleRequests.filter((r) => r.status === "pending");
+
   return (
     <div className="page">
       <div className="inner">
         <Button variant="ghost" size="sm" onClick={() => navigate("/admin/clients")}>
           ← Back to clients
         </Button>
+
+        {pendingRequests.length > 0 && (
+          <div className={styles.pendingRequests}>
+            <p className={styles.pendingRequestsTitle}>
+              <span className={styles.pendingRequestsCount}>{pendingRequests.length}</span>
+              Pending reschedule request{pendingRequests.length > 1 ? "s" : ""}
+            </p>
+            {pendingRequests.map((req) => {
+              const linkedSession = clientSessions.find((s) => s.id === req.session_id);
+              return (
+                <div key={req.id} className={styles.pendingRequest}>
+                  <div className={styles.pendingRequestDates}>
+                    <span className={styles.pendingFrom}>
+                      {linkedSession ? dayjs(linkedSession.scheduled_at).format("D MMM [at] h:mma") : "—"}
+                    </span>
+                    <span className={styles.pendingArrow}>→</span>
+                    <span className={styles.pendingTo}>{dayjs(req.requested_at).format("D MMM [at] h:mma")}</span>
+                  </div>
+                  {req.message && <p className={styles.pendingMessage}>"{req.message}"</p>}
+                  <div className={styles.pendingActions}>
+                    <Button size="sm" disabled={resolvingId === req.id} onClick={() => handleAcceptReschedule(req)}>
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={resolvingId === req.id}
+                      onClick={() => handleDeclineReschedule(req)}
+                    >
+                      Decline
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* TODO Section 5 — per-client attendance stats strip
             Add a small stats row here between the back button and the profile hero.
@@ -381,42 +420,6 @@ export default function AdminClientsPageDetailed() {
             )}
           </div>
         </HideableSection>
-
-        {rescheduleRequests.some((r) => r.status === "pending") && (
-          <div className={styles.pendingRequests}>
-            <p className={styles.pendingRequestsTitle}>Pending reschedule requests</p>
-            {rescheduleRequests
-              .filter((r) => r.status === "pending")
-              .map((req) => {
-                const linkedSession = clientSessions.find((s) => s.id === req.session_id);
-                return (
-                  <div key={req.id} className={styles.pendingRequest}>
-                    <div className={styles.pendingRequestDates}>
-                      <span className={styles.pendingFrom}>
-                        {linkedSession ? dayjs(linkedSession.scheduled_at).format("D MMM [at] h:mma") : "—"}
-                      </span>
-                      <span className={styles.pendingArrow}>→</span>
-                      <span className={styles.pendingTo}>{dayjs(req.requested_at).format("D MMM [at] h:mma")}</span>
-                    </div>
-                    {req.message && <p className={styles.pendingMessage}>"{req.message}"</p>}
-                    <div className={styles.pendingActions}>
-                      <Button size="sm" disabled={resolvingId === req.id} onClick={() => handleAcceptReschedule(req)}>
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={resolvingId === req.id}
-                        onClick={() => handleDeclineReschedule(req)}
-                      >
-                        Decline
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
 
         <Card className={[styles.section, styles.session].join(" ")}>
           <div className={styles.sessionHeading}>
