@@ -14,6 +14,7 @@ import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/ques
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
+import HideableSection from "@/components/shared/HideableSection/HideableSection";
 import Search from "@/components/shared/Search/Search";
 import { useAuth } from "@/context/AuthContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
@@ -231,15 +232,17 @@ export default function AdminClientsPage() {
           />
         </div>
 
-        <div className={styles.searchWrap}>
-          <Search
-            id="clients"
-            showLabel={false}
-            label="Search clients"
-            placeholder="Search by name or email…"
-            handleChange={setSearch}
-          />
-        </div>
+        <HideableSection id="clients-search">
+          <div className={styles.searchWrap}>
+            <Search
+              id="clients"
+              showLabel={false}
+              label="Search clients"
+              placeholder="Search by name or email…"
+              handleChange={setSearch}
+            />
+          </div>
+        </HideableSection>
 
         <Card>
           {filtered.length === 0 ? (

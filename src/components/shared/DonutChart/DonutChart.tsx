@@ -1,5 +1,6 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
+import { useInterfacePrefs } from "@/context/InterfacePrefsContext";
 import Card from "../Card/Card";
 
 import styles from "./DonutChart.module.scss";
@@ -36,6 +37,7 @@ interface DonutChartProps {
 // hole, and a full legend below (shows every slice, including zero-value ones).
 // Purely presentational — the caller supplies the slice data and centre text.
 export default function DonutChart({ title, slices, centerValue, centerLabel }: DonutChartProps) {
+  const { reduceMotion } = useInterfacePrefs();
   const data = slices.filter((s) => s.value > 0);
   const total = slices.reduce((sum, s) => sum + s.value, 0);
 
@@ -47,26 +49,30 @@ export default function DonutChart({ title, slices, centerValue, centerLabel }: 
       ) : (
         <>
           <div className={styles.wrap}>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={58}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  stroke="none"
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  {data.map((s) => (
-                    <Cell key={s.name} fill={s.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<DonutTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+            {/* aria-hidden: legend below is the accessible representation */}
+            <div aria-hidden="true">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    stroke="none"
+                    startAngle={90}
+                    endAngle={-270}
+                    isAnimationActive={!reduceMotion}
+                  >
+                    {data.map((s) => (
+                      <Cell key={s.name} fill={s.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<DonutTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
             <div className={styles.center}>
               <span className={styles.value}>{centerValue}</span>
               <span className={styles.label}>{centerLabel}</span>

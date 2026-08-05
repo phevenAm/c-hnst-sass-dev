@@ -32,8 +32,10 @@
   --bg-card: #{$color-bg-card};
   --bg-muted: #{$color-bg-muted};
   --bg-overlay: #{$color-bg-overlay};
-  --bg-card-rgb: 255, 253, 249;
-  --border-rgb: 229, 224, 220;
+  --bg-card-rgb: 255, 255, 255;
+  --border-rgb: 195, 212, 207;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-heavy: rgba(245, 245, 245, 0.8);
 
   // Borders
   --border: #{$color-border};
@@ -104,20 +106,22 @@
   --text-primary: #{$dark-text-primary};
   --text-secondary: #{$dark-text-secondary};
   --text-muted: #{$dark-text-muted};
-  --text-disabled: #{$teal-900};
-  --text-inverse: #0f1f1c;
+  --text-disabled: #3d4258;
+  --text-inverse: #111318;
 
   // Backgrounds
   --bg-base: #{$dark-bg-base};
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
-  --bg-overlay: rgba(15, 31, 28, 0.92);
-  --bg-card-rgb: 22, 38, 34;
-  --border-rgb: 37, 79, 73;
+  --bg-overlay: rgba(17, 19, 24, 0.92);
+  --bg-card-rgb: 27, 30, 39;
+  --border-rgb: 45, 50, 69;
+  --glass-bg: rgba(27, 30, 39, 0.72);
+  --glass-bg-heavy: rgba(27, 30, 39, 0.95);
 
   // Borders
   --border: #{$dark-border};
-  --border-strong: #{$teal-700};
+  --border-strong: #{$dark-border};
   --border-focus: #{$teal-300};
 
   // Feedback — adjusted for dark bg contrast
@@ -142,6 +146,15 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html.no-motion,
+html.no-motion *,
+html.no-motion *::before,
+html.no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }
 
 html {
@@ -222,7 +235,6 @@ textarea {
   flex-direction: column;
   flex: 1;
   overflow-y: auto;
-  background: var(--bg-base);
   padding: $sp-8 $sp-6;
 
   .inner {

@@ -2,12 +2,13 @@ import { useMemo } from "react";
 
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { useInterfacePrefs } from "@/context/InterfacePrefsContext";
 import type { Question, Response } from "../../../models/globalTypes";
 import Card from "../Card/Card";
 
 import styles from "./ProgressChart.module.scss";
 
-const LINE_COLORS = ["#2d7264", "#5a8a6a", "#3a7fa8", "#8a6a2d", "#a8633a", "#6a2d8a"];
+const LINE_COLORS = ["#4a665b", "#5f8073", "#3a7fa8", "#8a6a2d", "#a8633a", "#6a5b8a"];
 
 export const scoreToHeatColor = (score: number) => {
   if (!score) return "var(--bg-muted)";
@@ -141,49 +142,54 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 type LineKey = { id: string; name: string };
 
 function LineView({ data, lines }: { data: Record<string, string | number>[]; lines: LineKey[] }) {
+  const { reduceMotion } = useInterfacePrefs();
   return (
-    <ResponsiveContainer width="100%" height={300} data-testid="line-chart">
-      <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+    // aria-hidden: title + legend above provide the accessible representation
+    <div aria-hidden="true">
+      <ResponsiveContainer width="100%" height={300} data-testid="line-chart">
+        <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
 
-        <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+          <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
 
-        <YAxis
-          domain={[0, 10]}
-          ticks={[0, 2, 4, 6, 8, 10]}
-          tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-          axisLine={false}
-          tickLine={false}
-        />
-
-        <Tooltip content={<CustomTooltip />} />
-
-        <Legend
-          wrapperStyle={{
-            fontSize: 12,
-            paddingTop: 14,
-            color: "var(--text-secondary)",
-          }}
-        />
-
-        {lines.map((line, index) => (
-          <Line
-            key={line.id}
-            type="monotone"
-            dataKey={line.id}
-            name={line.name}
-            stroke={LINE_COLORS[index % LINE_COLORS.length]}
-            strokeWidth={2.5}
-            dot={{
-              r: 3,
-              fill: LINE_COLORS[index % LINE_COLORS.length],
-              strokeWidth: 0,
-            }}
-            activeDot={{ r: 5 }}
+          <YAxis
+            domain={[0, 10]}
+            ticks={[0, 2, 4, 6, 8, 10]}
+            tick={{ fill: "var(--text-muted)", fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
           />
-        ))}
-      </LineChart>
-    </ResponsiveContainer>
+
+          <Tooltip content={<CustomTooltip />} />
+
+          <Legend
+            wrapperStyle={{
+              fontSize: 12,
+              paddingTop: 14,
+              color: "var(--text-secondary)",
+            }}
+          />
+
+          {lines.map((line, index) => (
+            <Line
+              key={line.id}
+              type="monotone"
+              dataKey={line.id}
+              name={line.name}
+              stroke={LINE_COLORS[index % LINE_COLORS.length]}
+              strokeWidth={2.5}
+              dot={{
+                r: 3,
+                fill: LINE_COLORS[index % LINE_COLORS.length],
+                strokeWidth: 0,
+              }}
+              activeDot={{ r: 5 }}
+              isAnimationActive={!reduceMotion}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

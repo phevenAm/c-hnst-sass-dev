@@ -144,14 +144,16 @@
 
 
 // ── Frosted glass surface ──────────────────────────────────
-// Requires --bg-card-rgb and --border-rgb defined as raw R,G,B triplets.
-// Best used on elements where page content is visible beneath (navbar, modals).
-@mixin glass($blur: 12px, $opacity: 0.75) {
-  background: rgba(var(--bg-card-rgb), $opacity);
-  backdrop-filter: blur($blur);
-  -webkit-backdrop-filter: blur($blur);
-  border: 1px solid rgba(var(--border-rgb), 0.3);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+// $bg:   full background value — use var(--glass-bg) or var(--glass-bg-heavy)
+// $blur: backdrop blur radius
+@mixin glass($bg: var(--glass-bg), $blur: 16px) {
+  background: $bg;
+  backdrop-filter: blur($blur) saturate(1.8);
+  -webkit-backdrop-filter: blur($blur) saturate(1.8);
+  border: 1px solid rgba(var(--border-rgb), 0.45);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 // ----- Animations ---------------------------------

@@ -162,14 +162,14 @@ function QuestionnaireBuilder({
     title: isEdit ? "Edit check-in" : "New check-in",
     actions: (
       <div className={styles.modalActions}>
+        <Button onClick={handleSave}>{isEdit ? "Save changes" : "Save check-in"}</Button>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>{isEdit ? "Save changes" : "Save check-in"}</Button>
       </div>
     ),
     onClose,
-    size: "md",
+    size: "md" as const,
   };
 
   return (

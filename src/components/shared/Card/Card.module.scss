@@ -1,9 +1,8 @@
-// Card.scss
+@use '../../../styles/mixins' as *;
+
 .card {
-  background: var(--bg-card);
+  @include glass();
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
-  // overflow: hidden;
   height: 100%;
   transition: box-shadow var(--transition-base);
 }

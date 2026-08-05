@@ -132,7 +132,17 @@ export default function AdminResourcesPage() {
                 <div className={styles.resourceIcon}>{getResourceIcon(resource.type)}</div>
 
                 <div className={styles.resourceInfo}>
-                  <p className={styles.resourceTitle}>{resource.title}</p>
+                  <div className={styles.resourceTitleRow}>
+                    <p className={styles.resourceTitle}>{resource.title}</p>
+                    <div className={styles.resourceBadges}>
+                      {resource.is_sensitive && (
+                        <span className={`${styles.badge} ${styles.sensitive}`}>Sensitive</span>
+                      )}
+                      <span className={`${styles.badge} ${resource.is_published ? styles.published : styles.draft}`}>
+                        {resource.is_published ? "Published" : "Draft"}
+                      </span>
+                    </div>
+                  </div>
 
                   <p className={styles.resourceMeta}>
                     {getResourceTypeLabel(resource.type).replace(/s$/, "")} · {resource.category} · Last edited:{" "}
@@ -141,11 +151,6 @@ export default function AdminResourcesPage() {
                 </div>
 
                 <div className={styles.resourceActions}>
-                  {resource.is_sensitive && <span className={`${styles.badge} ${styles.sensitive}`}>Sensitive</span>}
-                  <span className={`${styles.badge} ${resource.is_published ? styles.published : styles.draft}`}>
-                    {resource.is_published ? "Published" : "Draft"}
-                  </span>
-
                   <Button
                     variant="secondary"
                     size="sm"

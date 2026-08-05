@@ -8,8 +8,20 @@
   flex-wrap: wrap;
   gap: $sp-4;
   margin-bottom: $sp-8;
-  h1 { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 500; color: var(--text-primary); margin: 0 0 $sp-1; }
-  p  { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 1.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 $sp-1;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
 }
 
 .filterRow {
@@ -31,8 +43,16 @@
   color: var(--text-secondary);
   transition: all var(--transition-base);
   text-transform: capitalize;
-  &:hover { background: var(--bg-muted); }
-  &:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: var(--r-full); }
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--r-full);
+  }
 }
 
 .filterBtnActive {
@@ -40,10 +60,17 @@
   background: var(--accent);
   color: var(--text-inverse);
   border-color: var(--accent);
-  &:hover { background: var(--accent-dark); }
+
+  &:hover {
+    background: var(--accent-dark);
+  }
 }
 
-.list { display: flex; flex-direction: column; gap: $sp-3; }
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
 
 .resourceRow {
   display: flex;
@@ -65,13 +92,32 @@
   flex-shrink: 0;
 }
 
-.resourceInfo { flex: 1; min-width: 150px; }
+.resourceInfo {
+  flex: 1;
+  min-width: 150px;
+}
+
+.resourceTitleRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
 
 .resourceTitle {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);
-  margin: 0 0 2px;
+  margin: 0;
+  min-width: 0;
+}
+
+.resourceBadges {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
 }
 
 .resourceMeta {
@@ -96,9 +142,21 @@
   text-transform: uppercase;
   padding: 2px 9px;
   border-radius: var(--r-full);
-  &.published  { background: var(--accent-light); color: var(--accent-dark); }
-  &.draft      { background: var(--bg-muted);     color: var(--text-muted); }
-  &.sensitive  { background: #fde8d8;             color: #a03a00; }
+
+  &.published {
+    background: var(--accent-light);
+    color: var(--accent-dark);
+  }
+
+  &.draft {
+    background: var(--bg-muted);
+    color: var(--text-muted);
+  }
+
+  &.sensitive {
+    background: #fde8d8;
+    color: #a03a00;
+  }
 }
 
 .sensitiveRow {
@@ -123,17 +181,25 @@
     cursor: pointer;
   }
 
-  strong { color: #a03a00; display: block; margin-bottom: 2px; }
+  strong {
+    color: #a03a00;
+    display: block;
+    margin-bottom: 2px;
+  }
 }
 
-.empty { text-align: center; padding: $sp-16; color: var(--text-muted); }
+.empty {
+  text-align: center;
+  padding: $sp-16;
+  color: var(--text-muted);
+}
 
 // ── Resource form modal ────────────────────────────────────
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.45);
   overflow-y: auto;
   display: flex;
   align-items: flex-start;
@@ -141,7 +207,11 @@
   padding: 40px $sp-6;
 }
 
-.modal { width: 100%; max-width: 600px; padding: $sp-8; }
+.modal {
+  width: 100%;
+  max-width: 600px;
+  padding: $sp-8;
+}
 
 .modalTitle {
   font-family: var(--font-serif);
@@ -158,7 +228,9 @@
   margin-bottom: $sp-4;
 }
 
-.fullCol { grid-column: 1 / -1; }
+.fullCol {
+  grid-column: 1 / -1;
+}
 
 .formField {
   label {
@@ -168,7 +240,10 @@
     color: var(--text-secondary);
     margin-bottom: $sp-2;
   }
-  input, select, textarea {
+
+  input,
+  select,
+  textarea {
     width: 100%;
     padding: $sp-3 $sp-4;
     border: 1.5px solid var(--border);
@@ -180,9 +255,15 @@
     outline: none;
     box-sizing: border-box;
     transition: border-color var(--transition-base);
-    &:focus { border-color: var(--border-focus); }
+
+    &:focus {
+      border-color: var(--border-focus);
+    }
   }
-  textarea { resize: vertical; }
+
+  textarea {
+    resize: vertical;
+  }
 }
 
 .colourPicker {
@@ -197,8 +278,15 @@
   border-radius: 50%;
   cursor: pointer;
   transition: transform var(--transition-base);
-  &:hover { transform: scale(1.15); }
-  &:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+  &:hover {
+    transform: scale(1.15);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
 }
 
 .modalActions {

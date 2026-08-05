@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import { BookIcon, ClipboardIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
-import { Card, CollapsibleSection } from "@components/shared/index";
+import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
 import { useAuth } from "@context/AuthContext";
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -91,20 +91,24 @@ export default function AdminDashboard() {
 
         <CollapsibleSection title="Practice trends" storageKey="dash:trends">
           <div className={styles.chartsGrid}>
-            <TrendChart
-              title="Revenue (last 6 months)"
-              data={revenueData}
-              type="bar"
-              color="#2d7264"
-              valueFormatter={(v) => `£${v.toFixed(2)}`}
-            />
-            <TrendChart title="Sessions per week" data={sessionVolumeData} type="bar" color="#3a7fa8" />
+            <HideableSection id="dashboard-revenue">
+              <TrendChart
+                title="Revenue (last 6 months)"
+                data={revenueData}
+                type="bar"
+                color="#4a665b"
+                valueFormatter={(v) => `£${v.toFixed(2)}`}
+              />
+            </HideableSection>
+            <TrendChart title="Sessions per week" data={sessionVolumeData} type="bar" color="#5f8073" />
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="To-dos" storageKey="dash:todos">
-          <TodoListCard embedded />
-        </CollapsibleSection>
+        <HideableSection id="dashboard-todos">
+          <CollapsibleSection title="To-dos" storageKey="dash:todos">
+            <TodoListCard embedded />
+          </CollapsibleSection>
+        </HideableSection>
       </div>
     </div>
   );
