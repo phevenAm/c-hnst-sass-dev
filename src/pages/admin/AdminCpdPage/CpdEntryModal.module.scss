@@ -1,0 +1,100 @@
+@use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: $sp-4;
+}
+
+.modal {
+  background: var(--bg-card);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  @include flex-between;
+  padding: $sp-5 $sp-6;
+  border-bottom: 1px solid var(--border);
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: $sp-1;
+
+  &:hover { color: var(--text-primary); }
+}
+
+.body {
+  padding: $sp-5 $sp-6;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-4;
+
+  @include until-sm {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  label {
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  input,
+  select,
+  textarea {
+    @include input-base;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 72px;
+  }
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.footer {
+  @include flex-between;
+  padding: $sp-4 $sp-6;
+  border-top: 1px solid var(--border);
+  gap: $sp-3;
+}

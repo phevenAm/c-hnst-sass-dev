@@ -46,6 +46,7 @@ export default function Navbar() {
     { to: "/admin/payments", label: "Payments" },
     { to: "/admin/questionnaires", label: "Check-ins" },
     { to: "/admin/resources", label: "Resources" },
+    { to: "/admin/cpd", label: "CPD Log" },
   ];
 
   const clientLinks = [

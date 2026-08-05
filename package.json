@@ -17,6 +17,7 @@
     "dayjs": "^1.11.21",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
+    "jspdf-autotable": "^5.0.8",
     "react": "^17.0.0 || ^18.0.0 || ^19.0.0",
     "react-big-calendar": "^1.20.0",
     "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0",
