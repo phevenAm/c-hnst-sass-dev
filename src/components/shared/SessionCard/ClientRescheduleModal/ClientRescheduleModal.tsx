@@ -26,6 +26,7 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
   const counsellorName = useCounsellorName();
   const dispatch = useAppDispatch();
   const [requestedAt, setRequestedAt] = useState<Dayjs | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
@@ -146,10 +147,20 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
       <DateTimePicker
         value={requestedAt}
         onChange={(val) => setRequestedAt(val)}
+        open={pickerOpen}
+        onOpen={() => setPickerOpen(true)}
+        onClose={() => setPickerOpen(false)}
+        format="D MMM YYYY h:mm a"
         disablePast
         shouldDisableDate={constraints.shouldDisableDate}
         shouldDisableTime={constraints.shouldDisableTime}
-        slotProps={{ textField: { fullWidth: true } }}
+        slotProps={{
+          field: { readOnly: true },
+          textField: {
+            fullWidth: true,
+            onClick: () => setPickerOpen(true),
+          },
+        }}
       />
       <textarea
         placeholder="Any context for the change? (optional)"

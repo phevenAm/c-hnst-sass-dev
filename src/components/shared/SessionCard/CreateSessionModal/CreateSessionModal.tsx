@@ -29,6 +29,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
   const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringWeeks, setRecurringWeeks] = useState(3);
@@ -205,7 +206,14 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
           <DateTimePicker
             value={scheduledAt}
             onChange={(val) => setScheduledAt(val)}
-            slotProps={{ textField: { fullWidth: true } }}
+            open={pickerOpen}
+            onOpen={() => setPickerOpen(true)}
+            onClose={() => setPickerOpen(false)}
+            format="D MMM YYYY h:mm a"
+            slotProps={{
+              field: { readOnly: true },
+              textField: { fullWidth: true, onClick: () => setPickerOpen(true) },
+            }}
           />
         </fieldset>
 

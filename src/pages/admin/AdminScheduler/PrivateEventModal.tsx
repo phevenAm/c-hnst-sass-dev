@@ -40,6 +40,8 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
   const [title, setTitle] = useState(event?.title ?? "");
   const [startsAt, setStartsAt] = useState<Dayjs | null>(event ? dayjs(event.starts_at) : nextHour());
   const [endsAt, setEndsAt] = useState<Dayjs | null>(event ? dayjs(event.ends_at) : nextHour().add(1, "hour"));
+  const [startPickerOpen, setStartPickerOpen] = useState(false);
+  const [endPickerOpen, setEndPickerOpen] = useState(false);
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -143,11 +145,33 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
         <div className={styles.times}>
           <div className={styles.field}>
             <span className={styles.label}>Starts</span>
-            <DateTimePicker value={startsAt} onChange={setStartsAt} slotProps={{ textField: { fullWidth: true } }} />
+            <DateTimePicker
+              value={startsAt}
+              onChange={setStartsAt}
+              open={startPickerOpen}
+              onOpen={() => setStartPickerOpen(true)}
+              onClose={() => setStartPickerOpen(false)}
+              format="D MMM YYYY h:mm a"
+              slotProps={{
+                field: { readOnly: true },
+                textField: { fullWidth: true, onClick: () => setStartPickerOpen(true) },
+              }}
+            />
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Ends</span>
-            <DateTimePicker value={endsAt} onChange={setEndsAt} slotProps={{ textField: { fullWidth: true } }} />
+            <DateTimePicker
+              value={endsAt}
+              onChange={setEndsAt}
+              open={endPickerOpen}
+              onOpen={() => setEndPickerOpen(true)}
+              onClose={() => setEndPickerOpen(false)}
+              format="D MMM YYYY h:mm a"
+              slotProps={{
+                field: { readOnly: true },
+                textField: { fullWidth: true, onClick: () => setEndPickerOpen(true) },
+              }}
+            />
           </div>
         </div>
 

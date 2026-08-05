@@ -300,3 +300,43 @@ $admin-sidebar-collapsed-w: 60px;
   height: 100%;
   width: 100%;
 }
+
+// ── MUI x-date-pickers — structural overrides ──────────────
+// Colours come from the MUI ThemeProvider in App.tsx.
+// This block only handles things the theme can't express:
+// the serif calendar header, tab capitalisation, and a border
+// around the popup card so it sits cleanly on the page background.
+.MuiPickersPopper-root {
+  .MuiPaper-root {
+    border: 1px solid var(--border) !important;
+    overflow: hidden;
+  }
+
+  .MuiPickersCalendarHeader-label {
+    font-family: var(--font-serif) !important;
+    font-weight: 500 !important;
+  }
+
+  .MuiDayCalendar-weekDayLabel {
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    font-size: 0.7rem !important;
+  }
+
+  .MuiPickersDay-root {
+    border-radius: var(--r-md) !important;
+  }
+
+  .MuiMultiSectionDigitalClockSection-item {
+    border-radius: var(--r-sm) !important;
+  }
+
+  .MuiTab-root {
+    text-transform: none !important;
+    font-size: 0.82rem !important;
+  }
+
+  .MuiButton-root {
+    text-transform: none !important;
+  }
+}

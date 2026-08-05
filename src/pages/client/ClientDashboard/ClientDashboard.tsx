@@ -162,23 +162,6 @@ export default function ClientDashboard() {
           <p>Here's a look at how you've been doing</p>
         </div>
 
-        {randomQuote ? (
-          <section className={`${styles.quotes} ${styles.warm}`}>
-            <h2>{randomQuote?.content}</h2>
-            <small>{randomQuote?.author}</small>
-          </section>
-        ) : null}
-
-        <div className={styles.statsRow}>
-          {stats.map((s) => (
-            <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
-              <p className={styles.statLabel}>{s.label}</p>
-              <p className={styles.statValue}>{s.value}</p>
-              <p className={styles.statSub}>{s.sub}</p>
-            </div>
-          ))}
-        </div>
-
         <div className={styles.nextSessionCard}>
           <h3 className={styles.cardTitle}>Next session</h3>
           {nextSession ? (
@@ -191,6 +174,23 @@ export default function ClientDashboard() {
             </Card>
           )}
         </div>
+
+        <div className={styles.statsRow}>
+          {stats.map((s) => (
+            <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
+              <p className={styles.statLabel}>{s.label}</p>
+              <p className={styles.statValue}>{s.value}</p>
+              <p className={styles.statSub}>{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {randomQuote ? (
+          <section className={`${styles.quotes} ${styles.warm}`}>
+            <h2>{randomQuote?.content}</h2>
+            <small>{randomQuote?.author}</small>
+          </section>
+        ) : null}
 
         <div className={styles.chartWrap}>
           <ProgressChart responses={chartResponses} questions={allAssignedQuestions} title="Your Wellbeing Over Time" />
