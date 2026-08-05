@@ -53,7 +53,6 @@ function ClientRow({ user }: { user: UserProfile }) {
     ? dayjs(latestResponse.submitted_at ?? latestResponse.created_at).format("D MMM YYYY")
     : "–";
 
-  const [expanded, setExpanded] = useState(false);
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isNotesOpen, setNotesOpen] = useState(false);
@@ -68,10 +67,6 @@ function ClientRow({ user }: { user: UserProfile }) {
   const selectedQuestionnaire =
     questionnaireOptions.find((questionnaire) => questionnaire.id === selectedQuestionnaireId) ??
     questionnaireOptions[0];
-
-  const selectedResponses = selectedQuestionnaire
-    ? allResponses.filter((response) => response.questionnaire_id === selectedQuestionnaire.id)
-    : [];
 
   const avgScore = getScoreAverage(latestResponse, latestQuestionnaire);
 
