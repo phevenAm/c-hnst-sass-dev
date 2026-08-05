@@ -75,9 +75,23 @@ function ClientRow({ user }: { user: UserProfile }) {
 
   const avgScore = getScoreAverage(latestResponse, latestQuestionnaire);
 
+  const handleRowClick = () => navigate(`/admin/clients/${user.id}`);
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleRowClick();
+    }
+  };
+
   return (
     <>
-      <div className={styles.clientRow}>
+      <div
+        className={styles.clientRow}
+        role="button"
+        tabIndex={0}
+        onClick={handleRowClick}
+        onKeyDown={handleRowKeyDown}
+      >
         <Avatar name={displayName} imageSrc={user.avatar_url ?? ""} size={40} />
 
         <div className={styles.clientMeta}>
@@ -103,7 +117,7 @@ function ClientRow({ user }: { user: UserProfile }) {
           <p className={styles.statLabel}>Last check-in</p>
         </div>
 
-        <div className={styles.rowActions}>
+        <div className={styles.rowActions} onClick={(event) => event.stopPropagation()}>
           <SplitButton
             primaryLabel="Manage"
             primaryAction={() => navigate(`/admin/clients/${user.id}`)}
@@ -113,37 +127,6 @@ function ClientRow({ user }: { user: UserProfile }) {
           />
         </div>
       </div>
-
-      {expanded && (
-        <div className={styles.expandedChart}>
-          {questionnaireOptions.length > 1 && (
-            <div className={styles.progressControls}>
-              <label htmlFor={`questionnaire-${user.id}`}>Survey</label>
-              <select
-                id={`questionnaire-${user.id}`}
-                value={selectedQuestionnaire?.id ?? ""}
-                onChange={(event) => setSelectedQuestionnaireId(event.target.value)}
-              >
-                {questionnaireOptions.map((questionnaire) => (
-                  <option key={questionnaire.id} value={questionnaire.id}>
-                    {questionnaire.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedQuestionnaire ? (
-            <ProgressChart
-              responses={selectedResponses}
-              questions={selectedQuestionnaire.questions ?? []}
-              title={`${user.first_name}'s Progress`}
-            />
-          ) : (
-            <p className={styles.empty}>No survey responses yet.</p>
-          )}
-        </div>
-      )}
 
       {isDeleteModalOpen && (
         <DeleteClientModal
