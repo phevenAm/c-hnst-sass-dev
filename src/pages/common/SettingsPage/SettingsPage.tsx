@@ -8,6 +8,7 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
+import { useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
@@ -24,12 +25,13 @@ import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
 
 import styles from "./SettingsPage.module.scss";
 
-type AdminTab = "profile" | "practice" | "emails";
+type AdminTab = "profile" | "practice" | "emails" | "interface";
 
 const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "practice", label: "Practice" },
   { id: "emails", label: "Emails" },
+  { id: "interface", label: "Interface" },
 ];
 
 const BUSINESS_FIELDS = [
@@ -53,6 +55,7 @@ type BankField = (typeof BANK_FIELDS)[number]["key"];
 
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings } = useAuth();
+  const { hiddenSections, toggleSection } = useInterfacePrefs();
   const { showToast } = useToast();
   const [name, setName] = useState(userProfile?.display_name ?? "");
   const [imageUrl, setImageUrl] = useState(userProfile?.avatar_url ?? "");
@@ -425,46 +428,6 @@ const SettingsPage = () => {
               </section>
             </Card>
 
-            {/* Client codenames */}
-            <Card className={styles.card}>
-              <section className={styles.businessSection}>
-                <h2>Client display</h2>
-                <p>
-                  Show a codename instead of a client's real name across your admin interface — useful for
-                  privacy-conscious workflows.
-                </p>
-                <label className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>
-                    <strong>Use codenames</strong>
-                    <span>Show codenames instead of real names in your admin UI</span>
-                  </span>
-                  <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
-                    <input
-                      type="checkbox"
-                      className={styles.toggleInput}
-                      checked={useCodenames}
-                      onChange={(e) => setUseCodenames(e.target.checked)}
-                    />
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-                <p className={styles.toggleHint}>
-                  Set each client's codename from their profile page. If a client has no codename set, their real name
-                  is used as a fallback.
-                </p>
-              </section>
-              <div className={styles.actions}>
-                <Button
-                  variant="primary"
-                  className={styles.saveButton}
-                  onClick={handleSaveCodenames}
-                  disabled={savingCodenames}
-                >
-                  {savingCodenames ? "Saving…" : "Save"}
-                </Button>
-              </div>
-            </Card>
-
             {/* Subscription */}
             {practiceSettings && (
               <Card className={styles.card}>
@@ -504,6 +467,100 @@ const SettingsPage = () => {
               </Card>
             )}
           </>
+        )}
+
+        {/* ── Interface tab (admin only) ── */}
+        {isAdmin && activeTab === "interface" && (
+          <Card className={styles.card}>
+            <section className={styles.businessSection}>
+              <h2>Interface</h2>
+              <p>Show or hide parts of the admin interface. Changes take effect immediately.</p>
+            </section>
+
+            <section className={styles.businessSection}>
+              <h3 className={styles.sectionSubtitle}>Dashboard</h3>
+              {(
+                [
+                  { id: "dashboard-revenue", label: "Revenue chart", desc: "Monthly revenue trend on the dashboard" },
+                  { id: "dashboard-todos", label: "To-do list", desc: "Task list widget on the dashboard" },
+                ] as const
+              ).map(({ id, label, desc }) => (
+                <label key={id} className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>{label}</strong>
+                    <span>{desc}</span>
+                  </span>
+                  <span
+                    className={`${styles.toggleSwitch} ${!hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={!hiddenSections.includes(id)}
+                      onChange={() => toggleSection(id)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+              ))}
+            </section>
+
+            <section className={styles.businessSection}>
+              <h3 className={styles.sectionSubtitle}>Clients</h3>
+              {(
+                [
+                  { id: "clients-search", label: "Search bar", desc: "Search input on the clients list" },
+                  {
+                    id: "client-progress-chart",
+                    label: "Progress chart",
+                    desc: "Survey progress chart on client detail pages",
+                  },
+                ] as const
+              ).map(({ id, label, desc }) => (
+                <label key={id} className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>{label}</strong>
+                    <span>{desc}</span>
+                  </span>
+                  <span
+                    className={`${styles.toggleSwitch} ${!hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={!hiddenSections.includes(id)}
+                      onChange={() => toggleSection(id)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+              ))}
+              <label className={styles.toggleRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Use codenames</strong>
+                  <span>Show codenames instead of real names in your admin UI</span>
+                </span>
+                <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    className={styles.toggleInput}
+                    checked={useCodenames}
+                    onChange={(e) => setUseCodenames(e.target.checked)}
+                  />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
+              <p className={styles.toggleHint}>
+                Set each client's codename from their profile page. If no codename is set, their real name is used as a
+                fallback.
+              </p>
+              <div className={styles.actions}>
+                <Button variant="primary" size="sm" onClick={handleSaveCodenames} disabled={savingCodenames}>
+                  {savingCodenames ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </section>
+          </Card>
         )}
 
         {/* ── Emails tab (admin only) ── */}

@@ -1,10 +1,13 @@
 @use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
 
 .modalOverlay {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,17 +15,15 @@
 }
 
 .modalContainer {
+  @include glass(var(--glass-bg-heavy), 24px);
   width: 100%;
   max-height: 90vh;
   min-width: 350px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--bg-card);
   padding: 20px;
-  border-radius: var(--r-lg);
-  position: relative;
-  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
 
   &.sm {
     max-width: 420px;

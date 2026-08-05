@@ -41,7 +41,7 @@ export default function TrendChart({
   title,
   data,
   type = "bar",
-  color = "#2d7264",
+  color = "#4a665b",
   valueFormatter = identity,
   yDomain,
 }: TrendChartProps) {
@@ -54,35 +54,44 @@ export default function TrendChart({
       {!hasData ? (
         <p className={styles.empty}>No data yet.</p>
       ) : (
-        <ResponsiveContainer width="100%" height={180}>
-          {type === "bar" ? (
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
-              <YAxis tick={axis} axisLine={false} tickLine={false} width={40} domain={yDomain} allowDecimals={false} />
-              <Tooltip
-                cursor={{ fill: "var(--bg-muted)" }}
-                content={<TrendTooltip valueFormatter={valueFormatter} />}
-              />
-              <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={38} />
-            </BarChart>
-          ) : (
-            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
-              <YAxis tick={axis} axisLine={false} tickLine={false} width={40} domain={yDomain} />
-              <Tooltip content={<TrendTooltip valueFormatter={valueFormatter} />} />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={color}
-                strokeWidth={2.5}
-                dot={{ r: 3, fill: color, strokeWidth: 0 }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          )}
-        </ResponsiveContainer>
+        <div aria-hidden="true">
+          <ResponsiveContainer width="100%" height={180}>
+            {type === "bar" ? (
+              <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={axis}
+                  axisLine={false}
+                  tickLine={false}
+                  width={40}
+                  domain={yDomain}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: "var(--bg-muted)" }}
+                  content={<TrendTooltip valueFormatter={valueFormatter} />}
+                />
+                <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={38} />
+              </BarChart>
+            ) : (
+              <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
+                <YAxis tick={axis} axisLine={false} tickLine={false} width={40} domain={yDomain} />
+                <Tooltip content={<TrendTooltip valueFormatter={valueFormatter} />} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={color}
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: color, strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
+        </div>
       )}
     </Card>
   );

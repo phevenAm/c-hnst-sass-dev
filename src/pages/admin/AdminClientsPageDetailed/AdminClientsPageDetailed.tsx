@@ -4,7 +4,16 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
-import { Avatar, Button, Card, ProgressChart, Search, ToggleButtonTabs } from "@components/shared/index";
+import {
+  Avatar,
+  Button,
+  Card,
+  HideableSection,
+  ProgressChart,
+  Search,
+  SplitButton,
+  ToggleButtonTabs,
+} from "@components/shared/index";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
 import type { RescheduleRequest, Session, UserProfile } from "@models/globalTypes";
@@ -293,9 +302,19 @@ export default function AdminClientsPageDetailed() {
             <Button variant="secondary" size="sm" onClick={() => setNotesOpen(true)}>
               Notes
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setIsConfigOpen(true)}>
-              Configure client
-            </Button>
+            <SplitButton
+              variant="secondary"
+              size="sm"
+              primaryLabel="Configure client"
+              primaryAction={() => setIsConfigOpen(true)}
+              options={[
+                {
+                  label: exporting ? "Exporting…" : "Export PDF",
+                  onClick: handleExport,
+                  disabled: exporting || selectedResponses.length === 0,
+                },
+              ]}
+            />
           </div>
         </div>
 
@@ -321,44 +340,46 @@ export default function AdminClientsPageDetailed() {
         </div>
 
         {/* Progress chart — ProgressChart renders its own Card, so no outer wrapper */}
-        <div className={styles.progressSection}>
-          <div className={styles.sectionHead}>
-            {questionnaireOptions.length > 1 && (
-              <div className={styles.progressControls}>
-                <label htmlFor="q-select">Survey</label>
-                <select
-                  id="q-select"
-                  value={selectedQuestionnaire?.id ?? ""}
-                  onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
-                >
-                  {questionnaireOptions.map((q) => (
-                    <option key={q.id} value={q.id}>
-                      {q.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <HideableSection id="client-progress-chart">
+          <div className={styles.progressSection}>
+            <div className={styles.sectionHead}>
+              {questionnaireOptions.length > 1 && (
+                <div className={styles.progressControls}>
+                  <label htmlFor="q-select">Survey</label>
+                  <select
+                    id="q-select"
+                    value={selectedQuestionnaire?.id ?? ""}
+                    onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
+                  >
+                    {questionnaireOptions.map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {selectedQuestionnaire ? (
+              <ProgressChart
+                responses={selectedResponses}
+                questions={
+                  (
+                    selectedQuestionnaire as typeof selectedQuestionnaire & {
+                      questions?: [];
+                    }
+                  ).questions ?? []
+                }
+                title={`${client.first_name}'s Progress`}
+              />
+            ) : (
+              <Card>
+                <p className={styles.emptyState}>No check-in data yet.</p>
+              </Card>
             )}
           </div>
-
-          {selectedQuestionnaire ? (
-            <ProgressChart
-              responses={selectedResponses}
-              questions={
-                (
-                  selectedQuestionnaire as typeof selectedQuestionnaire & {
-                    questions?: [];
-                  }
-                ).questions ?? []
-              }
-              title={`${client.first_name}'s Progress`}
-            />
-          ) : (
-            <Card>
-              <p className={styles.emptyState}>No check-in data yet.</p>
-            </Card>
-          )}
-        </div>
+        </HideableSection>
 
         {rescheduleRequests.some((r) => r.status === "pending") && (
           <div className={styles.pendingRequests}>

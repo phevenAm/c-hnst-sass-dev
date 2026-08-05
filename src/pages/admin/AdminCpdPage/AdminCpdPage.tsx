@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
@@ -196,23 +196,18 @@ export default function AdminCpdPage() {
             <h1 className={styles.title}>CPD Log</h1>
             <p className={styles.sub}>Track your continuing professional development activities</p>
           </div>
-          <div className={styles.headerActions}>
-            <Button variant="secondary" size="sm" onClick={exportCsv} disabled={visibleLogs.length === 0}>
-              Export CSV
-            </Button>
-            <Button variant="secondary" size="sm" onClick={exportPdf} disabled={visibleLogs.length === 0}>
-              Export PDF
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditing(null);
-                setModalOpen(true);
-              }}
-            >
-              Add entry
-            </Button>
-          </div>
+          <SplitButton
+            variant="primary"
+            primaryLabel="Add entry"
+            primaryAction={() => {
+              setEditing(null);
+              setModalOpen(true);
+            }}
+            options={[
+              { label: "Export CSV", onClick: exportCsv },
+              { label: "Export PDF", onClick: exportPdf },
+            ]}
+          />
         </div>
 
         {/* Annual progress */}

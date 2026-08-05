@@ -6,16 +6,17 @@
 // ============================================================
 
 // ── Brand palette ──────────────────────────────────────────
-$teal-900: #1a3a35; // darkest — headers, hero bg
-$teal-800: #1f4940; // primary accent
-$teal-700: #235c50; // hover states
-$teal-600: #2d7264; // links, active nav
-$teal-500: #3a8f7e; // buttons
-$teal-400: #5aaa99; // secondary elements
-$teal-300: #8ecfc3; // light accents
-$teal-200: #bfe5df; // backgrounds, chips
-$teal-100: #dff2ef; // very light tints
-$teal-50: #f0f9f7; // near-white backgrounds
+// Sage scale — inspired by Bloom (trybloom.co.uk)
+$teal-900: #1e3830;
+$teal-800: #2d5248;
+$teal-700: #3a6559;
+$teal-600: #4a665b; // brand — Bloom sage-600
+$teal-500: #5f8073;
+$teal-400: #7c9a8e; // Bloom sage-400
+$teal-300: #9fbbb3; // Bloom sage-300
+$teal-200: #c3d4cf; // Bloom sage-200 / border
+$teal-100: #e7eded; // Bloom sage-100
+$teal-50:  #f3f6f5; // Bloom bg3
 
 $warm-900: #2d2520; // body text — contrast 14:1 on white
 $warm-800: #3d3530; // headings
@@ -41,12 +42,12 @@ $color-text-muted: $warm-600; // 4.5:1 on white — AA
 $color-text-disabled: $warm-400;
 $color-text-inverse: #ffffff;
 
-$color-bg-base: $warm-50;
-$color-bg-card: $ivory;
-$color-bg-muted: $warm-100;
-$color-bg-overlay: rgba(#fffdf9, 0.92);
+$color-bg-base: #f9f6f1;   // Bloom warm cream
+$color-bg-card: #ffffff;    // Bloom white card
+$color-bg-muted: $teal-50;  // Bloom bg3
+$color-bg-overlay: rgba(#f9f6f1, 0.92);
 
-$color-border: $warm-200;
+$color-border: $teal-200;
 $color-border-focus: $teal-600;
 
 $color-danger: #b75656; // 5.9:1 on white — AA
@@ -59,12 +60,13 @@ $color-warning-light: #ead582;
 
 // ── Dark mode overrides ────────────────────────────────────
 // Applied via .dark class on <html>
-$dark-bg-base: #0f1f1c;
-$dark-bg-card: #162622;
-$dark-bg-muted: #1c3330;
-$dark-text-primary: #ecf5f3;
-$dark-text-secondary: #a8c8c2;
-$dark-text-muted: #6fa49c;
-$dark-border: #254f49;
-$dark-accent: $teal-300;
-$dark-accent-light: #1a3d38;
+// Neutral charcoal — sage accent on a clean dark base, no green bleed
+$dark-bg-base:  #111318;
+$dark-bg-card:  #1b1e27;
+$dark-bg-muted: #21252f;
+$dark-text-primary:   #e8eaf0;
+$dark-text-secondary: #9aa3b8;
+$dark-text-muted:     #8a93ad; // #6b7390 failed AA (4.2:1) on dark card — raised to 6.1:1
+$dark-border:   #2d3245;
+$dark-accent:       $teal-300;   // sage-300 — pops nicely on neutral dark
+$dark-accent-light: #1c2535;
