@@ -12,7 +12,9 @@ import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogs
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
 import AdminClientsPageDetailed from "../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed";
+import AdminCpdPage from "../pages/admin/AdminCpdPage/AdminCpdPage";
 import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
+import AdminPaymentsPage from "../pages/admin/AdminPaymentsPage/AdminPaymentsPage";
 import AdminQuestionnairesPage from "../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage";
 import AdminResourcesPage from "../pages/admin/AdminResourcesPage/AdminResourcesPage";
 import AdminScheduler from "../pages/admin/AdminScheduler/AdminScheduler";
@@ -108,16 +110,14 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 }
 
 function OnboardingGate() {
-  const { userProfile, isAuthenticated, loading } = useAuth();
+  const { userProfile, isDemo, isAuthenticated, loading } = useAuth();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!loading && isAuthenticated && userProfile !== null && !userProfile.onboarding_completed) {
-      setShow(true);
-    }
+    setShow(!loading && isAuthenticated && !!userProfile && !userProfile.onboarding_completed);
   }, [loading, isAuthenticated, userProfile]);
 
-  if (!show) return null;
+  if (!show || isDemo) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
 }
 
@@ -183,6 +183,8 @@ export default function AppRoutes() {
             <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
             <Route path="/admin/scheduler" element={<AdminScheduler />} />
             <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
+            <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+            <Route path="/admin/cpd" element={<AdminCpdPage />} />
             {/* //! make admin/schedule/userSchedule route */}
           </Route>
 

@@ -31,21 +31,21 @@
 
 .statCard {
   border-radius: var(--r-lg);
-  padding: $sp-5;
-  flex: 1 1 140px;
+  padding: $sp-4;
+  flex: 1 1 120px;
 }
 
 .statLabel {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  margin: 0 0 $sp-2;
+  margin: 0 0 $sp-1;
 }
 
 .statValue {
   font-family: var(--font-serif);
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   font-weight: 500;
   color: var(--text-primary);
   margin: 0 0 $sp-1;
@@ -53,7 +53,7 @@
 }
 
 .statSub {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   margin: 0;
 }
@@ -220,5 +220,6 @@
   small {
     color: var(--danger);
     font-size: .8rem;
+    font-weight: bold;
   }
 }

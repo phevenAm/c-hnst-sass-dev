@@ -196,8 +196,6 @@ const AdminScheduler = () => {
     [filteredSessions],
   );
 
-  const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
-
   // ----- session totals: hours + remote vs in-person split for the selected
   // period (default all time). Scoped to the client filter, cancelled excluded.
   // Remote = anything not explicitly "in_person" (online/null), per SessionCard.
@@ -236,11 +234,6 @@ const AdminScheduler = () => {
     { name: "Unmarked", value: unmarked, color: "#c2c7cc" },
   ];
 
-  const paymentSlices: DonutSlice[] = [
-    { name: "Paid", value: stats.paidCount, color: "#2d7264" },
-    { name: "Unpaid", value: stats.total - stats.paidCount, color: "#c98a2b" },
-  ];
-
   const statusSlices: DonutSlice[] = [
     { name: "Scheduled", value: stats.statusScheduled, color: "#3a7fa8" },
     { name: "Completed", value: stats.statusCompleted, color: "#2d7264" },
@@ -251,8 +244,6 @@ const AdminScheduler = () => {
   const statCards = [
     { label: "Total sessions", value: stats.total, tone: "" },
     { label: "Upcoming", value: stats.upcoming, tone: styles.toneAccent },
-    { label: "Revenue", value: money(stats.revenuePence), tone: styles.toneGood },
-    { label: "Outstanding", value: money(stats.outstandingPence), tone: styles.toneWarn },
   ];
 
   const openNewPrivate = () => {
@@ -338,12 +329,6 @@ const AdminScheduler = () => {
               slices={attendanceSlices}
               centerValue={attendanceRate === null ? "—" : `${attendanceRate}%`}
               centerLabel={attendanceRate === null ? "unmarked" : "attended"}
-            />
-            <DonutChart
-              title="Payments"
-              slices={paymentSlices}
-              centerValue={money(stats.revenuePence)}
-              centerLabel="collected"
             />
             <DonutChart
               title="Session status"

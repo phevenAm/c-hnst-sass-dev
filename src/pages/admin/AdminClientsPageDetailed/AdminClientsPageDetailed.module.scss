@@ -74,6 +74,45 @@
   gap: $sp-2;
   flex-shrink: 0;
   padding-top: $sp-2;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.configLabel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.configInput {
+  padding: $sp-2 $sp-3;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-family: var(--font-sans);
+  width: 100%;
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+}
+
+.configHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: $sp-2 0 0;
+  line-height: 1.5;
 }
 
 // ── Stats bar ────────────────────────────────────────────────

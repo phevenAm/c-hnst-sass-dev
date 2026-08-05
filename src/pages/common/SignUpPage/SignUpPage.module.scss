@@ -275,6 +275,13 @@
   margin: 0 0 $sp-8;
 }
 
+.confirmHint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: $sp-6 0 $sp-4;
+  opacity: 0.75;
+}
+
 .backLink {
   color: var(--accent);
   font-weight: 500;

@@ -49,11 +49,12 @@ const PRICING_FEATURES = [
 ];
 
 type Plan = "website" | "app" | "bundle";
+type Billing = "monthly" | "annual";
 
-const PLANS: Record<Plan, { label: string; monthly: number; desc: string }> = {
-  website: { label: "Website", monthly: 15, desc: "Branded client portal" },
-  app: { label: "App", monthly: 20, desc: "Practice management" },
-  bundle: { label: "Website + App", monthly: 29, desc: "Everything included" },
+const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string }> = {
+  website: { label: "Website", monthly: 15, annual: 150, desc: "Branded client portal" },
+  app: { label: "App", monthly: 20, annual: 200, desc: "Practice management" },
+  bundle: { label: "Website + App", monthly: 29, annual: 290, desc: "Everything included" },
 };
 
 const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
@@ -126,6 +127,7 @@ export default function SubscribePage() {
   const [agreed, setAgreed] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [plan, setPlan] = useState<Plan>("app");
+  const [billing, setBilling] = useState<Billing>("monthly");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -163,7 +165,7 @@ export default function SubscribePage() {
     setError("");
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-subscription-checkout", {
-        body: { plan },
+        body: { plan, billing },
       });
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
@@ -175,7 +177,8 @@ export default function SubscribePage() {
   };
 
   const selectedPlan = PLANS[plan];
-  const displayPrice = selectedPlan.monthly;
+  const displayPrice = billing === "annual" ? selectedPlan.annual : selectedPlan.monthly;
+  const annualSaving = selectedPlan.monthly * 12 - selectedPlan.annual;
 
   const { Icon, title, description, points } = SLIDES[current];
 
@@ -233,6 +236,24 @@ export default function SubscribePage() {
 
             {/* ── Right: pricing ── */}
             <div className={styles.right}>
+              {/* Billing toggle */}
+              <div className={styles.billingToggle}>
+                <button
+                  type="button"
+                  className={`${styles.billingBtn} ${billing === "monthly" ? styles.billingBtnActive : ""}`}
+                  onClick={() => setBilling("monthly")}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.billingBtn} ${billing === "annual" ? styles.billingBtnActive : ""}`}
+                  onClick={() => setBilling("annual")}
+                >
+                  Annual <span className={styles.billingBtnSave}>2 months free</span>
+                </button>
+              </div>
+
               {/* Plan selector */}
               <div className={styles.planCards}>
                 {(Object.entries(PLANS) as [Plan, (typeof PLANS)[Plan]][]).map(([key, p]) => (
@@ -244,8 +265,8 @@ export default function SubscribePage() {
                   >
                     <span className={styles.planCardName}>{p.label}</span>
                     <span className={styles.planCardPrice}>
-                      £{p.monthly}
-                      <span className={styles.planCardPer}>/mo</span>
+                      £{billing === "annual" ? p.annual : p.monthly}
+                      <span className={styles.planCardPer}>{billing === "annual" ? "/yr" : "/mo"}</span>
                     </span>
                   </button>
                 ))}
@@ -254,9 +275,13 @@ export default function SubscribePage() {
               <div className={styles.priceRow}>
                 <span className={styles.currency}>£</span>
                 <span className={styles.amount}>{displayPrice}</span>
-                <span className={styles.period}>/ month</span>
+                <span className={styles.period}>{billing === "annual" ? "/ year" : "/ month"}</span>
               </div>
-              <p className={styles.billingNote}>Billed monthly &middot; Cancel any time</p>
+              {billing === "annual" ? (
+                <p className={styles.billingNote}>Save £{annualSaving} vs monthly &middot; Cancel any time</p>
+              ) : (
+                <p className={styles.billingNote}>Billed monthly &middot; Cancel any time</p>
+              )}
 
               <hr className={styles.divider} />
 

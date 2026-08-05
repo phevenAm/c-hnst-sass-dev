@@ -1,0 +1,241 @@
+@use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.header {
+  @include flex-between;
+  flex-wrap: wrap;
+  gap: $sp-4;
+}
+
+.title {
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: $sp-1;
+}
+
+.headerActions {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+// ── Progress card ──────────────────────────────────────────
+
+.progressCard {
+  padding: $sp-5 $sp-6;
+}
+
+.progressHeader {
+  @include flex-between;
+  margin-bottom: $sp-3;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.progressLabel {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.targetInput {
+  width: 3.5rem;
+  padding: 2px $sp-2;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.progressPct {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progressTrack {
+  height: 8px;
+  background: var(--bg-muted);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--r-full);
+  transition: width 0.4s ease;
+}
+
+// ── Filters ────────────────────────────────────────────────
+
+.filters {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  padding: $sp-2 $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+}
+
+.filterBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+
+  &:hover {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    color: var(--text-inverse);
+  }
+}
+
+// ── Table ──────────────────────────────────────────────────
+
+.tableCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th {
+    padding: $sp-3 $sp-4;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-muted);
+  }
+
+  td {
+    padding: $sp-4;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-muted);
+  }
+}
+
+.dateCell {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  width: 6rem;
+}
+
+.textCell {
+  color: var(--text-primary);
+  max-width: 260px;
+}
+
+.durationCell {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  width: 5rem;
+}
+
+.actionsCell {
+  display: flex;
+  gap: $sp-2;
+  justify-content: flex-end;
+  width: 8rem;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}
+
+// ── Activity badges ────────────────────────────────────────
+
+.badge {
+  display: inline-block;
+  padding: 2px $sp-3;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.badge_supervision    { background: #dff2ef; color: #1f4940; }
+.badge_training       { background: #e8f0fe; color: #1a56a0; }
+.badge_reading        { background: #fef9e7; color: #7d5a00; }
+.badge_conference     { background: #fce8d5; color: #7a3210; }
+.badge_peer_consultation { background: #ede9fe; color: #4c1d95; }
+.badge_personal_therapy  { background: #fce7f3; color: #831843; }
+.badge_other          { background: var(--bg-muted); color: var(--text-muted); }
+
+// Dark mode badge overrides
+:global(.dark) {
+  .badge_supervision    { background: #1a3d38; color: #8ecfc3; }
+  .badge_training       { background: #1e3a5f; color: #93c5fd; }
+  .badge_reading        { background: #3d2e00; color: #fcd34d; }
+  .badge_conference     { background: #3d1a00; color: #fdba74; }
+  .badge_peer_consultation { background: #2e1065; color: #c4b5fd; }
+  .badge_personal_therapy  { background: #4a0020; color: #f9a8d4; }
+}
+
+// ── Empty state ────────────────────────────────────────────
+
+.empty {
+  padding: $sp-10;
+  text-align: center;
+  color: var(--text-muted);
+}

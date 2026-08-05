@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import styles from "./ImageBlurBlock.module.scss";
 
 type ImageBlurBlockProps = {
@@ -8,8 +10,23 @@ type ImageBlurBlockProps = {
 };
 
 export default function ImageBlurBlock({ imageUrl, photographer, sourceLabel, creditUrl }: ImageBlurBlockProps) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    const img = new Image();
+    img.src = imageUrl;
+    if (img.complete) {
+      setLoaded(true);
+      return;
+    }
+    const onLoad = () => setLoaded(true);
+    img.addEventListener("load", onLoad);
+    return () => img.removeEventListener("load", onLoad);
+  }, [imageUrl]);
+
   return (
-    <div className={styles.bgPanel}>
+    <div className={`${styles.bgPanel} ${loaded ? styles.loaded : styles.loading}`}>
       <div
         className={styles.bgImage}
         aria-hidden="true"

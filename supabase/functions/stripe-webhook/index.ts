@@ -42,10 +42,40 @@ Deno.serve(async (req) => {
     const cs = event.data.object as Stripe.Checkout.Session;
     if (cs.mode === "subscription" && cs.metadata?.admin_id) {
       const plan = cs.metadata?.plan ?? "app";
+      const billing = cs.metadata?.billing ?? "monthly";
+      const referralCode = cs.metadata?.referral_code ?? null;
+
       await supabase
         .from("practice_settings")
-        .update({ subscription_status: "active", subscription_plan: plan })
+        .update({
+          subscription_status: "active",
+          subscription_plan: plan,
+          billing_period: billing,
+          ...(referralCode ? { referred_by_code: referralCode } : {}),
+        })
         .eq("admin_id", cs.metadata.admin_id);
+
+      // Apply 2-month balance credit to the referrer
+      if (referralCode) {
+        const { data: referrer } = await supabase
+          .from("practice_settings")
+          .select("billing_customer_id, subscription_plan")
+          .eq("referral_code", referralCode)
+          .single();
+
+        if (referrer?.billing_customer_id) {
+          const planPrices: Record<string, number> = { app: 20, website: 15, bundle: 29 };
+          const monthlyPrice = planPrices[referrer.subscription_plan ?? "app"] ?? 20;
+          const creditPence = monthlyPrice * 2 * 100; // 2 months in pence
+
+          await stripe.customers.createBalanceTransaction(referrer.billing_customer_id, {
+            amount: -creditPence, // negative = credit
+            currency: "gbp",
+            description: "Referral credit — 2 months",
+          });
+        }
+      }
+
       return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });
     }
   }

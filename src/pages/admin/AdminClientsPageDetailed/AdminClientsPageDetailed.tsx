@@ -14,11 +14,12 @@ import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/ques
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
+import Modal from "@/components/shared/Modal/Modal";
 import Spinner from "@/components/shared/Spinner/Spinner";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
 import { supabase } from "@/lib/supabase.js";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
@@ -32,7 +33,7 @@ export default function AdminClientsPageDetailed() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
 
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
@@ -48,6 +49,7 @@ export default function AdminClientsPageDetailed() {
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
@@ -135,6 +137,26 @@ export default function AdminClientsPageDetailed() {
   };
 
   const client = allUsers.find((u) => u.id === clientId);
+
+  const [codename, setCodename] = useState(client?.admin_codename ?? "");
+  const [savingCodename, setSavingCodename] = useState(false);
+
+  useEffect(() => {
+    setCodename(client?.admin_codename ?? "");
+  }, [client?.admin_codename]);
+
+  const handleSaveCodename = async () => {
+    if (!clientId) return;
+    setSavingCodename(true);
+    await supabase
+      .from("users")
+      .update({ admin_codename: codename.trim() || null })
+      .eq("id", clientId);
+    setSavingCodename(false);
+    showToast("Codename saved.");
+  };
+
+  const displayedClientName = client ? clientDisplayName(client, practiceSettings?.use_client_codenames ?? false) : "";
 
   const questionnaireOptions = useMemo(
     () => questionnaires.filter((q) => clientResponses.some((r) => r.questionnaire_id === q.id)),
@@ -257,11 +279,9 @@ export default function AdminClientsPageDetailed() {
         {/* Profile hero */}
         <div className={styles.hero}>
           <div className={styles.heroLeft}>
-            <Avatar name={`${client.first_name} ${client.last_name}`} imageSrc={client.avatar_url ?? ""} size={80} />
+            <Avatar name={displayedClientName} imageSrc={client.avatar_url ?? ""} size={80} />
             <div>
-              <h1 className={styles.heroName}>
-                {client.first_name} {client.last_name}
-              </h1>
+              <h1 className={styles.heroName}>{displayedClientName}</h1>
               <p className={styles.heroEmail}>{client.email}</p>
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
@@ -273,13 +293,8 @@ export default function AdminClientsPageDetailed() {
             <Button variant="secondary" size="sm" onClick={() => setNotesOpen(true)}>
               Notes
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExport}
-              disabled={exporting || selectedResponses.length === 0}
-            >
-              {exporting ? "Exporting…" : "Export PDF"}
+            <Button variant="secondary" size="sm" onClick={() => setIsConfigOpen(true)}>
+              Configure client
             </Button>
           </div>
         </div>
@@ -466,6 +481,44 @@ export default function AdminClientsPageDetailed() {
       </div>
 
       {notesOpen && <SessionNotesModal user={client} onClose={() => setNotesOpen(false)} />}
+
+      {isConfigOpen && (
+        <Modal
+          title="Configure client"
+          size="sm"
+          onClose={() => setIsConfigOpen(false)}
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExport}
+                disabled={exporting || selectedResponses.length === 0}
+              >
+                {exporting ? "Exporting…" : "Export PDF"}
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
+                {savingCodename ? "Saving…" : "Save codename"}
+              </Button>
+            </>
+          }
+        >
+          <label className={styles.configLabel}>
+            Codename
+            <input
+              className={styles.configInput}
+              value={codename}
+              onChange={(e) => setCodename(e.target.value)}
+              placeholder="Optional — replaces real name in admin UI"
+              maxLength={30}
+            />
+          </label>
+          <p className={styles.configHint}>
+            Set a codename to show instead of {client.first_name}'s real name across your admin. Leave blank to use
+            their real name.
+          </p>
+        </Modal>
+      )}
 
       {deleteOpen && (
         <DeleteClientModal

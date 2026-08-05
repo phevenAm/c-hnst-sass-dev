@@ -19,27 +19,6 @@
   }
 }
 
-.blobTop {
-  position: absolute;
-  top: -8%;
-  right: -6%;
-  width: clamp(200px, 30vw, 440px);
-  height: clamp(200px, 30vw, 440px);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(#bfe5df, 0.45), transparent 70%);
-  pointer-events: none;
-}
-
-.blobBottom {
-  position: absolute;
-  bottom: -6%;
-  left: -4%;
-  width: clamp(180px, 26vw, 400px);
-  height: clamp(180px, 26vw, 400px);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(#cfe8e0, 0.35), transparent 70%);
-  pointer-events: none;
-}
 
 .container {
   width: 100%;
@@ -156,6 +135,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -235,6 +215,56 @@
     border-color: var(--accent);
     transform: scale(1.4);
   }
+}
+
+// ── Billing toggle ────────────────────────────────────────────────────────────
+
+.billingToggle {
+  display: flex;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: $sp-4;
+}
+
+.billingBtn {
+  flex: 1;
+  padding: $sp-2 $sp-3;
+  border: none;
+  border-radius: calc(var(--r-md) - 2px);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $sp-2;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &.billingBtnActive {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.billingBtnSave {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
 }
 
 // ── Plan cards ────────────────────────────────────────────────────────────────

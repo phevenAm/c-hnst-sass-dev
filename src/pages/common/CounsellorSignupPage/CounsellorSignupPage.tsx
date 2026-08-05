@@ -90,6 +90,12 @@ export default function CounsellorSignupPage() {
             We've sent a confirmation link to <strong>{form.email}</strong>. Click it to activate your account — you'll
             then be guided through setting up your subscription.
           </p>
+          <p className={styles.confirmHint}>
+            Already confirmed your email before?{" "}
+            <Link to="/login" className={styles.backLink}>
+              Sign in instead →
+            </Link>
+          </p>
           <Link to="/login" className={styles.backLink}>
             ← Back to sign in
           </Link>

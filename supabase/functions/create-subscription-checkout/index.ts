@@ -8,15 +8,20 @@ const corsHeaders = {
 };
 
 type Plan = "website" | "app" | "bundle";
+type Billing = "monthly" | "annual";
 
-function getPriceId(plan: Plan): string {
-  const ids: Record<Plan, string> = {
-    website: Deno.env.get("STRIPE_PRICE_WEBSITE")!,
-    app: Deno.env.get("STRIPE_PRICE_APP")!,
-    bundle: Deno.env.get("STRIPE_PRICE_BUNDLE")!,
+function getPriceId(plan: Plan, billing: Billing): string {
+  const key = `${plan}${billing === "annual" ? "_annual" : ""}`;
+  const envKeys: Record<string, string> = {
+    website: "STRIPE_PRICE_WEBSITE",
+    app: "STRIPE_PRICE_APP",
+    bundle: "STRIPE_PRICE_BUNDLE",
+    website_annual: "STRIPE_PRICE_WEBSITE_ANNUAL",
+    app_annual: "STRIPE_PRICE_APP_ANNUAL",
+    bundle_annual: "STRIPE_PRICE_BUNDLE_ANNUAL",
   };
-  const id = ids[plan];
-  if (!id) throw new Error(`Missing Stripe price ID for plan: ${plan}`);
+  const id = Deno.env.get(envKeys[key]);
+  if (!id) throw new Error(`Missing Stripe price ID for plan: ${plan} (${billing})`);
   return id;
 }
 
@@ -51,15 +56,23 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    // Plan from request body — default to 'app' for backwards compatibility
+    // Plan, billing period, and optional referral code from request body
     let plan: Plan = "app";
+    let billing: Billing = "monthly";
+    let referralCode: string | null = null;
     try {
       const body = await req.json();
       if (body?.plan && ["website", "app", "bundle"].includes(body.plan)) {
         plan = body.plan as Plan;
       }
+      if (body?.billing === "annual") {
+        billing = "annual";
+      }
+      if (body?.referral_code && typeof body.referral_code === "string") {
+        referralCode = body.referral_code.trim().toUpperCase();
+      }
     } catch {
-      // No body or invalid JSON — use default
+      // No body or invalid JSON — use defaults
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
@@ -90,10 +103,11 @@ Deno.serve(async (req) => {
       customer: billingCustomerId,
       payment_method_types: ["card"],
       mode: "subscription",
-      line_items: [{ price: getPriceId(plan), quantity: 1 }],
+      allow_promotion_codes: true,
+      line_items: [{ price: getPriceId(plan, billing), quantity: 1 }],
       success_url: `${appUrl}/admin?subscribed=true`,
       cancel_url: `${appUrl}/subscribe`,
-      metadata: { admin_id: user.id, plan },
+      metadata: { admin_id: user.id, plan, billing, ...(referralCode ? { referral_code: referralCode } : {}) },
     });
 
     return new Response(JSON.stringify({ url: checkoutSession.url }), {
