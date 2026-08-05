@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -31,7 +32,7 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
     };
   }, [onClose]);
 
-  return (
+  return createPortal(
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — keyboard handled via Escape in useEffect
     <div
       className={styles.modalOverlay}
@@ -69,6 +70,7 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
           {actions && <div className={styles.modalActions}>{actions}</div>}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
