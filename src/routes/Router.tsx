@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
+import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
+import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Footer from "../components/shared/Footer/Footer";
 import Navbar from "../components/shared/Navbar/Navbar";
@@ -69,6 +71,45 @@ function AppLayout() {
         </div>
       </main>
       <Footer />
+    </>
+  );
+}
+
+function AdminLayout() {
+  const location = useLocation();
+  const topRef = useRef<HTMLDivElement>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("adminSidebarCollapsed") === "true",
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: location is the navigation trigger; not referenced in callback body by design
+  useEffect(() => {
+    topRef.current?.focus({ preventScroll: true });
+  }, [location]);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem("adminSidebarCollapsed", String(next));
+      return next;
+    });
+  };
+
+  return (
+    <>
+      <div ref={topRef} tabIndex={-1} aria-hidden="true" />
+      <DemoBanner />
+      <div className="adminShell">
+        <AdminSidebar collapsed={sidebarCollapsed} />
+        <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
+          <AdminTopbar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+          <main id="main-content" tabIndex={-1}>
+            <div className="page-content">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+      </div>
     </>
   );
 }
@@ -170,7 +211,7 @@ export default function AppRoutes() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <SubscriptionGate>
-                  <AppLayout />
+                  <AdminLayout />
                 </SubscriptionGate>
               </ProtectedRoute>
             }

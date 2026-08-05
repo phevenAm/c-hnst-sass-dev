@@ -1,0 +1,192 @@
+@use '../../../styles/spacing' as *;
+
+$w: 220px;
+$w-collapsed: 60px;
+$transition: 0.22s ease;
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: $w;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  transition: width $transition;
+  overflow: hidden;
+}
+
+.collapsed {
+  width: $w-collapsed;
+
+  .logoText,
+  .label {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .branding {
+    opacity: 0;
+  }
+}
+
+// ── Top / logo ──────────────────────────────────────────────
+
+.top {
+  padding: $sp-4 $sp-3;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    border-radius: var(--r-sm);
+    outline-offset: 2px;
+  }
+}
+
+.logoMark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-inverse);
+  flex-shrink: 0;
+
+  img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+}
+
+.logoText {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: opacity $transition;
+}
+
+// ── Nav ─────────────────────────────────────────────────────
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: $sp-3 $sp-2;
+}
+
+.navList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-3;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 400;
+  white-space: nowrap;
+  transition: background var(--transition-base), color var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: var(--accent-light);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--r-md);
+  }
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity $transition;
+}
+
+// ── Bottom utilities ────────────────────────────────────────
+
+.bottom {
+  border-top: 1px solid var(--border);
+  padding: $sp-2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.bottomLink {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-3;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  transition: background var(--transition-base), color var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--r-md);
+  }
+}
+
+.branding {
+  padding: $sp-3;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity $transition;
+}

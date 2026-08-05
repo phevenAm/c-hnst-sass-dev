@@ -229,6 +229,30 @@ textarea {
   font-size: max(16px, 1em);
 }
 
+// ── Admin shell layout ─────────────────────────────────────
+$admin-sidebar-w: 220px;
+$admin-sidebar-collapsed-w: 60px;
+
+.adminShell {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.adminBody {
+  flex: 1;
+  margin-left: $admin-sidebar-w;
+  transition: margin-left 0.22s ease;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &.adminBodyCollapsed {
+    margin-left: $admin-sidebar-collapsed-w;
+  }
+}
+
 // ── App shell layout ───────────────────────────────────────
 #main-content {
   display: flex;

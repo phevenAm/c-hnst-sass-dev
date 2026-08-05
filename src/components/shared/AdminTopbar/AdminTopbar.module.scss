@@ -1,0 +1,126 @@
+@use '../../../styles/spacing' as *;
+
+.topbar {
+  height: var(--navbar-height);
+  background: rgba(var(--bg-card-rgb), 0.82);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.35);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $sp-5;
+  flex-shrink: 0;
+}
+
+.toggleBtn {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: $sp-2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 3px;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+}
+
+.iconBtn {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: $sp-2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 3px;
+  }
+}
+
+.avatarLink {
+  position: relative;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    .settingsIcon {
+      background-color: var(--accent-dark);
+
+      svg {
+        fill: var(--accent-light);
+      }
+    }
+  }
+}
+
+.settingsIcon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translate(30%, 15%);
+  display: grid;
+  place-items: center;
+  background-color: var(--accent);
+  padding: 2px;
+  border-radius: 200%;
+
+  svg {
+    font-size: 0.9rem;
+    fill: var(--accent-light) !important;
+  }
+}
+
+.signOutBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: $sp-2 $sp-4;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-full);
+  }
+}
