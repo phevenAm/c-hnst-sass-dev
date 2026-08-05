@@ -79,12 +79,17 @@
 }
 
 .danger {
-  background: var(--danger-light);
-  color: var(--danger);
-  border-color: var(--danger-border);
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
 
   &:hover:not(:disabled) {
-    background: var(--danger-border);
+    filter: brightness(0.88);
+  }
+
+  :global(.dark) & {
+    background: #991b1b;
+    border-color: #991b1b;
   }
 }
 
