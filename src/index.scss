@@ -35,7 +35,7 @@
   --bg-card-rgb: 255, 255, 255;
   --border-rgb: 195, 212, 207;
   --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-heavy: rgba(245, 245, 245, 0.8);
+  --glass-bg-heavy: rgba(245, 245, 245, 0.92);
 
   // Borders
   --border: #{$color-border};
@@ -113,10 +113,11 @@
   --bg-base: #{$dark-bg-base};
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
+  --bg-grey: #dae0de;
   --bg-overlay: rgba(17, 19, 24, 0.92);
   --bg-card-rgb: 27, 30, 39;
   --border-rgb: 45, 50, 69;
-  --glass-bg: rgba(27, 30, 39, 0.72);
+  --glass-bg: rgba(27, 30, 39, 0.891);
   --glass-bg-heavy: rgba(27, 30, 39, 0.95);
 
   // Borders
@@ -227,6 +228,7 @@ input,
 select,
 textarea {
   font-size: max(16px, 1em);
+  background: var(--bg-muted) !important;
 }
 
 // ── Admin shell layout ─────────────────────────────────────

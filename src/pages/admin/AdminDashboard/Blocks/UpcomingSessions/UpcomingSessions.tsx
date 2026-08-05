@@ -7,7 +7,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Card from "@components/shared/Card/Card";
 
-import { pickColor } from "@/Helpers/Helpers";
+import { clientDisplayName, pickColor } from "@/Helpers/Helpers";
 import type { Session, UserProfile } from "@/models/globalTypes";
 
 import styles from "./UpcomingSessions.module.scss";
@@ -15,6 +15,7 @@ import styles from "./UpcomingSessions.module.scss";
 interface UpcomingSessionsProps {
   sessions: Session[];
   clients: UserProfile[];
+  useCodenames?: boolean;
   limit?: number;
 }
 
@@ -29,7 +30,12 @@ const dayLabel = (iso: string) => {
 };
 
 // Headerless card — the next `limit` upcoming (future, non-cancelled) sessions.
-export default function UpcomingSessions({ sessions, clients, limit = 6 }: UpcomingSessionsProps) {
+export default function UpcomingSessions({
+  sessions,
+  clients,
+  useCodenames = false,
+  limit = 6,
+}: UpcomingSessionsProps) {
   const upcoming = useMemo(() => {
     const now = new Date();
     return sessions
@@ -41,7 +47,7 @@ export default function UpcomingSessions({ sessions, clients, limit = 6 }: Upcom
   const clientName = (id: string | null) => {
     const c = clients.find((x) => x.id === id);
     if (!c) return "Client";
-    return c.display_name || `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Client";
+    return clientDisplayName(c, useCodenames);
   };
 
   return (

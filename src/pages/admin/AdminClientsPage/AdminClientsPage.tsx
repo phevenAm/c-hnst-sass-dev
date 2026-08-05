@@ -152,11 +152,7 @@ function ClientRow({ user }: { user: UserProfile }) {
           modalTitle="Delete user"
           bodyText={
             <>
-              Are you sure you want to delete{" "}
-              <strong>
-                {user.first_name} {user.last_name}
-              </strong>
-              ?
+              Are you sure you want to delete <strong>{displayName}</strong>?
             </>
           }
         />

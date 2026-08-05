@@ -28,7 +28,7 @@ import {
 import { createTag, deleteTag, fetchTags, selectAllTags, selectTagsStatus, updateTag } from "@store/slices/tagsSlice";
 import { fetchAllUsers, selectClientUsers } from "@store/slices/userDirectorySlice";
 
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase.js";
 
 import styles from "./AdminQuestionnairesPage.module.scss";
@@ -318,7 +318,8 @@ function AssignModal({
   onClose: () => void;
 }) {
   const dispatch = useAppDispatch();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const { showToast } = useToast();
   const assignments = useAppSelector(selectAssignmentsByQuestionnaire(questionnaire.id));
   const assignedIds = new Set(assignments.map((a) => a.user_id));
@@ -374,9 +375,7 @@ function AssignModal({
                   className={styles.clientCheckbox}
                   onClick={(e) => e.stopPropagation()}
                 />
-                <span className={styles.clientName}>
-                  {client.first_name} {client.last_name}
-                </span>
+                <span className={styles.clientName}>{clientDisplayName(client, useCodenames)}</span>
                 {assigned && <span className={styles.assignedBadge}>Assigned</span>}
               </li>
             );

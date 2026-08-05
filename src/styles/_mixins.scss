@@ -6,8 +6,82 @@
 @use 'spacing' as *;
 
 // ── Responsive breakpoints ─────────────────────────────────
-// from-*  → min-width (this size and up)
-// until-* → max-width (below this size)
+// bp() is a mobile-first shorthand for common breakpoint ranges.
+// Use with a breakpoint keyword or a raw width value.
+@mixin bp($point) {
+  @if $point == lt-xs {
+    @media only screen and (max-width: ($bp-sm - 1px)) {
+      @content;
+    }
+  }
+  @else if $point == lt-s {
+    @media only screen and (max-width: ($bp-md - 1px)) {
+      @content;
+    }
+  }
+  @else if $point == lt-m {
+    @media only screen and (max-width: ($bp-lg - 1px)) {
+      @content;
+    }
+  }
+  @else if $point == lt-l {
+    @media only screen and (max-width: ($bp-xl - 1px)) {
+      @content;
+    }
+  }
+  @else if $point == xs {
+    @media only screen and (min-width: $bp-sm) {
+      @content;
+    }
+  }
+  @else if $point == s {
+    @media only screen and (min-width: $bp-sm) {
+      @content;
+    }
+  }
+  @else if $point == s-m {
+    @media only screen and (min-width: $bp-sm) and (max-width: $bp-md) {
+      @content;
+    }
+  }
+  @else if $point == m {
+    @media only screen and (min-width: $bp-md) {
+      @content;
+    }
+  }
+  @else if $point == m-l {
+    @media only screen and (min-width: $bp-md) and (max-width: $bp-lg) {
+      @content;
+    }
+  }
+  @else if $point == l {
+    @media only screen and (min-width: $bp-lg) {
+      @content;
+    }
+  }
+  @else if $point == xl {
+    @media only screen and (min-width: $bp-xl) {
+      @content;
+    }
+  }
+  @else if $point == landscape {
+    @media only screen and (orientation: landscape) {
+      @content;
+    }
+  }
+  @else if $point == portrait {
+    @media only screen and (orientation: portrait) {
+      @content;
+    }
+  }
+  @else {
+    @media only screen and (min-width: $point) {
+      @content;
+    }
+  }
+}
+
+// Compatibility helpers for existing styles
 @mixin from-sm {
   @media (min-width: #{$bp-sm}) {
     @content;

@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
 import { Button, Card, CollapsibleSection } from "@components/shared/index";
-import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
+import SchedulerCalendar, { type EventInteractionArgs } from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import {
   availabilityEvents,
   privateEventEvents,
@@ -17,13 +17,15 @@ import { SessionCard } from "@components/shared/SessionCard/SessionCard";
 import type { RootState } from "@/store";
 
 import { useAuth } from "@/context/AuthContext";
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { useToast } from "@/context/ToastContext";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
+import { supabase } from "@/lib/supabase.js";
 import type { AdminPrivateEvent, Session, UserProfile } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchPrivateEvents } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
-import { fetchAllSessions } from "@/store/slices/sessionsSlice";
+import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import AvailabilityEditor from "./AvailabilityEditor";
 import PrivateEventModal from "./PrivateEventModal";
@@ -86,7 +88,9 @@ const periodRange = (period: SchedulerPeriod): { start: Date; end: Date } | null
 
 const AdminScheduler = () => {
   const dispatch = useAppDispatch();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
+  const { showToast } = useToast();
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState<Date>(new Date());
@@ -143,7 +147,7 @@ const AdminScheduler = () => {
     () => [
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
-      ...sessionEvents(filteredSessions, users),
+      ...sessionEvents(filteredSessions, users, useCodenames),
     ],
     [date, rules, overrides, privateEvents, filteredSessions, users],
   );
@@ -253,6 +257,7 @@ const AdminScheduler = () => {
 
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
+    if (r.type === "buffer") return;
     if (r.type === "session") {
       setEditingSession(r.session);
     } else if (r.type === "private") {
@@ -264,11 +269,27 @@ const AdminScheduler = () => {
     }
   };
 
+  const handleEventDrop = ({ event, start }: EventInteractionArgs<SchedulerEvent>) => {
+    const r = event.resource;
+    if (r.type !== "session") return;
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
+    const prevDate = r.session.scheduled_at;
+    dispatch(updateSession({ id: r.session.id, scheduled_at: new Date(start).toISOString() })).then(() => {
+      supabase.functions.invoke("notify-session-rescheduled", {
+        body: { session_id: r.session.id, previous_date: prevDate },
+      });
+      showToast("Session rescheduled.", "success");
+    });
+  };
+
   const editingClientName = useMemo(() => {
     if (!editingSession) return "";
     const u = users.find((x) => x.id === editingSession.client_id);
-    return u ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : "";
-  }, [editingSession, users]);
+    return u ? clientDisplayName(u, useCodenames) : "";
+  }, [editingSession, users, useCodenames]);
 
   const guard = isPageStatusLoading(sessionsStatus);
   if (guard) return guard;
@@ -308,7 +329,7 @@ const AdminScheduler = () => {
                 <option value="all">All clients</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.display_name || `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Unnamed client"}
+                    {clientDisplayName(c, useCodenames)}
                   </option>
                 ))}
               </select>
@@ -390,6 +411,7 @@ const AdminScheduler = () => {
               onNavigate={setDate}
               onView={setView}
               onSelectEvent={handleSelectEvent}
+              onEventDrop={handleEventDrop}
             />
           </Card>
         </CollapsibleSection>

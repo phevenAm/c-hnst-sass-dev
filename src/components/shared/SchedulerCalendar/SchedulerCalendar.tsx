@@ -3,8 +3,10 @@ import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
+import withDragAndDrop, { type EventInteractionArgs } from "react-big-calendar/lib/addons/dragAndDrop";
 
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./SchedulerCalendar.scss";
 
 import type { SchedulerEvent } from "./schedulerUtils";
@@ -17,15 +19,21 @@ import type { SchedulerEvent } from "./schedulerUtils";
 // scheduler and the client calendar render this, passing their own events
 // and event-click handler. Styling lives in SchedulerCalendar.scss, scoped
 // to the .portal-calendar wrapper.
+//
+// Drag-and-drop is enabled for session events only (draggableAccessor).
+// Buffer events (10 min post-session) are non-interactive visual indicators.
 // ============================================================
 
-// dayjsLocalizer needs the localizedFormat plugin for RBC's default tokens.
 dayjs.extend(localizedFormat);
 const localizer = dayjsLocalizer(dayjs);
+
+const DnDCalendar = withDragAndDrop<SchedulerEvent>(Calendar);
 
 // Clamp the visible time axis so the grid isn't 24h tall.
 const MIN_TIME = dayjs().hour(7).minute(0).second(0).toDate();
 const MAX_TIME = dayjs().hour(21).minute(0).second(0).toDate();
+
+export type { EventInteractionArgs };
 
 type SchedulerCalendarProps = {
   events: SchedulerEvent[];
@@ -34,6 +42,7 @@ type SchedulerCalendarProps = {
   onNavigate: (date: Date) => void;
   onView: (view: View) => void;
   onSelectEvent?: (event: SchedulerEvent) => void;
+  onEventDrop?: (args: EventInteractionArgs<SchedulerEvent>) => void;
   height?: string;
 };
 
@@ -44,11 +53,12 @@ export default function SchedulerCalendar({
   onNavigate,
   onView,
   onSelectEvent,
+  onEventDrop,
   height = "72vh",
 }: SchedulerCalendarProps) {
   return (
     <div className="portal-calendar">
-      <Calendar<SchedulerEvent>
+      <DnDCalendar
         localizer={localizer}
         events={events}
         date={date}
@@ -64,6 +74,9 @@ export default function SchedulerCalendar({
         popup
         eventPropGetter={eventPropGetter}
         onSelectEvent={onSelectEvent}
+        onEventDrop={onEventDrop}
+        draggableAccessor={(event: SchedulerEvent) => event.resource.type === "session"}
+        resizableAccessor={() => false}
         components={{ event: EventChip, header: HeaderCell }}
         style={{ height }}
       />
@@ -77,6 +90,9 @@ function eventPropGetter(event: SchedulerEvent) {
   const r = event.resource;
   if (r.type === "session") {
     return { style: { backgroundColor: r.color, borderColor: r.color } };
+  }
+  if (r.type === "buffer") {
+    return { className: "cal-buffer" };
   }
   if (r.type === "blocked") {
     return { className: "cal-blocked" };
@@ -94,9 +110,14 @@ function HeaderCell({ label }: { label: ReactNode }) {
 }
 
 // Custom event body. Sessions show title + time + location; windows/blocks
-// show their label + time.
+// show their label + time. Buffer events render nothing (styled via CSS only).
 function EventChip({ event }: { event: SchedulerEvent }) {
   const r = event.resource;
+
+  if (r.type === "buffer") {
+    return null;
+  }
+
   const time = `${dayjs(event.start).format("h:mm")}–${dayjs(event.end).format("h:mma")}`;
 
   if (r.type === "session") {

@@ -161,6 +161,7 @@ export default function AdminClientsPageDetailed() {
       .from("users")
       .update({ admin_codename: codename.trim() || null })
       .eq("id", clientId);
+    dispatch(fetchAllUsers());
     setSavingCodename(false);
     showToast("Codename saved.");
   };
@@ -564,7 +565,7 @@ export default function AdminClientsPageDetailed() {
       {isManageSessionsModal && <div>Manage sessions modal</div>}
       {isScheduleEditorOpen && (
         <CreateSessionModal
-          clientName={client.display_name || client.first_name}
+          clientName={displayedClientName}
           clientId={clientId!}
           onClose={() => setIsScheduleEditorOpen(false)}
         />

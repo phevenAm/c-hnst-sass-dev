@@ -138,6 +138,11 @@ $transition: 0.22s ease;
   align-items: center;
   flex-shrink: 0;
   color: inherit;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .label {
