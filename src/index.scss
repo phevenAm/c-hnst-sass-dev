@@ -148,6 +148,15 @@
   padding: 0;
 }
 
+html.no-motion,
+html.no-motion *,
+html.no-motion *::before,
+html.no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
 html {
   font-size: 16px;
   scroll-behavior: smooth;

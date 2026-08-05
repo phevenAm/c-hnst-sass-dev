@@ -1,5 +1,6 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
+import { useInterfacePrefs } from "@/context/InterfacePrefsContext";
 import Card from "../Card/Card";
 
 import styles from "./DonutChart.module.scss";
@@ -36,6 +37,7 @@ interface DonutChartProps {
 // hole, and a full legend below (shows every slice, including zero-value ones).
 // Purely presentational — the caller supplies the slice data and centre text.
 export default function DonutChart({ title, slices, centerValue, centerLabel }: DonutChartProps) {
+  const { reduceMotion } = useInterfacePrefs();
   const data = slices.filter((s) => s.value > 0);
   const total = slices.reduce((sum, s) => sum + s.value, 0);
 
@@ -61,6 +63,7 @@ export default function DonutChart({ title, slices, centerValue, centerLabel }: 
                     stroke="none"
                     startAngle={90}
                     endAngle={-270}
+                    isAnimationActive={!reduceMotion}
                   >
                     {data.map((s) => (
                       <Cell key={s.name} fill={s.color} />

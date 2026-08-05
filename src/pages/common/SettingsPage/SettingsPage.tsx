@@ -55,7 +55,7 @@ type BankField = (typeof BANK_FIELDS)[number]["key"];
 
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings } = useAuth();
-  const { hiddenSections, toggleSection } = useInterfacePrefs();
+  const { hiddenSections, toggleSection, reduceMotion, setReduceMotion } = useInterfacePrefs();
   const { showToast } = useToast();
   const [name, setName] = useState(userProfile?.display_name ?? "");
   const [imageUrl, setImageUrl] = useState(userProfile?.avatar_url ?? "");
@@ -475,6 +475,25 @@ const SettingsPage = () => {
             <section className={styles.businessSection}>
               <h2>Interface</h2>
               <p>Show or hide parts of the admin interface. Changes take effect immediately.</p>
+            </section>
+
+            <section className={styles.businessSection}>
+              <h3 className={styles.sectionSubtitle}>Accessibility</h3>
+              <label className={styles.toggleRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Stop animations</strong>
+                  <span>Disables all transitions and animations across the app</span>
+                </span>
+                <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    className={styles.toggleInput}
+                    checked={reduceMotion}
+                    onChange={(e) => setReduceMotion(e.target.checked)}
+                  />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
             </section>
 
             <section className={styles.businessSection}>

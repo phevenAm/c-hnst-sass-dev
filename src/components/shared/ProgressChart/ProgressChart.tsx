@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { useInterfacePrefs } from "@/context/InterfacePrefsContext";
 import type { Question, Response } from "../../../models/globalTypes";
 import Card from "../Card/Card";
 
@@ -141,6 +142,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 type LineKey = { id: string; name: string };
 
 function LineView({ data, lines }: { data: Record<string, string | number>[]; lines: LineKey[] }) {
+  const { reduceMotion } = useInterfacePrefs();
   return (
     // aria-hidden: title + legend above provide the accessible representation
     <div aria-hidden="true">
@@ -182,6 +184,7 @@ function LineView({ data, lines }: { data: Record<string, string | number>[]; li
                 strokeWidth: 0,
               }}
               activeDot={{ r: 5 }}
+              isAnimationActive={!reduceMotion}
             />
           ))}
         </LineChart>
