@@ -34,6 +34,40 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch the session being rescheduled to get the owning admin and duration.
+    // Sessions use `created_by` as the admin FK (not admin_id).
+    const { data: targetSession } = await supabase
+      .from("sessions")
+      .select("created_by, duration_minutes")
+      .eq("id", session_id)
+      .single();
+
+    if (targetSession) {
+      const duration = (targetSession.duration_minutes ?? 50) * 60_000;
+      const reqStart = new Date(requested_at).getTime();
+      const reqEnd = reqStart + duration;
+
+      const { data: existingSessions } = await supabase
+        .from("sessions")
+        .select("scheduled_at, duration_minutes")
+        .eq("created_by", targetSession.created_by)
+        .neq("id", session_id)
+        .neq("status", "cancelled");
+
+      const hasConflict = (existingSessions ?? []).some((s) => {
+        const sStart = new Date(s.scheduled_at).getTime();
+        const sEnd = sStart + (s.duration_minutes ?? 50) * 60_000;
+        return reqStart < sEnd && reqEnd > sStart;
+      });
+
+      if (hasConflict) {
+        return new Response(
+          JSON.stringify({ error: "That time slot is already booked. Please choose a different time." }),
+          { status: 409, headers: corsHeaders },
+        );
+      }
+    }
+
     const { error: insertError } = await supabase.from("reschedule_requests").insert({
       session_id,
       client_id: user.id,

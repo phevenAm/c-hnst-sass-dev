@@ -26,6 +26,7 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
   const counsellorName = useCounsellorName();
   const dispatch = useAppDispatch();
   const [requestedAt, setRequestedAt] = useState<Dayjs | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
@@ -36,13 +37,30 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
   const overrides = useAppSelector((s) => s.availability.overrides);
   const availabilityStatus = useAppSelector((s) => s.availability.status);
 
+  // Busy slots from all sessions in this practice (no client data, just times).
+  // We exclude the session being rescheduled so its own slot doesn't block itself.
+  const [busySlots, setBusySlots] = useState<{ slot_start: string; slot_end: string }[]>([]);
+
   useEffect(() => {
     if (availabilityStatus === "idle") dispatch(fetchAvailability());
   }, [availabilityStatus, dispatch]);
 
+  useEffect(() => {
+    supabase
+      .rpc("get_practice_busy_slots", { exclude_session_id: session.id })
+      .then(({ data }) => setBusySlots(data ?? []));
+  }, [session.id]);
+
   const durationMs = (session.duration_minutes ?? 50) * 60_000;
 
   const constraints = useMemo(() => {
+    const isConflictingBusy = (t: number): boolean =>
+      busySlots.some((slot) => {
+        const sStart = new Date(slot.slot_start).getTime();
+        const sEnd = new Date(slot.slot_end).getTime();
+        return t < sEnd && t + durationMs > sStart;
+      });
+
     // A day is bookable if it has at least one window long enough for the session.
     const shouldDisableDate = (date: Dayjs): boolean => {
       if (date.endOf("day").valueOf() < Date.now()) return true;
@@ -51,15 +69,15 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
       );
     };
 
-    // A specific start time is valid only if the whole session fits inside a
-    // window: start ≥ windowStart AND start + duration ≤ windowEnd. So a 50-min
-    // session in a 12–4 window can't start after 3:10.
+    // A specific start time is valid only if it fits in an availability window
+    // AND doesn't overlap with an already-booked session.
     const isStartBookable = (value: Dayjs): boolean => {
       const t = value.valueOf();
       if (t < Date.now()) return false;
-      return bookableWindowsForDate(value.toDate(), rules, overrides).some(
+      const fitsInWindow = bookableWindowsForDate(value.toDate(), rules, overrides).some(
         (w) => t >= w.start.getTime() && t + durationMs <= w.end.getTime(),
       );
+      return fitsInWindow && !isConflictingBusy(t);
     };
 
     // The hours column: enable an hour if ANY minute in it yields a valid start,
@@ -78,7 +96,7 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
       view === "hours" ? !hourHasBookableStart(value) : !isStartBookable(value);
 
     return { shouldDisableDate, shouldDisableTime, isStartBookable };
-  }, [rules, overrides, durationMs]);
+  }, [rules, overrides, durationMs, busySlots]);
 
   const handleSubmit = async () => {
     if (!requestedAt) return;
@@ -88,7 +106,7 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
     }
     setIsSending(true);
 
-    const { error } = await supabase.functions.invoke("request-reschedule", {
+    const { error, data } = await supabase.functions.invoke("request-reschedule", {
       body: {
         session_id: session.id,
         requested_at: requestedAt.toISOString(),
@@ -96,8 +114,9 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
       },
     });
 
-    if (error) {
-      showToast("Failed to send request. Please try again.", "danger");
+    if (error || data?.error) {
+      const msg = data?.error ?? "Failed to send request. Please try again.";
+      showToast(msg, "danger");
     } else {
       showToast(`Reschedule request sent to ${counsellorName}.`);
       onClose();
@@ -128,10 +147,20 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
       <DateTimePicker
         value={requestedAt}
         onChange={(val) => setRequestedAt(val)}
+        open={pickerOpen}
+        onOpen={() => setPickerOpen(true)}
+        onClose={() => setPickerOpen(false)}
+        format="D MMM YYYY h:mm a"
         disablePast
         shouldDisableDate={constraints.shouldDisableDate}
         shouldDisableTime={constraints.shouldDisableTime}
-        slotProps={{ textField: { fullWidth: true } }}
+        slotProps={{
+          field: { readOnly: true },
+          textField: {
+            fullWidth: true,
+            onClick: () => setPickerOpen(true),
+          },
+        }}
       />
       <textarea
         placeholder="Any context for the change? (optional)"

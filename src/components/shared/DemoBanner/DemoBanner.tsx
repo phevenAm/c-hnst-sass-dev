@@ -8,9 +8,7 @@ export default function DemoBanner() {
 
   return (
     <div className={styles.banner} role="status">
-      <p className={styles.icon} aria-hidden="true">
-        👀
-      </p>
+      <p className={styles.icon} aria-hidden="true"></p>
       <p>
         <strong>Demo mode</strong> — you're exploring a read-only preview. Changes are disabled.
       </p>

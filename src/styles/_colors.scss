@@ -16,7 +16,7 @@ $teal-400: #7c9a8e; // Bloom sage-400
 $teal-300: #9fbbb3; // Bloom sage-300
 $teal-200: #c3d4cf; // Bloom sage-200 / border
 $teal-100: #e7eded; // Bloom sage-100
-$teal-50:  #f3f6f5; // Bloom bg3
+$teal-50: #f3f6f5; // Bloom bg3
 
 $warm-900: #2d2520; // body text — contrast 14:1 on white
 $warm-800: #3d3530; // headings
@@ -42,9 +42,9 @@ $color-text-muted: $warm-600; // 4.5:1 on white — AA
 $color-text-disabled: $warm-400;
 $color-text-inverse: #ffffff;
 
-$color-bg-base: #f9f6f1;   // Bloom warm cream
-$color-bg-card: #ffffff;    // Bloom white card
-$color-bg-muted: $teal-50;  // Bloom bg3
+$color-bg-base: #f8f7f7; // Bloom warm cream
+$color-bg-card: #ffffff; // Bloom white card
+$color-bg-muted: $teal-50; // Bloom bg3
 $color-bg-overlay: rgba(#f9f6f1, 0.92);
 
 $color-border: $teal-200;
@@ -61,12 +61,12 @@ $color-warning-light: #ead582;
 // ── Dark mode overrides ────────────────────────────────────
 // Applied via .dark class on <html>
 // Neutral charcoal — sage accent on a clean dark base, no green bleed
-$dark-bg-base:  #111318;
-$dark-bg-card:  #1b1e27;
+$dark-bg-base: #111318;
+$dark-bg-card: #1b1e27;
 $dark-bg-muted: #21252f;
-$dark-text-primary:   #e8eaf0;
+$dark-text-primary: #e8eaf0;
 $dark-text-secondary: #9aa3b8;
-$dark-text-muted:     #8a93ad; // #6b7390 failed AA (4.2:1) on dark card — raised to 6.1:1
-$dark-border:   #2d3245;
-$dark-accent:       $teal-300;   // sage-300 — pops nicely on neutral dark
+$dark-text-muted: #8a93ad; // #6b7390 failed AA (4.2:1) on dark card — raised to 6.1:1
+$dark-border: #2d3245;
+$dark-accent: $teal-300; // sage-300 — pops nicely on neutral dark
 $dark-accent-light: #1c2535;

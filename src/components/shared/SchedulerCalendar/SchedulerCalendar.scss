@@ -52,6 +52,21 @@
     color: var(--text-primary) !important;
   }
 
+  // 10-minute post-session buffer — diagonal hatch, non-interactive.
+  .cal-buffer {
+    background: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--text-muted) 14%, transparent),
+      color-mix(in srgb, var(--text-muted) 14%, transparent) 2px,
+      transparent 2px,
+      transparent 8px
+    ) !important;
+    border: 1px dashed color-mix(in srgb, var(--text-muted) 35%, transparent) !important;
+    color: transparent !important;
+    pointer-events: none !important;
+    cursor: default !important;
+  }
+
   // Admin-only private events — a neutral slate with a dashed border, distinct
   // from the green windows, red blocks and solid client-coloured sessions.
   .cal-private {
@@ -161,11 +176,12 @@
   }
 }
 
-// ─── Dark mode: soften the grid ──────────────────────────────
-// RBC's full-strength --border lines read as a harsh bright grid against the
-// dark surface. Drop them to a low-contrast blend and remove the faint
-// intra-hour sub-line so the calendar looks calm rather than boxed-in.
+// ─── Dark mode: tinted grid lines + dark cell backgrounds ────────────────────
+// RBC ships hardcoded light colours (#ddd, #f7f7f7) for its grid lines.
+// We override every horizontal and vertical border to a very subtle teal tint
+// so the grid reads as intentional rather than a leftover white mesh.
 .dark .portal-calendar {
+  // Outer container borders (vertical day separators, header borders)
   .rbc-time-view,
   .rbc-time-header,
   .rbc-time-content,
@@ -176,16 +192,37 @@
   .rbc-time-column,
   .rbc-day-bg + .rbc-day-bg,
   .rbc-time-content > * + * > * {
-    border-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent-dark) 18%, transparent) !important;
   }
 
   .rbc-header {
-    border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
-    border-left-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
+    border-bottom-color: color-mix(in srgb, var(--accent-dark) 25%, transparent) !important;
+    border-left-color: color-mix(in srgb, var(--accent-dark) 18%, transparent) !important;
   }
 
-  // The half-hour divider inside each group — hide it for a cleaner grid.
+  // THE FIX: RBC sets border-top: 1px solid #f7f7f7 on every .rbc-time-slot —
+  // these are the ugly white horizontal lines. Override all of them.
+  .rbc-time-slot {
+    border-top-color: color-mix(in srgb, var(--accent-dark) 18%, transparent) !important;
+  }
+
+  // Hide the half-hour sub-line for a cleaner grid — only show hour marks.
   .rbc-timeslot-group .rbc-time-slot + .rbc-time-slot {
     border-top-color: transparent !important;
+  }
+
+  // Kill RBC's white cell backgrounds.
+  .rbc-time-content,
+  .rbc-time-gutter,
+  .rbc-day-slot,
+  .rbc-day-slot .rbc-time-slot,
+  .rbc-time-header-gutter {
+    background-color: var(--bg-card) !important;
+  }
+
+  .rbc-month-row,
+  .rbc-date-cell,
+  .rbc-month-header {
+    background-color: var(--bg-card) !important;
   }
 }

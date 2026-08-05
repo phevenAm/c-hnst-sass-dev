@@ -26,19 +26,23 @@ export default function ImageBlurBlock({ imageUrl, photographer, sourceLabel, cr
   }, [imageUrl]);
 
   return (
-    <div className={`${styles.bgPanel} ${loaded ? styles.loaded : styles.loading}`}>
-      <div
-        className={styles.bgImage}
-        aria-hidden="true"
-        style={{ backgroundImage: `linear-gradient(rgba(1, 15, 15, 0.24), rgba(1, 15, 15, 0.24)), url('${imageUrl}')` }}
-      />
-      <p className={styles.photoCredit}>
-        Photo by{" "}
-        <a href={creditUrl} target="_blank" rel="noreferrer noopener">
-          {photographer}
-        </a>{" "}
-        on {sourceLabel}
-      </p>
+    <div className={styles.wrapper}>
+      <div className={`${styles.bgPanel} ${loaded ? styles.loaded : styles.loading}`}>
+        <div
+          className={styles.bgImage}
+          aria-hidden="true"
+          style={{
+            backgroundImage: `linear-gradient(rgba(1, 15, 15, 0.24), rgba(1, 15, 15, 0.24)), url('${imageUrl}')`,
+          }}
+        />
+        <p className={styles.photoCredit}>
+          Photo by{" "}
+          <a href={creditUrl} target="_blank" rel="noreferrer noopener">
+            {photographer}
+          </a>{" "}
+          on {sourceLabel}
+        </p>
+      </div>
     </div>
   );
 }

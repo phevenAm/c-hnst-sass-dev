@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 
+import { clientDisplayName } from "@/Helpers/Helpers";
 import type {
   AdminPrivateEvent,
   AvailabilityOverride,
@@ -20,6 +21,7 @@ import type {
 // event renderer and click handler know what they're looking at.
 export type SchedulerResource =
   | { type: "session"; session: Session; color: string; clientName: string }
+  | { type: "buffer"; sessionId: string }
   | { type: "window"; label: string; source: "rule" | "override" }
   | { type: "blocked"; label: string }
   | { type: "private"; event: AdminPrivateEvent };
@@ -68,29 +70,40 @@ function at(day: dayjs.Dayjs, time: string): Date {
   return day.hour(hour).minute(minute).second(0).millisecond(0).toDate();
 }
 
-function clientNameFor(session: Session, users: UserProfile[]): string {
+function clientNameFor(session: Session, users: UserProfile[], useCodenames: boolean): string {
   const u = users.find((x) => x.id === session.client_id);
   if (!u) return "Unknown client";
-  return `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "Client";
+  return clientDisplayName(u, useCodenames);
 }
 
 // Map real sessions → calendar events. Cancelled sessions are dropped.
-export function sessionEvents(sessions: Session[], users: UserProfile[]): SchedulerEvent[] {
+// Each session gets a 10-minute buffer event immediately after it.
+export function sessionEvents(sessions: Session[], users: UserProfile[], useCodenames = false): SchedulerEvent[] {
   return sessions
     .filter((s) => s.status !== "cancelled")
-    .map((s) => {
+    .flatMap((s) => {
       const start = new Date(s.scheduled_at);
       const end = dayjs(start)
         .add(s.duration_minutes ?? 50, "minute")
         .toDate();
-      const clientName = clientNameFor(s, users);
-      return {
-        id: `session-${s.id}`,
-        title: clientName,
-        start,
-        end,
-        resource: { type: "session", session: s, color: colourForClient(s.client_id), clientName },
-      };
+      const bufferEnd = dayjs(end).add(10, "minute").toDate();
+      const clientName = clientNameFor(s, users, useCodenames);
+      return [
+        {
+          id: `session-${s.id}`,
+          title: clientName,
+          start,
+          end,
+          resource: { type: "session" as const, session: s, color: colourForClient(s.client_id), clientName },
+        },
+        {
+          id: `buffer-${s.id}`,
+          title: "",
+          start: end,
+          end: bufferEnd,
+          resource: { type: "buffer" as const, sessionId: s.id },
+        },
+      ];
     });
 }
 
@@ -99,18 +112,28 @@ export function sessionEvents(sessions: Session[], users: UserProfile[]): Schedu
 export function clientSessionEvents(sessions: Session[]): SchedulerEvent[] {
   return sessions
     .filter((s) => s.status !== "cancelled")
-    .map((s) => {
+    .flatMap((s) => {
       const start = new Date(s.scheduled_at);
       const end = dayjs(start)
         .add(s.duration_minutes ?? 50, "minute")
         .toDate();
-      return {
-        id: `session-${s.id}`,
-        title: "Session",
-        start,
-        end,
-        resource: { type: "session", session: s, color: "#3a5568", clientName: "Session" },
-      };
+      const bufferEnd = dayjs(end).add(10, "minute").toDate();
+      return [
+        {
+          id: `session-${s.id}`,
+          title: "Session",
+          start,
+          end,
+          resource: { type: "session" as const, session: s, color: "#3a5568", clientName: "Session" },
+        },
+        {
+          id: `buffer-${s.id}`,
+          title: "",
+          start: end,
+          end: bufferEnd,
+          resource: { type: "buffer" as const, sessionId: s.id },
+        },
+      ];
     });
 }
 

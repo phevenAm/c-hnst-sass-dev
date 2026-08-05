@@ -4,13 +4,12 @@
   justify-content: center;
   gap: 8px;
   padding: 8px 20px;
-  background: var(--bg-card);
-  background-color: #613737;
-  color: white !important;
+  background: var(--accent);
+  background-color: var(--accent);
+  color: var(--text-inverse) !important;
   border-bottom: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   font-size: 0.8rem;
-  color: var(--text-secondary);
 }
 
 .icon {

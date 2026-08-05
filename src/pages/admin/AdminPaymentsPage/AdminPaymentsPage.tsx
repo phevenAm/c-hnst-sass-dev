@@ -6,7 +6,7 @@ import { SessionCard } from "@components/shared/SessionCard/SessionCard";
 import type { RootState } from "@/store";
 
 import { useAuth } from "@/context/AuthContext";
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
 import { revenueByMonth } from "@/pages/admin/AdminDashboard/dashboardUtils";
 import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
@@ -16,7 +16,8 @@ import { fetchAllUsers, selectClientUsers } from "@/store/slices/userDirectorySl
 import styles from "./AdminPaymentsPage.module.scss";
 
 const AdminPaymentsPage = () => {
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const [selectedClientId, setSelectedClientId] = useState("all");
 
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
@@ -97,7 +98,7 @@ const AdminPaymentsPage = () => {
               <option value="all">All clients</option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.display_name || `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Unnamed client"}
+                  {clientDisplayName(c, useCodenames)}
                 </option>
               ))}
             </select>

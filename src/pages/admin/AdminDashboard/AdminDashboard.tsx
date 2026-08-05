@@ -18,7 +18,7 @@ import { revenueByMonth, sessionsByWeek } from "./dashboardUtils";
 import styles from "./AdminDashboard.module.scss";
 
 export default function AdminDashboard() {
-  const { userProfile } = useAuth();
+  const { userProfile, practiceSettings } = useAuth();
   const allClients = useAppSelector(selectClientUsers);
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
 
@@ -86,7 +86,12 @@ export default function AdminDashboard() {
             </Link>
           }
         >
-          <UpcomingSessions sessions={allSessions} clients={allClients} limit={6} />
+          <UpcomingSessions
+            sessions={allSessions}
+            clients={allClients}
+            useCodenames={practiceSettings?.use_client_codenames ?? false}
+            limit={6}
+          />
         </CollapsibleSection>
 
         <CollapsibleSection title="Practice trends" storageKey="dash:trends">

@@ -329,20 +329,37 @@
 
 // ── Pending reschedule requests ───────────────────────────────
 .pendingRequests {
-  background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: $sp-4 $sp-6;
-  margin-bottom: $sp-4;
+  padding: $sp-5 $sp-6;
+  margin-top: $sp-5;
+  margin-bottom: 0;
 }
 
 .pendingRequestsTitle {
-  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: 0.82rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--accent);
-  margin: 0 0 $sp-3;
+  color: var(--text-primary);
+  margin: 0 0 $sp-4;
+}
+
+.pendingRequestsCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 $sp-2;
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-radius: var(--r-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .pendingRequest {

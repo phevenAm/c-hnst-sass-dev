@@ -2,12 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
+import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
+import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Footer from "../components/shared/Footer/Footer";
 import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
+import { useVersionCheck } from "../Hooks/useVersionCheck";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
@@ -71,6 +74,89 @@ function AppLayout() {
       <Footer />
     </>
   );
+}
+
+function UpdateBanner() {
+  const isOutdated = useVersionCheck();
+  if (!isOutdated) return null;
+  return (
+    <div
+      style={{
+        background: "var(--accent-light)",
+        borderBottom: "1px solid var(--accent)",
+        padding: "8px 20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        fontSize: "0.85rem",
+        color: "var(--text-primary)",
+      }}
+    >
+      <span>A new version of the app is available.</span>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        style={{
+          background: "var(--accent)",
+          color: "var(--text-inverse)",
+          border: "none",
+          borderRadius: "var(--r-full)",
+          padding: "4px 14px",
+          cursor: "pointer",
+          fontFamily: "var(--font-sans)",
+          fontSize: "0.8rem",
+        }}
+      >
+        Reload now
+      </button>
+    </div>
+  );
+}
+
+function AdminLayout() {
+  const location = useLocation();
+  const topRef = useRef<HTMLDivElement>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("adminSidebarCollapsed") === "true",
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: location is the navigation trigger; not referenced in callback body by design
+  useEffect(() => {
+    topRef.current?.focus({ preventScroll: true });
+  }, [location]);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem("adminSidebarCollapsed", String(next));
+      return next;
+    });
+  };
+
+  return (
+    <>
+      <div ref={topRef} tabIndex={-1} aria-hidden="true" />
+      <div className="adminShell">
+        <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
+          <AdminTopbar />
+          <DemoBanner />
+          <UpdateBanner />
+          <main id="main-content" tabIndex={-1}>
+            <div className="page-content">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RoleAwareLayout() {
+  const { isAdmin } = useAuth();
+  if (isAdmin) return <AdminLayout />;
+  return <AppLayout />;
 }
 
 function SuperAdminGate({ children }: { children: React.ReactNode }) {
@@ -145,7 +231,7 @@ export default function AppRoutes() {
           <Route
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <RoleAwareLayout />
               </ProtectedRoute>
             }
           >
@@ -170,7 +256,7 @@ export default function AppRoutes() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <SubscriptionGate>
-                  <AppLayout />
+                  <AdminLayout />
                 </SubscriptionGate>
               </ProtectedRoute>
             }

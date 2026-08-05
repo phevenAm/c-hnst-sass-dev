@@ -32,10 +32,11 @@
   --bg-card: #{$color-bg-card};
   --bg-muted: #{$color-bg-muted};
   --bg-overlay: #{$color-bg-overlay};
+  --bg-grey: #dae0de;
   --bg-card-rgb: 255, 255, 255;
   --border-rgb: 195, 212, 207;
   --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-heavy: rgba(245, 245, 245, 0.8);
+  --glass-bg-heavy: rgba(245, 245, 245, 0.92);
 
   // Borders
   --border: #{$color-border};
@@ -113,10 +114,11 @@
   --bg-base: #{$dark-bg-base};
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
+  --bg-grey: #202837;
   --bg-overlay: rgba(17, 19, 24, 0.92);
   --bg-card-rgb: 27, 30, 39;
   --border-rgb: 45, 50, 69;
-  --glass-bg: rgba(27, 30, 39, 0.72);
+  --glass-bg: rgba(27, 30, 39, 0.891);
   --glass-bg-heavy: rgba(27, 30, 39, 0.95);
 
   // Borders
@@ -227,6 +229,31 @@ input,
 select,
 textarea {
   font-size: max(16px, 1em);
+  background: var(--bg-muted) !important;
+}
+
+// ── Admin shell layout ─────────────────────────────────────
+$admin-sidebar-w: 220px;
+$admin-sidebar-collapsed-w: 60px;
+
+.adminShell {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.adminBody {
+  flex: 1;
+  margin-left: $admin-sidebar-w;
+  transition: margin-left 0.22s ease;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &.adminBodyCollapsed {
+    margin-left: $admin-sidebar-collapsed-w;
+  }
 }
 
 // ── App shell layout ───────────────────────────────────────
@@ -272,4 +299,44 @@ textarea {
   text-decoration: none !important;
   height: 100%;
   width: 100%;
+}
+
+// ── MUI x-date-pickers — structural overrides ──────────────
+// Colours come from the MUI ThemeProvider in App.tsx.
+// This block only handles things the theme can't express:
+// the serif calendar header, tab capitalisation, and a border
+// around the popup card so it sits cleanly on the page background.
+.MuiPickersPopper-root {
+  .MuiPaper-root {
+    border: 1px solid var(--border) !important;
+    overflow: hidden;
+  }
+
+  .MuiPickersCalendarHeader-label {
+    font-family: var(--font-serif) !important;
+    font-weight: 500 !important;
+  }
+
+  .MuiDayCalendar-weekDayLabel {
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    font-size: 0.7rem !important;
+  }
+
+  .MuiPickersDay-root {
+    border-radius: var(--r-md) !important;
+  }
+
+  .MuiMultiSectionDigitalClockSection-item {
+    border-radius: var(--r-sm) !important;
+  }
+
+  .MuiTab-root {
+    text-transform: none !important;
+    font-size: 0.82rem !important;
+  }
+
+  .MuiButton-root {
+    text-transform: none !important;
+  }
 }

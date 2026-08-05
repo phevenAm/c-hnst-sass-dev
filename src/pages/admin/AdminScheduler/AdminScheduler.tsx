@@ -3,9 +3,11 @@ import type { View } from "react-big-calendar";
 import { Views } from "react-big-calendar";
 import { useSearchParams } from "react-router-dom";
 
+import dayjs from "dayjs";
+
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
 import { Button, Card, CollapsibleSection } from "@components/shared/index";
-import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
+import SchedulerCalendar, { type EventInteractionArgs } from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import {
   availabilityEvents,
   privateEventEvents,
@@ -16,14 +18,17 @@ import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModa
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
 import type { RootState } from "@/store";
 
+import Modal from "@/components/shared/Modal/Modal";
 import { useAuth } from "@/context/AuthContext";
-import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { useToast } from "@/context/ToastContext";
+import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
+import { supabase } from "@/lib/supabase.js";
 import type { AdminPrivateEvent, Session, UserProfile } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchPrivateEvents } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
-import { fetchAllSessions } from "@/store/slices/sessionsSlice";
+import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import AvailabilityEditor from "./AvailabilityEditor";
 import PrivateEventModal from "./PrivateEventModal";
@@ -86,12 +91,20 @@ const periodRange = (period: SchedulerPeriod): { start: Date; end: Date } | null
 
 const AdminScheduler = () => {
   const dispatch = useAppDispatch();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
+  const { showToast } = useToast();
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>(Views.WORK_WEEK);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [pendingDrop, setPendingDrop] = useState<{
+    session: Session;
+    clientName: string;
+    start: Date;
+    prevDate: string;
+  } | null>(null);
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   // Private-event modal: closed when false; `editingPrivate` is null for a new
   // event or the row being edited.
@@ -110,6 +123,21 @@ const AdminScheduler = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // RBC's DnD addon triggers a DOM reflow on dragstart that causes the browser
+  // to scroll to the top. Save and restore scroll position around every drag.
+  useEffect(() => {
+    const onDragStart = () => {
+      const y = window.scrollY;
+      const onDragEnd = () => {
+        window.scrollTo({ top: y, behavior: "instant" });
+        window.removeEventListener("dragend", onDragEnd);
+      };
+      window.addEventListener("dragend", onDragEnd);
+    };
+    window.addEventListener("dragstart", onDragStart, { capture: true });
+    return () => window.removeEventListener("dragstart", onDragStart, { capture: true });
+  }, []);
 
   // ----- data
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
@@ -143,7 +171,7 @@ const AdminScheduler = () => {
     () => [
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
-      ...sessionEvents(filteredSessions, users),
+      ...sessionEvents(filteredSessions, users, useCodenames),
     ],
     [date, rules, overrides, privateEvents, filteredSessions, users],
   );
@@ -253,6 +281,7 @@ const AdminScheduler = () => {
 
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
+    if (r.type === "buffer") return;
     if (r.type === "session") {
       setEditingSession(r.session);
     } else if (r.type === "private") {
@@ -264,11 +293,54 @@ const AdminScheduler = () => {
     }
   };
 
+  const handleEventDrop = ({ event, start }: EventInteractionArgs<SchedulerEvent>) => {
+    const r = event.resource;
+    if (r.type !== "session") return;
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
+
+    const proposedStart = new Date(start as Date);
+    const { session } = r;
+    const proposedEnd = dayjs(proposedStart)
+      .add(session.duration_minutes ?? 50, "minute")
+      .toDate();
+
+    const hasOverlap = sessions.some((s) => {
+      if (s.id === session.id || s.status === "cancelled") return false;
+      const sStart = new Date(s.scheduled_at);
+      const sEnd = dayjs(sStart)
+        .add(s.duration_minutes ?? 50, "minute")
+        .toDate();
+      return proposedStart < sEnd && proposedEnd > sStart;
+    });
+
+    if (hasOverlap) {
+      showToast("That slot overlaps with another session — pick a different time.", "danger");
+      return;
+    }
+
+    setPendingDrop({ session, clientName: r.clientName, start: proposedStart, prevDate: session.scheduled_at });
+  };
+
+  const handleConfirmDrop = () => {
+    if (!pendingDrop) return;
+    const { session, start, prevDate } = pendingDrop;
+    dispatch(updateSession({ id: session.id, scheduled_at: start.toISOString() })).then(() => {
+      supabase.functions.invoke("notify-session-rescheduled", {
+        body: { session_id: session.id, previous_date: prevDate },
+      });
+      showToast("Session rescheduled.", "success");
+    });
+    setPendingDrop(null);
+  };
+
   const editingClientName = useMemo(() => {
     if (!editingSession) return "";
     const u = users.find((x) => x.id === editingSession.client_id);
-    return u ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : "";
-  }, [editingSession, users]);
+    return u ? clientDisplayName(u, useCodenames) : "";
+  }, [editingSession, users, useCodenames]);
 
   const guard = isPageStatusLoading(sessionsStatus);
   if (guard) return guard;
@@ -308,7 +380,7 @@ const AdminScheduler = () => {
                 <option value="all">All clients</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.display_name || `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Unnamed client"}
+                    {clientDisplayName(c, useCodenames)}
                   </option>
                 ))}
               </select>
@@ -390,6 +462,7 @@ const AdminScheduler = () => {
               onNavigate={setDate}
               onView={setView}
               onSelectEvent={handleSelectEvent}
+              onEventDrop={handleEventDrop}
             />
           </Card>
         </CollapsibleSection>
@@ -414,6 +487,31 @@ const AdminScheduler = () => {
           )}
         </CollapsibleSection>
       </div>
+
+      {pendingDrop && (
+        <Modal
+          title="Confirm reschedule"
+          size="sm"
+          onClose={() => setPendingDrop(null)}
+          actions={
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setPendingDrop(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleConfirmDrop}>
+                Confirm
+              </Button>
+            </>
+          }
+        >
+          <p className={styles.confirmText}>
+            Move <strong>{pendingDrop.clientName}</strong>'s session from{" "}
+            <strong>{dayjs(pendingDrop.prevDate).format("D MMM [at] h:mma")}</strong> to{" "}
+            <strong>{dayjs(pendingDrop.start).format("D MMM [at] h:mma")}</strong>?
+          </p>
+          <p className={styles.confirmNote}>The client will be notified of the change.</p>
+        </Modal>
+      )}
 
       {editingSession && (
         <CreateSessionModal

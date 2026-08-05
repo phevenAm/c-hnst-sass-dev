@@ -285,10 +285,6 @@
   &:focus-visible {
     .settingsIcon {
       background-color: var(--accent-dark);
-
-      svg {
-        fill: var(--accent-light);
-      }
     }
   }
 
@@ -302,10 +298,11 @@
     background-color: var(--accent);
     padding: 2px;
     border-radius: 200%;
+    color: var(--accent-light);
 
     svg {
-      font-size: 0.95rem;
-      fill: var(--accent-light) !important;
+      width: 14px;
+      height: 14px;
     }
   }
 }
