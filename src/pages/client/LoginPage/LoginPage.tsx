@@ -28,6 +28,95 @@ const LogoIcon = () => (
   </svg>
 );
 
+function ResetPasswordForm() {
+  const navigate = useNavigate();
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
+    setSubmitting(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setDone(true);
+  };
+
+  if (done) {
+    return (
+      <div className={styles.card}>
+        <h2 className={styles.heading}>Password updated</h2>
+        <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
+          Your password has been changed. If you use note encryption you may need your recovery code to restore access
+          to existing notes.
+        </p>
+        <button type="button" className={styles.submitBtn} onClick={() => navigate("/admin")}>
+          Go to dashboard
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.card}>
+      <h2 className={styles.heading}>Set new password</h2>
+      {error && (
+        <div role="alert" className={styles.error}>
+          {error}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} noValidate>
+        <div className={styles.field}>
+          <label htmlFor="new-pw" className={styles.label}>
+            New password
+          </label>
+          <input
+            id="new-pw"
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="••••••••"
+            className={styles.input}
+          />
+        </div>
+        <div className={`${styles.field} ${styles.fieldLast}`}>
+          <label htmlFor="confirm-pw" className={styles.label}>
+            Confirm password
+          </label>
+          <input
+            id="confirm-pw"
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="••••••••"
+            className={styles.input}
+          />
+        </div>
+        <button type="submit" className={styles.submitBtn} disabled={submitting || !newPassword || !confirm}>
+          {submitting ? "Saving…" : "Set password"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -106,12 +195,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  // Initialise synchronously so resetMode is true before the navigation guard runs.
+  // Implicit-flow recovery: Supabase parses the URL hash before React mounts and fires
+  // PASSWORD_RECOVERY into the void — the hash check catches it. The onAuthStateChange
+  // listener below catches PKCE-flow recovery (async exchange, fires after mount).
+  const [resetMode, setResetMode] = useState(() => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    return hashParams.get("type") === "recovery";
+  });
 
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setResetMode(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && isAuthenticated && !resetMode) {
       navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
     }
-  }, [loading, isAuthenticated, isAdmin, navigate]);
+  }, [loading, isAuthenticated, isAdmin, navigate, resetMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,7 +264,9 @@ export default function LoginPage() {
           <p className={styles.logoSub}>A safe space for your journey</p>
         </div>
 
-        <div className={styles.card}>
+        {resetMode ? <ResetPasswordForm /> : null}
+
+        <div className={styles.card} style={resetMode ? { display: "none" } : undefined}>
           <h2 className={styles.heading}>Welcome back</h2>
 
           {error && (

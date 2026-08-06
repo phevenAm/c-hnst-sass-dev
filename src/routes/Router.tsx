@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
@@ -10,6 +10,7 @@ import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
+import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { useVersionCheck } from "../Hooks/useVersionCheck";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
@@ -53,13 +54,7 @@ function RootRedirect() {
 }
 
 function AppLayout() {
-  const location = useLocation();
-  const topRef = useRef<HTMLDivElement>(null);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: location is the navigation trigger; not referenced in callback body by design
-  useEffect(() => {
-    topRef.current?.focus({ preventScroll: true });
-  }, [location]);
+  const topRef = useFocusOnNavigate();
 
   return (
     <>
@@ -114,16 +109,10 @@ function UpdateBanner() {
 }
 
 function AdminLayout() {
-  const location = useLocation();
-  const topRef = useRef<HTMLDivElement>(null);
+  const topRef = useFocusOnNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: location is the navigation trigger; not referenced in callback body by design
-  useEffect(() => {
-    topRef.current?.focus({ preventScroll: true });
-  }, [location]);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((c) => {
@@ -247,7 +236,7 @@ export default function AppRoutes() {
             }
           >
             <Route path="/dashboard" element={<ClientDashboard />} />
-            <Route path="/check-in" element={<CheckInPage />} />
+            <Route path="/forms" element={<CheckInPage />} />
             <Route path="/my-sessions" element={<ClientSchedule />} />
             <Route path="/resources" element={<ResourcesPage />} />
           </Route>
@@ -264,7 +253,7 @@ export default function AppRoutes() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/clients" element={<AdminClientsPage />} />
             <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
-            <Route path="/admin/questionnaires" element={<AdminQuestionnairesPage />} />
+            <Route path="/admin/forms" element={<AdminQuestionnairesPage />} />
             <Route path="/admin/resources" element={<AdminResourcesPage />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
             <Route path="/admin/scheduler" element={<AdminScheduler />} />

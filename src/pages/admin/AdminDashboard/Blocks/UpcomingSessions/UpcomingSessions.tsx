@@ -38,8 +38,12 @@ export default function UpcomingSessions({
 }: UpcomingSessionsProps) {
   const upcoming = useMemo(() => {
     const now = new Date();
+    const cutoff = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     return sessions
-      .filter((s) => s.status !== "cancelled" && new Date(s.scheduled_at) > now)
+      .filter((s) => {
+        const d = new Date(s.scheduled_at);
+        return s.status !== "cancelled" && d > now && d <= cutoff;
+      })
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
       .slice(0, limit);
   }, [sessions, limit]);

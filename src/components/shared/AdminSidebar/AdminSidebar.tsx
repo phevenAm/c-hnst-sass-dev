@@ -12,7 +12,7 @@ import {
   ChatIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ClipboardIcon,
+  FormsIcon,
   HistoryIcon,
   HomeIcon,
   LogoIcon,
@@ -24,10 +24,10 @@ import styles from "./AdminSidebar.module.scss";
 
 const NAV = [
   { to: "/admin", label: "Dashboard", Icon: HomeIcon, exact: true },
-  { to: "/admin/clients", label: "Clients", Icon: UsersIcon, exact: false },
   { to: "/admin/scheduler", label: "Schedule", Icon: CalendarIcon, exact: false },
+  { to: "/admin/clients", label: "Clients", Icon: UsersIcon, exact: false },
   { to: "/admin/payments", label: "Payments", Icon: SidebarCardIcon, exact: false },
-  { to: "/admin/questionnaires", label: "Check-ins", Icon: ClipboardIcon, exact: false },
+  { to: "/admin/forms", label: "Forms", Icon: FormsIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
   { to: "/admin/cpd", label: "CPD Log", Icon: ArticleIcon, exact: false },
 ];

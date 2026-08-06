@@ -33,6 +33,16 @@ import { supabase } from "@/lib/supabase.js";
 
 import styles from "./AdminQuestionnairesPage.module.scss";
 
+type FormTab = "outcome_measure" | "feedback" | "onboarding";
+
+const TABS: { id: FormTab; label: string }[] = [
+  { id: "outcome_measure", label: "Outcome Measures" },
+  { id: "feedback", label: "Feedback Forms" },
+  { id: "onboarding", label: "Onboarding" },
+];
+
+type OptionDraft = { label: string; value: number };
+
 type QuestionDraft = {
   id: string;
   text: string;
@@ -44,27 +54,47 @@ type QuestionDraft = {
   orderIndex: number;
   is_required: boolean;
   tag_id: string | null;
+  options: OptionDraft[];
 };
 
 type QuestionnaireFormData = {
   title: string;
   description: string;
-  frequency: QuestionnaireFrequency;
+  frequency: QuestionnaireFrequency | null;
+  form_type: string;
   questions: QuestionDraft[];
 };
 
-const QUESTION_TYPES = ["scale", "text"];
+const QUESTION_TYPES = ["scale", "text", "multiple_choice"];
+
+function makeBlankQuestion(index: number): QuestionDraft {
+  return {
+    id: `nq-${Date.now()}-${index}`,
+    text: "",
+    type: "scale",
+    min: 1,
+    max: 10,
+    minLabel: "",
+    maxLabel: "",
+    orderIndex: index,
+    is_required: true,
+    tag_id: null,
+    options: [],
+  };
+}
 
 // ─── Question builder form (shared by create + edit) ───────
 
 function QuestionnaireBuilder({
   initial,
   tags,
+  defaultFormType,
   onSave,
   onClose,
 }: {
   initial?: Questionnaire | null;
   tags: Tag[];
+  defaultFormType?: FormTab;
   onSave: (data: QuestionnaireFormData) => void;
   onClose: () => void;
 }) {
@@ -73,8 +103,9 @@ function QuestionnaireBuilder({
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDesc] = useState(initial?.description ?? "");
-  const [frequency, setFrequency] = useState(initial?.frequency ?? "weekly");
-  const [questions, setQuestions] = useState(
+  const [formType, setFormType] = useState<string>((initial as any)?.form_type ?? defaultFormType ?? "outcome_measure");
+  const [frequency, setFrequency] = useState<QuestionnaireFrequency | null>(initial?.frequency ?? "weekly");
+  const [questions, setQuestions] = useState<QuestionDraft[]>(
     initial?.questions?.map((q) => ({
       id: q.id,
       text: q.text,
@@ -86,46 +117,43 @@ function QuestionnaireBuilder({
       orderIndex: q.order_index,
       is_required: q.is_required,
       tag_id: q.tag_id ?? null,
-    })) ?? [
-      {
-        id: `nq-${Date.now()}`,
-        text: "",
-        type: "scale",
-        min: 1,
-        max: 10,
-        minLabel: "",
-        maxLabel: "",
-        orderIndex: 1,
-        is_required: true,
-        tag_id: null,
-      },
-    ],
+      options: (q as any).options ?? [],
+    })) ?? [makeBlankQuestion(1)],
   );
 
   const [creatingTagFor, setCreatingTagFor] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
 
-  const addQuestion = () =>
-    setQuestions((qs) => [
-      ...qs,
-      {
-        id: `nq-${Date.now()}`,
-        text: "",
-        type: "scale",
-        min: 1,
-        max: 10,
-        minLabel: "",
-        maxLabel: "",
-        orderIndex: qs.length + 1,
-        is_required: true,
-        tag_id: null,
-      },
-    ]);
+  const addQuestion = () => setQuestions((qs) => [...qs, makeBlankQuestion(qs.length + 1)]);
 
   const removeQuestion = (id: string) => setQuestions((qs) => qs.filter((q) => q.id !== id));
 
-  const updateQuestion = (id: string, field: string, value: string | null) =>
+  const updateQuestion = (id: string, field: string, value: string | number | null) =>
     setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, [field]: value } : q)));
+
+  const addOption = (questionId: string) =>
+    setQuestions((qs) =>
+      qs.map((q) =>
+        q.id === questionId ? { ...q, options: [...q.options, { label: "", value: q.options.length }] } : q,
+      ),
+    );
+
+  const updateOption = (questionId: string, idx: number, field: "label" | "value", val: string | number) =>
+    setQuestions((qs) =>
+      qs.map((q) =>
+        q.id === questionId
+          ? {
+              ...q,
+              options: q.options.map((o, i) => (i === idx ? { ...o, [field]: val } : o)),
+            }
+          : q,
+      ),
+    );
+
+  const removeOption = (questionId: string, idx: number) =>
+    setQuestions((qs) =>
+      qs.map((q) => (q.id === questionId ? { ...q, options: q.options.filter((_, i) => i !== idx) } : q)),
+    );
 
   const { isDemo } = useAuth();
   const { showToast } = useToast();
@@ -154,15 +182,15 @@ function QuestionnaireBuilder({
       alert("Please fill in a title and all question texts");
       return;
     }
-    onSave({ title, description, frequency, questions });
+    onSave({ title, description, frequency: frequency ?? null, form_type: formType, questions });
     onClose();
   };
 
   const modalObj = {
-    title: isEdit ? "Edit check-in" : "New check-in",
+    title: isEdit ? "Edit form" : "New form",
     actions: (
       <div className={styles.modalActions}>
-        <Button onClick={handleSave}>{isEdit ? "Save changes" : "Save check-in"}</Button>
+        <Button onClick={handleSave}>{isEdit ? "Save changes" : "Save form"}</Button>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
@@ -181,7 +209,7 @@ function QuestionnaireBuilder({
             id="q-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Weekly Wellbeing Check-in"
+            placeholder="e.g. Weekly Wellbeing Check"
           />
         </div>
         <div className={`${styles.formField} ${styles.fullCol}`}>
@@ -194,13 +222,28 @@ function QuestionnaireBuilder({
           />
         </div>
         <div className={styles.formField}>
-          <label htmlFor="q-freq">Frequency</label>
-          <select id="q-freq" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="fortnightly">Fortnightly</option>
+          <label htmlFor="q-type">Form type</label>
+          <select id="q-type" value={formType} onChange={(e) => setFormType(e.target.value)} disabled={isEdit}>
+            <option value="outcome_measure">Outcome Measure</option>
+            <option value="feedback">Feedback Form</option>
+            <option value="onboarding">Onboarding</option>
           </select>
         </div>
+        {formType === "outcome_measure" && (
+          <div className={styles.formField}>
+            <label htmlFor="q-freq">Frequency</label>
+            <select
+              id="q-freq"
+              value={frequency ?? ""}
+              onChange={(e) => setFrequency((e.target.value || null) as QuestionnaireFrequency | null)}
+            >
+              <option value="">One-time (no repeat)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="fortnightly">Fortnightly</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div className={styles.questionsSection}>
@@ -239,7 +282,7 @@ function QuestionnaireBuilder({
               >
                 {QUESTION_TYPES.map((t) => (
                   <option key={t} value={t}>
-                    {t === "scale" ? "Scale (1–10)" : "Free text"}
+                    {t === "scale" ? "Scale (numeric)" : t === "text" ? "Free text" : "Multiple choice"}
                   </option>
                 ))}
               </select>
@@ -299,6 +342,42 @@ function QuestionnaireBuilder({
                 </>
               )}
             </div>
+            {q.type === "multiple_choice" && (
+              <div className={styles.optionsEditor}>
+                <div className={styles.optionsEditorHeader}>
+                  <span>Options</span>
+                  <button type="button" className={styles.addOptionBtn} onClick={() => addOption(q.id)}>
+                    + Add option
+                  </button>
+                </div>
+                {q.options.length === 0 && <p className={styles.optionsHint}>Add the choices a client will see.</p>}
+                {q.options.map((opt, oi) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
+                  <div key={oi} className={styles.optionRow}>
+                    <input
+                      placeholder="Label (e.g. Not at all)"
+                      value={opt.label}
+                      onChange={(e) => updateOption(q.id, oi, "label", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Score"
+                      value={opt.value}
+                      onChange={(e) => updateOption(q.id, oi, "value", Number(e.target.value))}
+                      className={styles.optionValueInput}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOption(q.id, oi)}
+                      aria-label="Remove option"
+                      className={styles.removeBtn}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -504,10 +583,12 @@ export default function AdminQuestionnairesPage() {
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const tagsStatus = useAppSelector(selectTagsStatus);
 
+  const [activeTab, setActiveTab] = useState<FormTab>("outcome_measure");
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingQ, setEditingQ] = useState<Questionnaire | null>(null);
   const [isAssigningQ, setIsAssigningQ] = useState<Questionnaire | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -536,7 +617,6 @@ export default function AdminQuestionnairesPage() {
     "Failed to fetch tags:",
   );
 
-  // When assign modal opens, fetch latest assignments for that questionnaire
   useEffect(() => {
     if (isAssigningQ) {
       dispatch(fetchAssignmentsByQuestionnaire(isAssigningQ.id));
@@ -546,6 +626,8 @@ export default function AdminQuestionnairesPage() {
   const guard = isPageStatusLoading(questionnairesStatus, usersStatus, tagsStatus);
   if (guard) return guard;
 
+  const tabQuestionnaires = questionnaires.filter((q) => ((q as any).form_type ?? "outcome_measure") === activeTab);
+
   const handleCreate = (data: QuestionnaireFormData) => dispatch(createQuestionnaire(data as unknown as Questionnaire));
 
   const handleEdit = async ({ questions, ...fields }: QuestionnaireFormData) => {
@@ -553,7 +635,7 @@ export default function AdminQuestionnairesPage() {
     await dispatch(updateQuestionnaire({ id: editingQ.id, ...fields }));
 
     for (const q of questions) {
-      if (q.id.startsWith("nq-")) continue; // not yet saved to DB
+      if (q.id.startsWith("nq-")) continue;
       const original = editingQ.questions?.find((oq) => oq.id === q.id);
       if (original && original.tag_id !== q.tag_id) {
         const tagObj = q.tag_id ? (tags.find((t) => t.id === q.tag_id) ?? null) : null;
@@ -569,79 +651,137 @@ export default function AdminQuestionnairesPage() {
     }
   };
 
+  const handleResetToDefault = async (id: string) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
+    if (!window.confirm("Reset this form to the system default? Your customisations will be lost.")) return;
+    setResettingId(id);
+    const { error } = await supabase.rpc("reset_form_to_default", { p_questionnaire_id: id });
+    setResettingId(null);
+    if (error) {
+      showToast(`Reset failed: ${error.message}`);
+    } else {
+      showToast("Form reset to default.");
+      dispatch(fetchQuestionnaires());
+    }
+  };
+
   return (
     <div className="page">
       <div className="inner">
         <div className={styles.pageHeader}>
           <div>
-            <h1>Check-ins</h1>
+            <h1>Forms</h1>
             <p>
-              {questionnaires.length} check-in{questionnaires.length !== 1 ? "s" : ""} configured
+              {tabQuestionnaires.length} form{tabQuestionnaires.length !== 1 ? "s" : ""} in this tab
             </p>
           </div>
           <SplitButton
-            primaryLabel="+ New check-in"
+            primaryLabel="+ New form"
             primaryAction={() => setShowBuilder(true)}
             options={[{ label: "Manage tags", onClick: () => setShowTagsModal(true) }]}
             secondaryLabel="More options"
           />
         </div>
 
+        <div className={styles.tabs} role="tablist">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div className={styles.list}>
-          {questionnaires.map((q) => (
-            <Card key={q.id}>
-              <div className={styles.qCard}>
-                <div className={styles.qCardInner}>
-                  <div className={styles.qInfo}>
-                    <div className={styles.qTitleRow}>
-                      <h2>{q.title}</h2>
-                      <span className={`${styles.badge} ${q.is_active ? styles.active : styles.inactive}`}>
-                        {q.is_active ? "Active" : "Paused"}
-                      </span>
+          {tabQuestionnaires.map((q) => {
+            const isDefault = !!(q as any).source_default_id;
+            const formType = (q as any).form_type ?? "outcome_measure";
+            return (
+              <Card key={q.id}>
+                <div className={styles.qCard}>
+                  <div className={styles.qCardInner}>
+                    <div className={styles.qInfo}>
+                      <div className={styles.qTitleRow}>
+                        <h2>{q.title}</h2>
+                        <span className={`${styles.badge} ${q.is_active ? styles.active : styles.inactive}`}>
+                          {q.is_active ? "Active" : "Paused"}
+                        </span>
+                        {isDefault && <span className={`${styles.badge} ${styles.default}`}>Default</span>}
+                      </div>
+                      <p className={styles.qDesc}>{q.description}</p>
+                      <p className={styles.qMeta}>
+                        {q.questions.length} question{q.questions.length !== 1 ? "s" : ""}
+                        {formType === "outcome_measure" && q.frequency ? ` · ${q.frequency}` : ""}
+                        {` · ${q.assignedTo?.length ?? 0} client${(q.assignedTo?.length ?? 0) !== 1 ? "s" : ""} assigned`}
+                      </p>
                     </div>
-                    <p className={styles.qDesc}>{q.description}</p>
-                    <p className={styles.qMeta}>
-                      {q.questions.length} questions · {q.frequency} · {q.assignedTo?.length ?? 0} clients assigned
-                    </p>
-                  </div>
-                  <div className={styles.qActions}>
-                    <Button variant="secondary" size="sm" onClick={() => setIsAssigningQ(q)}>
-                      Assign
-                    </Button>
-                    <Button variant="secondary" size="sm" onClick={() => setEditingQ(q)}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        if (isDemo) {
-                          showToast("Demo mode — changes are not saved.");
-                          return;
-                        }
-                        dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
-                      }}
-                    >
-                      {q.is_active ? "Pause" : "Activate"}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      disabled={isDemo}
-                      onClick={() => dispatch(deleteQuestionnaire(q.id))}
-                    >
-                      Delete
-                    </Button>
+                    <div className={styles.qActions}>
+                      <Button variant="secondary" size="sm" onClick={() => setIsAssigningQ(q)}>
+                        Assign
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => setEditingQ(q)}>
+                        Edit
+                      </Button>
+                      {isDefault && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={resettingId === q.id || isDemo}
+                          onClick={() => handleResetToDefault(q.id)}
+                        >
+                          {resettingId === q.id ? "Resetting…" : "Reset to default"}
+                        </Button>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (isDemo) {
+                            showToast("Demo mode — changes are not saved.");
+                            return;
+                          }
+                          dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
+                        }}
+                      >
+                        {q.is_active ? "Pause" : "Activate"}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={isDemo}
+                        onClick={() => dispatch(deleteQuestionnaire(q.id))}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-          {questionnaires.length === 0 && <p className={styles.empty}>No surveys yet. Create your first one above.</p>}
+              </Card>
+            );
+          })}
+          {tabQuestionnaires.length === 0 && (
+            <p className={styles.empty}>No forms in this tab yet. Create one above.</p>
+          )}
         </div>
       </div>
 
-      {showBuilder && <QuestionnaireBuilder tags={tags} onSave={handleCreate} onClose={() => setShowBuilder(false)} />}
+      {showBuilder && (
+        <QuestionnaireBuilder
+          tags={tags}
+          defaultFormType={activeTab}
+          onSave={handleCreate}
+          onClose={() => setShowBuilder(false)}
+        />
+      )}
 
       {editingQ && (
         <QuestionnaireBuilder tags={tags} initial={editingQ} onSave={handleEdit} onClose={() => setEditingQ(null)} />

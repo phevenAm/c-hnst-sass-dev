@@ -20,6 +20,37 @@
   p { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
 }
 
+// ── Tabs ───────────────────────────────────────────────────
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  gap: 0;
+  margin-bottom: $sp-6;
+}
+
+.tab {
+  padding: $sp-3 $sp-5;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.tabActive {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -67,6 +98,7 @@
 
   &.active   { background: var(--accent-light); color: var(--accent-dark); }
   &.inactive { background: var(--bg-muted);     color: var(--text-muted); }
+  &.default  { background: var(--bg-muted);     color: var(--text-secondary); border: 1px solid var(--border); }
 
 :global(.dark) & {
   color: var(--text-muted);
@@ -470,4 +502,75 @@
 
     &:focus { border-color: var(--border-focus); }
   }
+}
+
+// ── Options editor (multiple-choice builder) ───────────────
+.optionsEditor {
+  margin-top: $sp-3;
+  padding: $sp-3;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.optionsEditorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $sp-3;
+
+  > span {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+}
+
+.addOptionBtn {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+
+  &:hover { opacity: 0.8; }
+}
+
+.optionsHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.optionRow {
+  display: flex;
+  gap: $sp-2;
+  align-items: center;
+  margin-bottom: $sp-2;
+
+  input {
+    flex: 1;
+    padding: $sp-2 $sp-3;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    outline: none;
+    box-sizing: border-box;
+
+    &:focus { border-color: var(--border-focus); }
+  }
+}
+
+.optionValueInput {
+  flex: 0 0 72px !important;
+  min-width: 0 !important;
+  text-align: center;
 }

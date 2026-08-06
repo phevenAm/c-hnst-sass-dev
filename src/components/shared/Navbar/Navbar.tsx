@@ -44,7 +44,7 @@ export default function Navbar() {
     { to: "/admin/clients", label: "Clients" },
     { to: "/admin/scheduler", label: "Schedule" },
     { to: "/admin/payments", label: "Payments" },
-    { to: "/admin/questionnaires", label: "Check-ins" },
+    { to: "/admin/forms", label: "Forms" },
     { to: "/admin/resources", label: "Resources" },
     { to: "/admin/cpd", label: "CPD Log" },
   ];
@@ -52,7 +52,7 @@ export default function Navbar() {
   const clientLinks = [
     { to: "/dashboard", label: "Dashboard" },
     { to: "/my-sessions", label: "My sessions" },
-    { to: "/check-in", label: "Check-in" },
+    { to: "/forms", label: "Forms" },
     { to: "/resources", label: "Resources" },
   ];
 
