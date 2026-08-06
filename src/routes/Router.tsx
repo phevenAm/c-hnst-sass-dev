@@ -122,11 +122,15 @@ function AdminLayout() {
   }, [location.pathname]);
 
   const toggleSidebar = () => {
-    setSidebarCollapsed((c) => {
-      const next = !c;
-      localStorage.setItem("adminSidebarCollapsed", String(next));
-      return next;
-    });
+    if (window.innerWidth < 768) {
+      setMobileSidebarOpen((o) => !o);
+    } else {
+      setSidebarCollapsed((c) => {
+        const next = !c;
+        localStorage.setItem("adminSidebarCollapsed", String(next));
+        return next;
+      });
+    }
   };
 
   return (
@@ -140,7 +144,7 @@ function AdminLayout() {
           onClose={() => setMobileSidebarOpen(false)}
         />
         <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
-          <AdminTopbar onMenuToggle={() => setMobileSidebarOpen((o) => !o)} />
+          <AdminTopbar />
           <DemoBanner />
           <UpdateBanner />
           <main id="main-content" tabIndex={-1}>

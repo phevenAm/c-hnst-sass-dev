@@ -229,24 +229,46 @@ $transition: 0.22s ease;
 }
 
 // ── Mobile overlay behaviour ───────────────────────────────
+// Icons always visible as a 60px strip. Expand button overlays at 220px
+// without pushing content — adminBody keeps margin-left: 60px always.
 
 @include until-md {
   .sidebar {
-    transform: translateX(-100%);
-    transition: transform $transition, width $transition;
-    width: $w; // always full-width on mobile — no icon-only mode
+    width: $w-collapsed; // always icon-strip width
+    transition: width $transition;
 
+    // Force collapsed visual (icons only) regardless of desktop state
+    .logoText,
+    .label,
+    .branding {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    // When overlay is open, expand and show labels
     &.mobileOpen {
-      transform: translateX(0);
+      width: $w;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+
+      .logoText,
+      .label,
+      .branding {
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
   }
 
-  .collapseBtn {
-    display: none;
-  }
+  // Hide desktop chevron, show mobile chevron (based on isOpen, not collapsed)
+  .collapseBtnDesktop { display: none; }
+  .collapseBtnMobile { display: flex; }
 }
 
 // ── Collapse arrow button ───────────────────────────────────
+
+// Desktop: chevron reflects sidebarCollapsed; Mobile: reflects isOpen
+.collapseBtnDesktop { display: flex; }
+.collapseBtnMobile  { display: none; }
 
 .collapseBtn {
   position: absolute;

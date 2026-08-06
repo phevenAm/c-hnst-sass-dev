@@ -259,7 +259,7 @@ $admin-sidebar-collapsed-w: 60px;
 @include until-md {
   .adminBody,
   .adminBodyCollapsed {
-    margin-left: 0 !important;
+    margin-left: $admin-sidebar-collapsed-w !important; // icon strip always visible
   }
 }
 

@@ -86,7 +86,7 @@ export default function AdminSidebar({
                     to={to}
                     className={`${styles.navLink} ${active ? styles.active : ""}`}
                     aria-current={active ? "page" : undefined}
-                    title={collapsed ? label : undefined}
+                    title={collapsed || !isOpen ? label : undefined}
                     onClick={onClose}
                   >
                     <span className={styles.icon}>
@@ -144,10 +144,11 @@ export default function AdminSidebar({
           type="button"
           className={styles.collapseBtn}
           onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!collapsed}
+          aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
+          aria-expanded={isOpen || !collapsed}
         >
-          {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          <span className={styles.collapseBtnDesktop}>{collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}</span>
+          <span className={styles.collapseBtnMobile}>{isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}</span>
         </button>
       </aside>
 
