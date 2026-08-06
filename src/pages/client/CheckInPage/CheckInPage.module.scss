@@ -17,6 +17,56 @@
   }
 }
 
+// ── Tabs ───────────────────────────────────────────────────
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  gap: 0;
+  margin-bottom: $sp-6;
+}
+
+.tab {
+  padding: $sp-3 $sp-5;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.tabActive {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+}
+
+// ── Form meta ──────────────────────────────────────────────
+.formMeta {
+  margin-bottom: $sp-6;
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 $sp-1;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+}
+
 // ── Progress bar ───────────────────────────────────────────
 .progressMeta {
   display: flex;
@@ -105,6 +155,46 @@
   justify-content: space-between;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+// ── Multiple-choice question ───────────────────────────────
+.mcOptions {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.mcOption {
+  width: 100%;
+  padding: $sp-3 $sp-4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent-dark);
+    background: var(--accent-light);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.mcOptionActive {
+  @extend .mcOption;
+  border: 2px solid var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-weight: 600;
 }
 
 // ── Text question ──────────────────────────────────────────

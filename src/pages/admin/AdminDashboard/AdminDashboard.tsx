@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-import { BookIcon, ClipboardIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
+import { BookIcon, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
 import { useAuth } from "@context/AuthContext";
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
@@ -53,9 +53,9 @@ export default function AdminDashboard() {
           <Card className={styles.quickActionsCard}>
             <p className={styles.quickActionsLabel}>Quick actions</p>
             <div className={styles.quickActionsRow}>
-              <Link to="/admin/questionnaires?new=true" title="New survey">
+              <Link to="/admin/forms?new=true" title="New form">
                 <div className={`${styles.metricIcon} ${styles.teal}`}>
-                  <ClipboardIcon />
+                  <FormsIcon />
                 </div>
               </Link>
               <Link to="/admin/resources?new=true" title="New resource">
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
             sessions={allSessions}
             clients={allClients}
             useCodenames={practiceSettings?.use_client_codenames ?? false}
-            limit={6}
+            limit={2}
           />
         </CollapsibleSection>
 

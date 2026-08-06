@@ -38,12 +38,16 @@ export const fetchQuestionnaires = createAsyncThunk<Questionnaire[], void>(
 export const createQuestionnaire = createAsyncThunk<Questionnaire, Questionnaire>(
   "questionnaires/createQuestionnaire",
   async (data, { rejectWithValue }) => {
+    // biome-ignore lint/suspicious/noExplicitAny: QuestionnaireFormData cast includes form_type
+    const d = data as any;
+    const formType = d.form_type ?? "outcome_measure";
     const { data: questionnaire, error: questionnaireError } = await supabase
       .from("questionnaires")
       .insert({
         title: data.title,
         description: data.description,
-        frequency: data.frequency,
+        frequency: formType === "outcome_measure" ? data.frequency : null,
+        form_type: formType,
         is_active: true,
       })
       .select()
@@ -60,6 +64,8 @@ export const createQuestionnaire = createAsyncThunk<Questionnaire, Questionnaire
       max_value: question.type === "scale" ? (question.max_value ?? 10) : null,
       min_label: question.type === "scale" ? (question.min_label ?? null) : null,
       max_label: question.type === "scale" ? (question.max_label ?? null) : null,
+      // biome-ignore lint/suspicious/noExplicitAny: options shape comes from QuestionDraft
+      options: question.type === "multiple_choice" ? ((question as any).options ?? null) : null,
       order_index: question.order_index ?? index + 1,
       is_required: question.is_required ?? true,
     }));

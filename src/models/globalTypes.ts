@@ -44,6 +44,13 @@ export enum UserRole {
 export enum QuestionType {
   SCALE = "scale",
   TEXT = "text",
+  MULTIPLE_CHOICE = "multiple_choice",
+}
+
+export enum FormType {
+  OUTCOME_MEASURE = "outcome_measure",
+  FEEDBACK = "feedback",
+  ONBOARDING = "onboarding",
 }
 
 export enum ResourceType {
@@ -81,8 +88,11 @@ export type UserProfile = Omit<Tables<"users">, "age" | "first_name" | "role" | 
 export type Questionnaire = Omit<Tables<"questionnaires">, "title" | "description" | "frequency" | "is_active"> & {
   title: string;
   description?: string;
-  frequency: QuestionnaireFrequency;
+  frequency: QuestionnaireFrequency | null;
   is_active: boolean;
+  form_type: FormType | string;
+  is_system_default: boolean;
+  source_default_id: string | null;
   // joined — not in DB row
   questions: Question[];
   assignedTo: string[];
@@ -94,11 +104,10 @@ export type Question = Omit<
 > & {
   questionnaire_id: string;
   text: string;
-  type: QuestionType | "scale" | "text";
+  type: QuestionType | "scale" | "text" | "multiple_choice";
   order_index: number;
   is_required: boolean;
-  // tag_id will be inherited from Tables<"questions"> after the migration + type regen.
-  // Declared here so the rest of the app can use it before that step.
+  options: { label: string; value: number }[] | null;
   tag_id: string | null;
   tag?: Pick<Tag, "id" | "name">;
 };
@@ -110,8 +119,9 @@ export type QuestionnaireAssignment = Omit<
   questionnaire_id: string;
   user_id: string;
   assigned_at: string;
+  is_plotted: boolean;
   // join extensions
-  questionnaires?: Pick<Questionnaire, "id" | "title" | "frequency" | "is_active">;
+  questionnaires?: Pick<Questionnaire, "id" | "title" | "frequency" | "is_active" | "form_type">;
   users?: Pick<UserProfile, "id" | "first_name" | "last_name">;
 };
 

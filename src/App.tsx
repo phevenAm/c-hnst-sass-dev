@@ -8,6 +8,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 import { AuthProvider } from "./context/AuthContext";
+import { EncryptionProvider } from "./context/EncryptionContext";
 import { InterfacePrefsProvider } from "./context/InterfacePrefsContext";
 import { ToastProvider } from "./context/ToastContext";
 import AppRoutes from "./routes/Router";
@@ -54,11 +55,13 @@ export default function App() {
       <MuiThemeWrapper>
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
           <AuthProvider>
-            <InterfacePrefsProvider>
-              <ToastProvider>
-                <AppRoutes />
-              </ToastProvider>
-            </InterfacePrefsProvider>
+            <EncryptionProvider>
+              <InterfacePrefsProvider>
+                <ToastProvider>
+                  <AppRoutes />
+                </ToastProvider>
+              </InterfacePrefsProvider>
+            </EncryptionProvider>
           </AuthProvider>
         </LocalizationProvider>
       </MuiThemeWrapper>
