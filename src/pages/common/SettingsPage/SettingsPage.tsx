@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { KEYWORDS } from "@constants/constants";
 
 import { isPageStatusLoading, pickColor } from "@Helpers/Helpers";
+import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
@@ -338,6 +339,9 @@ const SettingsPage = () => {
                   </Button>
                 </div>
               )}
+              <Button variant="ghost" size="sm" onClick={hardRefresh}>
+                Force app update
+              </Button>
             </div>
           </Card>
         )}

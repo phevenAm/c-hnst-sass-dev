@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
@@ -11,7 +11,7 @@ import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
-import { useVersionCheck } from "../Hooks/useVersionCheck";
+import { hardRefresh, useVersionCheck } from "../Hooks/useVersionCheck";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
@@ -61,6 +61,7 @@ function AppLayout() {
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
       <Navbar />
       <DemoBanner />
+      <UpdateBanner />
       <main id="main-content" tabIndex={-1}>
         <div className="page-content">
           <Outlet />
@@ -90,7 +91,7 @@ function UpdateBanner() {
       <span>A new version of the app is available.</span>
       <button
         type="button"
-        onClick={() => window.location.reload()}
+        onClick={hardRefresh}
         style={{
           background: "var(--accent)",
           color: "var(--text-inverse)",
