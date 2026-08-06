@@ -425,6 +425,63 @@
   line-height: 1.5;
 }
 
+// ── Encryption gate ────────────────────────────────────────
+.encGate {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  padding: $sp-2 0;
+}
+
+.encGateTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.encGateBody {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.encInput {
+  width: 100%;
+  padding: $sp-3 $sp-4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--transition-base);
+
+  &:focus {
+    border-color: var(--border-focus);
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+}
+
+.recoveryCodeBox {
+  padding: $sp-4;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  word-break: break-all;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+
 // ── Client profiles (stubs) section ───────────────────────
 .stubsSection {
   margin-top: $sp-10;

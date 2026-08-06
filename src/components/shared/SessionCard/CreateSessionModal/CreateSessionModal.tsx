@@ -41,6 +41,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const [location, setLocation] = useState<"remote" | "in_person">(session?.location ?? "in_person");
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
+  const [referenceCode, setReferenceCode] = useState(session?.reference_code ?? "");
   const [error, setError] = useState("");
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
@@ -107,6 +108,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
             price_pence: pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0,
             duration_minutes: sessionDuration,
             notes: notes.trim() || undefined,
+            reference_code: referenceCode.trim() || undefined,
             location: location,
             address: sessionAddress,
             created_by: authUser.id,
@@ -157,6 +159,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
           paid: isPrepaid,
           price_pence: pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0,
           notes: notes.trim() || null,
+          reference_code: referenceCode.trim() || null,
           scheduled_at: scheduledAt.toISOString(),
           duration_minutes: sessionDuration,
           location: location,
@@ -344,6 +347,21 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <label className={styles.label} htmlFor="session-code">
+            Reference code <span className={styles.optional}>(optional)</span>
+          </label>
+          <input
+            id="session-code"
+            className={styles.input}
+            type="text"
+            placeholder="e.g. S-001"
+            maxLength={20}
+            value={referenceCode}
+            onChange={(e) => setReferenceCode(e.target.value)}
           />
         </div>
 

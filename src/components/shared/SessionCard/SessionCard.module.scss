@@ -222,6 +222,9 @@
     color: var(--text-secondary);
     line-height: 1.55;
     margin-bottom: 0;
+    cursor: pointer;
+
+    &:hover { color: var(--text-primary); }
 }
 
 .noNotes {
@@ -230,6 +233,34 @@
     color: var(--text-muted);
     font-style: italic;
     margin-bottom: 0;
+    cursor: pointer;
+
+    &:hover { color: var(--text-secondary); }
+}
+
+.notesEditWrap {
+    margin-top: $sp-3;
+}
+
+.notesEdit {
+    width: 100%;
+    padding: $sp-2 $sp-3;
+    border: 1.5px solid var(--border-focus);
+    border-radius: var(--r-sm);
+    background: var(--bg-muted);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.84rem;
+    line-height: 1.55;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.notesEditActions {
+    display: flex;
+    gap: $sp-2;
+    margin-top: $sp-1;
 }
 
 .actions {

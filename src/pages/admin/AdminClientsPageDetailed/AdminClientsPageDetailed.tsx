@@ -24,9 +24,9 @@ import { fetchAllResponses, selectResponsesByUser } from "@store/slices/response
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
 import Modal from "@/components/shared/Modal/Modal";
-import Spinner from "@/components/shared/Spinner/Spinner";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useAuth } from "@/context/AuthContext";
+import { useEncryption } from "@/context/EncryptionContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
@@ -38,12 +38,20 @@ import { exportClientPDF, getScoreAverage } from "../utils/AdminClientsPageUtils
 
 import styles from "./AdminClientsPageDetailed.module.scss";
 
+type ExportSections = {
+  clientDetails: boolean;
+  sessions: boolean;
+  checkIns: boolean;
+  accountSummary: boolean;
+};
+
 export default function AdminClientsPageDetailed() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
+  const { status: encStatus, decryptNote } = useEncryption();
 
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const questionnaires = useAppSelector(selectAllQuestionnaires);
@@ -60,6 +68,16 @@ export default function AdminClientsPageDetailed() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportPickerOpen, setExportPickerOpen] = useState(false);
+  const [exportSections, setExportSections] = useState<ExportSections>({
+    clientDetails: true,
+    sessions: true,
+    checkIns: true,
+    accountSummary: false,
+  });
+  const [selectedNoteSessionId, setSelectedNoteSessionId] = useState<string | null>(null);
+  const [accountSummaryPreview, setAccountSummaryPreview] = useState<string | null>(null);
+
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
   const [isManageSessionsModal, setIsManageSessionsModal] = useState(false);
@@ -97,6 +115,38 @@ export default function AdminClientsPageDetailed() {
         if (data) setRescheduleRequests(data as RescheduleRequest[]);
       });
   }, [clientId]);
+
+  // Fetch latest account summary note and decrypt if possible
+  useEffect(() => {
+    if (!clientId) return;
+    supabase
+      .from("session_notes")
+      .select("content, is_encrypted, note_iv")
+      .eq("user_id", clientId)
+      .is("session_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        if (!data) {
+          setAccountSummaryPreview(null);
+          return;
+        }
+        if (!data.is_encrypted) {
+          const text = data.content as string;
+          setAccountSummaryPreview(text.length > 120 ? text.slice(0, 120) + "…" : text);
+          return;
+        }
+        if (data.note_iv && encStatus === "unlocked") {
+          try {
+            const plain = await decryptNote(data.content as string, data.note_iv as string);
+            setAccountSummaryPreview(plain.length > 120 ? plain.slice(0, 120) + "…" : plain);
+          } catch {
+            setAccountSummaryPreview(null);
+          }
+        }
+      });
+  }, [clientId, encStatus, decryptNote]);
 
   const handleAcceptReschedule = async (req: RescheduleRequest) => {
     setResolvingId(req.id);
@@ -173,7 +223,6 @@ export default function AdminClientsPageDetailed() {
     [questionnaires, clientResponses],
   );
 
-  //! is there a selector for this? nah, i shuld just fetch sessions by id. i have a THUNK for that
   const clientSessions = useAppSelector((state) => state.sessions.sessions);
 
   useEffect(() => {
@@ -200,8 +249,11 @@ export default function AdminClientsPageDetailed() {
     setExporting(true);
     await exportClientPDF({
       user: client,
+      sections: exportSections,
       responses: selectedResponses,
       questionnaire: selectedQuestionnaire,
+      sessions: clientSessions,
+      accountSummary: accountSummaryPreview ?? undefined,
     });
     setExporting(false);
   };
@@ -228,6 +280,7 @@ export default function AdminClientsPageDetailed() {
         : sessionsGroupByType,
     [sessionsGroupByType, searchTerm],
   );
+
   const paginateSessions = (array: Session[], currentPage: number, pageSize: number): Session[] => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
@@ -318,13 +371,6 @@ export default function AdminClientsPageDetailed() {
           </div>
         )}
 
-        {/* TODO Section 5 — per-client attendance stats strip
-            Add a small stats row here between the back button and the profile hero.
-            Data comes from the sessions already fetched below (clientSessions).
-            Show: total sessions · attended · no-shows · attendance % · unpaid count
-            Derive from clientSessions: filter by status/attended fields, count each bucket.
-            Aggregate view across all clients lives in AdminScheduler. */}
-
         {/* Profile hero */}
         <div className={styles.hero}>
           <div className={styles.heroLeft}>
@@ -335,23 +381,22 @@ export default function AdminClientsPageDetailed() {
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
               )}
+              {accountSummaryPreview && <p className={styles.accountSummary}>{accountSummaryPreview}</p>}
             </div>
           </div>
 
           <div className={styles.heroActions}>
-            <Button variant="secondary" size="sm" onClick={() => setNotesOpen(true)}>
-              Notes
-            </Button>
             <SplitButton
               variant="secondary"
               size="sm"
               primaryLabel="Configure client"
               primaryAction={() => setIsConfigOpen(true)}
               options={[
+                { label: "Account Summary", onClick: () => setNotesOpen(true) },
                 {
                   label: exporting ? "Exporting…" : "Export PDF",
-                  onClick: handleExport,
-                  disabled: exporting || selectedResponses.length === 0,
+                  onClick: () => setExportPickerOpen(true),
+                  disabled: exporting,
                 },
               ]}
             />
@@ -379,7 +424,7 @@ export default function AdminClientsPageDetailed() {
           </div>
         </div>
 
-        {/* Progress chart — ProgressChart renders its own Card, so no outer wrapper */}
+        {/* Progress chart */}
         <HideableSection id="client-progress-chart">
           <div className={styles.progressSection}>
             <div className={styles.sectionHead}>
@@ -450,7 +495,13 @@ export default function AdminClientsPageDetailed() {
                 <p className={styles.sessionEmpty}>No sessions yet.</p>
               ) : (
                 paginateSessions(searchResults, sessionPageNumber ?? 1, maxPageSize).map((s) => (
-                  <SessionCard key={s.id} session={s} isDemo={isDemo} isAdmin />
+                  <SessionCard
+                    key={s.id}
+                    session={s}
+                    isDemo={isDemo}
+                    isAdmin
+                    onNotesClick={(id) => setSelectedNoteSessionId(id)}
+                  />
                 ))
               ))}
 
@@ -505,27 +556,28 @@ export default function AdminClientsPageDetailed() {
         </div>
       </div>
 
+      {/* Account summary modal */}
       {notesOpen && <SessionNotesModal user={client} onClose={() => setNotesOpen(false)} />}
 
+      {/* Per-session notes modal */}
+      {selectedNoteSessionId && (
+        <SessionNotesModal
+          user={client}
+          sessionId={selectedNoteSessionId}
+          onClose={() => setSelectedNoteSessionId(null)}
+        />
+      )}
+
+      {/* Configure client modal */}
       {isConfigOpen && (
         <Modal
           title="Configure client"
           size="sm"
           onClose={() => setIsConfigOpen(false)}
           actions={
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleExport}
-                disabled={exporting || selectedResponses.length === 0}
-              >
-                {exporting ? "Exporting…" : "Export PDF"}
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
-                {savingCodename ? "Saving…" : "Save codename"}
-              </Button>
-            </>
+            <Button variant="primary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
+              {savingCodename ? "Saving…" : "Save codename"}
+            </Button>
           }
         >
           <label className={styles.configLabel}>
@@ -542,6 +594,52 @@ export default function AdminClientsPageDetailed() {
             Set a codename to show instead of {client.first_name}'s real name across your admin. Leave blank to use
             their real name.
           </p>
+        </Modal>
+      )}
+
+      {/* PDF export picker */}
+      {exportPickerOpen && (
+        <Modal
+          title="Export client PDF"
+          size="sm"
+          onClose={() => setExportPickerOpen(false)}
+          actions={
+            <>
+              <Button variant="ghost" onClick={() => setExportPickerOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setExportPickerOpen(false);
+                  await handleExport();
+                }}
+                disabled={exporting || !Object.values(exportSections).some(Boolean)}
+              >
+                {exporting ? "Exporting…" : "Export PDF"}
+              </Button>
+            </>
+          }
+        >
+          <p className={styles.exportPickerHint}>Choose what to include in the exported PDF.</p>
+          <div className={styles.exportPickerList}>
+            {(
+              [
+                { key: "clientDetails", label: "Client details" },
+                { key: "sessions", label: "Session history" },
+                { key: "checkIns", label: "Check-in scores" },
+                { key: "accountSummary", label: "Account summary" },
+              ] as { key: keyof ExportSections; label: string }[]
+            ).map(({ key, label }) => (
+              <label key={key} className={styles.exportPickerItem}>
+                <input
+                  type="checkbox"
+                  checked={exportSections[key]}
+                  onChange={(e) => setExportSections((prev) => ({ ...prev, [key]: e.target.checked }))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
         </Modal>
       )}
 

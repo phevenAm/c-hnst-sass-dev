@@ -447,3 +447,43 @@
 .searchContainer {
   margin-bottom: $sp-10;
 }
+
+// ── Account summary preview ───────────────────────────────────
+.accountSummary {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: $sp-2 0 0;
+  line-height: 1.45;
+  max-width: 320px;
+  font-style: italic;
+}
+
+// ── PDF export picker ─────────────────────────────────────────
+.exportPickerHint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 $sp-4;
+}
+
+.exportPickerList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.exportPickerItem {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
