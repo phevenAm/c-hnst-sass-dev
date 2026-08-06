@@ -11,7 +11,6 @@ import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
-import { hardRefresh, useVersionCheck } from "../Hooks/useVersionCheck";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
@@ -61,7 +60,6 @@ function AppLayout() {
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
       <Navbar />
       <DemoBanner />
-      <UpdateBanner />
       <main id="main-content" tabIndex={-1}>
         <div className="page-content">
           <Outlet />
@@ -69,43 +67,6 @@ function AppLayout() {
       </main>
       <Footer />
     </>
-  );
-}
-
-function UpdateBanner() {
-  const isOutdated = useVersionCheck();
-  if (!isOutdated) return null;
-  return (
-    <div
-      style={{
-        background: "var(--accent-light)",
-        borderBottom: "1px solid var(--accent)",
-        padding: "8px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        fontSize: "0.85rem",
-        color: "var(--text-primary)",
-      }}
-    >
-      <span>A new version of the app is available.</span>
-      <button
-        type="button"
-        onClick={hardRefresh}
-        style={{
-          background: "var(--accent)",
-          color: "var(--text-inverse)",
-          border: "none",
-          borderRadius: "var(--r-full)",
-          padding: "4px 14px",
-          cursor: "pointer",
-          fontFamily: "var(--font-sans)",
-          fontSize: "0.8rem",
-        }}
-      >
-        Reload now
-      </button>
-    </div>
   );
 }
 
@@ -146,7 +107,6 @@ function AdminLayout() {
         <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
           <AdminTopbar />
           <DemoBanner />
-          <UpdateBanner />
           <main id="main-content" tabIndex={-1}>
             <div className="page-content">
               <Outlet />

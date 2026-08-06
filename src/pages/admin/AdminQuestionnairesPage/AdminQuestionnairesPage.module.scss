@@ -1,5 +1,6 @@
 // AdminQuestionnairesPage.scss
 @use '../../../styles/spacing' as *;
+@use '../../../styles/mixins' as *;
 
 .pageHeader {
   display: flex;
@@ -126,6 +127,11 @@
   gap: $sp-2;
   flex-shrink: 0;
   flex-wrap: wrap;
+
+  @include until-md {
+    width: 100%;
+    flex-shrink: 1;
+  }
 }
 
 .empty {

@@ -37,6 +37,7 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
   const [codeText, setCodeText] = useState(session.reference_code ?? "");
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState(session.notes ?? "");
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const dispatch = useAppDispatch();
   const sessionNumber = useAppSelector(selectSessionNumberMap).get(session.id);
@@ -233,19 +234,33 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
               <Button size="sm" variant="secondary" data-action-type="payment" onClick={toggleNoShowOrPayment}>
                 {session.paid ? "Unpaid" : "Paid"}
               </Button>
-              {onNotesClick && (
-                <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
-                  Notes
+              <div
+                className={[styles.secondaryActions, !moreOpen ? styles.secondaryActionsHidden : ""]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {onNotesClick && (
+                  <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
+                    Notes
+                  </Button>
+                )}
+                {!isPast && (
+                  <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
+                    Reschedule
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
+                  Delete
                 </Button>
-              )}
-              {!isPast && (
-                <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
-                  Reschedule
-                </Button>
-              )}
-              <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
-                Delete
-              </Button>
+              </div>
+              <button
+                type="button"
+                className={styles.moreBtn}
+                onClick={() => setMoreOpen((o) => !o)}
+                aria-label="More actions"
+              >
+                {moreOpen ? "✕" : "···"}
+              </button>
             </div>
           </>
         )}

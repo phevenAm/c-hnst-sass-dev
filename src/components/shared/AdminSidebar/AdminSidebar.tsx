@@ -47,6 +47,13 @@ export default function AdminSidebar({
   const { isDemo } = useAuth();
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   useEffect(() => {
     supabase
@@ -147,8 +154,7 @@ export default function AdminSidebar({
           aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isOpen || !collapsed}
         >
-          <span className={styles.collapseBtnDesktop}>{collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}</span>
-          <span className={styles.collapseBtnMobile}>{isOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}</span>
+          {(isMobile ? !isOpen : collapsed) ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </button>
       </aside>
 

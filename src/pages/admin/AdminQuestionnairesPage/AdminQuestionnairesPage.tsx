@@ -730,43 +730,39 @@ export default function AdminQuestionnairesPage() {
                       </p>
                     </div>
                     <div className={styles.qActions}>
-                      <Button variant="secondary" size="sm" onClick={() => setIsAssigningQ(q)}>
-                        Assign
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => setEditingQ(q)}>
-                        Edit
-                      </Button>
-                      {isDefault && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={resettingId === q.id || isDemo}
-                          onClick={() => handleResetToDefault(q.id)}
-                        >
-                          {resettingId === q.id ? "Resetting…" : "Reset to default"}
-                        </Button>
-                      )}
-                      <Button
+                      <SplitButton
                         variant="secondary"
                         size="sm"
-                        onClick={() => {
-                          if (isDemo) {
-                            showToast("Demo mode — changes are not saved.");
-                            return;
-                          }
-                          dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
-                        }}
-                      >
-                        {q.is_active ? "Pause" : "Activate"}
-                      </Button>
-                      <Button
-                        variant="ghost-danger"
-                        size="sm"
-                        disabled={isDemo}
-                        onClick={() => dispatch(deleteQuestionnaire(q.id))}
-                      >
-                        Delete
-                      </Button>
+                        primaryLabel="Assign"
+                        primaryAction={() => setIsAssigningQ(q)}
+                        options={[
+                          { label: "Edit", onClick: () => setEditingQ(q) },
+                          ...(isDefault
+                            ? [
+                                {
+                                  label: resettingId === q.id ? "Resetting…" : "Reset to default",
+                                  onClick: () => handleResetToDefault(q.id),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: q.is_active ? "Pause" : "Activate",
+                            onClick: () => {
+                              if (isDemo) {
+                                showToast("Demo mode — changes are not saved.");
+                                return;
+                              }
+                              dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
+                            },
+                          },
+                          {
+                            label: "Delete",
+                            onClick: () => {
+                              if (!isDemo) dispatch(deleteQuestionnaire(q.id));
+                            },
+                          },
+                        ]}
+                      />
                     </div>
                   </div>
                 </div>

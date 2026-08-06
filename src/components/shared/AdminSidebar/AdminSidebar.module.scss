@@ -259,16 +259,9 @@ $transition: 0.22s ease;
     }
   }
 
-  // Hide desktop chevron, show mobile chevron (based on isOpen, not collapsed)
-  .collapseBtnDesktop { display: none; }
-  .collapseBtnMobile { display: flex; }
 }
 
 // ── Collapse arrow button ───────────────────────────────────
-
-// Desktop: chevron reflects sidebarCollapsed; Mobile: reflects isOpen
-.collapseBtnDesktop { display: flex; }
-.collapseBtnMobile  { display: none; }
 
 .collapseBtn {
   position: absolute;

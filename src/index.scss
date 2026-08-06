@@ -271,6 +271,10 @@ $admin-sidebar-collapsed-w: 60px;
   overflow-y: auto;
   padding: $sp-8 $sp-6;
 
+  @include until-md {
+    padding: $sp-5 $sp-3;
+  }
+
   .inner {
     @include container-inner($max: var(--max-width)); // control max with and responsive padding
   }
