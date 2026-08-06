@@ -176,7 +176,7 @@ export default sessionsSlice.reducer;
 
 // Returns a map of session id → creation-order number (1-based, stable across renders)
 export const selectSessionNumberMap = createSelector(
-  (state: RootState) => state.session.sessions,
+  (state: RootState) => state.sessions.sessions,
   (sessions) => {
     const sorted = [...sessions].sort((a, b) => a.created_at.localeCompare(b.created_at));
     return new Map<string, number>(sorted.map((s, i) => [s.id, i + 1]));
