@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button";
+import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 
 import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
@@ -37,7 +38,6 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
   const [codeText, setCodeText] = useState(session.reference_code ?? "");
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState(session.notes ?? "");
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const dispatch = useAppDispatch();
   const sessionNumber = useAppSelector(selectSessionNumberMap).get(session.id);
@@ -231,14 +231,11 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
               </button>
             </div>
             <div className={styles.actions_Icons}>
-              <Button size="sm" variant="secondary" data-action-type="payment" onClick={toggleNoShowOrPayment}>
-                {session.paid ? "Unpaid" : "Paid"}
-              </Button>
-              <div
-                className={[styles.secondaryActions, !moreOpen ? styles.secondaryActionsHidden : ""]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
+              {/* Desktop: all buttons inline */}
+              <div className={styles.desktopActions}>
+                <Button size="sm" variant="secondary" onClick={toggleNoShowOrPayment}>
+                  {session.paid ? "Unpaid" : "Paid"}
+                </Button>
                 {onNotesClick && (
                   <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
                     Notes
@@ -253,14 +250,25 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
                   Delete
                 </Button>
               </div>
-              <button
-                type="button"
-                className={styles.moreBtn}
-                onClick={() => setMoreOpen((o) => !o)}
-                aria-label="More actions"
-              >
-                {moreOpen ? "✕" : "···"}
-              </button>
+              {/* Mobile: SplitButton collapses all actions */}
+              <div className={styles.mobileActions}>
+                <SplitButton
+                  variant="secondary"
+                  size="sm"
+                  primaryLabel={session.paid ? "Unpaid" : "Paid"}
+                  primaryAction={toggleNoShowOrPayment}
+                  options={[
+                    ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
+                    ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),
+                    {
+                      label: "Delete",
+                      onClick: () => {
+                        if (!isDemo) setIsDeleteModalOpen(true);
+                      },
+                    },
+                  ]}
+                />
+              </div>
             </div>
           </>
         )}

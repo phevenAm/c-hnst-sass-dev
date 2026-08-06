@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Size, Variant } from "@constants/constants";
 
@@ -19,23 +20,27 @@ const SplitButton = ({
   variant = "primary",
   size = "md",
   primaryAction,
-  options = [
-    { label: "Test Labeasd", onClick: () => console.log("hi") },
-    { label: "Test Labaasdssdel", onClick: () => console.log("hi") },
-  ],
+  options = [],
   primaryLabel = "placeholder primary label",
   secondaryLabel = "Show more options",
 }: SplitButtonProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
   const classes = [styles.btn, styles[variant], styles[size]].filter(Boolean).join(" ");
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const handleToggle = () => {
+    if (!isDropdownOpen && wrapperRef.current) {
+      setDropdownRect(wrapperRef.current.getBoundingClientRect());
+    }
+    setIsDropdownOpen((prev) => !prev);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent | KeyboardEvent) => {
-      //!move here to remove infinite re-renders
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false);
-      }
+      if (wrapperRef.current?.contains(e.target as Node) || dropdownRef.current?.contains(e.target as Node)) return;
+      setIsDropdownOpen(false);
     };
     document.addEventListener("click", handleOutsideClick);
     return () => document.removeEventListener("click", handleOutsideClick);
@@ -57,25 +62,42 @@ const SplitButton = ({
         type="button"
         className={[styles.secondaryButton, classes].filter(Boolean).join(" ")}
         aria-label={secondaryLabel}
-        onClick={() => setIsDropdownOpen((prev) => !prev)}
+        onClick={handleToggle}
       >
         <ChevronDown />
       </button>
-      <div className={[styles.secondaryDropdown, isDropdownOpen ? styles.meh : ""].filter(Boolean).join(" ")}>
-        {isDropdownOpen && (
-          <ul>
-            {options?.map(({ label, onClick }) => {
-              return (
+
+      {isDropdownOpen &&
+        dropdownRect &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className={styles.portalDropdown}
+            style={{
+              top: dropdownRect.bottom,
+              right: window.innerWidth - dropdownRect.right,
+              minWidth: dropdownRect.width,
+            }}
+          >
+            <ul>
+              {options.map(({ label, onClick }) => (
                 <li key={label}>
-                  <button type="button" className={styles.labelButton} onClick={onClick}>
+                  <button
+                    type="button"
+                    className={styles.labelButton}
+                    onClick={() => {
+                      onClick();
+                      setIsDropdownOpen(false);
+                    }}
+                  >
                     {label}
                   </button>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          </div>,
+          document.body,
         )}
-      </div>
     </div>
   );
 };

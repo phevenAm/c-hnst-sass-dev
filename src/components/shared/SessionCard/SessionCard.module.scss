@@ -275,8 +275,6 @@
 
 
     &_Icons {
-        // padding-left: $sp-3;
-        // border-left: 1px solid var(--border);
         display: flex;
         gap: $sp-2;
         align-items: center;
@@ -284,42 +282,19 @@
     }
 }
 
-.secondaryActions {
+.desktopActions {
     display: flex;
     gap: $sp-2;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap;
+
+    @include until-md { display: none; }
 }
 
-.secondaryActionsHidden {
-    @include until-md {
-        display: none;
-    }
-}
-
-.moreBtn {
+.mobileActions {
     display: none;
-    border: 1px solid var(--border);
-    border-radius: var(--r-full);
-    background: transparent;
-    color: var(--text-secondary);
-    padding: 4px 10px;
-    font-size: 0.875rem;
-    cursor: pointer;
-    line-height: 1;
-    transition: all var(--transition-base);
-    font-family: var(--font-sans);
-    flex-shrink: 0;
 
-    &:hover {
-        background: var(--bg-muted);
-        color: var(--text-primary);
-    }
-
-    @include until-md {
-        display: inline-flex;
-        align-items: center;
-    }
+    @include until-md { display: flex; }
 }
 
 .attendanceGroup {

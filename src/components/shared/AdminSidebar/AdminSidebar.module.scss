@@ -293,4 +293,15 @@ $transition: 0.22s ease;
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
   }
+
+  // On mobile: move to bottom-centre of the icon strip — bigger, easier to tap
+  @include until-md {
+    top: unset;
+    right: unset;
+    bottom: $sp-5;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+  }
 }
