@@ -180,7 +180,7 @@ export default function AdminResourcesPage() {
                   </Button>
 
                   <Button
-                    variant="danger"
+                    variant="ghost-danger"
                     size="sm"
                     disabled={isDemo}
                     onClick={() => dispatch(deleteResource(resource.id))}

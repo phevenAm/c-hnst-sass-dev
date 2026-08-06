@@ -263,7 +263,7 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
             <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsRescheduleModalOpen(true)}>
               Reschedule
             </Button>
-            <Button size="sm" variant="danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
+            <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
               Cancel
             </Button>
           </div>

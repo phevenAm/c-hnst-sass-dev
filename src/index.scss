@@ -256,6 +256,13 @@ $admin-sidebar-collapsed-w: 60px;
   }
 }
 
+@include until-md {
+  .adminBody,
+  .adminBodyCollapsed {
+    margin-left: 0 !important;
+  }
+}
+
 // ── App shell layout ───────────────────────────────────────
 #main-content {
   display: flex;

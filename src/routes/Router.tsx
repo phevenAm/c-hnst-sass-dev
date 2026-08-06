@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
@@ -111,9 +111,15 @@ function UpdateBanner() {
 
 function AdminLayout() {
   const topRef = useFocusOnNavigate();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((c) => {
@@ -127,9 +133,14 @@ function AdminLayout() {
     <>
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
       <div className="adminShell">
-        <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <AdminSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={toggleSidebar}
+          isOpen={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+        />
         <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
-          <AdminTopbar />
+          <AdminTopbar onMenuToggle={() => setMobileSidebarOpen((o) => !o)} />
           <DemoBanner />
           <UpdateBanner />
           <main id="main-content" tabIndex={-1}>

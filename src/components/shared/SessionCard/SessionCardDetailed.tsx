@@ -209,7 +209,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
                   {session.paid ? "£ Paid" : "£ Unpaid"}
                 </button>
               </div>
-              <Button size="sm" variant="danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
+              <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
                 Delete
               </Button>
             </>
@@ -218,7 +218,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
               <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
                 Reschedule
               </Button>
-              <Button size="sm" variant="danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
+              <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
                 Delete
               </Button>
             </>
@@ -259,7 +259,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
           </Button>
           <Button
             size="sm"
-            variant="danger"
+            variant="ghost-danger"
             disabled={isDemo}
             onClick={() => {
               if (isWithin48Hours) {

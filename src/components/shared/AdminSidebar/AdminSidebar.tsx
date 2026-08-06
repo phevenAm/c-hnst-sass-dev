@@ -32,7 +32,17 @@ const NAV = [
   { to: "/admin/cpd", label: "CPD Log", Icon: ArticleIcon, exact: false },
 ];
 
-export default function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export default function AdminSidebar({
+  collapsed,
+  onToggle,
+  isOpen,
+  onClose,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const location = useLocation();
   const { isDemo } = useAuth();
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
@@ -52,7 +62,11 @@ export default function AdminSidebar({ collapsed, onToggle }: { collapsed: boole
 
   return (
     <>
-      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`} aria-label="Admin navigation">
+      {isOpen && <div className={styles.backdrop} onClick={onClose} aria-hidden="true" />}
+      <aside
+        className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""} ${isOpen ? styles.mobileOpen : ""}`}
+        aria-label="Admin navigation"
+      >
         <div className={styles.top}>
           <Link to="/admin" className={styles.logo} aria-label="WithMe Admin — home">
             <div className={styles.logoMark}>
@@ -73,6 +87,7 @@ export default function AdminSidebar({ collapsed, onToggle }: { collapsed: boole
                     className={`${styles.navLink} ${active ? styles.active : ""}`}
                     aria-current={active ? "page" : undefined}
                     title={collapsed ? label : undefined}
+                    onClick={onClose}
                   >
                     <span className={styles.icon}>
                       <Icon />
@@ -100,7 +115,12 @@ export default function AdminSidebar({ collapsed, onToggle }: { collapsed: boole
             </button>
           )}
 
-          <Link to="/admin/audit-logs" className={styles.bottomLink} title={collapsed ? "Activity log" : undefined}>
+          <Link
+            to="/admin/audit-logs"
+            className={styles.bottomLink}
+            title={collapsed ? "Activity log" : undefined}
+            onClick={onClose}
+          >
             <span className={styles.icon}>
               <HistoryIcon />
             </span>

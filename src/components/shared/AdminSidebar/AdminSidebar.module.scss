@@ -1,4 +1,5 @@
 @use '../../../styles/spacing' as *;
+@use '../../../styles/mixins' as *;
 
 $w: 220px;
 $w-collapsed: 60px;
@@ -216,6 +217,33 @@ $transition: 0.22s ease;
 .version {
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
+}
+
+// ── Mobile backdrop ────────────────────────────────────────
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 199;
+}
+
+// ── Mobile overlay behaviour ───────────────────────────────
+
+@include until-md {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform $transition, width $transition;
+    width: $w; // always full-width on mobile — no icon-only mode
+
+    &.mobileOpen {
+      transform: translateX(0);
+    }
+  }
+
+  .collapseBtn {
+    display: none;
+  }
 }
 
 // ── Collapse arrow button ───────────────────────────────────

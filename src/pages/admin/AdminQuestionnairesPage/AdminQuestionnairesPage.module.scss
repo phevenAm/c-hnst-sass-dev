@@ -26,6 +26,9 @@
   border-bottom: 1px solid var(--border);
   gap: 0;
   margin-bottom: $sp-6;
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
 .tab {
@@ -122,6 +125,7 @@
   display: flex;
   gap: $sp-2;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .empty {

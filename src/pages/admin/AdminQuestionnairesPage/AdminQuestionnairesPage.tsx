@@ -542,7 +542,12 @@ function TagsModal({ tags, onClose }: { tags: Tag[]; onClose: () => void }) {
                   >
                     Rename
                   </Button>
-                  <Button size="sm" variant="danger" disabled={isDemo} onClick={() => dispatch(deleteTag(tag.id))}>
+                  <Button
+                    size="sm"
+                    variant="ghost-danger"
+                    disabled={isDemo}
+                    onClick={() => dispatch(deleteTag(tag.id))}
+                  >
                     Delete
                   </Button>
                 </>
@@ -755,7 +760,7 @@ export default function AdminQuestionnairesPage() {
                         {q.is_active ? "Pause" : "Activate"}
                       </Button>
                       <Button
-                        variant="danger"
+                        variant="ghost-danger"
                         size="sm"
                         disabled={isDemo}
                         onClick={() => dispatch(deleteQuestionnaire(q.id))}
