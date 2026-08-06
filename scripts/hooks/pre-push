@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 
 echo ""
+echo "-- Pre-push: version bump check ----------------------------"
+CURRENT=$(node -e "console.log(require('./package.json').version)")
+MAIN=$(git show main:package.json 2>/dev/null | node -e "
+  let d=''; process.stdin.on('data',c=>d+=c);
+  process.stdin.on('end',()=>{ try{console.log(JSON.parse(d).version)}catch(e){} });
+")
+
+if [ -z "$MAIN" ]; then
+  echo "OK (no main branch to compare against)"
+elif [ "$CURRENT" = "$MAIN" ]; then
+  echo ""
+  echo "  ERROR: version in package.json ($CURRENT) is the same as main."
+  echo "  Bump the version before pushing — edit \"version\" in package.json"
+  echo ""
+  exit 1
+else
+  echo "OK $MAIN → $CURRENT"
+fi
+echo ""
+
 echo "-- Pre-push: lint fix ---------------------------------------"
 npm run lint:fix > /dev/null 2>&1 || true
 echo "OK done"
