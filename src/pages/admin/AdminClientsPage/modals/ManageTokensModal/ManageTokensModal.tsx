@@ -107,7 +107,7 @@ export default function ManageTokensModal({ onClose }: { onClose: () => void }) 
               <Button variant="ghost" size="sm">
                 Renew selected
               </Button>
-              <Button variant="danger" size="sm" onClick={handleBatchDelete}>
+              <Button variant="ghost-danger" size="sm" onClick={handleBatchDelete}>
                 Delete selected
               </Button>
             </div>
@@ -146,7 +146,7 @@ export default function ManageTokensModal({ onClose }: { onClose: () => void }) 
                   {updatingId === t.id ? "..." : "Renew"}
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="ghost-danger"
                   size="sm"
                   onClick={() => handleDeleteToken(t.id)}
                   disabled={deletingId === t.id}

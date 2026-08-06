@@ -712,7 +712,7 @@ const SettingsPage = () => {
                         title={tpl.label}
                         srcDoc={tpl.preview}
                         className={styles.emailIframe}
-                        sandbox="allow-same-origin"
+                        sandbox="allow-same-origin allow-scripts"
                       />
 
                       <div className={styles.emailRowActions}>

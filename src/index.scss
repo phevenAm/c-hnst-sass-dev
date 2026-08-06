@@ -256,6 +256,13 @@ $admin-sidebar-collapsed-w: 60px;
   }
 }
 
+@include until-md {
+  .adminBody,
+  .adminBodyCollapsed {
+    margin-left: $admin-sidebar-collapsed-w !important; // icon strip always visible
+  }
+}
+
 // ── App shell layout ───────────────────────────────────────
 #main-content {
   display: flex;
@@ -263,6 +270,10 @@ $admin-sidebar-collapsed-w: 60px;
   flex: 1;
   overflow-y: auto;
   padding: $sp-8 $sp-6;
+
+  @include until-md {
+    padding: $sp-5 $sp-3;
+  }
 
   .inner {
     @include container-inner($max: var(--max-width)); // control max with and responsive padding

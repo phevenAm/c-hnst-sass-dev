@@ -1,4 +1,5 @@
 @use '../../../styles/spacing' as *;
+@use '../../../styles/mixins' as *;
 
 $w: 220px;
 $w-collapsed: 60px;
@@ -218,6 +219,48 @@ $transition: 0.22s ease;
   color: var(--text-muted);
 }
 
+// ── Mobile backdrop ────────────────────────────────────────
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 199;
+}
+
+// ── Mobile overlay behaviour ───────────────────────────────
+// Icons always visible as a 60px strip. Expand button overlays at 220px
+// without pushing content — adminBody keeps margin-left: 60px always.
+
+@include until-md {
+  .sidebar {
+    width: $w-collapsed; // always icon-strip width
+    transition: width $transition;
+
+    // Force collapsed visual (icons only) regardless of desktop state
+    .logoText,
+    .label,
+    .branding {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    // When overlay is open, expand and show labels
+    &.mobileOpen {
+      width: $w;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+
+      .logoText,
+      .label,
+      .branding {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+  }
+
+}
+
 // ── Collapse arrow button ───────────────────────────────────
 
 .collapseBtn {
@@ -249,5 +292,16 @@ $transition: 0.22s ease;
   &:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
+  }
+
+  // On mobile: move to bottom-centre of the icon strip — bigger, easier to tap
+  @include until-md {
+    top: unset;
+    right: unset;
+    bottom: $sp-5;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
   }
 }

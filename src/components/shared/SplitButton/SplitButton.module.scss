@@ -52,61 +52,54 @@
         }
     }
 
-    .secondaryDropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        min-width: 100%;
-        z-index: 100;
-        opacity: 0;
-        transition: all 100ms 100ms;
-        height: 0px;
+}
 
-        &.meh {
-            opacity: 1;
-            height: 100%;
-        }
+// Dropdown rendered via portal at document.body — escapes all stacking contexts
+.portalDropdown {
+    position: fixed;
+    z-index: 9999;
 
-        ul {
-            background: var(--bg-card);
-            border: 1.5px solid var(--border);
-            border-top: 0 !important;
-            border-bottom-left-radius: var(--r-md);
-            border-bottom-right-radius: var(--r-md);
-            list-style: none;
-            padding: $sp-1 0;
-            margin: 0;
+    ul {
+        background: var(--bg-card);
+        border: 1.5px solid var(--border);
+        border-radius: var(--r-md);
+        list-style: none;
+        padding: $sp-1 0;
+        margin: 0;
+        box-shadow: var(--shadow-md);
 
+        li {
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-family: var(--font-sans);
+            color: var(--text-primary);
+            white-space: nowrap;
 
-            li {
-                cursor: pointer;
-                font-size: 0.875rem;
-                font-family: var(--font-sans);
-                color: var(--text-primary);
-                white-space: nowrap;
+            &:hover {
+                background: var(--bg-muted);
+            }
 
-                &:hover {
-                    background: var(--bg-muted);
-                }
-
-                &:last-of-type {
-                    border-bottom-left-radius: var(--r-md);
-                    border-bottom-right-radius: var(--r-md);
-                }
-
-                button {
-                    width: 100%;
-                    padding: $sp-2 $sp-4;
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    text-align: left;
-                    font-size: inherit;
-                    font-family: inherit;
-                    color: inherit;
-                }
+            &:last-of-type {
+                border-bottom-left-radius: var(--r-md);
+                border-bottom-right-radius: var(--r-md);
             }
         }
+    }
+}
+
+.labelButton {
+    width: 100%;
+    padding: $sp-2 $sp-4;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.875rem;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+
+    &:hover {
+        background: var(--bg-muted);
     }
 }
 

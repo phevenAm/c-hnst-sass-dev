@@ -232,6 +232,9 @@
   display: flex;
   border-bottom: 1px solid var(--border);
   gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
 .tab {

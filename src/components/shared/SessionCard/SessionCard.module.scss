@@ -275,11 +275,26 @@
 
 
     &_Icons {
-        // padding-left: $sp-3;
-        // border-left: 1px solid var(--border);
         display: flex;
         gap: $sp-2;
+        align-items: center;
+        flex-wrap: wrap;
     }
+}
+
+.desktopActions {
+    display: flex;
+    gap: $sp-2;
+    align-items: center;
+    flex-wrap: wrap;
+
+    @include until-md { display: none; }
+}
+
+.mobileActions {
+    display: none;
+
+    @include until-md { display: flex; }
 }
 
 .attendanceGroup {

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button";
+import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 
 import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
@@ -230,22 +231,44 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
               </button>
             </div>
             <div className={styles.actions_Icons}>
-              <Button size="sm" variant="secondary" data-action-type="payment" onClick={toggleNoShowOrPayment}>
-                {session.paid ? "Unpaid" : "Paid"}
-              </Button>
-              {onNotesClick && (
-                <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
-                  Notes
+              {/* Desktop: all buttons inline */}
+              <div className={styles.desktopActions}>
+                <Button size="sm" variant="secondary" onClick={toggleNoShowOrPayment}>
+                  {session.paid ? "Unpaid" : "Paid"}
                 </Button>
-              )}
-              {!isPast && (
-                <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
-                  Reschedule
+                {onNotesClick && (
+                  <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
+                    Notes
+                  </Button>
+                )}
+                {!isPast && (
+                  <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
+                    Reschedule
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
+                  Delete
                 </Button>
-              )}
-              <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
-                Delete
-              </Button>
+              </div>
+              {/* Mobile: SplitButton collapses all actions */}
+              <div className={styles.mobileActions}>
+                <SplitButton
+                  variant="secondary"
+                  size="sm"
+                  primaryLabel={session.paid ? "Unpaid" : "Paid"}
+                  primaryAction={toggleNoShowOrPayment}
+                  options={[
+                    ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
+                    ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),
+                    {
+                      label: "Delete",
+                      onClick: () => {
+                        if (!isDemo) setIsDeleteModalOpen(true);
+                      },
+                    },
+                  ]}
+                />
+              </div>
             </div>
           </>
         )}
@@ -263,7 +286,7 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
             <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsRescheduleModalOpen(true)}>
               Reschedule
             </Button>
-            <Button size="sm" variant="danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
+            <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
               Cancel
             </Button>
           </div>
