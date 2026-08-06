@@ -22,9 +22,10 @@ interface SessionCardProps {
   session: Session;
   isDemo?: boolean;
   isAdmin?: boolean;
+  onNotesClick?: (sessionId: string) => void;
 }
 
-export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
+export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionCardProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -34,6 +35,8 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [editingCode, setEditingCode] = useState(false);
   const [codeText, setCodeText] = useState(session.reference_code ?? "");
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesText, setNotesText] = useState(session.notes ?? "");
 
   const dispatch = useAppDispatch();
   const sessionNumber = useAppSelector(selectSessionNumberMap).get(session.id);
@@ -42,6 +45,11 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
   const handleSaveCode = () => {
     dispatch(updateSession({ id: session.id, reference_code: codeText.trim() || null }));
     setEditingCode(false);
+  };
+
+  const handleSaveNotes = () => {
+    dispatch(updateSession({ id: session.id, notes: notesText.trim() || null }));
+    setEditingNotes(false);
   };
 
   useEffect(() => {
@@ -150,7 +158,53 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
         </a>
       )}
 
-      {isAdmin && <p className={session.notes ? styles.notes : styles.noNotes}>{session.notes ?? "No notes added."}</p>}
+      {isAdmin &&
+        (editingNotes ? (
+          <div className={styles.notesEditWrap}>
+            <textarea
+              className={styles.notesEdit}
+              value={notesText}
+              onChange={(e) => setNotesText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSaveNotes();
+                }
+                if (e.key === "Escape") {
+                  setNotesText(session.notes ?? "");
+                  setEditingNotes(false);
+                }
+              }}
+              autoFocus
+              rows={3}
+              placeholder="Session notes…"
+            />
+            <div className={styles.notesEditActions}>
+              <button type="button" className={styles.codeConfirm} onClick={handleSaveNotes}>
+                Save
+              </button>
+              <button
+                type="button"
+                className={styles.codeCancel}
+                onClick={() => {
+                  setNotesText(session.notes ?? "");
+                  setEditingNotes(false);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p
+            className={session.notes ? styles.notes : styles.noNotes}
+            onClick={() => setEditingNotes(true)}
+            role="button"
+            title="Click to edit notes"
+          >
+            {session.notes ?? "Click to add notes"}
+          </p>
+        ))}
 
       <div className={styles.actions}>
         {isAdmin && (
@@ -179,12 +233,17 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
               <Button size="sm" variant="secondary" data-action-type="payment" onClick={toggleNoShowOrPayment}>
                 {session.paid ? "Unpaid" : "Paid"}
               </Button>
+              {onNotesClick && (
+                <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
+                  Notes
+                </Button>
+              )}
               {!isPast && (
                 <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
                   Reschedule
                 </Button>
               )}
-              <Button size="sm" variant="danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
+              <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
                 Delete
               </Button>
             </div>

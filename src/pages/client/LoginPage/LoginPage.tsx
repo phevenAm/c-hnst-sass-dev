@@ -5,6 +5,7 @@ import Button from "@components/shared/Button/Button";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
+import { useEncryption } from "@context/EncryptionContext";
 
 import { supabase } from "@/lib/supabase";
 
@@ -190,6 +191,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, loading, isAuthenticated, isAdmin, error } = useAuth();
+  const { unlockEncryption, setupEncryption } = useEncryption();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -226,6 +228,15 @@ export default function LoginPage() {
       await signIn(email, password);
     } catch {
       // error is set in AuthContext
+      setSubmitting(false);
+      return;
+    }
+    // signIn succeeded — unlock note encryption using the same password.
+    try {
+      const result = await unlockEncryption(password);
+      if (result === "no_key") await setupEncryption(password);
+    } catch (encErr) {
+      console.error("Note encryption setup failed:", encErr);
     } finally {
       setSubmitting(false);
     }
