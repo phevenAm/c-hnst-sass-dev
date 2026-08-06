@@ -131,22 +131,72 @@
 }
 
 // ── Notes ────────────────────────────────────────────────
+.notesSection {
+    padding: $sp-3 $sp-5;
+    flex-shrink: 0;
+}
+
+.notesDisplay {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $sp-3;
+}
+
 .notes {
-    padding: 0 $sp-5;
     margin: 0;
     font-size: 0.84rem;
     color: var(--text-secondary);
     line-height: 1.55;
-    flex-shrink: 0;
 }
 
 .noNotes {
-    padding: 0 $sp-5;
     margin: 0;
     font-size: 0.82rem;
     color: var(--text-muted);
     font-style: italic;
+}
+
+.editNotesBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
     flex-shrink: 0;
+
+    &:hover {
+        color: var(--text-secondary);
+    }
+}
+
+.notesTextarea {
+    width: 100%;
+    padding: $sp-2 $sp-3;
+    font-family: inherit;
+    font-size: 0.84rem;
+    color: var(--text-primary);
+    background: var(--bg-input, var(--bg-muted));
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    resize: vertical;
+    box-sizing: border-box;
+
+    &:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+}
+
+.notesActions {
+    display: flex;
+    gap: $sp-2;
+    margin-top: $sp-2;
 }
 
 // ── Admin actions ─────────────────────────────────────────

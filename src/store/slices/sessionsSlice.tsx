@@ -1,7 +1,8 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
 
 import { supabase } from "@/lib/supabase.js";
 import type { Session, SessionStatus } from "@/models/globalTypes.js";
+import type { RootState } from "@/store/store";
 
 type SessionsState = {
   sessions: Session[];
@@ -65,6 +66,7 @@ export const updateSession = createAsyncThunk<
       | "paid"
       | "price_pence"
       | "notes"
+      | "reference_code"
       | "scheduled_at"
       | "duration_minutes"
       | "location"
@@ -171,3 +173,12 @@ const sessionsSlice = createSlice({
 
 export const { clearResponseError } = sessionsSlice.actions;
 export default sessionsSlice.reducer;
+
+// Returns a map of session id → creation-order number (1-based, stable across renders)
+export const selectSessionNumberMap = createSelector(
+  (state: RootState) => state.session.sessions,
+  (sessions) => {
+    const sorted = [...sessions].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    return new Map<string, number>(sorted.map((s, i) => [s.id, i + 1]));
+  },
+);

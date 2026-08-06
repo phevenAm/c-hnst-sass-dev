@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import dayjs, { Dayjs } from "dayjs";
 
-import { Button, Modal } from "@/components/shared";
+import { Button, DateInput, Modal } from "@/components/shared";
 import { ModalProps } from "@/components/shared/Modal/Modal";
 import { useToast } from "@/context/ToastContext";
 import { Todo } from "@/models/globalTypes";
@@ -129,15 +129,7 @@ const TodoListModal = ({ onClose, editingTask }: Props) => {
             <option value={3}>Low</option>
           </select>
         </div>
-        <div className={styles.field}>
-          <label htmlFor="todoDate">Deadline (optional)</label>
-          <input
-            id="todoDate"
-            type="date"
-            value={date?.format("YYYY-MM-DD") ?? ""}
-            onChange={(e) => setDate(e.target.value ? dayjs(e.target.value) : null)}
-          />
-        </div>
+        <DateInput mode="date" value={date} onChange={setDate} label="Deadline (optional)" />
       </div>
     </Modal>
   );

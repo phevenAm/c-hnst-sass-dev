@@ -3,6 +3,7 @@ import { useState } from "react";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import DateInput from "@components/shared/DateInput/DateInput";
 import Modal from "@components/shared/Modal/Modal";
 import { DAY_NAMES } from "@components/shared/SchedulerCalendar/schedulerUtils";
 
@@ -193,19 +194,17 @@ const AvailabilityEditor = ({ onClose }: AvailabilityEditorProps) => {
                 </option>
               ))}
             </select>
-            <input
-              className={styles.input}
-              type="time"
-              value={ruleStart}
-              onChange={(e) => setRuleStart(e.target.value)}
-              aria-label="Start time"
+            <DateInput
+              mode="time"
+              value={ruleStart ? dayjs(`2000-01-01T${ruleStart}`) : null}
+              onChange={(val) => setRuleStart(val ? val.format("HH:mm") : "")}
+              ariaLabel="Start time"
             />
-            <input
-              className={styles.input}
-              type="time"
-              value={ruleEnd}
-              onChange={(e) => setRuleEnd(e.target.value)}
-              aria-label="End time"
+            <DateInput
+              mode="time"
+              value={ruleEnd ? dayjs(`2000-01-01T${ruleEnd}`) : null}
+              onChange={(val) => setRuleEnd(val ? val.format("HH:mm") : "")}
+              ariaLabel="End time"
             />
             <input
               className={styles.input}
@@ -250,12 +249,11 @@ const AvailabilityEditor = ({ onClose }: AvailabilityEditorProps) => {
           )}
 
           <div className={styles.form}>
-            <input
-              className={styles.input}
-              type="date"
-              value={ovrDate}
-              onChange={(e) => setOvrDate(e.target.value)}
-              aria-label="Exception date"
+            <DateInput
+              mode="date"
+              value={ovrDate ? dayjs(ovrDate) : null}
+              onChange={(val) => setOvrDate(val ? val.format("YYYY-MM-DD") : "")}
+              ariaLabel="Exception date"
             />
             <select
               className={styles.input}
@@ -266,20 +264,17 @@ const AvailabilityEditor = ({ onClose }: AvailabilityEditorProps) => {
               <option value="block">Block</option>
               <option value="open">Add window</option>
             </select>
-            <input
-              className={styles.input}
-              type="time"
-              value={ovrStart}
-              onChange={(e) => setOvrStart(e.target.value)}
-              aria-label="Exception start time"
-              placeholder={ovrBlocked ? "All day" : ""}
+            <DateInput
+              mode="time"
+              value={ovrStart ? dayjs(`2000-01-01T${ovrStart}`) : null}
+              onChange={(val) => setOvrStart(val ? val.format("HH:mm") : "")}
+              ariaLabel="Exception start time"
             />
-            <input
-              className={styles.input}
-              type="time"
-              value={ovrEnd}
-              onChange={(e) => setOvrEnd(e.target.value)}
-              aria-label="Exception end time"
+            <DateInput
+              mode="time"
+              value={ovrEnd ? dayjs(`2000-01-01T${ovrEnd}`) : null}
+              onChange={(val) => setOvrEnd(val ? val.format("HH:mm") : "")}
+              ariaLabel="Exception end time"
             />
             <input
               className={styles.input}

@@ -1,10 +1,10 @@
 import { useState } from "react";
 
-import { DateTimePicker } from "@mui/x-date-pickers";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import DateInput from "@components/shared/DateInput/DateInput";
 import Modal from "@components/shared/Modal/Modal";
 
 import { useAuth } from "@/context/AuthContext";
@@ -40,8 +40,7 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
   const [title, setTitle] = useState(event?.title ?? "");
   const [startsAt, setStartsAt] = useState<Dayjs | null>(event ? dayjs(event.starts_at) : nextHour());
   const [endsAt, setEndsAt] = useState<Dayjs | null>(event ? dayjs(event.ends_at) : nextHour().add(1, "hour"));
-  const [startPickerOpen, setStartPickerOpen] = useState(false);
-  const [endPickerOpen, setEndPickerOpen] = useState(false);
+
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -145,33 +144,11 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
         <div className={styles.times}>
           <div className={styles.field}>
             <span className={styles.label}>Starts</span>
-            <DateTimePicker
-              value={startsAt}
-              onChange={setStartsAt}
-              open={startPickerOpen}
-              onOpen={() => setStartPickerOpen(true)}
-              onClose={() => setStartPickerOpen(false)}
-              format="D MMM YYYY h:mm a"
-              slotProps={{
-                field: { readOnly: true },
-                textField: { fullWidth: true, onClick: () => setStartPickerOpen(true) },
-              }}
-            />
+            <DateInput mode="datetime" value={startsAt} onChange={setStartsAt} />
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Ends</span>
-            <DateTimePicker
-              value={endsAt}
-              onChange={setEndsAt}
-              open={endPickerOpen}
-              onOpen={() => setEndPickerOpen(true)}
-              onClose={() => setEndPickerOpen(false)}
-              format="D MMM YYYY h:mm a"
-              slotProps={{
-                field: { readOnly: true },
-                textField: { fullWidth: true, onClick: () => setEndPickerOpen(true) },
-              }}
-            />
+            <DateInput mode="datetime" value={endsAt} onChange={setEndsAt} />
           </div>
         </div>
 

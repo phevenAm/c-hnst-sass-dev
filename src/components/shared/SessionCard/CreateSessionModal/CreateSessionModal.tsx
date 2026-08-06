@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { DateTimePicker } from "@mui/x-date-pickers";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import DateInput from "@components/shared/DateInput/DateInput";
 import Lookup from "@components/shared/Lookup/Lookup";
 import Modal from "@components/shared/Modal/Modal";
 
@@ -29,7 +29,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
   const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringWeeks, setRecurringWeeks] = useState(3);
@@ -203,18 +203,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
       <div className={styles.form}>
         <fieldset className={styles.fieldGroup}>
           <legend className={styles.label}>Date & time</legend>
-          <DateTimePicker
-            value={scheduledAt}
-            onChange={(val) => setScheduledAt(val)}
-            open={pickerOpen}
-            onOpen={() => setPickerOpen(true)}
-            onClose={() => setPickerOpen(false)}
-            format="D MMM YYYY h:mm a"
-            slotProps={{
-              field: { readOnly: true },
-              textField: { fullWidth: true, onClick: () => setPickerOpen(true) },
-            }}
-          />
+          <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
         </fieldset>
 
         <fieldset className={styles.fieldGroup}>
