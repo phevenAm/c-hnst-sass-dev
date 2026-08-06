@@ -8,6 +8,8 @@ import { useToast } from "@context/ToastContext";
 import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import { supabase } from "@/lib/supabase.js";
 import { Session, SessionBlockMeta, SessionEvent } from "@/models/globalTypes";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectSessionNumberMap, updateSession } from "@/store/slices/sessionsSlice";
 import CancelSessionModal from "./CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "./ClientRescheduleModal/ClientRescheduleModal";
 import CreateSessionModal from "./CreateSessionModal/CreateSessionModal";
@@ -30,8 +32,17 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
   const [openEditSession, setOpenEditSession] = useState(false);
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [editingCode, setEditingCode] = useState(false);
+  const [codeText, setCodeText] = useState(session.reference_code ?? "");
 
+  const dispatch = useAppDispatch();
+  const sessionNumber = useAppSelector(selectSessionNumberMap).get(session.id);
   const { showToast } = useToast();
+
+  const handleSaveCode = () => {
+    dispatch(updateSession({ id: session.id, reference_code: codeText.trim() || null }));
+    setEditingCode(false);
+  };
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -59,7 +70,10 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
 
   return (
     <div className={[styles.sessionItem, getCardClass(session.status, session.attended)].filter(Boolean).join(" ")}>
-      <p className={styles.date}>{dayjs(session.scheduled_at).format("dddd D MMM YYYY · h:mma")}</p>
+      <div className={styles.dateRow}>
+        {sessionNumber !== undefined && <span className={styles.sessionNumber}>#{sessionNumber}</span>}
+        <p className={styles.date}>{dayjs(session.scheduled_at).format("dddd D MMM YYYY · h:mma")}</p>
+      </div>
 
       <div className={styles.meta}>
         <span className={styles.duration}>{session.duration_minutes} min</span>
@@ -78,6 +92,47 @@ export function SessionCard({ session, isDemo, isAdmin }: SessionCardProps) {
             {(session.metadata as SessionBlockMeta).block_pos}/{(session.metadata as SessionBlockMeta).block_total}
           </span>
         )}
+        {isAdmin &&
+          (editingCode ? (
+            <div className={styles.codeEdit}>
+              <input
+                className={styles.codeInput}
+                value={codeText}
+                onChange={(e) => setCodeText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveCode();
+                  if (e.key === "Escape") {
+                    setCodeText(session.reference_code ?? "");
+                    setEditingCode(false);
+                  }
+                }}
+                autoFocus
+                placeholder="e.g. S-001"
+                maxLength={20}
+              />
+              <button type="button" className={styles.codeConfirm} onClick={handleSaveCode}>
+                ✓
+              </button>
+              <button
+                type="button"
+                className={styles.codeCancel}
+                onClick={() => {
+                  setCodeText(session.reference_code ?? "");
+                  setEditingCode(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ) : session.reference_code ? (
+            <button type="button" className={styles.codeBadge} onClick={() => setEditingCode(true)} title="Edit code">
+              {session.reference_code}
+            </button>
+          ) : (
+            <button type="button" className={styles.addCodeBtn} onClick={() => setEditingCode(true)}>
+              + code
+            </button>
+          ))}
       </div>
 
       {session.address && dayjs(session.scheduled_at).isAfter(dayjs()) && (

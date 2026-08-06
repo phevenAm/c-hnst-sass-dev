@@ -17,6 +17,7 @@ export type ModalProps = {
 
 export default function Modal({ title, onClose, children, actions, size = "md" }: ModalProps) {
   const mouseDownTarget = useRef<EventTarget | null>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -31,6 +32,19 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
       window.removeEventListener("keydown", handleEsc);
     };
   }, [onClose]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+
+    if (e.key !== "Enter") return;
+    const target = e.target as HTMLElement;
+    if (target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
+    if (target.tagName === "BUTTON") return;
+    if (document.querySelector(".MuiPickersPopper-root")) return;
+
+    const buttons = actionsRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])");
+    if (buttons?.length) buttons[buttons.length - 1].click();
+  };
 
   return createPortal(
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — keyboard handled via Escape in useEffect
@@ -49,8 +63,7 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         <div className={styles.modalHeader}>
           <h2 id="modal-title">{title}</h2>
@@ -67,7 +80,11 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
 
         <div className={styles.modalBody}>
           <div className={styles.children}>{children}</div>
-          {actions && <div className={styles.modalActions}>{actions}</div>}
+          {actions && (
+            <div ref={actionsRef} className={styles.modalActions}>
+              {actions}
+            </div>
+          )}
         </div>
       </div>
     </div>,

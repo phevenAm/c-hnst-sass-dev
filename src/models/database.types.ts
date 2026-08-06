@@ -510,6 +510,7 @@ export type Database = {
           notes: string | null;
           paid: boolean;
           price_pence: number;
+          reference_code: string | null;
           scheduled_at: string;
           status: Database["public"]["Enums"]["session_status"];
           stripe_payment_intent_id: string | null;
@@ -527,6 +528,7 @@ export type Database = {
           notes?: string | null;
           paid?: boolean;
           price_pence?: number;
+          reference_code?: string | null;
           scheduled_at: string;
           status?: Database["public"]["Enums"]["session_status"];
           stripe_payment_intent_id?: string | null;
@@ -544,6 +546,7 @@ export type Database = {
           notes?: string | null;
           paid?: boolean;
           price_pence?: number;
+          reference_code?: string | null;
           scheduled_at?: string;
           status?: Database["public"]["Enums"]["session_status"];
           stripe_payment_intent_id?: string | null;

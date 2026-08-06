@@ -8,6 +8,8 @@ import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import { Session, SessionBlockMeta, SessionEvent } from "@/models/globalTypes";
+import { useAppDispatch } from "@/store/hooks";
+import { updateSession } from "@/store/slices/sessionsSlice";
 import CancelSessionModal from "./CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "./ClientRescheduleModal/ClientRescheduleModal";
 import CreateSessionModal from "./CreateSessionModal/CreateSessionModal";
@@ -37,7 +39,10 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
   const [openEditSession, setOpenEditSession] = useState(false);
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesText, setNotesText] = useState(session.notes ?? "");
 
+  const dispatch = useAppDispatch();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -132,7 +137,49 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
       )}
 
       {/* ── Notes ─────────────────────────────────────── */}
-      {isAdmin && <p className={session.notes ? styles.notes : styles.noNotes}>{session.notes ?? "No notes added."}</p>}
+      {isAdmin && (
+        <div className={styles.notesSection}>
+          {editingNotes ? (
+            <>
+              <textarea
+                className={styles.notesTextarea}
+                value={notesText}
+                onChange={(e) => setNotesText(e.target.value)}
+                rows={3}
+                autoFocus
+              />
+              <div className={styles.notesActions}>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    dispatch(updateSession({ id: session.id, notes: notesText }));
+                    setEditingNotes(false);
+                  }}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setNotesText(session.notes ?? "");
+                    setEditingNotes(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className={styles.notesDisplay}>
+              <p className={session.notes ? styles.notes : styles.noNotes}>{session.notes ?? "No notes added."}</p>
+              <button type="button" className={styles.editNotesBtn} onClick={() => setEditingNotes(true)}>
+                {session.notes ? "Edit" : "Add notes"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Admin actions ─────────────────────────────── */}
       {isAdmin && (

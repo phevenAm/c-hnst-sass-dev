@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
+import dayjs from "dayjs";
+
 import Button from "@components/shared/Button/Button";
+import DateInput from "@components/shared/DateInput/DateInput";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
@@ -142,8 +145,12 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
               </select>
             </div>
             <div className={styles.field}>
-              <label htmlFor="cpd-date">Date</label>
-              <input id="cpd-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <label>Date</label>
+              <DateInput
+                mode="date"
+                value={date ? dayjs(date) : null}
+                onChange={(val) => setDate(val?.format("YYYY-MM-DD") ?? "")}
+              />
             </div>
           </div>
 

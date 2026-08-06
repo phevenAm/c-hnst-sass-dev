@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { TimeView } from "@mui/x-date-pickers";
-import { DateTimePicker } from "@mui/x-date-pickers";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import DateInput from "@components/shared/DateInput/DateInput";
 import Modal from "@components/shared/Modal/Modal";
 
 import { bookableWindowsForDate } from "@/components/shared/SchedulerCalendar/schedulerUtils";
@@ -26,7 +26,6 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
   const counsellorName = useCounsellorName();
   const dispatch = useAppDispatch();
   const [requestedAt, setRequestedAt] = useState<Dayjs | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
@@ -144,23 +143,13 @@ const ClientRescheduleModal = ({ session, onClose }: ClientRescheduleModalProps)
         Your current session is on <strong>{dayjs(session.scheduled_at).format("dddd D MMM [at] h:mma")}</strong>. Pick
         a time inside {counsellorName}'s availability — only open days and times can be selected. They'll confirm.
       </p>
-      <DateTimePicker
+      <DateInput
+        mode="datetime"
         value={requestedAt}
-        onChange={(val) => setRequestedAt(val)}
-        open={pickerOpen}
-        onOpen={() => setPickerOpen(true)}
-        onClose={() => setPickerOpen(false)}
-        format="D MMM YYYY h:mm a"
+        onChange={setRequestedAt}
         disablePast
         shouldDisableDate={constraints.shouldDisableDate}
         shouldDisableTime={constraints.shouldDisableTime}
-        slotProps={{
-          field: { readOnly: true },
-          textField: {
-            fullWidth: true,
-            onClick: () => setPickerOpen(true),
-          },
-        }}
       />
       <textarea
         placeholder="Any context for the change? (optional)"

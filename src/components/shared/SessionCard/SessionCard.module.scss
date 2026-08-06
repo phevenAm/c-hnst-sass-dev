@@ -22,6 +22,21 @@
     border-color: color-mix(in srgb, #3b82f6 30%, transparent);
 }
 
+.dateRow {
+    display: flex;
+    align-items: baseline;
+    gap: $sp-2;
+}
+
+.sessionNumber {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 .date {
     font-size: 0.9rem;
     font-weight: 600;
@@ -78,6 +93,76 @@
 .statusRescheduled {
     background: color-mix(in srgb, #3b82f6 12%, transparent);
     color: #2563eb;
+}
+
+.codeBadge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: var(--r-full);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+
+    &:hover {
+        background: color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+}
+
+.addCodeBtn {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+        color: var(--text-secondary);
+    }
+}
+
+.codeEdit {
+    display: flex;
+    align-items: center;
+    gap: $sp-1;
+}
+
+.codeInput {
+    font-size: 0.78rem;
+    font-family: inherit;
+    padding: 2px 6px;
+    border: 1.5px solid var(--border-focus);
+    border-radius: var(--r-sm);
+    background: var(--bg-muted);
+    color: var(--text-primary);
+    width: 90px;
+    outline: none;
+}
+
+.codeConfirm,
+.codeCancel {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1;
+}
+
+.codeConfirm {
+    color: var(--accent);
+}
+
+.codeCancel {
+    color: var(--text-muted);
 }
 
 .blockBadge {
