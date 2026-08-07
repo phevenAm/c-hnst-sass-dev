@@ -46,6 +46,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Session not found" }), { status: 404, headers: corsHeaders });
     }
 
+    const { data: practiceSettings } = await supabase
+      .from("practice_settings")
+      .select("disabled_email_types")
+      .eq("admin_id", user.id)
+      .maybeSingle();
+    if ((practiceSettings?.disabled_email_types ?? []).includes("payment_received")) {
+      return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
+    }
+
     const [{ data: clientProfile }, { data: authResult }] = await Promise.all([
       supabase.from("users").select("first_name").eq("id", session.client_id).single(),
       supabase.auth.admin.getUserById(session.client_id),

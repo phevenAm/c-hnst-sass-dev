@@ -13,7 +13,6 @@ import { useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
-import WIP from "@/components/shared/WIP/WIP";
 import {
   previewPaymentReceived,
   previewSessionBooked,
@@ -99,6 +98,29 @@ const SettingsPage = () => {
   const [savingReminders, setSavingReminders] = useState(false);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
   const [sendingTest, setSendingTest] = useState<string | null>(null);
+  const [disabledEmailTypes, setDisabledEmailTypes] = useState<string[]>([]);
+  const [paymentDeadlineHours, setPaymentDeadlineHours] = useState(48);
+  const [reminderHeading, setReminderHeading] = useState("");
+
+  const reminderHeadingRef = useRef<HTMLInputElement>(null);
+  const reminderSubjectRef = useRef<HTMLInputElement>(null);
+  const reminderBodyRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertVar<T extends HTMLInputElement | HTMLTextAreaElement>(
+    ref: React.RefObject<T>,
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    token: string,
+  ) {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    setter(el.value.slice(0, start) + token + el.value.slice(end));
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + token.length, start + token.length);
+    });
+  }
 
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
@@ -130,6 +152,9 @@ const SettingsPage = () => {
           setReminderHours(data.reminder_hours_before ?? 120);
           setReminderSubject(data.reminder_email_subject ?? "");
           setReminderBody(data.reminder_email_body ?? "");
+          setReminderHeading(data.reminder_email_heading ?? "");
+          setDisabledEmailTypes(data.disabled_email_types ?? []);
+          setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
           setUseCodenames(data.use_client_codenames ?? false);
         }
       });
@@ -208,6 +233,9 @@ const SettingsPage = () => {
         reminder_hours_before: reminderHours,
         reminder_email_subject: reminderSubject || null,
         reminder_email_body: reminderBody || null,
+        reminder_email_heading: reminderHeading || null,
+        disabled_email_types: disabledEmailTypes,
+        payment_deadline_hours: paymentDeadlineHours,
       })
       .eq("admin_id", userProfile.id);
     setSavingReminders(false);
@@ -645,49 +673,66 @@ const SettingsPage = () => {
 
         {/* ── Emails tab (admin only) ── */}
         {isAdmin && activeTab === "emails" && (
-          <WIP>
-            <Card className={styles.card}>
-              <section className={styles.businessSection}>
-                <h2>Manage emails</h2>
-                <p>Preview the emails your clients receive and send a test to your inbox.</p>
-              </section>
+          <Card className={styles.card}>
+            <section className={styles.businessSection}>
+              <h2>Manage emails</h2>
+              <p>Control which emails go out, customise their content, and send tests to your inbox.</p>
+              <div className={styles.field}>
+                <label htmlFor="paymentDeadline">Unpaid session cutoff</label>
+                <select
+                  id="paymentDeadline"
+                  value={paymentDeadlineHours}
+                  onChange={(e) => setPaymentDeadlineHours(Number(e.target.value))}
+                  className={styles.select}
+                >
+                  <option value={24}>1 day (24 hours)</option>
+                  <option value={48}>2 days — default</option>
+                  <option value={72}>3 days</option>
+                  <option value={168}>1 week</option>
+                </select>
+                <p className={styles.toggleHint} style={{ marginTop: "var(--spacing-2, 8px)" }}>
+                  How long clients have to pay before their session may be cancelled.
+                </p>
+              </div>
+            </section>
 
-              {[
-                {
-                  id: "reminder",
-                  label: "Session reminder",
-                  desc: "Sent to clients before their session",
-                  preview: previewSessionReminder(reminderBody || undefined, reminderHours),
-                },
-                {
-                  id: "session_booked",
-                  label: "Session confirmed",
-                  desc: "Sent to clients when a session is booked",
-                  preview: previewSessionBooked(),
-                },
-                {
-                  id: "session_cancelled",
-                  label: "Session cancelled",
-                  desc: "Sent to clients when a session is cancelled",
-                  preview: previewSessionCancelled(),
-                },
-                {
-                  id: "session_rescheduled",
-                  label: "Session rescheduled",
-                  desc: "Sent to clients when a session is rescheduled",
-                  preview: previewSessionRescheduled(),
-                },
-                {
-                  id: "payment_received",
-                  label: "Payment received",
-                  desc: "Sent to you when a client pays",
-                  preview: previewPaymentReceived(),
-                },
-              ].map((tpl) => (
-                <div key={tpl.id} className={styles.emailRow}>
+            {[
+              {
+                id: "reminder",
+                label: "Session reminder",
+                desc: "Sent to clients before their session",
+                preview: previewSessionReminder(reminderBody || undefined, reminderHours, reminderHeading || undefined),
+              },
+              {
+                id: "session_booked",
+                label: "Session confirmed",
+                desc: "Sent to clients when a session is booked",
+                preview: previewSessionBooked(),
+              },
+              {
+                id: "session_cancelled",
+                label: "Session cancelled",
+                desc: "Sent to clients when a session is cancelled",
+                preview: previewSessionCancelled(),
+              },
+              {
+                id: "session_rescheduled",
+                label: "Session rescheduled",
+                desc: "Sent to clients when a session is rescheduled",
+                preview: previewSessionRescheduled(),
+              },
+              {
+                id: "payment_received",
+                label: "Payment confirmation",
+                desc: "Sent to clients when their payment is confirmed",
+                preview: previewPaymentReceived(),
+              },
+            ].map((tpl) => (
+              <div key={tpl.id} className={styles.emailRow}>
+                <div className={styles.emailRowHeader}>
                   <button
                     type="button"
-                    className={styles.emailRowHeader}
+                    className={styles.emailRowExpandBtn}
                     onClick={() => setExpandedTemplate(expandedTemplate === tpl.id ? null : tpl.id)}
                   >
                     <div>
@@ -696,87 +741,155 @@ const SettingsPage = () => {
                     </div>
                     <span className={styles.emailRowChevron}>{expandedTemplate === tpl.id ? "▲" : "▼"}</span>
                   </button>
-
-                  {expandedTemplate === tpl.id && (
-                    <div className={styles.emailRowBody}>
-                      {tpl.id === "reminder" && (
-                        <div className={styles.reminderControls}>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderTiming">Send reminder</label>
-                            <select
-                              id="reminderTiming"
-                              value={reminderHours}
-                              onChange={(e) => setReminderHours(Number(e.target.value))}
-                              className={styles.select}
-                            >
-                              <option value={24}>1 day before</option>
-                              <option value={48}>2 days before</option>
-                              <option value={72}>3 days before</option>
-                              <option value={120}>5 days before (default)</option>
-                              <option value={168}>1 week before</option>
-                            </select>
-                          </div>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderSubject">
-                              Custom subject <small>(optional)</small>
-                            </label>
-                            <input
-                              id="reminderSubject"
-                              value={reminderSubject}
-                              onChange={(e) => setReminderSubject(e.target.value)}
-                              placeholder="e.g. Reminder: your session on {{date}}"
-                            />
-                          </div>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderBody">
-                              Custom message body{" "}
-                              <small>
-                                (optional — supports {"{{name}}"}, {"{{date}}"}, {"{{location}}"}, {"{{duration}}"})
-                              </small>
-                            </label>
-                            <textarea
-                              id="reminderBody"
-                              className={styles.textarea}
-                              rows={4}
-                              value={reminderBody}
-                              onChange={(e) => setReminderBody(e.target.value)}
-                              placeholder={"Hi {{name}}, just a reminder about your session on {{date}}."}
-                            />
-                          </div>
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleSaveReminderSettings}
-                            disabled={savingReminders}
-                          >
-                            {savingReminders ? "Saving…" : "Save reminder settings"}
-                          </Button>
-                        </div>
-                      )}
-
-                      <iframe
-                        title={tpl.label}
-                        srcDoc={tpl.preview}
-                        className={styles.emailIframe}
-                        sandbox="allow-same-origin allow-scripts"
-                      />
-
-                      <div className={styles.emailRowActions}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleSendTest(tpl.id)}
-                          disabled={sendingTest === tpl.id}
-                        >
-                          {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <label
+                    className={`${styles.toggleSwitch} ${!disabledEmailTypes.includes(tpl.id) ? styles.toggleSwitchOn : ""} ${styles.emailRowToggle}`}
+                    title={
+                      disabledEmailTypes.includes(tpl.id) ? "Paused — click to enable" : "Sending — click to pause"
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={!disabledEmailTypes.includes(tpl.id)}
+                      onChange={() =>
+                        setDisabledEmailTypes((prev) =>
+                          prev.includes(tpl.id) ? prev.filter((t) => t !== tpl.id) : [...prev, tpl.id],
+                        )
+                      }
+                    />
+                    <span className={styles.toggleThumb} />
+                  </label>
                 </div>
-              ))}
-            </Card>
-          </WIP>
+
+                {expandedTemplate === tpl.id && (
+                  <div className={styles.emailRowBody}>
+                    {tpl.id === "reminder" && (
+                      <div className={styles.reminderControls}>
+                        <div className={styles.field}>
+                          <label htmlFor="reminderHeading">
+                            Greeting <small>(optional — supports {"{{name}}"})</small>
+                          </label>
+                          <div className={styles.varChips}>
+                            {["{{name}}"].map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                className={styles.varChip}
+                                onClick={() => insertVar(reminderHeadingRef, setReminderHeading, v)}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            ref={reminderHeadingRef}
+                            id="reminderHeading"
+                            value={reminderHeading}
+                            onChange={(e) => setReminderHeading(e.target.value)}
+                            placeholder="Hi {{name}},"
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label htmlFor="reminderTiming">Send reminder</label>
+                          <select
+                            id="reminderTiming"
+                            value={reminderHours}
+                            onChange={(e) => setReminderHours(Number(e.target.value))}
+                            className={styles.select}
+                          >
+                            <option value={24}>1 day before</option>
+                            <option value={48}>2 days before</option>
+                            <option value={72}>3 days before</option>
+                            <option value={120}>5 days before (default)</option>
+                            <option value={168}>1 week before</option>
+                          </select>
+                        </div>
+                        <div className={styles.field}>
+                          <label htmlFor="reminderSubject">
+                            Custom subject <small>(optional)</small>
+                          </label>
+                          <div className={styles.varChips}>
+                            {["{{name}}", "{{date}}"].map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                className={styles.varChip}
+                                onClick={() => insertVar(reminderSubjectRef, setReminderSubject, v)}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            ref={reminderSubjectRef}
+                            id="reminderSubject"
+                            value={reminderSubject}
+                            onChange={(e) => setReminderSubject(e.target.value)}
+                            placeholder="e.g. Reminder: your session on {{date}}"
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label htmlFor="reminderBody">
+                            Custom message body <small>(optional)</small>
+                          </label>
+                          <div className={styles.varChips}>
+                            {["{{name}}", "{{date}}", "{{location}}", "{{duration}}"].map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                className={styles.varChip}
+                                onClick={() => insertVar(reminderBodyRef, setReminderBody, v)}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            ref={reminderBodyRef}
+                            id="reminderBody"
+                            className={styles.textarea}
+                            rows={4}
+                            value={reminderBody}
+                            onChange={(e) => setReminderBody(e.target.value)}
+                            placeholder="Hi {{name}}, just a reminder about your session on {{date}}."
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <iframe
+                      title={tpl.label}
+                      srcDoc={tpl.preview}
+                      className={styles.emailIframe}
+                      sandbox="allow-same-origin allow-scripts"
+                    />
+
+                    <div className={styles.emailRowActions}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleSendTest(tpl.id)}
+                        disabled={sendingTest === tpl.id}
+                      >
+                        {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <div className={styles.actions}>
+              <Button
+                variant="primary"
+                className={styles.saveButton}
+                onClick={handleSaveReminderSettings}
+                disabled={savingReminders}
+              >
+                {savingReminders ? "Saving…" : "Save email settings"}
+              </Button>
+            </div>
+          </Card>
         )}
       </div>
 

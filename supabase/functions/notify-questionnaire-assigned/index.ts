@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     }
 
     const [{ data: clientProfile }, { data: questionnaire }, { data: authResult }] = await Promise.all([
-      supabase.from("users").select("first_name").eq("id", user_id).single(),
+      supabase.from("users").select("first_name, admin_id").eq("id", user_id).single(),
       supabase.from("questionnaires").select("title").eq("id", questionnaire_id).single(),
       supabase.auth.admin.getUserById(user_id),
     ]);
@@ -33,6 +33,17 @@ Deno.serve(async (req) => {
     const clientEmail = authResult?.user?.email;
     if (!clientEmail) {
       return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422, headers: corsHeaders });
+    }
+
+    if (clientProfile?.admin_id) {
+      const { data: ps } = await supabase
+        .from("practice_settings")
+        .select("disabled_email_types")
+        .eq("admin_id", clientProfile.admin_id)
+        .maybeSingle();
+      if ((ps?.disabled_email_types ?? []).includes("questionnaire_assigned")) {
+        return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
+      }
     }
 
     const firstName = clientProfile?.first_name ?? "there";
