@@ -600,7 +600,7 @@ const SettingsPage = () => {
 
             <section className={styles.businessSection}>
               <h3 className={styles.sectionSubtitle}>Sidebar (mobile)</h3>
-              <div className={styles.toggleRow} style={{ cursor: "default" }}>
+              <div className={styles.settingRow}>
                 <span className={styles.toggleLabel}>
                   <strong>Expand button position</strong>
                   <span>Where the sidebar toggle sits vertically on mobile</span>

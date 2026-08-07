@@ -337,6 +337,14 @@
   line-height: 1.5;
 }
 
+// ── Setting row (label + control stacked vertically) ───────
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  padding: $sp-4 0;
+}
+
 // ── Segmented control ──────────────────────────────────────
 .segmented {
   display: inline-flex;
