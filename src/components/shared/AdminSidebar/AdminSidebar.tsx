@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 
 import { useAuth } from "@context/AuthContext";
 
-import { supabase } from "@/lib/supabase.js";
 import FeedbackModal from "../FeedbackModal/FeedbackModal";
 import {
   ArticleIcon,
@@ -45,7 +44,6 @@ export default function AdminSidebar({
 }) {
   const location = useLocation();
   const { isDemo } = useAuth();
-  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
@@ -64,15 +62,6 @@ export default function AdminSidebar({
     return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
-  useEffect(() => {
-    supabase
-      .from("practice_settings")
-      .select("logo_url")
-      .limit(1)
-      .single()
-      .then(({ data }) => setPracticeLogoUrl(data?.logo_url ?? null));
-  }, []);
-
   const isActive = (to: string, exact: boolean) =>
     exact ? location.pathname === to : location.pathname.startsWith(to);
 
@@ -86,7 +75,7 @@ export default function AdminSidebar({
         <div className={styles.top}>
           <Link to="/admin" className={styles.logo} aria-label="WithMe Admin — home">
             <div className={styles.logoMark}>
-              {practiceLogoUrl ? <img src={practiceLogoUrl} alt="" /> : <LogoIcon />}
+              <LogoIcon />
             </div>
             <span className={styles.logoText}>WithMe</span>
           </Link>

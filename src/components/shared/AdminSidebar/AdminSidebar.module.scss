@@ -39,7 +39,7 @@ $transition: 0.22s ease;
 // ── Top / logo ──────────────────────────────────────────────
 
 .top {
-  padding: $sp-4 $sp-3;
+  padding: $sp-2 $sp-2;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
@@ -50,6 +50,8 @@ $transition: 0.22s ease;
   align-items: center;
   gap: $sp-3;
   text-decoration: none;
+  padding: $sp-2;
+  border-radius: var(--r-md);
 
   &:focus-visible {
     outline: 2px solid var(--border-focus);
@@ -68,11 +70,9 @@ $transition: 0.22s ease;
   justify-content: center;
   color: var(--text-inverse);
   flex-shrink: 0;
-
-  img {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
+  svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -300,18 +300,14 @@ $transition: 0.22s ease;
     height: 36px;
   }
 
-  // Vertical position variants (mobile only) — controlled via Settings
+  // Vertical position variants — controlled via Settings
   &.btnMiddle {
-    @include until-md {
-      top: 50%;
-      transform: translateY(-50%);
-    }
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   &.btnBottom {
-    @include until-md {
-      top: unset;
-      bottom: $sp-6;
-    }
+    top: unset;
+    bottom: $sp-6;
   }
 }
