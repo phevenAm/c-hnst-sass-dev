@@ -84,10 +84,13 @@
 }
 
 .sectionSubtitle {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 0 0 $sp-5;
-  line-height: 1.5;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 $sp-4;
 }
 
 // ── Form ───────────────────────────────────────────────────

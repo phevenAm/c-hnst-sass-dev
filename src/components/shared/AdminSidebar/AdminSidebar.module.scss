@@ -59,8 +59,8 @@ $transition: 0.22s ease;
 }
 
 .logoMark {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--r-sm);
   background: var(--accent);
   display: flex;
@@ -70,8 +70,8 @@ $transition: 0.22s ease;
   flex-shrink: 0;
 
   img {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
   }
 }
