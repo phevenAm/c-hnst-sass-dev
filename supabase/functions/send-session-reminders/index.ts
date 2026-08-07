@@ -57,15 +57,30 @@ Deno.serve(async (req) => {
   ];
   const { data: practiceRows } = await supabase
     .from("practice_settings")
-    .select("admin_id, reminder_hours_before, reminder_email_subject, reminder_email_body")
+    .select(
+      "admin_id, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours",
+    )
     .in("admin_id", adminIds);
 
-  const settingsMap: Record<string, { hoursBefore: number; subject: string | null; body: string | null }> = {};
+  const settingsMap: Record<
+    string,
+    {
+      hoursBefore: number;
+      subject: string | null;
+      body: string | null;
+      heading: string | null;
+      disabledTypes: string[];
+      paymentDeadlineHours: number;
+    }
+  > = {};
   for (const ps of practiceRows ?? []) {
     settingsMap[ps.admin_id] = {
       hoursBefore: ps.reminder_hours_before ?? DEFAULT_HOURS_BEFORE,
       subject: ps.reminder_email_subject ?? null,
       body: ps.reminder_email_body ?? null,
+      heading: ps.reminder_email_heading ?? null,
+      disabledTypes: ps.disabled_email_types ?? [],
+      paymentDeadlineHours: ps.payment_deadline_hours ?? 48,
     };
   }
 
@@ -102,6 +117,8 @@ Deno.serve(async (req) => {
       const adminSettings = profile?.adminId ? settingsMap[profile.adminId] : null;
       const hoursBefore = adminSettings?.hoursBefore ?? DEFAULT_HOURS_BEFORE;
 
+      if (adminSettings?.disabledTypes.includes("reminder")) return;
+
       const dateStr = formatDate(session.scheduled_at);
       const locationLabel = session.location !== "in_person" ? "Online" : "In person";
       const daysBefore = Math.round(hoursBefore / 24);
@@ -135,20 +152,28 @@ Deno.serve(async (req) => {
           sessionDetails +
           noteBox("If you need to cancel or reschedule, please do so at least 48 hours before your session.");
       } else {
+        const deadlineHours = adminSettings?.paymentDeadlineHours ?? 48;
+        const deadlineDays = Math.round(deadlineHours / 24);
+        const deadlineLabel =
+          deadlineHours >= 24 ? `${deadlineDays} day${deadlineDays !== 1 ? "s" : ""}` : `${deadlineHours} hours`;
         subject = `Action needed: please pay for your session on ${dateStr}`;
         body =
           para(
-            `You have a session coming up in ${timeLabel}. <strong style="color:#2d2926;">Your session has not been paid yet.</strong> Please pay at least 48 hours before your session to keep your booking.`,
+            `You have a session coming up in ${timeLabel}. <strong style="color:#2d2926;">Your session has not been paid yet.</strong> Please pay at least ${deadlineLabel} before your session to keep your booking.`,
           ) +
           sessionDetails +
           noteBox(
-            "Sessions that remain unpaid within 48 hours may be cancelled. If you have questions, please reply to this email.",
+            `Sessions that remain unpaid within ${deadlineLabel} may be cancelled. If you have questions, please reply to this email.`,
           );
       }
 
+      const heading = adminSettings?.heading
+        ? adminSettings.heading.replace(/\{\{name\}\}/gi, firstName)
+        : `Hi ${firstName},`;
+
       const html = emailTemplate({
         label: "Session Reminder",
-        title: `Hi ${firstName},`,
+        title: heading,
         body,
         ...(!session.paid ? { cta: { label: "Pay now", url: `${appUrl}/my-sessions` } } : {}),
         footerNote: "This email was sent because you have a session booked through the WithMe portal.",

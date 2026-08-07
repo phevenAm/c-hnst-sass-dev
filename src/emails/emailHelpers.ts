@@ -74,7 +74,7 @@ const EXAMPLE_DATE = "Monday 10 August 2026 at 2:00pm";
 const EXAMPLE_NAME = "Alex";
 const APP_URL = "#";
 
-export function previewSessionReminder(customBody?: string, hoursBefore = 120): string {
+export function previewSessionReminder(customBody?: string, hoursBefore = 120, heading?: string): string {
   const daysBefore = Math.round(hoursBefore / 24);
   const timeLabel = daysBefore >= 1 ? `${daysBefore} day${daysBefore !== 1 ? "s" : ""}` : `${hoursBefore} hours`;
 
@@ -101,7 +101,7 @@ export function previewSessionReminder(customBody?: string, hoursBefore = 120): 
 
   return emailTemplate({
     label: "Session Reminder",
-    title: `Hi ${EXAMPLE_NAME},`,
+    title: heading ? heading.replace(/\{\{name\}\}/gi, EXAMPLE_NAME) : `Hi ${EXAMPLE_NAME},`,
     body,
     footerNote: "This email was sent because you have a session booked through the WithMe portal.",
   });
