@@ -89,6 +89,9 @@ const SettingsPage = () => {
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
+  const [sidebarBtnPos, setSidebarBtnPos] = useState<"top" | "middle" | "bottom">(
+    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
+  );
 
   const [reminderHours, setReminderHours] = useState(120);
   const [reminderSubject, setReminderSubject] = useState("");
@@ -482,119 +485,162 @@ const SettingsPage = () => {
 
         {/* ── Interface tab (admin only) ── */}
         {isAdmin && activeTab === "interface" && (
-          <Card className={styles.card}>
-            <section className={styles.businessSection}>
-              <h2>Interface</h2>
-              <p>Show or hide parts of the admin interface. Changes take effect immediately.</p>
-            </section>
-
-            <section className={styles.businessSection}>
-              <h3 className={styles.sectionSubtitle}>Clients</h3>
-              {(
-                [
-                  { id: "clients-search", label: "Hide search bar", desc: "Search input on the clients list" },
-                  {
-                    id: "client-progress-chart",
-                    label: "Hide progress chart",
-                    desc: "Survey progress chart on client detail pages",
-                  },
-                ] as const
-              ).map(({ id, label, desc }) => (
-                <label key={id} className={styles.toggleRow}>
+          <>
+            {/* Clients */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Clients</h2>
+                <p>Show or hide parts of the clients interface.</p>
+                {(
+                  [
+                    { id: "clients-search", label: "Hide search bar", desc: "Search input on the clients list" },
+                    {
+                      id: "client-progress-chart",
+                      label: "Hide progress chart",
+                      desc: "Survey progress chart on client detail pages",
+                    },
+                  ] as const
+                ).map(({ id, label, desc }) => (
+                  <label key={id} className={styles.toggleRow}>
+                    <span className={styles.toggleLabel}>
+                      <strong>{label}</strong>
+                      <span>{desc}</span>
+                    </span>
+                    <span
+                      className={`${styles.toggleSwitch} ${hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className={styles.toggleInput}
+                        checked={hiddenSections.includes(id)}
+                        onChange={() => toggleSection(id)}
+                      />
+                      <span className={styles.toggleThumb} />
+                    </span>
+                  </label>
+                ))}
+                <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
-                    <strong>{label}</strong>
-                    <span>{desc}</span>
+                    <strong>Use codenames</strong>
+                    <span>Show codenames instead of real names in your admin UI</span>
                   </span>
-                  <span
-                    className={`${styles.toggleSwitch} ${hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
-                  >
+                  <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
                     <input
                       type="checkbox"
                       className={styles.toggleInput}
-                      checked={hiddenSections.includes(id)}
-                      onChange={() => toggleSection(id)}
+                      checked={useCodenames}
+                      onChange={(e) => setUseCodenames(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
-              ))}
-              <label className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Use codenames</strong>
-                  <span>Show codenames instead of real names in your admin UI</span>
-                </span>
-                <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
-                  <input
-                    type="checkbox"
-                    className={styles.toggleInput}
-                    checked={useCodenames}
-                    onChange={(e) => setUseCodenames(e.target.checked)}
-                  />
-                  <span className={styles.toggleThumb} />
-                </span>
-              </label>
-              <p className={styles.toggleHint}>
-                Set each client's codename from their profile page. If no codename is set, their real name is used as a
-                fallback.
-              </p>
+                <p className={styles.toggleHint}>
+                  Set each client's codename from their profile page. If no codename is set, their real name is used as
+                  a fallback.
+                </p>
+              </section>
               <div className={styles.actions}>
-                <Button variant="primary" size="sm" onClick={handleSaveCodenames} disabled={savingCodenames}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveCodenames}
+                  disabled={savingCodenames}
+                >
                   {savingCodenames ? "Saving…" : "Save"}
                 </Button>
               </div>
-            </section>
+            </Card>
 
-            <section className={styles.businessSection}>
-              <h3 className={styles.sectionSubtitle}>Dashboard</h3>
-              {(
-                [
-                  { id: "dashboard-todos", label: "Hide to-do list", desc: "Task list widget on the dashboard" },
-                  {
-                    id: "dashboard-revenue",
-                    label: "Hide revenue chart",
-                    desc: "Monthly revenue trend on the dashboard",
-                  },
-                ] as const
-              ).map(({ id, label, desc }) => (
-                <label key={id} className={styles.toggleRow}>
+            {/* Dashboard */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Dashboard</h2>
+                <p>Show or hide widgets on the admin dashboard.</p>
+                {(
+                  [
+                    { id: "dashboard-todos", label: "Hide to-do list", desc: "Task list widget on the dashboard" },
+                    {
+                      id: "dashboard-revenue",
+                      label: "Hide revenue chart",
+                      desc: "Monthly revenue trend on the dashboard",
+                    },
+                  ] as const
+                ).map(({ id, label, desc }) => (
+                  <label key={id} className={styles.toggleRow}>
+                    <span className={styles.toggleLabel}>
+                      <strong>{label}</strong>
+                      <span>{desc}</span>
+                    </span>
+                    <span
+                      className={`${styles.toggleSwitch} ${hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className={styles.toggleInput}
+                        checked={hiddenSections.includes(id)}
+                        onChange={() => toggleSection(id)}
+                      />
+                      <span className={styles.toggleThumb} />
+                    </span>
+                  </label>
+                ))}
+              </section>
+            </Card>
+
+            {/* Accessibility */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Accessibility</h2>
+                <p>Adjust the app's visual behaviour.</p>
+                <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
-                    <strong>{label}</strong>
-                    <span>{desc}</span>
+                    <strong>Stop animations</strong>
+                    <span>Disables all transitions and animations across the app</span>
                   </span>
-                  <span
-                    className={`${styles.toggleSwitch} ${hiddenSections.includes(id) ? styles.toggleSwitchOn : ""}`}
-                  >
+                  <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
                     <input
                       type="checkbox"
                       className={styles.toggleInput}
-                      checked={hiddenSections.includes(id)}
-                      onChange={() => toggleSection(id)}
+                      checked={reduceMotion}
+                      onChange={(e) => setReduceMotion(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
-              ))}
-            </section>
+              </section>
+            </Card>
 
-            <section className={styles.businessSection}>
-              <h3 className={styles.sectionSubtitle}>Accessibility</h3>
-              <label className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Stop animations</strong>
-                  <span>Disables all transitions and animations across the app</span>
-                </span>
-                <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
-                  <input
-                    type="checkbox"
-                    className={styles.toggleInput}
-                    checked={reduceMotion}
-                    onChange={(e) => setReduceMotion(e.target.checked)}
-                  />
-                  <span className={styles.toggleThumb} />
-                </span>
-              </label>
-            </section>
-          </Card>
+            {/* Sidebar */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Sidebar</h2>
+                <p>Customise the position of the sidebar expand button.</p>
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Expand button position</strong>
+                    <span>Where the sidebar toggle sits vertically</span>
+                  </span>
+                  <div className={styles.segmented}>
+                    {(["top", "middle", "bottom"] as const).map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
+                        onClick={() => {
+                          setSidebarBtnPos(pos);
+                          localStorage.setItem("adminSidebarBtnPos", pos);
+                          window.dispatchEvent(new CustomEvent("adminBtnPosChange", { detail: pos }));
+                        }}
+                      >
+                        {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </Card>
+          </>
         )}
 
         {/* ── Emails tab (admin only) ── */}

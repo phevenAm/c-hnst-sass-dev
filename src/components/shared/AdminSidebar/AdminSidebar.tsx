@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 
 import { useAuth } from "@context/AuthContext";
 
-import { supabase } from "@/lib/supabase.js";
 import FeedbackModal from "../FeedbackModal/FeedbackModal";
 import {
   ArticleIcon,
@@ -45,9 +44,11 @@ export default function AdminSidebar({
 }) {
   const location = useLocation();
   const { isDemo } = useAuth();
-  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
+    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
+  );
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 768);
@@ -56,12 +57,9 @@ export default function AdminSidebar({
   }, []);
 
   useEffect(() => {
-    supabase
-      .from("practice_settings")
-      .select("logo_url")
-      .limit(1)
-      .single()
-      .then(({ data }) => setPracticeLogoUrl(data?.logo_url ?? null));
+    const handler = (e: Event) => setBtnPos((e as CustomEvent<"top" | "middle" | "bottom">).detail);
+    window.addEventListener("adminBtnPosChange", handler);
+    return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
   const isActive = (to: string, exact: boolean) =>
@@ -77,7 +75,7 @@ export default function AdminSidebar({
         <div className={styles.top}>
           <Link to="/admin" className={styles.logo} aria-label="WithMe Admin — home">
             <div className={styles.logoMark}>
-              {practiceLogoUrl ? <img src={practiceLogoUrl} alt="" /> : <LogoIcon />}
+              <LogoIcon />
             </div>
             <span className={styles.logoText}>WithMe</span>
           </Link>
@@ -149,7 +147,13 @@ export default function AdminSidebar({
         {/* Collapse/expand arrow on the right edge of the sidebar */}
         <button
           type="button"
-          className={styles.collapseBtn}
+          className={[
+            styles.collapseBtn,
+            btnPos === "middle" ? styles.btnMiddle : "",
+            btnPos === "bottom" ? styles.btnBottom : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           onClick={onToggle}
           aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isOpen || !collapsed}

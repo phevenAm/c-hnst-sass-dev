@@ -54,10 +54,12 @@
   flex-direction: row-reverse;
   gap: $sp-3;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
 
   .buttons {
     display: flex;
     gap: $sp-3;
+    align-items: center;
   }
 }

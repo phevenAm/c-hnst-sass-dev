@@ -39,7 +39,7 @@ $transition: 0.22s ease;
 // ── Top / logo ──────────────────────────────────────────────
 
 .top {
-  padding: $sp-4 $sp-3;
+  padding: $sp-2 $sp-2;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
@@ -50,6 +50,8 @@ $transition: 0.22s ease;
   align-items: center;
   gap: $sp-3;
   text-decoration: none;
+  padding: $sp-2;
+  border-radius: var(--r-md);
 
   &:focus-visible {
     outline: 2px solid var(--border-focus);
@@ -59,8 +61,8 @@ $transition: 0.22s ease;
 }
 
 .logoMark {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--r-sm);
   background: var(--accent);
   display: flex;
@@ -68,11 +70,9 @@ $transition: 0.22s ease;
   justify-content: center;
   color: var(--text-inverse);
   flex-shrink: 0;
-
-  img {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
+  svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -294,14 +294,20 @@ $transition: 0.22s ease;
     outline-offset: 2px;
   }
 
-  // On mobile: move to bottom-centre of the icon strip — bigger, easier to tap
+  // On mobile: stay on right edge, just bigger for easier tapping
   @include until-md {
-    top: unset;
-    right: unset;
-    bottom: $sp-5;
-    left: 50%;
-    transform: translateX(-50%);
     width: 36px;
     height: 36px;
+  }
+
+  // Vertical position variants — controlled via Settings
+  &.btnMiddle {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  &.btnBottom {
+    top: unset;
+    bottom: $sp-6;
   }
 }
