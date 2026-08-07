@@ -89,6 +89,9 @@ const SettingsPage = () => {
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
+  const [sidebarBtnPos, setSidebarBtnPos] = useState<"top" | "middle" | "bottom">(
+    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
+  );
 
   const [reminderHours, setReminderHours] = useState(120);
   const [reminderSubject, setReminderSubject] = useState("");
@@ -593,6 +596,32 @@ const SettingsPage = () => {
                   <span className={styles.toggleThumb} />
                 </span>
               </label>
+            </section>
+
+            <section className={styles.businessSection}>
+              <h3 className={styles.sectionSubtitle}>Sidebar (mobile)</h3>
+              <div className={styles.toggleRow} style={{ cursor: "default" }}>
+                <span className={styles.toggleLabel}>
+                  <strong>Expand button position</strong>
+                  <span>Where the sidebar toggle sits vertically on mobile</span>
+                </span>
+                <div className={styles.segmented}>
+                  {(["top", "middle", "bottom"] as const).map((pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
+                      onClick={() => {
+                        setSidebarBtnPos(pos);
+                        localStorage.setItem("adminSidebarBtnPos", pos);
+                        window.dispatchEvent(new CustomEvent("adminBtnPosChange", { detail: pos }));
+                      }}
+                    >
+                      {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </section>
           </Card>
         )}

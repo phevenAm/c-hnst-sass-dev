@@ -294,14 +294,24 @@ $transition: 0.22s ease;
     outline-offset: 2px;
   }
 
-  // On mobile: move to bottom-centre of the icon strip — bigger, easier to tap
+  // On mobile: stay on right edge, just bigger for easier tapping
   @include until-md {
-    top: unset;
-    right: unset;
-    bottom: $sp-5;
-    left: 50%;
-    transform: translateX(-50%);
     width: 36px;
     height: 36px;
+  }
+
+  // Vertical position variants (mobile only) — controlled via Settings
+  &.btnMiddle {
+    @include until-md {
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  }
+
+  &.btnBottom {
+    @include until-md {
+      top: unset;
+      bottom: $sp-6;
+    }
   }
 }

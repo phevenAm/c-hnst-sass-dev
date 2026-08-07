@@ -48,11 +48,20 @@ export default function AdminSidebar({
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
+    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
+  );
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => setBtnPos((e as CustomEvent<"top" | "middle" | "bottom">).detail);
+    window.addEventListener("adminBtnPosChange", handler);
+    return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
   useEffect(() => {
@@ -149,7 +158,13 @@ export default function AdminSidebar({
         {/* Collapse/expand arrow on the right edge of the sidebar */}
         <button
           type="button"
-          className={styles.collapseBtn}
+          className={[
+            styles.collapseBtn,
+            btnPos === "middle" ? styles.btnMiddle : "",
+            btnPos === "bottom" ? styles.btnBottom : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           onClick={onToggle}
           aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isOpen || !collapsed}
