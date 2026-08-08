@@ -25,6 +25,7 @@ import ManageTokensModal from "./modals/ManageTokensModal/ManageTokensModal";
 import SessionNotesModal from "./modals/SessionNotesModal/SessionNotesModal";
 
 import styles from "./AdminClientsPage.module.scss";
+import { Button } from "@/components/shared";
 
 const getQuestionnaireForResponse = (response: Response | undefined, questionnaires: Questionnaire[]) => {
   if (!response) return undefined;
@@ -220,11 +221,24 @@ export default function AdminClientsPage() {
 
         <Card>
           {filtered.length === 0 ? (
-            <p className={styles.empty}>
-              {allClients.length === 0
-                ? "No clients yet. Create an access token and ask a client to sign up."
-                : "No clients match your search."}
-            </p>
+            <div className={styles.empty}>
+              {allClients.length === 0 ? (
+                <div className={styles.freshAccount}>
+                  <p>
+                    No clients yet. <br /> Create an access token and ask a client to sign up,{" "}
+                    <i>or create an offline client.</i>
+                  </p>
+                  <small>
+                    *info tooltop, offline client allows you to create sessions manage payments and notes even if the
+                    client hasn't joined the app yet. the offline data can be merged with the client's, once the join
+                    the platform
+                  </small>
+                  <Button>Create offline client</Button>
+                </div>
+              ) : (
+                <p>No clients match your search.</p>
+              )}
+            </div>
           ) : (
             filtered.map((user) => <ClientRow key={user.id} user={user} />)
           )}
