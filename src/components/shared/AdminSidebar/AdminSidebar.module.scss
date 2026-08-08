@@ -282,7 +282,7 @@ $transition: 0.22s ease;
   color: var(--text-secondary);
   padding: 0;
   transition: background var(--transition-base), color var(--transition-base),
-    border-color var(--transition-base);
+    border-color var(--transition-base), top 450ms ease-in-out, bottom 450ms ease-in-out;
 
   &:hover {
     background: var(--accent-light);
@@ -308,7 +308,8 @@ $transition: 0.22s ease;
   }
 
   &.btnBottom {
-    top: unset;
+    top: 95vh;
+    // top: unset;
     bottom: $sp-6;
   }
 }
