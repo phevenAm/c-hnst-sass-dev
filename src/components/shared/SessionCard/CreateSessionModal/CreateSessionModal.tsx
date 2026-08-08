@@ -18,7 +18,7 @@ import { createSession, updateSession } from "@/store/slices/sessionsSlice";
 import styles from "./CreateSessionModal.module.scss";
 
 type CreateSessionModalTypes = {
-  clientId: string;
+  clientId?: string;
   clientName?: string;
   onClose: () => void;
   session?: Session | null;
@@ -180,195 +180,199 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
     }
   };
 
-  return (
-    <Modal
-      title={session ? "Update session" : `Create session - ${clientName}`}
-      onClose={onClose}
-      size="sm"
-      actions={
-        <div className={styles.modalActions}>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          {session ? (
-            <Button onClick={() => handleSessionUpdate(session)} disabled={!scheduledAt || isSaving}>
-              {isSaving ? "Updating session..." : "Update session"}
+  const dynamicNewSessionModal = () => {
+    return (
+      <Modal
+        title={session ? "Update session" : `Create session - ${clientName}`}
+        onClose={onClose}
+        size="sm"
+        actions={
+          <div className={styles.modalActions}>
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
             </Button>
-          ) : (
-            <Button onClick={handleSave} disabled={!scheduledAt || isSaving}>
-              {/** biome-ignore lint/style/noNestedTernary: <explanation> */}
-              {isSaving ? "Scheduling…" : isRecurring ? "Schedule sessions" : "Schedule session"}
-            </Button>
-          )}
-        </div>
-      }
-    >
-      <div className={styles.form}>
-        <fieldset className={styles.fieldGroup}>
-          <legend className={styles.label}>Date & time</legend>
-          <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
-        </fieldset>
-
-        <fieldset className={styles.fieldGroup}>
-          <legend className={styles.label}>Session duration</legend>
-          <div className={styles.inputWrapper}>
-            <input
-              id="session-duration"
-              className={styles.input}
-              type="number"
-              min={10}
-              max={90}
-              value={sessionDuration}
-              onChange={(e) => setSessionDuration(Number(e.target.value))}
-            />
+            {session ? (
+              <Button onClick={() => handleSessionUpdate(session)} disabled={!scheduledAt || isSaving}>
+                {isSaving ? "Updating session..." : "Update session"}
+              </Button>
+            ) : (
+              <Button onClick={handleSave} disabled={!scheduledAt || isSaving}>
+                {/** biome-ignore lint/style/noNestedTernary: <explanation> */}
+                {isSaving ? "Scheduling…" : isRecurring ? "Schedule sessions" : "Schedule session"}
+              </Button>
+            )}
           </div>
-        </fieldset>
+        }
+      >
+        <div className={styles.form}>
+          <fieldset className={styles.fieldGroup}>
+            <legend className={styles.label}>Date & time</legend>
+            <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
+          </fieldset>
 
-        <fieldset className={styles.fieldGroup}>
-          <legend className={styles.label}>Session location</legend>
-          <div className={styles.locationRadios}>
-            <label className={styles.radioLabel}>
+          <fieldset className={styles.fieldGroup}>
+            <legend className={styles.label}>Session duration</legend>
+            <div className={styles.inputWrapper}>
               <input
-                type="radio"
-                name="sessionLocation"
-                checked={location === "in_person"}
-                onChange={() => setLocation("in_person")}
+                id="session-duration"
+                className={styles.input}
+                type="number"
+                min={10}
+                max={90}
+                value={sessionDuration}
+                onChange={(e) => setSessionDuration(Number(e.target.value))}
               />
-              In-person
-            </label>
-            <label className={styles.radioLabel}>
+            </div>
+          </fieldset>
+
+          <fieldset className={styles.fieldGroup}>
+            <legend className={styles.label}>Session location</legend>
+            <div className={styles.locationRadios}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="sessionLocation"
+                  checked={location === "in_person"}
+                  onChange={() => setLocation("in_person")}
+                />
+                In-person
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="sessionLocation"
+                  checked={location === "remote"}
+                  onChange={() => setLocation("remote")}
+                />
+                Remote
+              </label>
+            </div>
+            {location === "in_person" ? (
+              <Lookup
+                value={sessionAddress}
+                onChange={setSessionAddress}
+                options={savedLocations}
+                onSave={handleSaveLocation}
+                onRemove={handleRemoveLocation}
+                saving={savingLocation}
+                saveLabel="+ Save this location"
+                placeholder="e.g. 15 London Rd, LD5 4EO (optional)"
+              />
+            ) : (
               <input
-                type="radio"
-                name="sessionLocation"
-                checked={location === "remote"}
-                onChange={() => setLocation("remote")}
+                className={styles.input}
+                type="url"
+                placeholder="Meeting link (optional)"
+                value={sessionAddress}
+                onChange={(e) => setSessionAddress(e.target.value)}
               />
-              Remote
-            </label>
-          </div>
-          {location === "in_person" ? (
-            <Lookup
-              value={sessionAddress}
-              onChange={setSessionAddress}
-              options={savedLocations}
-              onSave={handleSaveLocation}
-              onRemove={handleRemoveLocation}
-              saving={savingLocation}
-              saveLabel="+ Save this location"
-              placeholder="e.g. 15 London Rd, LD5 4EO (optional)"
-            />
-          ) : (
-            <input
-              className={styles.input}
-              type="url"
-              placeholder="Meeting link (optional)"
-              value={sessionAddress}
-              onChange={(e) => setSessionAddress(e.target.value)}
-            />
+            )}
+          </fieldset>
+
+          {!session && (
+            <div className={styles.checkboxGroup}>
+              <input
+                id="recurring"
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => {
+                  setIsRecurring(e.target.checked);
+                  setPricePounds((prev) => {
+                    if (e.target.checked && prev === "60.00") return "55.00";
+                    if (!e.target.checked && prev === "55.00") return "60.00";
+                    return prev;
+                  });
+                }}
+              />
+              <label htmlFor="recurring" className={styles.checkboxLabel}>
+                Repeat weekly
+              </label>
+            </div>
           )}
-        </fieldset>
 
-        {!session && (
-          <div className={styles.checkboxGroup}>
-            <input
-              id="recurring"
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => {
-                setIsRecurring(e.target.checked);
-                setPricePounds((prev) => {
-                  if (e.target.checked && prev === "60.00") return "55.00";
-                  if (!e.target.checked && prev === "55.00") return "60.00";
-                  return prev;
-                });
-              }}
-            />
-            <label htmlFor="recurring" className={styles.checkboxLabel}>
-              Repeat weekly
-            </label>
-          </div>
-        )}
+          {isRecurring && !session && (
+            <div className={styles.fieldGroup}>
+              <label className={styles.label} htmlFor="recurring-weeks">
+                Additional weeks
+              </label>
+              <input
+                id="recurring-weeks"
+                className={styles.input}
+                type="number"
+                min={1}
+                max={3}
+                value={recurringWeeks}
+                onChange={(e) => setRecurringWeeks(Number(e.target.value))}
+              />
+            </div>
+          )}
 
-        {isRecurring && !session && (
           <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="recurring-weeks">
-              Additional weeks
+            <label className={styles.label} htmlFor="session-price">
+              Session fee (£)
             </label>
             <input
-              id="recurring-weeks"
+              id="session-price"
               className={styles.input}
               type="number"
-              min={1}
-              max={3}
-              value={recurringWeeks}
-              onChange={(e) => setRecurringWeeks(Number(e.target.value))}
+              min={0}
+              step={0.01}
+              placeholder="e.g. 70.00"
+              value={pricePounds}
+              onChange={(e) => setPricePounds(e.target.value)}
             />
           </div>
-        )}
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor="session-price">
-            Session fee (£)
-          </label>
-          <input
-            id="session-price"
-            className={styles.input}
-            type="number"
-            min={0}
-            step={0.01}
-            placeholder="e.g. 70.00"
-            value={pricePounds}
-            onChange={(e) => setPricePounds(e.target.value)}
-          />
-        </div>
+          <fieldset className={styles.fieldGroup}>
+            <legend className={styles.label}>Payment</legend>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioLabel}>
+                <input type="radio" name="payment" checked={!isPrepaid} onChange={() => setIsPrepaid(false)} />
+                Payment pending
+              </label>
+              <label className={styles.radioLabel}>
+                <input type="radio" name="payment" checked={isPrepaid} onChange={() => setIsPrepaid(true)} />
+                Prepaid
+              </label>
+            </div>
+          </fieldset>
 
-        <fieldset className={styles.fieldGroup}>
-          <legend className={styles.label}>Payment</legend>
-          <div className={styles.radioGroup}>
-            <label className={styles.radioLabel}>
-              <input type="radio" name="payment" checked={!isPrepaid} onChange={() => setIsPrepaid(false)} />
-              Payment pending
+          <div className={styles.fieldGroup}>
+            <label className={styles.label} htmlFor="session-notes">
+              Notes <span className={styles.optional}>(optional)</span>
             </label>
-            <label className={styles.radioLabel}>
-              <input type="radio" name="payment" checked={isPrepaid} onChange={() => setIsPrepaid(true)} />
-              Prepaid
-            </label>
+            <textarea
+              id="session-notes"
+              className={styles.textarea}
+              placeholder="Any prep notes or context for this session…"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
-        </fieldset>
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor="session-notes">
-            Notes <span className={styles.optional}>(optional)</span>
-          </label>
-          <textarea
-            id="session-notes"
-            className={styles.textarea}
-            placeholder="Any prep notes or context for this session…"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <div className={styles.fieldGroup}>
+            <label className={styles.label} htmlFor="session-code">
+              Reference code <span className={styles.optional}>(optional)</span>
+            </label>
+            <input
+              id="session-code"
+              className={styles.input}
+              type="text"
+              placeholder="e.g. S-001"
+              maxLength={20}
+              value={referenceCode}
+              onChange={(e) => setReferenceCode(e.target.value)}
+            />
+          </div>
+
+          {error && <p className={styles.error}>{error}</p>}
         </div>
+      </Modal>
+    );
+  };
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor="session-code">
-            Reference code <span className={styles.optional}>(optional)</span>
-          </label>
-          <input
-            id="session-code"
-            className={styles.input}
-            type="text"
-            placeholder="e.g. S-001"
-            maxLength={20}
-            value={referenceCode}
-            onChange={(e) => setReferenceCode(e.target.value)}
-          />
-        </div>
-
-        {error && <p className={styles.error}>{error}</p>}
-      </div>
-    </Modal>
-  );
+  return dynamicNewSessionModal();
 };
 
 export default CreateSessionModal;

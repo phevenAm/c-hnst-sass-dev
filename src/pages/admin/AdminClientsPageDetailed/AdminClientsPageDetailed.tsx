@@ -30,6 +30,7 @@ import { useEncryption } from "@/context/EncryptionContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
+import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 import DeleteClientModal from "../AdminClientsPage/modals/DeleteClientModal/DeleteClientModal";
@@ -37,7 +38,6 @@ import SessionNotesModal from "../AdminClientsPage/modals/SessionNotesModal/Sess
 import { exportClientPDF, getScoreAverage } from "../utils/AdminClientsPageUtils";
 
 import styles from "./AdminClientsPageDetailed.module.scss";
-import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 
 type ExportSections = {
   clientDetails: boolean;

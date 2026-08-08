@@ -231,6 +231,64 @@
   margin: 0;
 }
 
+.modalIntro {
+  margin: 0 0 var(--sp-4);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.clientSelectWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.selectLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.clientSelect {
+  width: 100%;
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.modalIntro {
+  margin: 0 0 var(--sp-4);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.clientList {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.clientButton {
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.clientButton:hover,
+.clientButton:focus-visible {
+  background: var(--bg-surface);
+  border-color: var(--accent);
+}
+
 // ── Session history list ─────────────────────────────────────
 .historyMeta {
   font-size: 0.8rem;
