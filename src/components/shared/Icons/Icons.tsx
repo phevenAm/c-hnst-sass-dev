@@ -9,6 +9,13 @@ import EventRepeatOutlinedIcon from "@mui/icons-material/EventRepeatOutlined";
 import InsertLinkOutlinedIcon from "@mui/icons-material/InsertLinkOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SettingsIcon from "@mui/icons-material/Settings";
+import CurrencyPoundIcon from "@mui/icons-material/CurrencyPound";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
+import InsertInvitationIcon from "@mui/icons-material/InsertInvitation";
 
 export const ArticleIcon = () => (
   <svg
@@ -451,3 +458,14 @@ export const SidebarCardIcon = () => (
     <line x1="1" y1="10" x2="23" y2="10" />
   </svg>
 );
+
+export const MoneyIcon = () => {
+  return <CurrencyPoundIcon />;
+};
+
+export const DarkmodeIcon = () => <DarkModeOutlinedIcon />;
+export const LightmodeIcon = () => <LightModeOutlinedIcon />;
+export const NotificationBellIcon = () => <NotificationsOutlinedIcon />;
+export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
+export const CpdIcon = () => <WebStoriesOutlinedIcon />;
+export const createSession = () => <InsertInvitationIcon />;

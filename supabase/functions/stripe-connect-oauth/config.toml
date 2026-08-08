@@ -1,0 +1,2 @@
+[functions.stripe-connect-oauth]
+verify_jwt = false

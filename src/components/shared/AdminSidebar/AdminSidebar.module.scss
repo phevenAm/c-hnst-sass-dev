@@ -40,7 +40,7 @@ $transition: 0.22s ease;
 
 .top {
   padding: $sp-2 $sp-2;
-  border-bottom: 1px solid var(--border);
+  // border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -70,6 +70,7 @@ $transition: 0.22s ease;
   justify-content: center;
   color: var(--text-inverse);
   flex-shrink: 0;
+
   svg {
     width: 14px;
     height: 14px;
@@ -266,8 +267,8 @@ $transition: 0.22s ease;
 .collapseBtn {
   position: absolute;
   // sits on the right edge of the sidebar, vertically centred in the logo row
-  top: 22px;
-  right: -12px;
+  top: 55px;
+  right: -13px;
   width: 24px;
   height: 24px;
   background: var(--bg-card);

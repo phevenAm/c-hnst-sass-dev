@@ -8,7 +8,7 @@ import { supabase } from "../../../lib/supabase.js";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
-import { CloseIcon, LogoIcon, MenuIcon, MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
+import { CloseIcon, DarkmodeIcon, LightmodeIcon, LogoIcon, MenuIcon, Settingsicon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 import SkipToMain from "../SkipToMain/SkipToMain";
 
@@ -115,7 +115,7 @@ export default function Navbar() {
             aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
             className={styles.iconBtn}
           >
-            {themeMode === "light" ? <MoonIcon /> : <SunIcon />}
+            {themeMode === "light" ? <DarkmodeIcon /> : <LightmodeIcon />}
           </button>
 
           <NotificationBell />

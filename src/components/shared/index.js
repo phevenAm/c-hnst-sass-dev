@@ -26,11 +26,18 @@ export {
   MenuIcon,
   MoonIcon,
   PlusIcon,
+  MoneyIcon,
   Settingsicon,
   SunIcon,
   TickIcon,
   UsersIcon,
   VideoIcon,
+  DarkmodeIcon,
+  LightmodeIcon,
+  SupervisionLogo,
+  CpdIcon,
+  NotificationBellIcon,
+  createSession,
 } from "./Icons/Icons";
 export { default as Lookup } from "./Lookup/Lookup";
 export { default as Modal } from "./Modal/Modal";

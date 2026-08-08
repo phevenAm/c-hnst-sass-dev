@@ -67,7 +67,8 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   const [error, setError] = useState("");
 
   const pricePounds = (session.price_pence / 100).toFixed(2);
-  const cardTotalPounds = ((session.price_pence * 1.02) / 100).toFixed(2);
+  // const cardTotalPounds = ((session.price_pence * 1.02) / 100).toFixed(2);
+  const cardTotalPounds = pricePounds;
 
   useEffect(() => {
     if (!session.created_by) {
@@ -177,9 +178,9 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
 
               <div className={styles.cardAmount}>
                 <span className={styles.cardAmountValue}>£{cardTotalPounds}</span>
-                <span className={styles.cardAmountFee}>
+                {/* <span className={styles.cardAmountFee}>
                   includes 2% Stripe processing fee (session fee £{pricePounds})
-                </span>
+                </span> */}
               </div>
 
               {hasBankDetails && (

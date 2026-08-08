@@ -37,6 +37,7 @@ import SessionNotesModal from "../AdminClientsPage/modals/SessionNotesModal/Sess
 import { exportClientPDF, getScoreAverage } from "../utils/AdminClientsPageUtils";
 
 import styles from "./AdminClientsPageDetailed.module.scss";
+import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 
 type ExportSections = {
   clientDetails: boolean;
@@ -52,6 +53,10 @@ export default function AdminClientsPageDetailed() {
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
   const { status: encStatus, decryptNote } = useEncryption();
+
+  useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
+    dispatch(fetchSessionsByClientId(clientId!)),
+  );
 
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const questionnaires = useAppSelector(selectAllQuestionnaires);
@@ -115,6 +120,10 @@ export default function AdminClientsPageDetailed() {
         if (data) setRescheduleRequests(data as RescheduleRequest[]);
       });
   }, [clientId]);
+
+  useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
+    dispatch(fetchSessionsByClientId(clientId!)),
+  );
 
   // Fetch latest account summary note and decrypt if possible
   useEffect(() => {

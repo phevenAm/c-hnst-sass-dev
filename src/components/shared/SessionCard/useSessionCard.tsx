@@ -73,9 +73,9 @@ const useSessionCard = (session: Session) => {
       case "cancelled":
         return "Cancelled";
       case "paid":
-        return "Marked as paid";
-      case "unpaid":
         return "Marked as unpaid";
+      case "unpaid":
+        return "Marked as paid";
       case "attended":
         return "Attended";
       case "no_show":
