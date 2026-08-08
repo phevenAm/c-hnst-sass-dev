@@ -1,21 +1,21 @@
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CreateOutlinedIcon from "@mui/icons-material/CreateOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import CreditScoreOutlinedIcon from "@mui/icons-material/CreditScoreOutlined";
+import CurrencyPoundIcon from "@mui/icons-material/CurrencyPound";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import DoneOutlinedIcon from "@mui/icons-material/DoneOutlined";
 import EventRepeatOutlinedIcon from "@mui/icons-material/EventRepeatOutlined";
+import InsertInvitationIcon from "@mui/icons-material/InsertInvitation";
 import InsertLinkOutlinedIcon from "@mui/icons-material/InsertLinkOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import SettingsIcon from "@mui/icons-material/Settings";
-import CurrencyPoundIcon from "@mui/icons-material/CurrencyPound";
-import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
-import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import SettingsIcon from "@mui/icons-material/Settings";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
-import InsertInvitationIcon from "@mui/icons-material/InsertInvitation";
 
 export const ArticleIcon = () => (
   <svg
@@ -468,4 +468,4 @@ export const LightmodeIcon = () => <LightModeOutlinedIcon />;
 export const NotificationBellIcon = () => <NotificationsOutlinedIcon />;
 export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
 export const CpdIcon = () => <WebStoriesOutlinedIcon />;
-export const createSession = () => <InsertInvitationIcon />;
+export const CreateSession = () => <InsertInvitationIcon />;

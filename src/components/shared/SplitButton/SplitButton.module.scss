@@ -63,7 +63,9 @@
     ul {
         background: var(--bg-card);
         border: 1.5px solid var(--border);
-        border-radius: var(--r-md);
+            border-radius: var(--r-md);
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
         list-style: none;
         padding: $sp-1 0;
         margin: 0;

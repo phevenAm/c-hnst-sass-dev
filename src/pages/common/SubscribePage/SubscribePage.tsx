@@ -48,13 +48,11 @@ const PRICING_FEATURES = [
   { text: "Practice analytics and PDF export", slide: 3 },
 ];
 
-type Plan = "website" | "app" | "bundle";
+type Plan = "app";
 type Billing = "monthly" | "annual";
 
 const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string }> = {
-  website: { label: "Website", monthly: 15, annual: 150, desc: "Branded client portal" },
-  app: { label: "App", monthly: 20, annual: 200, desc: "Practice management" },
-  bundle: { label: "Website + App", monthly: 29, annual: 290, desc: "Everything included" },
+  app: { label: "App", monthly: 11.99, annual: 119.99, desc: "Practice management" },
 };
 
 const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
@@ -78,28 +76,11 @@ const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
     title: "5. Clinical records",
     body: (
       <>
-        WithMe covers scheduling, payments, client check-ins, and resources. It is{" "}
-        <strong>not designed to store confidential clinical session notes</strong> — these must be kept in a separate,
-        encrypted system with access controls, linked to clients by an identifier rather than name, and retained for a
-        minimum of three years after the therapeutic relationship ends, in line with{" "}
-        <a
-          href="https://www.bacp.co.uk/media/20401/bacp-confidentiality-and-record-keeping-crp-gpia065-jan24.pdf"
-          target="_blank"
-          rel="noreferrer"
-          className={styles.termsBodyLink}
-        >
-          BACP record-keeping guidance (Jan 2024)
-        </a>{" "}
-        and{" "}
-        <a
-          href="https://www.bacp.co.uk/news/news-from-bacp/blogs/2025/blogs-and-vlogs/21-march-notes-and-record-keeping/"
-          target="_blank"
-          rel="noreferrer"
-          className={styles.termsBodyLink}
-        >
-          UK GDPR
-        </a>
-        . You remain solely responsible for your own record-keeping compliance.
+        WithMe covers scheduling, payments, client check-ins, and resources. It is not designed to store confidential
+        clinical session notes — these must be kept in a separate, encrypted system with access controls, linked to
+        clients by an identifier rather than name, and retained for a minimum of three years after the therapeutic
+        relationship ends, in line with BACP record-keeping guidance (Jan 2024) and UK GDPR. You remain solely
+        responsible for your own record-keeping compliance.
       </>
     ),
   },
@@ -121,6 +102,7 @@ export default function SubscribePage() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
   const { signOut } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [current, setCurrent] = useState(0);
@@ -128,16 +110,18 @@ export default function SubscribePage() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [plan, setPlan] = useState<Plan>("app");
   const [billing, setBilling] = useState<Billing>("monthly");
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (searchParams.get("canceled") === "true") {
       showToast("Checkout cancelled — you can try again any time.", "warning");
     }
-  }, []);
+  }, [searchParams, showToast]);
 
   const startAutoAdvance = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+
     intervalRef.current = setInterval(() => {
       setCurrent((c) => (c + 1) % SLIDES.length);
     }, 5000);
@@ -145,6 +129,7 @@ export default function SubscribePage() {
 
   useEffect(() => {
     startAutoAdvance();
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -163,12 +148,15 @@ export default function SubscribePage() {
   const handleSubscribe = async () => {
     setLoading(true);
     setError("");
+
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-subscription-checkout", {
         body: { plan, billing },
       });
+
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
+
       window.location.href = data.url;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -183,12 +171,8 @@ export default function SubscribePage() {
   const { Icon, title, description, points } = SLIDES[current];
 
   return (
-    <main className={styles.page}>
-      <div className={styles.blobTop} aria-hidden="true" />
-      <div className={styles.blobBottom} aria-hidden="true" />
-
+    <main>
       <div className={styles.container}>
-        {/* Logo */}
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
             <LogoIcon />
@@ -197,10 +181,8 @@ export default function SubscribePage() {
           <p className={styles.logoSub}>Start your subscription</p>
         </div>
 
-        {/* Wide card */}
         <div className={styles.card}>
           <div className={styles.grid}>
-            {/* ── Left: carousel ── */}
             <div className={styles.left}>
               <p className={styles.eyebrow}>Practice management</p>
               <h2 className={styles.heading}>Everything you need to run your practice</h2>
@@ -212,6 +194,7 @@ export default function SubscribePage() {
                   </div>
                   <h3 className={styles.slideTitle}>{title}</h3>
                   <p className={styles.slideDesc}>{description}</p>
+
                   <ul className={styles.slidePoints}>
                     {points.map((p) => (
                       <li key={p}>{p}</li>
@@ -234,9 +217,7 @@ export default function SubscribePage() {
               </div>
             </div>
 
-            {/* ── Right: pricing ── */}
             <div className={styles.right}>
-              {/* Billing toggle */}
               <div className={styles.billingToggle}>
                 <button
                   type="button"
@@ -245,6 +226,7 @@ export default function SubscribePage() {
                 >
                   Monthly
                 </button>
+
                 <button
                   type="button"
                   className={`${styles.billingBtn} ${billing === "annual" ? styles.billingBtnActive : ""}`}
@@ -254,7 +236,6 @@ export default function SubscribePage() {
                 </button>
               </div>
 
-              {/* Plan selector */}
               <div className={styles.planCards}>
                 {(Object.entries(PLANS) as [Plan, (typeof PLANS)[Plan]][]).map(([key, p]) => (
                   <button
@@ -277,6 +258,7 @@ export default function SubscribePage() {
                 <span className={styles.amount}>{displayPrice}</span>
                 <span className={styles.period}>{billing === "annual" ? "/ year" : "/ month"}</span>
               </div>
+
               {billing === "annual" ? (
                 <p className={styles.billingNote}>Save £{annualSaving} vs monthly &middot; Cancel any time</p>
               ) : (
@@ -334,24 +316,27 @@ export default function SubscribePage() {
         </p>
       </div>
 
-      {/* ── T&Cs modal ── */}
       {termsOpen && (
         <div className={styles.backdrop} onClick={() => setTermsOpen(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Terms &amp; Conditions</h2>
+
               <button type="button" className={styles.modalClose} onClick={() => setTermsOpen(false)}>
                 ✕
               </button>
             </div>
+
             <div className={styles.modalBody}>
               <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
+
               <div className={styles.purposeBox}>
                 <strong>WithMe is a practice management tool</strong> for independent counsellors and therapists. It
                 helps you manage clients, schedule sessions, send surveys, and process payments. It is{" "}
                 <strong>not a clinical record system</strong> — confidential session notes must be stored separately in
                 a secure, encrypted solution that meets your professional obligations.
               </div>
+
               {TERMS_SECTIONS.map(({ title: st, body }) => (
                 <div key={st} className={styles.termSection}>
                   <h3>{st}</h3>
@@ -359,10 +344,12 @@ export default function SubscribePage() {
                 </div>
               ))}
             </div>
+
             <div className={styles.modalFooter}>
               <Button onClick={handleAgree} className={styles.agreeBtn}>
                 I agree — continue to payment
               </Button>
+
               <button type="button" className={styles.declineBtn} onClick={() => setTermsOpen(false)}>
                 Cancel
               </button>
