@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-import { BookIcon, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
+import { useRealtimeTable } from "@Hooks/useRealtimeTable";
+import { BookIcon, CreateSession, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
 import { useAuth } from "@context/AuthContext";
-import { useAppSelector, useFetchOnIdle } from "@store/hooks";
+import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchAllSessions } from "@store/slices/sessionsSlice";
 import { fetchAllUsers, selectClientUsers } from "@store/slices/userDirectorySlice";
@@ -23,6 +24,7 @@ export default function AdminDashboard() {
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
 
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
+  const dispatch = useAppDispatch();
 
   useFetchOnIdle(
     (state: RootState) => state.userDirectory.status,
@@ -35,6 +37,10 @@ export default function AdminDashboard() {
     () => fetchAllSessions(),
     "Failed to fetch sessions",
   );
+
+  useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
+
+  useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
 
   const revenueData = useMemo(() => revenueByMonth(allSessions, 6), [allSessions]);
   const sessionVolumeData = useMemo(() => sessionsByWeek(allSessions, 8), [allSessions]);
@@ -53,24 +59,31 @@ export default function AdminDashboard() {
           <Card className={styles.quickActionsCard}>
             <p className={styles.quickActionsLabel}>Quick actions</p>
             <div className={styles.quickActionsRow}>
-              <Link to="/admin/forms?new=true" title="New form">
-                <div className={`${styles.metricIcon} ${styles.teal}`}>
+              <Link to="/admin/scheduler?newSession=1" title="Create a new session">
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
+                  <CreateSession />
+                </div>
+              </Link>
+
+              <Link to="/admin/scheduler?availability=1" title="Manage availability">
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
+                  <RescheduleIcon />
+                </div>
+              </Link>
+
+              <Link to="/admin/forms?new=true" title="Create a new form">
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
                   <FormsIcon />
                 </div>
               </Link>
-              <Link to="/admin/resources?new=true" title="New resource">
+              {/* <Link to="/admin/resources?new=true" title="New resource">
                 <div className={`${styles.metricIcon} ${styles.stone}`}>
                   <BookIcon />
                 </div>
-              </Link>
+              </Link> */}
               <Link to="/admin/clients?new=true" title="Create sign-up token">
-                <div className={`${styles.metricIcon} ${styles.coral}`}>
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
                   <KeyIcon />
-                </div>
-              </Link>
-              <Link to="/admin/scheduler?availability=1" title="Manage availability">
-                <div className={`${styles.metricIcon} ${styles.teal}`}>
-                  <RescheduleIcon />
                 </div>
               </Link>
             </div>

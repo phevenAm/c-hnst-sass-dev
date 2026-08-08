@@ -30,6 +30,7 @@ import { useEncryption } from "@/context/EncryptionContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
+import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 import DeleteClientModal from "../AdminClientsPage/modals/DeleteClientModal/DeleteClientModal";
@@ -52,6 +53,10 @@ export default function AdminClientsPageDetailed() {
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
   const { status: encStatus, decryptNote } = useEncryption();
+
+  useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
+    dispatch(fetchSessionsByClientId(clientId!)),
+  );
 
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const questionnaires = useAppSelector(selectAllQuestionnaires);
@@ -115,6 +120,10 @@ export default function AdminClientsPageDetailed() {
         if (data) setRescheduleRequests(data as RescheduleRequest[]);
       });
   }, [clientId]);
+
+  useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
+    dispatch(fetchSessionsByClientId(clientId!)),
+  );
 
   // Fetch latest account summary note and decrypt if possible
   useEffect(() => {

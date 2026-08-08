@@ -1,0 +1,105 @@
+<!--
+  WithMe — Stripe subscription receipt (ANNUAL)
+  ─────────────────────────────────────────────────
+  Where to use in Stripe (Test mode first):
+  1. Settings → Billing → Subscriptions and emails
+     → enable "Send a receipt after a successful payment"
+  2. Settings → Billing → Invoice template
+     → paste/adapt this HTML if your account supports a custom body,
+       OR use Settings → Branding (icon #8bb898, accent #5a8a6a) and
+       set the default memo/footer below from the note box copy.
+
+  Tip: Stripe sends one receipt email type for all subscriptions. If you
+  cannot assign separate templates per price, use this for annual products
+  and keep the monthly template as reference — or differentiate via the
+  {{subscription_plan}} merge tag in a single combined template.
+
+  Stripe merge tags (use the variable picker in the Dashboard if names differ):
+    {{customer_name}}        — customer name
+    {{invoice_number}}       — invoice number
+    {{invoice_amount}}       — amount paid (formatted)
+    {{invoice_due_date}}     — payment date
+    {{subscription_plan}}    — plan / product name (if available)
+    {{billing_portal_url}}   — link to manage subscription (if available)
+
+  Subject line suggestion:
+    Your WithMe annual subscription receipt — {{invoice_number}}
+-->
+
+<div style="background: #f3f0eb; padding: 40px 20px; font-family: Georgia, serif;">
+
+  <div style="max-width: 560px; margin: 0 auto;">
+
+    <div style="background: #8bb898; border-radius: 16px 16px 0 0; padding: 32px 40px; text-align: center;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 26px;">&#9679;</div>
+      <h1 style="font-family: Georgia, serif; font-size: 22px; font-weight: 500; color: #fff; margin: 0; letter-spacing: 0.02em;">WithMe</h1>
+      <p style="font-size: 13px; color: rgba(255,255,255,0.8); margin: 6px 0 0; font-family: system-ui, sans-serif;">A safe space for your journey</p>
+    </div>
+
+    <div style="background: #ffffff; padding: 44px 40px 36px; border-left: 1px solid #e0dbd4; border-right: 1px solid #e0dbd4;">
+      <p style="font-family: system-ui, sans-serif; font-size: 13px; color: #9e9894; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.08em;">Payment received</p>
+      <h2 style="font-family: Georgia, serif; font-size: 26px; font-weight: 500; color: #2d2926; margin: 0 0 20px; line-height: 1.3;">Thank you, {{customer_name}}</h2>
+
+      <p style="font-family: system-ui, sans-serif; font-size: 15px; color: #6b6460; line-height: 1.75; margin: 0 0 20px;">
+        We've received your annual payment for WithMe. You're covered for the next 12 months — thank you for choosing annual billing (equivalent to two months free compared to paying monthly).
+      </p>
+
+      <p style="font-family: system-ui, sans-serif; font-size: 15px; color: #6b6460; line-height: 1.75; margin: 0 0 28px;">
+        Your subscription will renew automatically in one year. You can update your payment method or cancel before the renewal date from your billing portal.
+      </p>
+
+      <div style="background: #f3f0eb; border-radius: 12px; padding: 20px 24px; margin: 0 0 28px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #9e9894; padding: 5px 0; width: 150px; vertical-align: top;">Plan</td>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #2d2926; padding: 5px 0; font-weight: 600;">{{subscription_plan}}</td>
+          </tr>
+          <tr>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #9e9894; padding: 5px 0; vertical-align: top;">Billing</td>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #2d2926; padding: 5px 0;">Annual (12 months)</td>
+          </tr>
+          <tr>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #9e9894; padding: 5px 0; vertical-align: top;">Amount paid</td>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #2d2926; padding: 5px 0; font-weight: 600;">{{invoice_amount}}</td>
+          </tr>
+          <tr>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #9e9894; padding: 5px 0; vertical-align: top;">Invoice</td>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #2d2926; padding: 5px 0;">{{invoice_number}}</td>
+          </tr>
+          <tr>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #9e9894; padding: 5px 0; vertical-align: top;">Payment date</td>
+            <td style="font-family: system-ui, sans-serif; font-size: 14px; color: #2d2926; padding: 5px 0;">{{invoice_due_date}}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 0 0 28px;">
+        <a href="{{billing_portal_url}}" style="display: inline-block; background: #5a8a6a; color: #ffffff; font-family: system-ui, sans-serif; font-size: 15px; font-weight: 500; text-decoration: none; padding: 14px 36px; border-radius: 999px; letter-spacing: 0.01em;">
+          Manage subscription
+        </a>
+      </div>
+
+      <div style="background: #f3f0eb; border-radius: 12px; padding: 18px 22px;">
+        <p style="font-family: system-ui, sans-serif; font-size: 13px; color: #9e9894; line-height: 1.6; margin: 0;">
+          This is your receipt for your WithMe annual subscription. Access continues until your renewal date unless you cancel. If you did not authorise this payment, please contact us at hello@withme.app as soon as possible.
+        </p>
+      </div>
+    </div>
+
+    <div style="background: #2d2926; border-radius: 0 0 16px 16px; padding: 28px 40px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(139,184,152,0.25); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">&#9679;</div>
+        <span style="font-family: Georgia, serif; font-size: 14px; color: #f0ece8; font-weight: 500;">WithMe</span>
+      </div>
+      <p style="font-family: system-ui, sans-serif; font-size: 12px; color: #706c68; line-height: 1.7; margin: 0 0 12px;">
+        This email was sent because an annual subscription payment was processed for your WithMe account. Client session payments are handled separately via your connected Stripe account.
+      </p>
+      <div style="border-top: 1px solid #3a3834; padding-top: 14px; display: flex; gap: 20px; flex-wrap: wrap;">
+        <a href="https://withme.app/terms" style="font-family: system-ui, sans-serif; font-size: 12px; color: #8bb898; text-decoration: none;">Terms of service</a>
+        <a href="https://withme.app/privacy" style="font-family: system-ui, sans-serif; font-size: 12px; color: #8bb898; text-decoration: none;">Privacy policy</a>
+      </div>
+    </div>
+
+  </div>
+
+</div>

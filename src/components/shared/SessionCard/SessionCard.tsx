@@ -233,8 +233,8 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
             <div className={styles.actions_Icons}>
               {/* Desktop: all buttons inline */}
               <div className={styles.desktopActions}>
-                <Button size="sm" variant="secondary" onClick={toggleNoShowOrPayment}>
-                  {session.paid ? "Unpaid" : "Paid"}
+                <Button size="sm" variant="secondary" data-action-type="payment" onClick={toggleNoShowOrPayment}>
+                  {session.paid ? "Mark as unpaid" : "Mark as paid"}
                 </Button>
                 {onNotesClick && (
                   <Button size="sm" variant="secondary" onClick={() => onNotesClick(session.id)}>
@@ -255,8 +255,8 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
                 <SplitButton
                   variant="secondary"
                   size="sm"
-                  primaryLabel={session.paid ? "Unpaid" : "Paid"}
-                  primaryAction={toggleNoShowOrPayment}
+                  primaryLabel={session.paid ? "Mark as unpaid" : "Mark as paid"}
+                  primaryAction={() => toggleNoShowOrPayment()}
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),

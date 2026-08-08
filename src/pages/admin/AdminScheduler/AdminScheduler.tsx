@@ -6,7 +6,7 @@ import { useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
-import { Button, Card, CollapsibleSection } from "@components/shared/index";
+import { Button, Card, CollapsibleSection, SplitButton } from "@components/shared/index";
 import SchedulerCalendar, { type EventInteractionArgs } from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import {
   availabilityEvents,
@@ -99,6 +99,8 @@ const AdminScheduler = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>(Views.WORK_WEEK);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [newSessionWithoutId, setNewSessionWithoutId] = useState(false);
+  const [newSessionClientId, setNewSessionClientId] = useState<string | null>(null);
   const [pendingDrop, setPendingDrop] = useState<{
     session: Session;
     clientName: string;
@@ -124,6 +126,12 @@ const AdminScheduler = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  useEffect(() => {
+    if (searchParams.get("newSession") === "1") {
+      setNewSessionWithoutId(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   // RBC's DnD addon triggers a DOM reflow on dragstart that causes the browser
   // to scroll to the top. Save and restore scroll position around every drag.
   useEffect(() => {
@@ -279,6 +287,16 @@ const AdminScheduler = () => {
     setIsPrivateOpen(true);
   };
 
+  const closeNewSessionPicker = () => {
+    setNewSessionWithoutId(false);
+    setNewSessionClientId(null);
+  };
+
+  const startNewSessionForClient = (clientId: string) => {
+    setNewSessionClientId(clientId);
+    setNewSessionWithoutId(false);
+  };
+
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
     if (r.type === "buffer") return;
@@ -354,10 +372,16 @@ const AdminScheduler = () => {
             <p className={styles.subheading}>All sessions and your availability, one view.</p>
           </div>
           <div className={styles.headerActions}>
-            <Button variant="secondary" onClick={openNewPrivate}>
-              Add private event
-            </Button>
-            <Button onClick={() => setIsAvailabilityOpen(true)}>Manage availability</Button>
+            <SplitButton
+              variant="primary"
+              // size="sm"
+              primaryLabel="Manage schedule"
+              primaryAction={() => setIsAvailabilityOpen(true)}
+              options={[
+                { label: "Add private event", onClick: openNewPrivate },
+                { label: "Create new session", onClick: () => setNewSessionWithoutId(true) },
+              ]}
+            />
           </div>
         </div>
 
@@ -519,6 +543,61 @@ const AdminScheduler = () => {
           clientId={editingSession.client_id ?? ""}
           clientName={editingClientName}
           onClose={() => setEditingSession(null)}
+        />
+      )}
+
+      {newSessionWithoutId && !newSessionClientId && (
+        <Modal
+          title="Who is this session for?"
+          onClose={closeNewSessionPicker}
+          size="md"
+          actions={
+            <>
+              <Button variant="ghost" onClick={closeNewSessionPicker}>
+                Cancel
+              </Button>
+              <Button
+                disabled={!newSessionClientId}
+                onClick={() => newSessionClientId && startNewSessionForClient(newSessionClientId)}
+              >
+                Continue
+              </Button>
+            </>
+          }
+        >
+          <p className={styles.modalIntro}>Pick the client first, then schedule their session.</p>
+          <div className={styles.clientSelectWrapper}>
+            <label htmlFor="new-session-client" className={styles.selectLabel}>
+              Client
+            </label>
+            <select
+              id="new-session-client"
+              className={styles.clientSelect}
+              value={newSessionClientId ?? ""}
+              onChange={(e) => setNewSessionClientId(e.target.value || null)}
+            >
+              <option value="">Select a client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {clientDisplayName(client, useCodenames)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Modal>
+      )}
+
+      {newSessionClientId && (
+        <CreateSessionModal
+          clientId={newSessionClientId}
+          clientName={clientDisplayName(
+            users.find((u) => u.id === newSessionClientId) ?? ({ first_name: "", last_name: "" } as any),
+            useCodenames,
+          )}
+          onClose={() => {
+            setNewSessionWithoutId(false);
+            setNewSessionClientId(null);
+          }}
         />
       )}
 
