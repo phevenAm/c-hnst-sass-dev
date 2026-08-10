@@ -91,6 +91,19 @@ export default function AdminClientsPageDetailed() {
 
   const [sessionsDateTab, setSessopmsDateTab] = useState<"upcoming" | "past">("upcoming");
 
+  type AssignedForm = {
+    id: string;
+    assigned_at: string;
+    questionnaires: {
+      id: string;
+      title: string;
+      form_type: string;
+      frequency: string | null;
+      is_active: boolean;
+    } | null;
+  };
+  const [assignedForms, setAssignedForms] = useState<AssignedForm[]>([]);
+
   useFetchOnIdle(
     (state: RootState) => state.sessions.status,
     () => fetchSessionsByClientId(clientId!),
@@ -108,6 +121,18 @@ export default function AdminClientsPageDetailed() {
   useEffect(() => {
     if (questionnairesStatus === "idle") dispatch(fetchQuestionnaires());
   }, [dispatch, questionnairesStatus]);
+
+  useEffect(() => {
+    if (!clientId) return;
+    supabase
+      .from("questionnaire_assignments")
+      .select("id, assigned_at, questionnaires(id, title, form_type, frequency, is_active)")
+      .eq("user_id", clientId)
+      .order("assigned_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setAssignedForms(data as AssignedForm[]);
+      });
+  }, [clientId]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -551,6 +576,36 @@ export default function AdminClientsPageDetailed() {
               </div>
             )}
           </div>
+        </Card>
+
+        {/* Assigned forms */}
+        <Card className={[styles.section, styles.session].join(" ")}>
+          <div className={styles.sessionHeading}>
+            <h2 className={styles.sectionTitle}>Assigned forms</h2>
+          </div>
+          {assignedForms.length === 0 ? (
+            <p className={styles.sessionEmpty}>No forms assigned to this client yet.</p>
+          ) : (
+            assignedForms.map(({ id, assigned_at, questionnaires: q }) => (
+              <div key={id} className={styles.checkInRow}>
+                <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
+                {q?.form_type && (
+                  <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
+                    {String(q.form_type).replace(/_/g, " ")}
+                  </span>
+                )}
+                {q?.frequency && (
+                  <span className={styles.checkInScoreNone} style={{ textTransform: "capitalize" }}>
+                    {q.frequency}
+                  </span>
+                )}
+                {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
+                <span className={styles.checkInDate} style={{ marginLeft: "auto" }}>
+                  Assigned {dayjs(assigned_at).format("D MMM YYYY")}
+                </span>
+              </div>
+            ))
+          )}
         </Card>
 
         {/* Danger zone */}

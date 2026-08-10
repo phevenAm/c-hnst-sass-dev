@@ -44,15 +44,15 @@
 
 // ── Logo ───────────────────────────────────────────────────
 .logoWrap {
-  text-align: center;
-  margin-bottom: $sp-8;
-}
-
-.logoMark {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto $sp-4;
+  gap: $sp-3;
+  margin-bottom: $sp-5;
+}
+
+.logoText {
+  text-align: left;
 }
 
 .logoTitle {
@@ -60,7 +60,8 @@
   font-size: 1.8rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 $sp-1;
+  margin: 0;
+  line-height: 1.1;
 }
 
 .logoSub {
@@ -217,7 +218,7 @@
 
 // ── Demo accounts ──────────────────────────────────────────
 .demoSection {
-  margin-top: $sp-6;
+  margin-top: $sp-4;
 }
 
 .demoDivider {

@@ -245,3 +245,27 @@ export type AdminPrivateEvent = {
 };
 
 export type Todo = Tables<"admin_todos">;
+
+export type ClientStub = {
+  id: string;
+  created_by: string;
+  linked_user_id: string | null;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  codename: string | null;
+  created_at: string;
+};
+
+export type StubSession = {
+  id: string;
+  stub_id: string;
+  admin_id: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  status: "scheduled" | "attended" | "no_show" | "cancelled";
+  amount_paid: number | null;
+  currency: string;
+  notes: string | null;
+  created_at: string;
+};

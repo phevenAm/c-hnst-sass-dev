@@ -8,6 +8,36 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_private_events: {
+        Row: {
+          admin_id: string;
+          created_at: string;
+          ends_at: string;
+          id: string;
+          notes: string | null;
+          starts_at: string;
+          title: string;
+        };
+        Insert: {
+          admin_id: string;
+          created_at?: string;
+          ends_at: string;
+          id?: string;
+          notes?: string | null;
+          starts_at: string;
+          title: string;
+        };
+        Update: {
+          admin_id?: string;
+          created_at?: string;
+          ends_at?: string;
+          id?: string;
+          notes?: string | null;
+          starts_at?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
       admin_todos: {
         Row: {
           admin_id: string;
@@ -82,6 +112,197 @@ export type Database = {
           },
         ];
       };
+      availability_overrides: {
+        Row: {
+          admin_id: string;
+          created_at: string;
+          end_time: string | null;
+          id: string;
+          is_blocked: boolean;
+          label: string | null;
+          override_date: string;
+          start_time: string | null;
+        };
+        Insert: {
+          admin_id: string;
+          created_at?: string;
+          end_time?: string | null;
+          id?: string;
+          is_blocked?: boolean;
+          label?: string | null;
+          override_date: string;
+          start_time?: string | null;
+        };
+        Update: {
+          admin_id?: string;
+          created_at?: string;
+          end_time?: string | null;
+          id?: string;
+          is_blocked?: boolean;
+          label?: string | null;
+          override_date?: string;
+          start_time?: string | null;
+        };
+        Relationships: [];
+      };
+      availability_rules: {
+        Row: {
+          admin_id: string;
+          created_at: string;
+          day_of_week: number;
+          end_time: string;
+          id: string;
+          label: string | null;
+          start_time: string;
+        };
+        Insert: {
+          admin_id: string;
+          created_at?: string;
+          day_of_week: number;
+          end_time: string;
+          id?: string;
+          label?: string | null;
+          start_time: string;
+        };
+        Update: {
+          admin_id?: string;
+          created_at?: string;
+          day_of_week?: number;
+          end_time?: string;
+          id?: string;
+          label?: string | null;
+          start_time?: string;
+        };
+        Relationships: [];
+      };
+      client_stubs: {
+        Row: {
+          codename: string | null;
+          created_at: string;
+          created_by: string;
+          email: string | null;
+          first_name: string;
+          id: string;
+          last_name: string;
+          linked_user_id: string | null;
+        };
+        Insert: {
+          codename?: string | null;
+          created_at?: string;
+          created_by: string;
+          email?: string | null;
+          first_name: string;
+          id?: string;
+          last_name: string;
+          linked_user_id?: string | null;
+        };
+        Update: {
+          codename?: string | null;
+          created_at?: string;
+          created_by?: string;
+          email?: string | null;
+          first_name?: string;
+          id?: string;
+          last_name?: string;
+          linked_user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      cpd_logs: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["cpd_activity_type"];
+          admin_id: string;
+          contract_code: string | null;
+          created_at: string;
+          date: string;
+          duration_minutes: number | null;
+          id: string;
+          issues_raised: string | null;
+          mode: string | null;
+          notes: string | null;
+          provider: string | null;
+          session_number: number | null;
+          supervisor_name: string | null;
+          title: string | null;
+          updated_at: string;
+          venue: string | null;
+        };
+        Insert: {
+          activity_type?: Database["public"]["Enums"]["cpd_activity_type"];
+          admin_id: string;
+          contract_code?: string | null;
+          created_at?: string;
+          date: string;
+          duration_minutes?: number | null;
+          id?: string;
+          issues_raised?: string | null;
+          mode?: string | null;
+          notes?: string | null;
+          provider?: string | null;
+          session_number?: number | null;
+          supervisor_name?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          venue?: string | null;
+        };
+        Update: {
+          activity_type?: Database["public"]["Enums"]["cpd_activity_type"];
+          admin_id?: string;
+          contract_code?: string | null;
+          created_at?: string;
+          date?: string;
+          duration_minutes?: number | null;
+          id?: string;
+          issues_raised?: string | null;
+          mode?: string | null;
+          notes?: string | null;
+          provider?: string | null;
+          session_number?: number | null;
+          supervisor_name?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          venue?: string | null;
+        };
+        Relationships: [];
+      };
+      feedback: {
+        Row: {
+          created_at: string;
+          id: string;
+          message: string;
+          page: string | null;
+          status: string;
+          submitter_id: string | null;
+          type: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          message: string;
+          page?: string | null;
+          status?: string;
+          submitter_id?: string | null;
+          type: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          message?: string;
+          page?: string | null;
+          status?: string;
+          submitter_id?: string | null;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feedback_submitter_id_fkey";
+            columns: ["submitter_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       notifications: {
         Row: {
           created_at: string;
@@ -114,6 +335,7 @@ export type Database = {
       };
       platform_access_token: {
         Row: {
+          admin_id: string | null;
           created_at: string;
           expires_at: string | null;
           id: number;
@@ -122,6 +344,7 @@ export type Database = {
           used_at: string | null;
         };
         Insert: {
+          admin_id?: string | null;
           created_at?: string;
           expires_at?: string | null;
           id?: number;
@@ -130,6 +353,7 @@ export type Database = {
           used_at?: string | null;
         };
         Update: {
+          admin_id?: string | null;
           created_at?: string;
           expires_at?: string | null;
           id?: number;
@@ -143,35 +367,125 @@ export type Database = {
         Row: {
           address: string | null;
           admin_id: string;
+          bank_account_name: string | null;
+          bank_account_number: string | null;
+          bank_name: string | null;
+          bank_payment_reference: string | null;
+          bank_sort_code: string | null;
+          billing_customer_id: string | null;
+          billing_period: string;
           business_name: string | null;
           counsellor_name: string | null;
+          cpd_annual_target_hours: number;
+          disabled_email_types: string[];
           email: string | null;
+          hidden_sections: string[];
           id: string;
           logo_url: string | null;
+          note_enc_key: string | null;
+          note_enc_key_iv: string | null;
+          note_enc_rec_iv: string | null;
+          note_enc_rec_key: string | null;
+          note_enc_salt: string | null;
+          payment_deadline_hours: number;
           phone: string | null;
+          reduce_motion: boolean;
+          referral_code: string | null;
+          referred_by_code: string | null;
+          reminder_email_body: string | null;
+          reminder_email_heading: string | null;
+          reminder_email_subject: string | null;
+          reminder_hours_before: number;
+          saved_locations: Json;
+          stripe_connect_account_id: string | null;
+          stripe_connect_onboarded: boolean;
+          stripe_subscription_id: string | null;
+          subscription_plan: string;
+          subscription_status: string;
           updated_at: string;
+          use_client_codenames: boolean;
         };
         Insert: {
           address?: string | null;
           admin_id: string;
+          bank_account_name?: string | null;
+          bank_account_number?: string | null;
+          bank_name?: string | null;
+          bank_payment_reference?: string | null;
+          bank_sort_code?: string | null;
+          billing_customer_id?: string | null;
+          billing_period?: string;
           business_name?: string | null;
           counsellor_name?: string | null;
+          cpd_annual_target_hours?: number;
+          disabled_email_types?: string[];
           email?: string | null;
+          hidden_sections?: string[];
           id?: string;
           logo_url?: string | null;
+          note_enc_key?: string | null;
+          note_enc_key_iv?: string | null;
+          note_enc_rec_iv?: string | null;
+          note_enc_rec_key?: string | null;
+          note_enc_salt?: string | null;
+          payment_deadline_hours?: number;
           phone?: string | null;
+          reduce_motion?: boolean;
+          referral_code?: string | null;
+          referred_by_code?: string | null;
+          reminder_email_body?: string | null;
+          reminder_email_heading?: string | null;
+          reminder_email_subject?: string | null;
+          reminder_hours_before?: number;
+          saved_locations?: Json;
+          stripe_connect_account_id?: string | null;
+          stripe_connect_onboarded?: boolean;
+          stripe_subscription_id?: string | null;
+          subscription_plan?: string;
+          subscription_status?: string;
           updated_at?: string;
+          use_client_codenames?: boolean;
         };
         Update: {
           address?: string | null;
           admin_id?: string;
+          bank_account_name?: string | null;
+          bank_account_number?: string | null;
+          bank_name?: string | null;
+          bank_payment_reference?: string | null;
+          bank_sort_code?: string | null;
+          billing_customer_id?: string | null;
+          billing_period?: string;
           business_name?: string | null;
           counsellor_name?: string | null;
+          cpd_annual_target_hours?: number;
+          disabled_email_types?: string[];
           email?: string | null;
+          hidden_sections?: string[];
           id?: string;
           logo_url?: string | null;
+          note_enc_key?: string | null;
+          note_enc_key_iv?: string | null;
+          note_enc_rec_iv?: string | null;
+          note_enc_rec_key?: string | null;
+          note_enc_salt?: string | null;
+          payment_deadline_hours?: number;
           phone?: string | null;
+          reduce_motion?: boolean;
+          referral_code?: string | null;
+          referred_by_code?: string | null;
+          reminder_email_body?: string | null;
+          reminder_email_heading?: string | null;
+          reminder_email_subject?: string | null;
+          reminder_hours_before?: number;
+          saved_locations?: Json;
+          stripe_connect_account_id?: string | null;
+          stripe_connect_onboarded?: boolean;
+          stripe_subscription_id?: string | null;
+          subscription_plan?: string;
+          subscription_status?: string;
           updated_at?: string;
+          use_client_codenames?: boolean;
         };
         Relationships: [];
       };
@@ -179,18 +493,21 @@ export type Database = {
         Row: {
           assigned_at: string | null;
           id: string;
+          is_plotted: boolean;
           questionnaire_id: string | null;
           user_id: string | null;
         };
         Insert: {
           assigned_at?: string | null;
           id?: string;
+          is_plotted?: boolean;
           questionnaire_id?: string | null;
           user_id?: string | null;
         };
         Update: {
           assigned_at?: string | null;
           id?: string;
+          is_plotted?: boolean;
           questionnaire_id?: string | null;
           user_id?: string | null;
         };
@@ -213,33 +530,53 @@ export type Database = {
       };
       questionnaires: {
         Row: {
+          admin_id: string | null;
           created_at: string;
           description: string | null;
+          form_type: string;
           frequency: string | null;
           id: string;
           is_active: boolean | null;
           is_demo: boolean;
+          is_system_default: boolean;
+          source_default_id: string | null;
           title: string | null;
         };
         Insert: {
+          admin_id?: string | null;
           created_at?: string;
           description?: string | null;
+          form_type?: string;
           frequency?: string | null;
           id?: string;
           is_active?: boolean | null;
           is_demo?: boolean;
+          is_system_default?: boolean;
+          source_default_id?: string | null;
           title?: string | null;
         };
         Update: {
+          admin_id?: string | null;
           created_at?: string;
           description?: string | null;
+          form_type?: string;
           frequency?: string | null;
           id?: string;
           is_active?: boolean | null;
           is_demo?: boolean;
+          is_system_default?: boolean;
+          source_default_id?: string | null;
           title?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "questionnaires_source_default_id_fkey";
+            columns: ["source_default_id"];
+            isOneToOne: false;
+            referencedRelation: "questionnaires";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       questions: {
         Row: {
@@ -250,6 +587,7 @@ export type Database = {
           max_value: number | null;
           min_label: string | null;
           min_value: number | null;
+          options: Json | null;
           order_index: number | null;
           questionnaire_id: string | null;
           tag_id: string | null;
@@ -264,6 +602,7 @@ export type Database = {
           max_value?: number | null;
           min_label?: string | null;
           min_value?: number | null;
+          options?: Json | null;
           order_index?: number | null;
           questionnaire_id?: string | null;
           tag_id?: string | null;
@@ -278,6 +617,7 @@ export type Database = {
           max_value?: number | null;
           min_label?: string | null;
           min_value?: number | null;
+          options?: Json | null;
           order_index?: number | null;
           questionnaire_id?: string | null;
           tag_id?: string | null;
@@ -341,6 +681,7 @@ export type Database = {
       };
       resources: {
         Row: {
+          admin_id: string;
           category: string | null;
           content: string | null;
           content_format: string | null;
@@ -357,6 +698,7 @@ export type Database = {
           videoUrl: string | null;
         };
         Insert: {
+          admin_id: string;
           category?: string | null;
           content?: string | null;
           content_format?: string | null;
@@ -373,6 +715,7 @@ export type Database = {
           videoUrl?: string | null;
         };
         Update: {
+          admin_id?: string;
           category?: string | null;
           content?: string | null;
           content_format?: string | null;
@@ -470,6 +813,10 @@ export type Database = {
           content: string;
           created_at: string;
           id: string;
+          is_encrypted: boolean;
+          note_iv: string | null;
+          session_id: string | null;
+          stub_id: string | null;
           user_id: string | null;
         };
         Insert: {
@@ -477,6 +824,10 @@ export type Database = {
           content: string;
           created_at?: string;
           id?: string;
+          is_encrypted?: boolean;
+          note_iv?: string | null;
+          session_id?: string | null;
+          stub_id?: string | null;
           user_id?: string | null;
         };
         Update: {
@@ -484,9 +835,27 @@ export type Database = {
           content?: string;
           created_at?: string;
           id?: string;
+          is_encrypted?: boolean;
+          note_iv?: string | null;
+          session_id?: string | null;
+          stub_id?: string | null;
           user_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "session_notes_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "session_notes_stub_id_fkey";
+            columns: ["stub_id"];
+            isOneToOne: false;
+            referencedRelation: "client_stubs";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "session_notes_user_id_fkey";
             columns: ["user_id"];
@@ -509,6 +878,7 @@ export type Database = {
           metadata: Json | null;
           notes: string | null;
           paid: boolean;
+          paid_at: string | null;
           price_pence: number;
           reference_code: string | null;
           scheduled_at: string;
@@ -527,6 +897,7 @@ export type Database = {
           metadata?: Json | null;
           notes?: string | null;
           paid?: boolean;
+          paid_at?: string | null;
           price_pence?: number;
           reference_code?: string | null;
           scheduled_at: string;
@@ -545,6 +916,7 @@ export type Database = {
           metadata?: Json | null;
           notes?: string | null;
           paid?: boolean;
+          paid_at?: string | null;
           price_pence?: number;
           reference_code?: string | null;
           scheduled_at?: string;
@@ -553,20 +925,70 @@ export type Database = {
         };
         Relationships: [];
       };
+      stub_sessions: {
+        Row: {
+          admin_id: string;
+          amount_paid: number | null;
+          created_at: string;
+          currency: string;
+          duration_minutes: number | null;
+          id: string;
+          notes: string | null;
+          scheduled_at: string;
+          status: string;
+          stub_id: string;
+        };
+        Insert: {
+          admin_id: string;
+          amount_paid?: number | null;
+          created_at?: string;
+          currency?: string;
+          duration_minutes?: number | null;
+          id?: string;
+          notes?: string | null;
+          scheduled_at: string;
+          status?: string;
+          stub_id: string;
+        };
+        Update: {
+          admin_id?: string;
+          amount_paid?: number | null;
+          created_at?: string;
+          currency?: string;
+          duration_minutes?: number | null;
+          id?: string;
+          notes?: string | null;
+          scheduled_at?: string;
+          status?: string;
+          stub_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stub_sessions_stub_id_fkey";
+            columns: ["stub_id"];
+            isOneToOne: false;
+            referencedRelation: "client_stubs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tags: {
         Row: {
+          admin_id: string;
           created_at: string;
           id: string;
           is_demo: boolean;
           name: string;
         };
         Insert: {
+          admin_id: string;
           created_at?: string;
           id?: string;
           is_demo?: boolean;
           name: string;
         };
         Update: {
+          admin_id?: string;
           created_at?: string;
           id?: string;
           is_demo?: boolean;
@@ -576,6 +998,8 @@ export type Database = {
       };
       users: {
         Row: {
+          admin_codename: string | null;
+          admin_id: string | null;
           age: number | null;
           avatar_url: string | null;
           created_at: string;
@@ -587,12 +1011,16 @@ export type Database = {
           focus_keywords: string[] | null;
           id: string;
           is_demo: boolean;
+          is_root_admin: boolean;
+          is_superadmin: boolean;
           last_name: string | null;
           onboarding_completed: boolean;
           role: string | null;
           stripe_customer_id: string | null;
         };
         Insert: {
+          admin_codename?: string | null;
+          admin_id?: string | null;
           age?: number | null;
           avatar_url?: string | null;
           created_at?: string;
@@ -604,12 +1032,16 @@ export type Database = {
           focus_keywords?: string[] | null;
           id?: string;
           is_demo?: boolean;
+          is_root_admin?: boolean;
+          is_superadmin?: boolean;
           last_name?: string | null;
           onboarding_completed?: boolean;
           role?: string | null;
           stripe_customer_id?: string | null;
         };
         Update: {
+          admin_codename?: string | null;
+          admin_id?: string | null;
           age?: number | null;
           avatar_url?: string | null;
           created_at?: string;
@@ -621,6 +1053,8 @@ export type Database = {
           focus_keywords?: string[] | null;
           id?: string;
           is_demo?: boolean;
+          is_root_admin?: boolean;
+          is_superadmin?: boolean;
           last_name?: string | null;
           onboarding_completed?: boolean;
           role?: string | null;
@@ -648,8 +1082,43 @@ export type Database = {
       };
       get_my_is_demo: { Args: never; Returns: boolean };
       get_my_role: { Args: never; Returns: string };
+      get_practice_busy_slots: {
+        Args: { exclude_session_id?: string };
+        Returns: {
+          slot_end: string;
+          slot_start: string;
+        }[];
+      };
+      is_admin: { Args: never; Returns: boolean };
+      is_superadmin: { Args: never; Returns: boolean };
+      merge_stub_to_user: {
+        Args: { p_stub_id: string; p_user_id: string };
+        Returns: undefined;
+      };
+      questionnaire_admin_id: { Args: { q_id: string }; Returns: string };
+      questionnaire_is_demo: { Args: { q_id: string }; Returns: boolean };
+      questionnaire_is_system_default: {
+        Args: { q_id: string };
+        Returns: boolean;
+      };
+      reset_form_to_default: {
+        Args: { p_questionnaire_id: string };
+        Returns: undefined;
+      };
+      validate_platform_access_token: {
+        Args: { input_token: string };
+        Returns: boolean;
+      };
     };
     Enums: {
+      cpd_activity_type:
+        | "supervision"
+        | "training"
+        | "reading"
+        | "conference"
+        | "peer_consultation"
+        | "personal_therapy"
+        | "other";
       session_status: "scheduled" | "completed" | "cancelled" | "rescheduled";
     };
     CompositeTypes: {
@@ -770,6 +1239,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      cpd_activity_type: [
+        "supervision",
+        "training",
+        "reading",
+        "conference",
+        "peer_consultation",
+        "personal_therapy",
+        "other",
+      ],
       session_status: ["scheduled", "completed", "cancelled", "rescheduled"],
     },
   },

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ClarityLogoMark, MailIcon } from "@components/shared/Icons/Icons";
+import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
@@ -28,6 +28,9 @@ const FIELDS = [
 ] as const;
 
 type FieldId = (typeof FIELDS)[number]["id"];
+
+// These fields render side-by-side; all others span full width
+const HALF_WIDTH = new Set<FieldId>(["firstName", "lastName", "dob", "accessToken"]);
 
 const getAutoComplete = (id: FieldId): string | undefined => {
   if (id === "email") return "email";
@@ -126,11 +129,11 @@ export default function SignUpPage() {
       />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
-          <div className={styles.logoMark}>
-            <ClarityLogoMark size={52} />
+          <LeafLogoMark size={48} />
+          <div className={styles.logoText}>
+            <h1 className={styles.logoTitle}>Clarity</h1>
+            <p className={styles.logoSub}>Create your account</p>
           </div>
-          <h1 className={styles.logoTitle}>Clarity</h1>
-          <p className={styles.logoSub}>Create your account</p>
         </div>
 
         <div className={styles.card}>
@@ -143,26 +146,28 @@ export default function SignUpPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            {FIELDS.map((field) => (
-              <div key={field.id} className={styles.field}>
-                <label htmlFor={field.id} className={styles.label}>
-                  {field.label}
-                </label>
-                <input
-                  id={field.id}
-                  type={field.type}
-                  value={form[field.id]}
-                  onChange={(e) => set(field.id, e.target.value)}
-                  placeholder={field.ph}
-                  required
-                  autoComplete={getAutoComplete(field.id)}
-                  {...(field.type === "date" && {
-                    max: new Date().toISOString().split("T")[0],
-                  })}
-                  className={styles.input}
-                />
-              </div>
-            ))}
+            <div className={styles.formGrid}>
+              {FIELDS.map((field) => (
+                <div key={field.id} className={`${styles.field} ${HALF_WIDTH.has(field.id) ? "" : styles.fieldFull}`}>
+                  <label htmlFor={field.id} className={styles.label}>
+                    {field.label}
+                  </label>
+                  <input
+                    id={field.id}
+                    type={field.type}
+                    value={form[field.id]}
+                    onChange={(e) => set(field.id, e.target.value)}
+                    placeholder={field.ph}
+                    required
+                    autoComplete={getAutoComplete(field.id)}
+                    {...(field.type === "date" && {
+                      max: new Date().toISOString().split("T")[0],
+                    })}
+                    className={styles.input}
+                  />
+                </div>
+              ))}
+            </div>
 
             <button
               type="submit"

@@ -5,7 +5,7 @@
 .page {
   height: 100%;
   background: var(--bg-base);
-  display: flex;
+  // display: flex;
   align-items: center;
   justify-content: center;
   padding: $sp-6;
@@ -41,13 +41,20 @@
 }
 
 .logoWrap {
-  text-align: center;
-  margin-bottom: $sp-8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $sp-3;
+  margin-bottom: $sp-5;
 
   @media (max-width: 640px) {
-    margin-bottom: $sp-4;
-    padding-top: $sp-4;
+    margin-bottom: $sp-3;
+    padding-top: $sp-3;
   }
+}
+
+.logoText {
+  text-align: left;
 }
 
 @media (max-width: 800px) {
@@ -65,23 +72,13 @@
   }
 }
 
-.logoMark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto $sp-4;
-
-  @media (max-width: 640px) {
-    margin-bottom: $sp-2;
-  }
-}
-
 .logoTitle {
   font-family: var(--font-serif);
   font-size: 1.8rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 $sp-1;
+  margin: 0;
+  line-height: 1.1;
 }
 
 .logoSub {
@@ -94,11 +91,11 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
-  padding: $sp-8;
+  padding: $sp-6 $sp-8;
   box-shadow: var(--shadow-lg);
 
   @media (max-width: 640px) {
-    padding: $sp-5;
+    padding: $sp-4 $sp-5;
     border-radius: var(--r-lg);
   }
 }
@@ -108,7 +105,22 @@
   font-size: 1.35rem;
   font-weight: 500;
   color: var(--text-primary);
-  margin: 0 0 $sp-6;
+  margin: 0 0 $sp-4;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-3 $sp-3;
+  margin-bottom: $sp-3;
+
+  .field {
+    margin-bottom: 0;
+  }
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
 }
 
 .error {
@@ -213,6 +225,83 @@
   margin-top: $sp-5;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+.processNote {
+  text-align: center;
+  margin-top: $sp-4;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+// ── Step indicator ─────────────────────────────────────────
+.stepDots {
+  display: flex;
+  justify-content: center;
+  gap: $sp-2;
+  margin-bottom: $sp-5;
+}
+
+.stepDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--transition-base);
+}
+
+.stepDotActive {
+  background: var(--accent);
+}
+
+// ── Step navigation row (back + submit on step 2) ──────────
+.stepNav {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  margin-top: $sp-2;
+}
+
+.backBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1.5px solid var(--border);
+  padding: $sp-3 $sp-5;
+  border-radius: var(--r-full);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+}
+
+.stepSubmitBtn {
+  flex: 1;
+  padding: $sp-3 $sp-5;
+  background: var(--accent);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--r-full);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-base);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-dark);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .link {

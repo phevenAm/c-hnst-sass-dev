@@ -8,7 +8,15 @@ import { supabase } from "../../../lib/supabase.js";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
-import { ClarityLogoMark, CloseIcon, DarkmodeIcon, LightmodeIcon, MenuIcon, Settingsicon } from "../Icons/Icons";
+import {
+  ClarityLogoMark,
+  CloseIcon,
+  DarkmodeIcon,
+  LeafLogoMark,
+  LightmodeIcon,
+  MenuIcon,
+  Settingsicon,
+} from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 import SkipToMain from "../SkipToMain/SkipToMain";
 
@@ -77,7 +85,7 @@ export default function Navbar() {
             {practiceLogoUrl ? (
               <img src={practiceLogoUrl} alt="Logo" style={{ width: 20, height: 20, objectFit: "contain" }} />
             ) : (
-              <ClarityLogoMark size={32} />
+              <LeafLogoMark />
             )}
           </div>
           <span className={styles.logoText}>Clarity</span>

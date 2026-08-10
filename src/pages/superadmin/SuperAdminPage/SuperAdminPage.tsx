@@ -14,7 +14,7 @@ type Practice = {
   subscription_plan: string;
   stripe_subscription_id: string | null;
   billing_customer_id: string | null;
-  created_at: string;
+  updated_at: string;
   users: {
     first_name: string | null;
     last_name: string | null;
@@ -191,7 +191,7 @@ export default function SuperAdminPage() {
                       <span className={`${styles.statusBadge} ${status.cls}`}>{status.label}</span>
                     </td>
                     <td className={styles.dateCell}>
-                      {new Date(p.created_at).toLocaleDateString("en-GB", {
+                      {new Date(p.users?.created_at ?? p.updated_at).toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",

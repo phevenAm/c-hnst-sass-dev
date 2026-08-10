@@ -1,3 +1,5 @@
+@use "../../../../../styles/mixins" as *;
+
 .pad {
   padding: var(--sp-4) var(--sp-5);
 }
@@ -19,6 +21,7 @@
 .row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-3);
   padding: var(--sp-3) 0;
   border-bottom: 1px solid var(--border);
@@ -35,11 +38,16 @@
 }
 
 // Fixed-width date/time column so the client rows line up.
+// On small screens takes full width to push the client group below.
 .when {
   display: flex;
   flex-direction: column;
   width: 84px;
   flex-shrink: 0;
+
+  @include until-md {
+    width: 100%;
+  }
 }
 
 .day {
@@ -53,9 +61,23 @@
   color: var(--text-muted);
 }
 
+.clientGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 1;
+  min-width: 0;
+}
+
 .info {
   flex: 1;
   min-width: 0;
+}
+
+.nameBadgeContainer {
+  display: flex;
+  flex-direction: row;
+  gap: var(--sp-3)
 }
 
 .name {

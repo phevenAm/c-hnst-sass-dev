@@ -67,14 +67,18 @@ export default function UpcomingSessions({
                   <span className={styles.day}>{dayLabel(s.scheduled_at)}</span>
                   <span className={styles.time}>{dayjs(s.scheduled_at).format("h:mma")}</span>
                 </div>
-                <Avatar name={clientName(s.client_id)} color={pickColor(s.client_id ?? "x")} size={34} />
-                <div className={styles.info}>
-                  <p className={styles.name}>{clientName(s.client_id)}</p>
-                  <p className={styles.meta}>
-                    {s.location === "in_person" ? "In person" : "Online"} · {s.duration_minutes} min
-                  </p>
+                <div className={styles.clientGroup}>
+                  <Avatar name={clientName(s.client_id)} color={pickColor(s.client_id ?? "x")} size={34} />
+                  <div className={styles.info}>
+                    <div className={styles.nameBadgeContainer}>
+                      <p className={styles.name}>{clientName(s.client_id)}</p>
+                      <Badge variant={s.paid ? "success" : "warning"}>{s.paid ? "Paid" : "Unpaid"}</Badge>
+                    </div>
+                    <p className={styles.meta}>
+                      {s.location === "in_person" ? "In person" : "Online"} · {s.duration_minutes} min
+                    </p>
+                  </div>
                 </div>
-                <Badge variant={s.paid ? "success" : "warning"}>{s.paid ? "Paid" : "Unpaid"}</Badge>
               </Link>
             </li>
           ))}

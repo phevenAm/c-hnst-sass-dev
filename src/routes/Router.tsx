@@ -21,6 +21,7 @@ import AdminPaymentsPage from "../pages/admin/AdminPaymentsPage/AdminPaymentsPag
 import AdminQuestionnairesPage from "../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage";
 import AdminResourcesPage from "../pages/admin/AdminResourcesPage/AdminResourcesPage";
 import AdminScheduler from "../pages/admin/AdminScheduler/AdminScheduler";
+import AdminStubDetailPage from "../pages/admin/AdminStubDetailPage/AdminStubDetailPage";
 import CheckInPage from "../pages/client/CheckInPage/CheckInPage";
 import ClientDashboard from "../pages/client/ClientDashboard/ClientDashboard";
 import ClientSchedule from "../pages/client/ClientSchedule//ClientSchedule";
@@ -132,7 +133,7 @@ function SuperAdminGate({ children }: { children: React.ReactNode }) {
 }
 
 function SubscriptionGate({ children }: { children: React.ReactNode }) {
-  const { isAdmin, practiceSettings, loading, refreshPracticeSettings } = useAuth();
+  const { isAdmin, isDemo, practiceSettings, loading, refreshPracticeSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const justSubscribed = searchParams.get("subscribed") === "true";
   const [verifying, setVerifying] = useState(justSubscribed);
@@ -151,6 +152,7 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 
   if (
     isAdmin &&
+    !isDemo &&
     practiceSettings &&
     practiceSettings.subscription_status !== "active" &&
     practiceSettings.subscription_status !== "trialing"
@@ -229,6 +231,7 @@ export default function AppRoutes() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/clients" element={<AdminClientsPage />} />
             <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
+            <Route path="/admin/clients/stub/:stubId" element={<AdminStubDetailPage />} />
             <Route path="/admin/forms" element={<AdminQuestionnairesPage />} />
             <Route path="/admin/resources" element={<AdminResourcesPage />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
