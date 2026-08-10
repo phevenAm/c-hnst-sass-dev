@@ -48,9 +48,9 @@ Deno.serve(async (req) => {
         subscription_plan,
         stripe_subscription_id,
         billing_customer_id,
-        created_at
+        updated_at
       `)
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false });
 
     if (fetchError) throw new Error(fetchError.message);
 
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
           first_name: prof?.first_name ?? null,
           last_name: prof?.last_name ?? null,
           email: emailById.get(p.admin_id) ?? null,
-          created_at: prof?.created_at ?? p.created_at,
+          created_at: prof?.created_at ?? null,
           disabled: prof?.disabled ?? false,
         },
       };
