@@ -161,6 +161,30 @@ export const PlusIcon = () => (
   </svg>
 );
 
+// size = rendered height; width is wider to fit the two-circle overlap
+export const LeafLogoMark = ({ size = 36 }: { size?: number }) => (
+  <svg
+    width={Math.round(size * 1.22)}
+    height={size}
+    viewBox="0 0 44 36"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="Clarity"
+  >
+    <defs>
+      <filter id="lm-frost" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="3" in="SourceGraphic" />
+      </filter>
+    </defs>
+
+    {/* Large secondary circle — sage mint */}
+    <circle cx="15" cy="18" r="15" fill="#8ecfc3" />
+
+    {/* Smaller frosted primary circle — overlapping middle-right, blurred, no outline */}
+    <circle cx="29" cy="18" r="12" fill="rgba(45,114,100,0.78)" filter="url(#lm-frost)" />
+  </svg>
+);
+
 export const ClarityLogoMark = ({ size = 36 }: { size?: number }) => {
   const uid = `clm-${Math.random().toString(36).slice(2, 7)}`;
   const blurId = `${uid}-b`;

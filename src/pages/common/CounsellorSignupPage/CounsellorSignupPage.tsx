@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ClarityLogoMark, MailIcon } from "@components/shared/Icons/Icons";
+import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
@@ -117,11 +117,11 @@ export default function CounsellorSignupPage() {
       />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
-          <div className={styles.logoMark}>
-            <ClarityLogoMark size={52} />
+          <LeafLogoMark size={48} />
+          <div className={styles.logoText}>
+            <h1 className={styles.logoTitle}>Clarity</h1>
+            <p className={styles.logoSub}>Register your practice</p>
           </div>
-          <h1 className={styles.logoTitle}>Clarity</h1>
-          <p className={styles.logoSub}>Register your practice</p>
         </div>
 
         <div className={styles.card}>
@@ -134,21 +134,26 @@ export default function CounsellorSignupPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            {FIELDS.map(({ id, label, type }) => (
-              <div key={id} className={styles.field}>
-                <label htmlFor={id} className={styles.label}>
-                  {label}
-                </label>
-                <input
-                  id={id}
-                  type={type}
-                  value={form[id]}
-                  onChange={(e) => set(id, e.target.value)}
-                  required
-                  className={styles.input}
-                />
-              </div>
-            ))}
+            <div className={styles.formGrid}>
+              {FIELDS.map(({ id, label, type }) => (
+                <div
+                  key={id}
+                  className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
+                >
+                  <label htmlFor={id} className={styles.label}>
+                    {label}
+                  </label>
+                  <input
+                    id={id}
+                    type={type}
+                    value={form[id]}
+                    onChange={(e) => set(id, e.target.value)}
+                    required
+                    className={styles.input}
+                  />
+                </div>
+              ))}
+            </div>
 
             <label className={styles.checkboxRow}>
               <input
@@ -175,7 +180,7 @@ export default function CounsellorSignupPage() {
           </form>
 
           <p className={styles.processNote}>
-            After submitting you'll confirm your email, then set up your subscription to get started.
+            Check your email for a confirmation link — once confirmed, pick a monthly or annual plan.
           </p>
 
           <p className={styles.footer}>

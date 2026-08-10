@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
-import { ClarityLogoMark } from "@components/shared/Icons/Icons";
+import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
@@ -251,11 +251,11 @@ export default function LoginPage() {
       />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
-          <div className={styles.logoMark}>
-            <ClarityLogoMark size={52} />
+          <LeafLogoMark size={48} />
+          <div className={styles.logoText}>
+            <h1 className={styles.logoTitle}>Clarity</h1>
+            <p className={styles.logoSub}>A safe space for your journey</p>
           </div>
-          <h1 className={styles.logoTitle}>Clarity</h1>
-          <p className={styles.logoSub}>A safe space for your journey</p>
         </div>
 
         {resetMode ? <ResetPasswordForm /> : null}
