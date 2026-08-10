@@ -9,6 +9,7 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
+import { useEncryption } from "@context/EncryptionContext";
 import { useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 
@@ -54,8 +55,19 @@ const BANK_FIELDS = [
 
 type BankField = (typeof BANK_FIELDS)[number]["key"];
 
+// These fields are encrypted at rest. business_name excluded — shown in superadmin UI.
+const PII_BUSINESS_KEYS: BusinessField[] = ["email", "phone", "address"];
+const PII_BANK_KEYS: BankField[] = [
+  "bank_name",
+  "bank_account_name",
+  "bank_sort_code",
+  "bank_account_number",
+  "bank_payment_reference",
+];
+
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
+  const { status: encStatus, encryptPII, decryptPII } = useEncryption();
   const { hiddenSections, toggleSection, reduceMotion, setReduceMotion } = useInterfacePrefs();
   const { showToast } = useToast();
   const [name, setName] = useState(userProfile?.display_name ?? "");
@@ -83,6 +95,7 @@ const SettingsPage = () => {
     bank_payment_reference: "",
   });
   const [savingBank, setSavingBank] = useState(false);
+  const [piiLocked, setPiiLocked] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
 
@@ -137,28 +150,54 @@ const SettingsPage = () => {
       .select("*")
       .eq("admin_id", userProfile.id)
       .single()
-      .then(({ data }) => {
-        if (data) {
-          setPracticeDetails(data as Record<BusinessField, string>);
-          setLogoUrl(data.logo_url ?? "");
-          setBankDetails({
-            bank_name: data.bank_name ?? "",
-            bank_account_name: data.bank_account_name ?? "",
-            bank_sort_code: data.bank_sort_code ?? "",
-            bank_account_number: data.bank_account_number ?? "",
-            bank_payment_reference: data.bank_payment_reference ?? "",
-          });
-          setStripeConnected(data.stripe_connect_onboarded ?? false);
-          setReminderHours(data.reminder_hours_before ?? 120);
-          setReminderSubject(data.reminder_email_subject ?? "");
-          setReminderBody(data.reminder_email_body ?? "");
-          setReminderHeading(data.reminder_email_heading ?? "");
-          setDisabledEmailTypes(data.disabled_email_types ?? []);
-          setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
-          setUseCodenames(data.use_client_codenames ?? false);
+      .then(async ({ data }) => {
+        if (!data) return;
+
+        // Detect whether any sensitive field has been encrypted
+        const allPIIKeys = [...PII_BUSINESS_KEYS, ...PII_BANK_KEYS];
+        const hasEncrypted = allPIIKeys.some((k) => {
+          const v = data[k as string];
+          return v && v.startsWith("{");
+        });
+
+        if (hasEncrypted && encStatus !== "unlocked") {
+          // Sensitive fields are encrypted and the key isn't in memory yet —
+          // show the lock notice instead of ciphertext in the inputs
+          setPiiLocked(true);
+        } else {
+          setPiiLocked(false);
         }
+
+        // Decrypt PII fields when the key is available
+        const decrypt = encStatus === "unlocked" ? decryptPII : (v: string) => Promise.resolve(v);
+
+        const businessData: Record<BusinessField, string> = {
+          business_name: data.business_name ?? "",
+          email: await decrypt(data.email ?? ""),
+          phone: await decrypt(data.phone ?? ""),
+          address: await decrypt(data.address ?? ""),
+        };
+        const bankData: Record<BankField, string> = {
+          bank_name: await decrypt(data.bank_name ?? ""),
+          bank_account_name: await decrypt(data.bank_account_name ?? ""),
+          bank_sort_code: await decrypt(data.bank_sort_code ?? ""),
+          bank_account_number: await decrypt(data.bank_account_number ?? ""),
+          bank_payment_reference: await decrypt(data.bank_payment_reference ?? ""),
+        };
+
+        setPracticeDetails(businessData);
+        setLogoUrl(data.logo_url ?? "");
+        setBankDetails(bankData);
+        setStripeConnected(data.stripe_connect_onboarded ?? false);
+        setReminderHours(data.reminder_hours_before ?? 120);
+        setReminderSubject(data.reminder_email_subject ?? "");
+        setReminderBody(data.reminder_email_body ?? "");
+        setReminderHeading(data.reminder_email_heading ?? "");
+        setDisabledEmailTypes(data.disabled_email_types ?? []);
+        setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
+        setUseCodenames(data.use_client_codenames ?? false);
       });
-  }, [isAdmin, userProfile?.id]);
+  }, [isAdmin, userProfile?.id, encStatus, decryptPII]);
 
   const toggleKeyword = (kw: string) =>
     setKeywords((prev) => (prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]));
@@ -180,7 +219,15 @@ const SettingsPage = () => {
   const handleUpdateBank = async () => {
     if (!userProfile?.id) return;
     setSavingBank(true);
-    await supabase.from("practice_settings").update(bankDetails).eq("admin_id", userProfile.id);
+    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
+    const toSave: Record<BankField, string> = {
+      bank_name: await encrypt(bankDetails.bank_name),
+      bank_account_name: await encrypt(bankDetails.bank_account_name),
+      bank_sort_code: await encrypt(bankDetails.bank_sort_code),
+      bank_account_number: await encrypt(bankDetails.bank_account_number),
+      bank_payment_reference: await encrypt(bankDetails.bank_payment_reference),
+    };
+    await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
     setSavingBank(false);
     showToast("Bank details updated.");
   };
@@ -188,10 +235,15 @@ const SettingsPage = () => {
   const handleUpdateBusiness = async () => {
     if (!userProfile?.id) return;
     setSavingBusiness(true);
-    await supabase
-      .from("practice_settings")
-      .update({ ...practiceDetails, logo_url: logoUrl || null })
-      .eq("admin_id", userProfile.id);
+    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
+    const toSave = {
+      business_name: practiceDetails.business_name,
+      email: await encrypt(practiceDetails.email),
+      phone: await encrypt(practiceDetails.phone),
+      address: await encrypt(practiceDetails.address),
+      logo_url: logoUrl || null,
+    };
+    await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
     setSavingBusiness(false);
     showToast("Business information updated.");
   };
@@ -381,6 +433,22 @@ const SettingsPage = () => {
         {/* ── Practice tab (admin only) ── */}
         {isAdmin && activeTab === "practice" && (
           <>
+            {piiLocked && (
+              <div
+                style={{
+                  padding: "var(--sp-3) var(--sp-4)",
+                  background: "var(--surface-secondary)",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: "var(--sp-4)",
+                  fontSize: "0.875rem",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Contact details and bank fields are encrypted. Open any client note and unlock encryption to view or
+                edit them.
+              </div>
+            )}
+
             {/* Business info */}
             <Card className={styles.card}>
               <section className={styles.businessSection}>

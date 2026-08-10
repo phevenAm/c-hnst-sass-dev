@@ -46,8 +46,8 @@ function ResetPasswordForm() {
       <div className={styles.card}>
         <h2 className={styles.heading}>Password updated</h2>
         <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
-          Your password has been changed. If you use note encryption you may need your recovery code to restore access
-          to existing notes.
+          Your password has been changed. If note encryption is set up, use your 4-word encryption code to re-link
+          access to your notes next time you open them.
         </p>
         <button type="button" className={styles.submitBtn} onClick={() => navigate("/admin")}>
           Go to dashboard
@@ -174,7 +174,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, loading, isAuthenticated, isAdmin, error } = useAuth();
-  const { unlockEncryption } = useEncryption();
+  const { unlockWithPassword } = useEncryption();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -218,7 +218,7 @@ export default function LoginPage() {
     // If no key exists yet ("no_key"), encryption setup is done explicitly inside
     // the notes modal — never auto-created here so a missing key never wipes data.
     try {
-      await unlockEncryption(password);
+      await unlockWithPassword(password);
     } catch (encErr) {
       console.error("Note encryption unlock failed:", encErr);
     } finally {

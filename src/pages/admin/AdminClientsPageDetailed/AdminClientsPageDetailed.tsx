@@ -500,6 +500,38 @@ export default function AdminClientsPageDetailed() {
           </div>
         </HideableSection>
 
+        {/* Assigned forms */}
+        <HideableSection id="client-assigned-forms">
+          <Card className={[styles.section, styles.session].join(" ")}>
+            <div className={styles.sessionHeading}>
+              <h2 className={styles.sectionTitle}>Assigned forms</h2>
+            </div>
+            {assignedForms.length === 0 ? (
+              <p className={styles.sessionEmpty}>No forms assigned to this client yet.</p>
+            ) : (
+              assignedForms.map(({ id, assigned_at, questionnaires: q }) => (
+                <div key={id} className={styles.checkInRow}>
+                  <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
+                  {q?.form_type && (
+                    <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
+                      {String(q.form_type).replace(/_/g, " ")}
+                    </span>
+                  )}
+                  {q?.frequency && (
+                    <span className={styles.checkInScoreNone} style={{ textTransform: "capitalize" }}>
+                      {q.frequency}
+                    </span>
+                  )}
+                  {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
+                  <span className={styles.checkInDate} style={{ marginLeft: "auto" }}>
+                    Assigned {dayjs(assigned_at).format("D MMM YYYY")}
+                  </span>
+                </div>
+              ))
+            )}
+          </Card>
+        </HideableSection>
+
         <Card className={[styles.section, styles.session].join(" ")}>
           <div className={styles.sessionHeading}>
             <h2 className={styles.sectionTitle}>Sessions</h2>
@@ -576,36 +608,6 @@ export default function AdminClientsPageDetailed() {
               </div>
             )}
           </div>
-        </Card>
-
-        {/* Assigned forms */}
-        <Card className={[styles.section, styles.session].join(" ")}>
-          <div className={styles.sessionHeading}>
-            <h2 className={styles.sectionTitle}>Assigned forms</h2>
-          </div>
-          {assignedForms.length === 0 ? (
-            <p className={styles.sessionEmpty}>No forms assigned to this client yet.</p>
-          ) : (
-            assignedForms.map(({ id, assigned_at, questionnaires: q }) => (
-              <div key={id} className={styles.checkInRow}>
-                <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
-                {q?.form_type && (
-                  <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
-                    {String(q.form_type).replace(/_/g, " ")}
-                  </span>
-                )}
-                {q?.frequency && (
-                  <span className={styles.checkInScoreNone} style={{ textTransform: "capitalize" }}>
-                    {q.frequency}
-                  </span>
-                )}
-                {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
-                <span className={styles.checkInDate} style={{ marginLeft: "auto" }}>
-                  Assigned {dayjs(assigned_at).format("D MMM YYYY")}
-                </span>
-              </div>
-            ))
-          )}
         </Card>
 
         {/* Danger zone */}
