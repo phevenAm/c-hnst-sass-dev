@@ -140,17 +140,23 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     const recoveryKEK = await deriveKEK(recoveryCode.replace(/-/g, ""), salt);
     const { iv: recIv, wrapped: recWrapped } = await wrapDataKey(dataKey, recoveryKEK);
 
-    const { error } = await supabase
-      .from("practice_settings")
-      .update({
+    const { error } = await supabase.from("practice_settings").upsert(
+      {
+        admin_id: user.id,
         note_enc_key: wrapped,
         note_enc_salt: toBase64(salt.buffer as ArrayBuffer),
         note_enc_key_iv: iv,
         note_enc_rec_key: recWrapped,
         note_enc_rec_iv: recIv,
-      })
-      .eq("admin_id", user.id);
+      },
+      { onConflict: "admin_id" },
+    );
     if (error) throw new Error(error.message);
+
+    // Verify the key actually landed in the DB — a silent upsert failure would
+    // leave note_enc_key null, causing the "new recovery code every login" loop.
+    const verify = await fetchSettings();
+    if (!verify?.note_enc_key) throw new Error("Encryption key did not persist — check RLS on practice_settings.");
 
     dataKeyRef.current = dataKey;
     await saveKeyToSession(dataKey);
