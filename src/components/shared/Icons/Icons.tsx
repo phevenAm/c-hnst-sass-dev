@@ -171,17 +171,11 @@ export const LeafLogoMark = ({ size = 36 }: { size?: number }) => (
     role="img"
     aria-label="Clarity"
   >
-    <defs>
-      <filter id="lm-frost" x="-60%" y="-60%" width="220%" height="220%">
-        <feGaussianBlur stdDeviation="3" in="SourceGraphic" />
-      </filter>
-    </defs>
+    {/* Large solid circle — warm-200 beige, right side, behind */}
+    <circle cx="29" cy="18" r="15" fill="#e5e0dc" />
 
-    {/* Large solid circle — warm amber, right side, behind */}
-    <circle cx="29" cy="18" r="15" fill="#d4905a" />
-
-    {/* Smaller frosted circle — blurred, left side, in front */}
-    <circle cx="15" cy="18" r="12" fill="rgba(45,114,100,0.82)" filter="url(#lm-frost)" />
+    {/* Frosted glass circle — translucent teal, solid outline, left side, in front */}
+    <circle cx="15" cy="18" r="12" fill="rgba(45,114,100,0.28)" stroke="#2d7264" strokeWidth="1.5" />
   </svg>
 );
 

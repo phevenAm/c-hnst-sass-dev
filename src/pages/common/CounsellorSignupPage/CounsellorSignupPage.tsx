@@ -8,21 +8,25 @@ import { useAuth } from "@context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import styles from "../SignUpPage/SignUpPage.module.scss";
 
-const FIELDS = [
+type FieldId = "firstName" | "lastName" | "practiceName" | "email" | "password" | "confirm";
+
+const STEP1_FIELDS: { id: FieldId; label: string; type: string }[] = [
   { id: "firstName", label: "First name", type: "text" },
   { id: "lastName", label: "Last name", type: "text" },
   { id: "practiceName", label: "Practice name", type: "text" },
+];
+
+const STEP2_FIELDS: { id: FieldId; label: string; type: string }[] = [
   { id: "email", label: "Email address", type: "email" },
   { id: "password", label: "Password", type: "password" },
   { id: "confirm", label: "Confirm password", type: "password" },
-] as const;
-
-type FieldId = (typeof FIELDS)[number]["id"];
+];
 
 export default function CounsellorSignupPage() {
   const navigate = useNavigate();
   const { isAuthenticated, loading } = useAuth();
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<Record<FieldId, string>>({
     firstName: "",
     lastName: "",
@@ -41,6 +45,15 @@ export default function CounsellorSignupPage() {
   }, [loading, isAuthenticated, navigate]);
 
   const set = (id: FieldId, value: string) => setForm((prev) => ({ ...prev, [id]: value }));
+
+  const step1Valid = form.firstName.trim() && form.lastName.trim() && form.practiceName.trim();
+
+  const handleContinue = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!step1Valid) return;
+    setError("");
+    setStep(2);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +138,12 @@ export default function CounsellorSignupPage() {
         </div>
 
         <div className={styles.card}>
-          <h2 className={styles.heading}>Get started</h2>
+          <div className={styles.stepDots} aria-label={`Step ${step} of 2`}>
+            <div className={`${styles.stepDot} ${step >= 1 ? styles.stepDotActive : ""}`} />
+            <div className={`${styles.stepDot} ${step >= 2 ? styles.stepDotActive : ""}`} />
+          </div>
+
+          <h2 className={styles.heading}>{step === 1 ? "About your practice" : "Your account"}</h2>
 
           {error && (
             <div role="alert" className={styles.error}>
@@ -133,54 +151,94 @@ export default function CounsellorSignupPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate>
-            <div className={styles.formGrid}>
-              {FIELDS.map(({ id, label, type }) => (
-                <div
-                  key={id}
-                  className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
+          {step === 1 ? (
+            <form onSubmit={handleContinue} noValidate>
+              <div className={styles.formGrid}>
+                {STEP1_FIELDS.map(({ id, label, type }) => (
+                  <div
+                    key={id}
+                    className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
+                  >
+                    <label htmlFor={id} className={styles.label}>
+                      {label}
+                    </label>
+                    <input
+                      id={id}
+                      type={type}
+                      value={form[id]}
+                      onChange={(e) => set(id, e.target.value)}
+                      required
+                      className={styles.input}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <button type="submit" disabled={!step1Valid} className={styles.submitBtn}>
+                Continue
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} noValidate>
+              <div className={styles.formGrid}>
+                {STEP2_FIELDS.map(({ id, label, type }) => (
+                  <div key={id} className={`${styles.field} ${styles.fieldFull}`}>
+                    <label htmlFor={id} className={styles.label}>
+                      {label}
+                    </label>
+                    <input
+                      id={id}
+                      type={type}
+                      value={form[id]}
+                      onChange={(e) => set(id, e.target.value)}
+                      required
+                      className={styles.input}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <label className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  className={styles.checkbox}
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/terms" className={styles.link}>
+                    Terms &amp; Conditions
+                  </Link>
+                </span>
+              </label>
+
+              <div className={styles.stepNav}>
+                <button
+                  type="button"
+                  className={styles.backBtn}
+                  onClick={() => {
+                    setError("");
+                    setStep(1);
+                  }}
                 >
-                  <label htmlFor={id} className={styles.label}>
-                    {label}
-                  </label>
-                  <input
-                    id={id}
-                    type={type}
-                    value={form[id]}
-                    onChange={(e) => set(id, e.target.value)}
-                    required
-                    className={styles.input}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <label className={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-              />
-              <span>
-                I agree to the{" "}
-                <Link to="/terms" className={styles.link}>
-                  Terms &amp; Conditions
-                </Link>
-              </span>
-            </label>
-
-            <button
-              type="submit"
-              disabled={submitting || !agreed || !form.email || !form.password || !form.confirm}
-              className={styles.submitBtn}
-            >
-              {submitting ? "Creating account…" : "Create account"}
-            </button>
-          </form>
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !agreed || !form.email || !form.password || !form.confirm}
+                  className={styles.stepSubmitBtn}
+                >
+                  {submitting ? "Creating account…" : "Create account"}
+                </button>
+              </div>
+            </form>
+          )}
 
           <p className={styles.processNote}>
-            Check your email for a confirmation link — once confirmed, pick a monthly or annual plan.
+            {step === 1
+              ? "You'll set up login details on the next step."
+              : "Check your email for a confirmation link — once confirmed, pick a plan."}
           </p>
 
           <p className={styles.footer}>
