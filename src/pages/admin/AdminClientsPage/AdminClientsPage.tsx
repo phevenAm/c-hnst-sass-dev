@@ -152,12 +152,15 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const displayName = stub.codename || `${stub.first_name} ${stub.last_name}`;
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
+  const displayName = useCodenames
+    ? stub.codename || `${stub.first_name} ${stub.last_name}`
+    : `${stub.first_name} ${stub.last_name}`;
 
   const handleDelete = async () => {
     if (isDemo) {
@@ -323,19 +326,16 @@ export default function AdminClientsPage() {
         </HideableSection>
 
         <Card>
-          {filtered.length === 0 ? (
+          {allClients.length === 0 ? (
+            <div className={styles.freshAccount}>
+              <p>
+                No clients on the platform yet. Create an access token and share it with a client so they can sign up.
+              </p>
+              <Button onClick={() => setShowTokenModal(true)}>Create access token</Button>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className={styles.empty}>
-              {allClients.length === 0 ? (
-                <div className={styles.freshAccount}>
-                  <p>
-                    No clients yet. Create an access token and ask a client to sign up, or create an offline client to
-                    track sessions before they join.
-                  </p>
-                  <Button onClick={() => setCreateStubOpen(true)}>Create offline client</Button>
-                </div>
-              ) : (
-                <p>No clients match your search.</p>
-              )}
+              <p>No clients match your search.</p>
             </div>
           ) : (
             filtered.map((user) => <ClientRow key={user.id} user={user} />)
