@@ -1,0 +1,477 @@
+@use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
+
+// ── Not found ────────────────────────────────────────────────
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: $sp-20 0;
+  gap: $sp-3;
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+}
+
+// ── Hero ─────────────────────────────────────────────────────
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-6;
+  margin: $sp-6 0 $sp-8;
+  flex-wrap: wrap;
+}
+
+.heroLeft {
+  display: flex;
+  align-items: center;
+  gap: $sp-5;
+}
+
+.heroBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  margin-bottom: $sp-2;
+  letter-spacing: 0.02em;
+}
+
+.heroBadgeLinked {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  margin-bottom: $sp-2;
+  letter-spacing: 0.02em;
+}
+
+.heroName {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 $sp-1;
+  line-height: 1.2;
+}
+
+.heroRealName {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 $sp-1;
+  font-style: italic;
+}
+
+.heroEmail {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 $sp-1;
+}
+
+.heroLinked {
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin: $sp-1 0 0;
+  font-weight: 500;
+}
+
+.heroSince {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-shrink: 0;
+  padding-top: $sp-2;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+// ── Stats bar ────────────────────────────────────────────────
+.statsRow {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: $sp-5 $sp-8;
+  margin-bottom: $sp-6;
+
+  @include until-md {
+    padding: $sp-4;
+  }
+}
+
+.statBlock {
+  flex: 1;
+  text-align: center;
+}
+
+.statDivider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.statValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 $sp-1;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// ── Section cards ────────────────────────────────────────────
+.section {
+  padding: $sp-6;
+  margin-bottom: $sp-6;
+
+  @include until-md {
+    padding: $sp-4;
+  }
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $sp-5;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.emptyState {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  padding: $sp-8 0;
+  margin: 0;
+}
+
+// ── Add session form ─────────────────────────────────────────
+.addSessionForm {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: $sp-5;
+  margin-bottom: $sp-5;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-3;
+
+  @include until-md {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formGridFull {
+  grid-column: 1 / -1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  input,
+  select,
+  textarea {
+    padding: $sp-2 $sp-3;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color var(--transition-base);
+
+    &:focus {
+      border-color: var(--border-focus);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-2;
+  margin-top: $sp-4;
+}
+
+// ── Session rows ─────────────────────────────────────────────
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-4;
+  padding: $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  flex-wrap: wrap;
+}
+
+.sessionDate {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 130px;
+}
+
+.sessionMeta {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.sessionDuration {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.sessionAmount {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sessionNotes {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  flex-basis: 100%;
+  margin-top: $sp-1;
+}
+
+.sessionActions {
+  flex-shrink: 0;
+}
+
+// ── Status badges ────────────────────────────────────────────
+.statusBadge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.statusAttended {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.statusNoShow {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+.statusScheduled {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: color-mix(in srgb, var(--warning) 80%, var(--text-primary));
+}
+
+.statusCancelled {
+  background: var(--bg-muted);
+  color: var(--text-muted);
+}
+
+// ── Notes ─────────────────────────────────────────────────────
+.notesForm {
+  margin-bottom: $sp-5;
+}
+
+.notesTextarea {
+  width: 100%;
+  padding: $sp-3 $sp-4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--transition-base);
+  min-height: 80px;
+
+  &:focus {
+    border-color: var(--border-focus);
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+}
+
+.notesFormActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $sp-2;
+}
+
+.notesList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.noteItem {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: $sp-4;
+  background: var(--bg-muted);
+}
+
+.noteHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $sp-2;
+}
+
+.noteDate {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.noteContent {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+// ── Link modal ───────────────────────────────────────────────
+.linkField {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  select {
+    padding: $sp-3 $sp-4;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+
+    &:focus {
+      border-color: var(--border-focus);
+    }
+  }
+}
+
+.linkHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: $sp-2 0 0;
+}
+
+// ── Danger zone ──────────────────────────────────────────────
+.dangerZone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  margin-top: $sp-8;
+  padding: $sp-6;
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  border-radius: var(--r-lg);
+  flex-wrap: wrap;
+}
+
+.dangerTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--danger);
+  margin: 0 0 $sp-1;
+}
+
+.dangerDesc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+// ── Modal error ───────────────────────────────────────────────
+.modalError {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 0 0 $sp-4;
+}
