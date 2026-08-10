@@ -174,7 +174,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, loading, isAuthenticated, isAdmin, error } = useAuth();
-  const { unlockEncryption, setupEncryption } = useEncryption();
+  const { unlockEncryption } = useEncryption();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -214,12 +214,13 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
-    // signIn succeeded — unlock note encryption using the same password.
+    // signIn succeeded — try to restore the note encryption key from the DB.
+    // If no key exists yet ("no_key"), encryption setup is done explicitly inside
+    // the notes modal — never auto-created here so a missing key never wipes data.
     try {
-      const result = await unlockEncryption(password);
-      if (result === "no_key") await setupEncryption(password);
+      await unlockEncryption(password);
     } catch (encErr) {
-      console.error("Note encryption setup failed:", encErr);
+      console.error("Note encryption unlock failed:", encErr);
     } finally {
       setSubmitting(false);
     }

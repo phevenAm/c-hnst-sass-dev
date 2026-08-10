@@ -34,6 +34,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     checkStatus,
     pendingRecoveryCode,
     clearPendingRecoveryCode,
+    setupEncryption,
     unlockEncryption,
     recoverWithCode,
     encryptNote,
@@ -73,6 +74,18 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     setGateError("");
     const ok = await recoverWithCode(recoveryCode.trim(), recoveryNewPassword);
     if (!ok) setGateError("Recovery failed. Check your recovery code and try again.");
+    setGateWorking(false);
+  };
+
+  const handleSetup = async () => {
+    if (!unlockPassword) return;
+    setGateWorking(true);
+    setGateError("");
+    try {
+      await setupEncryption(unlockPassword);
+    } catch (err) {
+      setGateError(err instanceof Error ? err.message : "Setup failed. Please try again.");
+    }
     setGateWorking(false);
   };
 
@@ -282,10 +295,23 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     return (
       <Modal title={modalTitle} onClose={onClose} size="md">
         <div className={styles.encGate}>
-          <p className={styles.encGateTitle}>Notes are not yet encrypted</p>
+          <p className={styles.encGateTitle}>Set up note encryption</p>
           <p className={styles.encGateBody}>
-            Encryption will be set up the next time you sign in. Sign out and back in to enable it.
+            Notes are encrypted in your browser using your login password. Enter it below to enable encryption — you'll
+            also get a one-time recovery code to save somewhere safe.
           </p>
+          <input
+            type="password"
+            className={styles.encInput}
+            placeholder="Your login password"
+            value={unlockPassword}
+            onChange={(e) => setUnlockPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSetup()}
+          />
+          {gateError && <p className={styles.modalError}>{gateError}</p>}
+          <Button size="sm" onClick={handleSetup} disabled={gateWorking || !unlockPassword}>
+            {gateWorking ? "Setting up…" : "Enable encryption"}
+          </Button>
         </div>
       </Modal>
     );
