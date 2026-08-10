@@ -13,6 +13,7 @@ import {
   privateEventEvents,
   type SchedulerEvent,
   sessionEvents,
+  stubSessionEvents,
 } from "@components/shared/SchedulerCalendar/schedulerUtils";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
@@ -24,7 +25,7 @@ import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
-import type { AdminPrivateEvent, Session, UserProfile } from "@/models/globalTypes";
+import type { AdminPrivateEvent, ClientStub, Session, StubSession, UserProfile } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchPrivateEvents } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
@@ -101,6 +102,7 @@ const AdminScheduler = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>(Views.WORK_WEEK);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [allStubSessions, setAllStubSessions] = useState<StubSession[]>([]);
   const [newSessionWithoutId, setNewSessionWithoutId] = useState(false);
   const [newSessionClientId, setNewSessionClientId] = useState<string | null>(null);
   const [pendingDrop, setPendingDrop] = useState<{
@@ -176,6 +178,17 @@ const AdminScheduler = () => {
   // this admin's own sessions. (The hook needs a non-empty filter string.)
   useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
 
+  // Stub sessions have no Redux slice — fetch directly and refresh on any change.
+  useEffect(() => {
+    supabase
+      .from("stub_sessions")
+      .select("*")
+      .then(({ data, error }) => {
+        if (error) console.error("Failed to load stub sessions:", error);
+        else setAllStubSessions((data as StubSession[]) ?? []);
+      });
+  }, []);
+
   const sessions = useAppSelector((s) => s.sessions.sessions);
   const users = useAppSelector(selectAllUsers) as UserProfile[];
   const clients = useAppSelector(selectClientUsers);
@@ -198,8 +211,9 @@ const AdminScheduler = () => {
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
       ...sessionEvents(filteredSessions, users, useCodenames),
+      ...stubSessionEvents(allStubSessions, allStubs, useCodenames),
     ],
-    [date, rules, overrides, privateEvents, filteredSessions, users],
+    [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, allStubSessions, allStubs],
   );
 
   // Aggregate counts + payment totals in a single pass. Semantics match the
@@ -317,9 +331,11 @@ const AdminScheduler = () => {
 
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
-    if (r.type === "buffer") return;
+    if (r.type === "buffer" || r.type === "cancelled-session" || r.type === "cancelled-stub-session") return;
     if (r.type === "session") {
       setEditingSession(r.session);
+    } else if (r.type === "stub-session") {
+      navigate(`/admin/clients/stub/${r.stub.id}`);
     } else if (r.type === "private") {
       setEditingPrivate(r.event);
       setIsPrivateOpen(true);

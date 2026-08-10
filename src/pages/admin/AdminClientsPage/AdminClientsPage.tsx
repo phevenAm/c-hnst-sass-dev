@@ -195,9 +195,14 @@ function StubRow({ stub }: { stub: ClientStub }) {
     );
   }
 
+  const handleRowClick = () => navigate(`/admin/clients/stub/${stub.id}`);
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") handleRowClick();
+  };
+
   return (
     <>
-      <div className={styles.stubRow}>
+      <div className={styles.stubRow} onClick={handleRowClick} onKeyDown={handleRowKeyDown} role="button" tabIndex={0}>
         <Avatar name={displayName} imageSrc="" size={40} />
 
         <div className={styles.clientMeta}>
@@ -219,7 +224,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
           Added {dayjs(stub.created_at).format("D MMM YYYY")}
         </p>
 
-        <div className={styles.rowActions}>
+        <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
           <SplitButton
             primaryLabel="Manage"
             primaryAction={() => navigate(`/admin/clients/stub/${stub.id}`)}

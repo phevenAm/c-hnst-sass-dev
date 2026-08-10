@@ -57,6 +57,7 @@ const useSessionCard = (session: Session) => {
 
   function getCardClass(status: string, attended: boolean | null): string {
     if (attended === false) return styles.sessionItemNoShow;
+    if (status === "cancelled") return styles.sessionItemCancelled;
     if (status === "rescheduled") return styles.sessionItemRescheduled;
     return "";
   }
@@ -86,10 +87,16 @@ const useSessionCard = (session: Session) => {
   }
   const isWithin48Hours = dayjs(session.scheduled_at).isBefore(dayjs().add(48, "hour"));
 
+  const restoreSession = () => {
+    dispatch(updateSession({ id: session.id, status: "scheduled" }));
+    showToast("Session restored.", "success");
+  };
+
   return {
     toggleNoShowOrPayment,
     markAttended,
     markNoShow,
+    restoreSession,
     getStatusClass,
     getCardClass,
     formatEventLabel,

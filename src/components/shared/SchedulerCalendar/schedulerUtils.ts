@@ -5,7 +5,9 @@ import type {
   AdminPrivateEvent,
   AvailabilityOverride,
   AvailabilityRule,
+  ClientStub,
   Session,
+  StubSession,
   UserProfile,
 } from "@/models/globalTypes";
 
@@ -21,6 +23,9 @@ import type {
 // event renderer and click handler know what they're looking at.
 export type SchedulerResource =
   | { type: "session"; session: Session; color: string; clientName: string }
+  | { type: "cancelled-session"; session: Session; color: string; clientName: string }
+  | { type: "stub-session"; stubSession: StubSession; stub: ClientStub; color: string; clientName: string }
+  | { type: "cancelled-stub-session"; stubSession: StubSession; stub: ClientStub; color: string; clientName: string }
   | { type: "buffer"; sessionId: string }
   | { type: "window"; label: string; source: "rule" | "override" }
   | { type: "blocked"; label: string }
@@ -76,65 +81,154 @@ function clientNameFor(session: Session, users: UserProfile[], useCodenames: boo
   return clientDisplayName(u, useCodenames);
 }
 
-// Map real sessions → calendar events. Cancelled sessions are dropped.
-// Each session gets a 10-minute buffer event immediately after it.
+// Map real sessions → calendar events. Cancelled sessions render as greyed-out
+// chips without a buffer. Each active session gets a 10-minute buffer after it.
 export function sessionEvents(sessions: Session[], users: UserProfile[], useCodenames = false): SchedulerEvent[] {
-  return sessions
-    .filter((s) => s.status !== "cancelled")
-    .flatMap((s) => {
-      const start = new Date(s.scheduled_at);
-      const end = dayjs(start)
-        .add(s.duration_minutes ?? 50, "minute")
-        .toDate();
-      const bufferEnd = dayjs(end).add(10, "minute").toDate();
-      const clientName = clientNameFor(s, users, useCodenames);
+  return sessions.flatMap((s) => {
+    const start = new Date(s.scheduled_at);
+    const end = dayjs(start)
+      .add(s.duration_minutes ?? 50, "minute")
+      .toDate();
+    const clientName = clientNameFor(s, users, useCodenames);
+
+    if (s.status === "cancelled") {
       return [
         {
           id: `session-${s.id}`,
           title: clientName,
           start,
           end,
-          resource: { type: "session" as const, session: s, color: colourForClient(s.client_id), clientName },
-        },
-        {
-          id: `buffer-${s.id}`,
-          title: "",
-          start: end,
-          end: bufferEnd,
-          resource: { type: "buffer" as const, sessionId: s.id },
+          resource: {
+            type: "cancelled-session" as const,
+            session: s,
+            color: colourForClient(s.client_id),
+            clientName,
+          },
         },
       ];
-    });
+    }
+
+    const bufferEnd = dayjs(end).add(10, "minute").toDate();
+    return [
+      {
+        id: `session-${s.id}`,
+        title: clientName,
+        start,
+        end,
+        resource: { type: "session" as const, session: s, color: colourForClient(s.client_id), clientName },
+      },
+      {
+        id: `buffer-${s.id}`,
+        title: "",
+        start: end,
+        end: bufferEnd,
+        resource: { type: "buffer" as const, sessionId: s.id },
+      },
+    ];
+  });
 }
 
 // Map the signed-in client's OWN sessions to calendar events. All share one
 // calm colour and a generic "Session" label (the client knows they're theirs).
+// Cancelled sessions render as greyed-out chips without a buffer.
 export function clientSessionEvents(sessions: Session[]): SchedulerEvent[] {
-  return sessions
-    .filter((s) => s.status !== "cancelled")
-    .flatMap((s) => {
-      const start = new Date(s.scheduled_at);
-      const end = dayjs(start)
-        .add(s.duration_minutes ?? 50, "minute")
-        .toDate();
-      const bufferEnd = dayjs(end).add(10, "minute").toDate();
+  return sessions.flatMap((s) => {
+    const start = new Date(s.scheduled_at);
+    const end = dayjs(start)
+      .add(s.duration_minutes ?? 50, "minute")
+      .toDate();
+
+    if (s.status === "cancelled") {
       return [
         {
           id: `session-${s.id}`,
           title: "Session",
           start,
           end,
-          resource: { type: "session" as const, session: s, color: "#3a5568", clientName: "Session" },
-        },
-        {
-          id: `buffer-${s.id}`,
-          title: "",
-          start: end,
-          end: bufferEnd,
-          resource: { type: "buffer" as const, sessionId: s.id },
+          resource: {
+            type: "cancelled-session" as const,
+            session: s,
+            color: "#3a5568",
+            clientName: "Session",
+          },
         },
       ];
-    });
+    }
+
+    const bufferEnd = dayjs(end).add(10, "minute").toDate();
+    return [
+      {
+        id: `session-${s.id}`,
+        title: "Session",
+        start,
+        end,
+        resource: { type: "session" as const, session: s, color: "#3a5568", clientName: "Session" },
+      },
+      {
+        id: `buffer-${s.id}`,
+        title: "",
+        start: end,
+        end: bufferEnd,
+        resource: { type: "buffer" as const, sessionId: s.id },
+      },
+    ];
+  });
+}
+
+// Map offline (stub) sessions → calendar events. Cancelled ones render as
+// greyed-out chips without a buffer, same visual treatment as real sessions.
+export function stubSessionEvents(
+  stubSessions: StubSession[],
+  stubs: ClientStub[],
+  useCodenames = false,
+): SchedulerEvent[] {
+  return stubSessions.flatMap((s) => {
+    const stub = stubs.find((st) => st.id === s.stub_id);
+    if (!stub) return [];
+    const clientName = useCodenames
+      ? stub.codename || `${stub.first_name} ${stub.last_name}`
+      : `${stub.first_name} ${stub.last_name}`;
+    const start = new Date(s.scheduled_at);
+    const end = dayjs(start)
+      .add(s.duration_minutes ?? 50, "minute")
+      .toDate();
+
+    if (s.status === "cancelled") {
+      return [
+        {
+          id: `stub-session-${s.id}`,
+          title: clientName,
+          start,
+          end,
+          resource: {
+            type: "cancelled-stub-session" as const,
+            stubSession: s,
+            stub,
+            color: colourForClient(stub.id),
+            clientName,
+          },
+        },
+      ];
+    }
+
+    const bufferEnd = dayjs(end).add(10, "minute").toDate();
+    return [
+      {
+        id: `stub-session-${s.id}`,
+        title: clientName,
+        start,
+        end,
+        resource: { type: "stub-session" as const, stubSession: s, stub, color: colourForClient(stub.id), clientName },
+      },
+      {
+        id: `stub-buffer-${s.id}`,
+        title: "",
+        start: end,
+        end: bufferEnd,
+        resource: { type: "buffer" as const, sessionId: s.id },
+      },
+    ];
+  });
 }
 
 // Map the admin's private events → calendar events. Admin view only; clients

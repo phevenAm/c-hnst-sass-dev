@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 
 import dayjs from "dayjs";
@@ -43,6 +43,7 @@ type SchedulerCalendarProps = {
   onView: (view: View) => void;
   onSelectEvent?: (event: SchedulerEvent) => void;
   onEventDrop?: (args: EventInteractionArgs<SchedulerEvent>) => void;
+  slotPropGetter?: (date: Date) => { className?: string; style?: CSSProperties };
   height?: string;
 };
 
@@ -54,6 +55,7 @@ export default function SchedulerCalendar({
   onView,
   onSelectEvent,
   onEventDrop,
+  slotPropGetter,
   height = "72vh",
 }: SchedulerCalendarProps) {
   return (
@@ -75,7 +77,10 @@ export default function SchedulerCalendar({
         eventPropGetter={eventPropGetter}
         onSelectEvent={onSelectEvent}
         onEventDrop={onEventDrop}
-        draggableAccessor={(event: SchedulerEvent) => event.resource.type === "session"}
+        slotPropGetter={slotPropGetter}
+        draggableAccessor={(event: SchedulerEvent) =>
+          event.resource.type === "session" || event.resource.type === "stub-session"
+        }
         resizableAccessor={() => false}
         components={{ event: EventChip, header: HeaderCell }}
         style={{ height }}
@@ -90,6 +95,12 @@ function eventPropGetter(event: SchedulerEvent) {
   const r = event.resource;
   if (r.type === "session") {
     return { style: { backgroundColor: r.color, borderColor: r.color } };
+  }
+  if (r.type === "cancelled-session" || r.type === "cancelled-stub-session") {
+    return { className: "cal-cancelled-session" };
+  }
+  if (r.type === "stub-session") {
+    return { style: { backgroundColor: r.color, borderColor: r.color, borderStyle: "dashed" } };
   }
   if (r.type === "buffer") {
     return { className: "cal-buffer" };
@@ -128,6 +139,36 @@ function EventChip({ event }: { event: SchedulerEvent }) {
         <span className="cal-chipMeta">
           {time} · {isOnline ? "Online" : "In person"}
         </span>
+      </div>
+    );
+  }
+
+  if (r.type === "cancelled-session") {
+    const isOnline = r.session.location !== "in_person";
+    return (
+      <div className="cal-chip">
+        <span className="cal-chipTitle">{r.clientName}</span>
+        <span className="cal-chipMeta">
+          {time} · {isOnline ? "Online" : "In person"} · Cancelled
+        </span>
+      </div>
+    );
+  }
+
+  if (r.type === "stub-session") {
+    return (
+      <div className="cal-chip">
+        <span className="cal-chipTitle">{r.clientName}</span>
+        <span className="cal-chipMeta">{time} · Offline</span>
+      </div>
+    );
+  }
+
+  if (r.type === "cancelled-stub-session") {
+    return (
+      <div className="cal-chip">
+        <span className="cal-chipTitle">{r.clientName}</span>
+        <span className="cal-chipMeta">{time} · Offline · Cancelled</span>
       </div>
     );
   }

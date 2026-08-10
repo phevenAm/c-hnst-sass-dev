@@ -521,7 +521,20 @@
   gap: $sp-4;
   padding: $sp-4 $sp-5;
   border-bottom: 1px solid var(--border);
+  border-radius: var(--r-md);
   flex-wrap: wrap;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+
+  &:focus-visible {
+    background: var(--bg-muted);
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
 
   &:last-child {
     border-bottom: none;

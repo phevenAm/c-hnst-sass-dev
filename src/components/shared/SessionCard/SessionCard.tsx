@@ -69,12 +69,14 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
     toggleNoShowOrPayment,
     markAttended,
     markNoShow,
+    restoreSession,
     getCardClass,
     getStatusClass,
     formatEventLabel,
     isWithin48Hours,
   } = useSessionCard(session);
 
+  const isCancelled = session.status === "cancelled";
   const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
 
   return (
@@ -86,7 +88,9 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
 
       <div className={styles.meta}>
         <span className={styles.duration}>{session.duration_minutes} min</span>
-        <span className={`${styles.badge} ${getStatusClass(session.status, session.attended)}`}>
+        <span
+          className={`${styles.badge} ${getStatusClass(session.status, session.attended, session.paid, session.scheduled_at)}`}
+        >
           {session.attended === false ? "No Show" : session.status.replace("_", " ")}
         </span>
         <span
@@ -102,6 +106,7 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
           </span>
         )}
         {isAdmin &&
+          !isCancelled &&
           (editingCode ? (
             <div className={styles.codeEdit}>
               <input
@@ -208,7 +213,36 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
         ))}
 
       <div className={styles.actions}>
-        {isAdmin && (
+        {isAdmin && isCancelled && (
+          <div className={styles.actions_Icons}>
+            <div className={styles.desktopActions}>
+              <Button size="sm" variant="secondary" disabled={isDemo} onClick={restoreSession}>
+                Restore
+              </Button>
+              <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
+                Delete
+              </Button>
+            </div>
+            <div className={styles.mobileActions}>
+              <SplitButton
+                variant="secondary"
+                size="sm"
+                primaryLabel="Restore"
+                primaryAction={restoreSession}
+                options={[
+                  {
+                    label: "Delete",
+                    onClick: () => {
+                      if (!isDemo) setIsDeleteModalOpen(true);
+                    },
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+
+        {isAdmin && !isCancelled && (
           <>
             <div className={styles.attendanceGroup}>
               <button
@@ -246,6 +280,9 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
                     Reschedule
                   </Button>
                 )}
+                <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
+                  Cancel
+                </Button>
                 <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsDeleteModalOpen(true)}>
                   Delete
                 </Button>
@@ -260,6 +297,12 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),
+                    {
+                      label: "Cancel",
+                      onClick: () => {
+                        if (!isDemo) setIsCancelModalOpen(true);
+                      },
+                    },
                     {
                       label: "Delete",
                       onClick: () => {

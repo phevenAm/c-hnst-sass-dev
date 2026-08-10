@@ -85,6 +85,7 @@ export default function AdminStubDetailPage() {
   const [sessionForm, setSessionForm] = useState<SessionForm>(EMPTY_SESSION_FORM);
   const [savingSession, setSavingSession] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [cancellingSessionId, setCancellingSessionId] = useState<string | null>(null);
 
   const [noteContent, setNoteContent] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -203,6 +204,36 @@ export default function AdminStubDetailPage() {
       setSessions((prev) => prev.filter((s) => s.id !== id));
     }
     setDeletingSessionId(null);
+  };
+
+  const handleCancelSession = async (id: string) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    setCancellingSessionId(id);
+    const { error } = await supabase.from("stub_sessions").update({ status: "cancelled" }).eq("id", id);
+    if (error) {
+      showToast("Failed to cancel session.", "danger");
+    } else {
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, status: "cancelled" } : s)));
+      showToast("Session cancelled.");
+    }
+    setCancellingSessionId(null);
+  };
+
+  const handleRestoreSession = async (id: string) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    const { error } = await supabase.from("stub_sessions").update({ status: "scheduled" }).eq("id", id);
+    if (error) {
+      showToast("Failed to restore session.", "danger");
+    } else {
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, status: "scheduled" } : s)));
+      showToast("Session restored.");
+    }
   };
 
   const handleAddNote = async () => {
@@ -467,19 +498,51 @@ export default function AdminStubDetailPage() {
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((s) => (
-                <div key={s.id} className={styles.sessionRow}>
+                <div
+                  key={s.id}
+                  className={[styles.sessionRow, s.status === "cancelled" ? styles.sessionRowCancelled : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
                   <p className={styles.sessionDate}>{dayjs(s.scheduled_at).format("D MMM YYYY, h:mma")}</p>
                   <div className={styles.sessionMeta}>
                     <span className={`${styles.statusBadge} ${STATUS_STYLES[s.status]}`}>
                       {STATUS_LABELS[s.status]}
                     </span>
+                    <span
+                      className={
+                        s.amount_paid != null && s.amount_paid > 0 ? styles.paymentPillPaid : styles.paymentPillUnpaid
+                      }
+                    >
+                      {s.amount_paid != null && s.amount_paid > 0
+                        ? formatCurrency(s.amount_paid, s.currency)
+                        : "Unpaid"}
+                    </span>
                     {s.duration_minutes && <span className={styles.sessionDuration}>{s.duration_minutes} min</span>}
-                    {s.amount_paid != null && (
-                      <span className={styles.sessionAmount}>{formatCurrency(s.amount_paid, s.currency)}</span>
-                    )}
                     {s.notes && <span className={styles.sessionNotes}>{s.notes}</span>}
                   </div>
                   <div className={styles.sessionActions}>
+                    {s.status === "cancelled" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRestoreSession(s.id)}
+                        aria-label="Restore session"
+                      >
+                        Restore
+                      </Button>
+                    )}
+                    {s.status !== "cancelled" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCancelSession(s.id)}
+                        disabled={cancellingSessionId === s.id}
+                        aria-label="Cancel session"
+                      >
+                        {cancellingSessionId === s.id ? "…" : "Cancel"}
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { View } from "react-big-calendar";
 import { Views } from "react-big-calendar";
 import { useSearchParams } from "react-router-dom";
@@ -9,7 +9,11 @@ import { RootState } from "@/store";
 import { Card, NextSessionCard, SessionCard, ToggleButtonTabs } from "@/components/shared";
 import Button from "@/components/shared/Button/Button";
 import SchedulerCalendar from "@/components/shared/SchedulerCalendar/SchedulerCalendar";
-import { availabilityEvents, clientSessionEvents } from "@/components/shared/SchedulerCalendar/schedulerUtils";
+import {
+  availabilityEvents,
+  bookableWindowsForDate,
+  clientSessionEvents,
+} from "@/components/shared/SchedulerCalendar/schedulerUtils";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useToast } from "@/context/ToastContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
@@ -79,6 +83,19 @@ const ClientSchedule = () => {
     [calDate, rules, overrides, mySessions],
   );
 
+  // Darken time slots that fall outside the admin's availability windows so
+  // clients can clearly see when sessions can be booked.
+  const slotPropGetter = useCallback(
+    (slotDate: Date) => {
+      const windows = bookableWindowsForDate(slotDate, rules, overrides);
+      const isAvailable = windows.some(
+        (w) => slotDate.getTime() >= w.start.getTime() && slotDate.getTime() < w.end.getTime(),
+      );
+      return isAvailable ? {} : { className: "cal-slot-blocked" };
+    },
+    [rules, overrides],
+  );
+
   const guard = isPageStatusLoading(sessionStatus);
   if (guard) return guard;
 
@@ -130,6 +147,7 @@ const ClientSchedule = () => {
               view={calView}
               onNavigate={setCalDate}
               onView={setCalView}
+              slotPropGetter={slotPropGetter}
               height="60vh"
             />
           </Card>
