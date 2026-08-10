@@ -78,9 +78,14 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   const clearPendingRecoveryCode = useCallback(() => setPendingRecoveryCode(null), []);
 
   const fetchSettings = useCallback(async (): Promise<EncSettings | null> => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
     const { data } = await supabase
       .from("practice_settings")
       .select("note_enc_key, note_enc_salt, note_enc_key_iv, note_enc_rec_key, note_enc_rec_iv")
+      .eq("admin_id", user.id)
       .maybeSingle();
     return data as EncSettings | null;
   }, []);
