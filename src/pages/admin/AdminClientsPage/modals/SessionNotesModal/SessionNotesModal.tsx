@@ -55,6 +55,8 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
   const [recoveryNewPassword, setRecoveryNewPassword] = useState("");
   const [gateError, setGateError] = useState("");
   const [gateWorking, setGateWorking] = useState(false);
+  // Inline recovery — shown inside the notes view when some notes couldn't decrypt
+  const [showInlineRecovery, setShowInlineRecovery] = useState(false);
 
   const handleUnlock = async () => {
     setGateWorking(true);
@@ -73,7 +75,13 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     setGateWorking(true);
     setGateError("");
     const ok = await recoverWithCode(recoveryCode.trim(), recoveryNewPassword);
-    if (!ok) setGateError("Recovery failed. Check your recovery code and try again.");
+    if (!ok) {
+      setGateError("Recovery failed. Check your recovery code and try again.");
+    } else {
+      setShowInlineRecovery(false);
+      setRecoveryCode("");
+      setRecoveryNewPassword("");
+    }
     setGateWorking(false);
   };
 
@@ -374,9 +382,70 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     );
   }
 
+  const hasUndecryptable = notes.some((n) => n.content === "[Could not decrypt]");
+
   return (
     <Modal title={modalTitle} onClose={onClose} size="md">
       {error && <p className={styles.modalError}>{error}</p>}
+
+      {hasUndecryptable && (
+        <div className={styles.encGate} style={{ marginBottom: "var(--sp-4)" }}>
+          {showInlineRecovery ? (
+            <>
+              <p className={styles.encGateTitle}>Recover with your recovery code</p>
+              <p className={styles.encGateBody}>
+                Enter the recovery code you saved when you first set up encryption, then your current login password.
+              </p>
+              <input
+                type="text"
+                className={styles.encInput}
+                placeholder="Recovery code (e.g. calm-reef-gold-pine)"
+                value={recoveryCode}
+                onChange={(e) => setRecoveryCode(e.target.value)}
+                autoComplete="off"
+              />
+              <input
+                type="password"
+                className={styles.encInput}
+                placeholder="Current login password"
+                value={recoveryNewPassword}
+                onChange={(e) => setRecoveryNewPassword(e.target.value)}
+              />
+              {gateError && <p className={styles.modalError}>{gateError}</p>}
+              <div style={{ display: "flex", gap: "var(--sp-2)", flexWrap: "wrap" }}>
+                <Button
+                  size="sm"
+                  onClick={handleRecover}
+                  disabled={gateWorking || !recoveryCode.trim() || !recoveryNewPassword.trim()}
+                >
+                  {gateWorking ? "Recovering…" : "Recover notes"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowInlineRecovery(false);
+                    setGateError("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className={styles.encGateTitle}>Some notes couldn't be decrypted</p>
+              <p className={styles.encGateBody}>
+                These notes were encrypted with a different key. If you have your recovery code, you can restore access.
+              </p>
+              <Button size="sm" onClick={() => setShowInlineRecovery(true)}>
+                Use recovery code
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       <div className={styles.notesAddForm}>
         <textarea
           className={styles.notesTextarea}
