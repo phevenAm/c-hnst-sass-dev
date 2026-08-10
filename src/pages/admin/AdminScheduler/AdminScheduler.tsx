@@ -94,7 +94,7 @@ const periodRange = (period: SchedulerPeriod): { start: Date; end: Date } | null
 const AdminScheduler = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isDemo, practiceSettings } = useAuth();
+  const { isDemo, practiceSettings, userProfile } = useAuth();
   const { showToast } = useToast();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
@@ -178,8 +178,8 @@ const AdminScheduler = () => {
   // this admin's own sessions. (The hook needs a non-empty filter string.)
   useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
 
-  // Stub sessions have no Redux slice — fetch directly and refresh on any change.
-  useEffect(() => {
+  // Stub sessions have no Redux slice — fetch directly and keep live via realtime.
+  const fetchStubSessions = () => {
     supabase
       .from("stub_sessions")
       .select("*")
@@ -187,7 +187,13 @@ const AdminScheduler = () => {
         if (error) console.error("Failed to load stub sessions:", error);
         else setAllStubSessions((data as StubSession[]) ?? []);
       });
+  };
+
+  useEffect(() => {
+    fetchStubSessions();
   }, []);
+
+  useRealtimeTable("stub_sessions", userProfile?.id ? `admin_id=eq.${userProfile.id}` : undefined, fetchStubSessions);
 
   const sessions = useAppSelector((s) => s.sessions.sessions);
   const users = useAppSelector(selectAllUsers) as UserProfile[];
