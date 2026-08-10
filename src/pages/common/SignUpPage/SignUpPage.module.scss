@@ -215,6 +215,14 @@
   color: var(--text-muted);
 }
 
+.processNote {
+  text-align: center;
+  margin-top: $sp-4;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .link {
   color: var(--accent);
   font-weight: 500;

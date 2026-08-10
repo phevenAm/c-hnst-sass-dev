@@ -87,13 +87,16 @@ export default function CounsellorSignupPage() {
           </div>
           <h2 className={styles.confirmTitle}>Check your email</h2>
           <p className={styles.confirmText}>
-            We've sent a confirmation link to <strong>{form.email}</strong>. Click it to activate your account — you'll
-            then be guided through setting up your subscription.
+            We've sent a confirmation link to <strong>{form.email}</strong>. Click it to activate your account.
+          </p>
+          <p className={styles.confirmText}>
+            Once confirmed, sign in and you'll be guided through setting up your subscription to complete your
+            registration.
           </p>
           <p className={styles.confirmHint}>
-            Already confirmed your email before?{" "}
+            Already confirmed your email?{" "}
             <Link to="/login" className={styles.backLink}>
-              Sign in instead →
+              Sign in to continue →
             </Link>
           </p>
           <Link to="/login" className={styles.backLink}>
@@ -170,6 +173,10 @@ export default function CounsellorSignupPage() {
               {submitting ? "Creating account…" : "Create account"}
             </button>
           </form>
+
+          <p className={styles.processNote}>
+            After submitting you'll confirm your email, then set up your subscription to get started.
+          </p>
 
           <p className={styles.footer}>
             Already have an account?{" "}

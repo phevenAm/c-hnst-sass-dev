@@ -132,7 +132,7 @@ function SuperAdminGate({ children }: { children: React.ReactNode }) {
 }
 
 function SubscriptionGate({ children }: { children: React.ReactNode }) {
-  const { isAdmin, practiceSettings, loading, refreshPracticeSettings } = useAuth();
+  const { isAdmin, isDemo, practiceSettings, loading, refreshPracticeSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const justSubscribed = searchParams.get("subscribed") === "true";
   const [verifying, setVerifying] = useState(justSubscribed);
@@ -151,6 +151,7 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 
   if (
     isAdmin &&
+    !isDemo &&
     practiceSettings &&
     practiceSettings.subscription_status !== "active" &&
     practiceSettings.subscription_status !== "trialing"
