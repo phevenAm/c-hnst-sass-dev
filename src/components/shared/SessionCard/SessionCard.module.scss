@@ -22,6 +22,16 @@
     border-color: color-mix(in srgb, #3b82f6 30%, transparent);
 }
 
+.sessionItemCancelled {
+    background: color-mix(in srgb, var(--text-muted) 6%, transparent);
+    border-color: color-mix(in srgb, var(--text-muted) 20%, transparent);
+
+    .date {
+        text-decoration: line-through;
+        color: var(--text-muted);
+    }
+}
+
 .dateRow {
     display: flex;
     align-items: baseline;
