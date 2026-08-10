@@ -14,6 +14,7 @@ import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/ques
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
+import { Button } from "@/components/shared";
 import HideableSection from "@/components/shared/HideableSection/HideableSection";
 import Search from "@/components/shared/Search/Search";
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +26,6 @@ import ManageTokensModal from "./modals/ManageTokensModal/ManageTokensModal";
 import SessionNotesModal from "./modals/SessionNotesModal/SessionNotesModal";
 
 import styles from "./AdminClientsPage.module.scss";
-import { Button } from "@/components/shared";
 
 const getQuestionnaireForResponse = (response: Response | undefined, questionnaires: Questionnaire[]) => {
   if (!response) return undefined;
