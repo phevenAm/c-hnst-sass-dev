@@ -128,6 +128,9 @@ const AdminScheduler = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // Declared here (before the useEffect below) so the dependency array doesn't hit TDZ.
+  const allStubs = useAppSelector(selectAllStubs);
+
   // When an offline client is picked from the new-session dropdown, navigate to
   // their stub detail page instead of opening CreateSessionModal (stub sessions
   // live in stub_sessions, not sessions — the FK would reject a sessions insert).
@@ -176,7 +179,6 @@ const AdminScheduler = () => {
   const sessions = useAppSelector((s) => s.sessions.sessions);
   const users = useAppSelector(selectAllUsers) as UserProfile[];
   const clients = useAppSelector(selectClientUsers);
-  const allStubs = useAppSelector(selectAllStubs);
   const rules = useAppSelector((s) => s.availability.rules);
   const overrides = useAppSelector((s) => s.availability.overrides);
   const privateEvents = useAppSelector((s) => s.adminPrivateEvents.events);
