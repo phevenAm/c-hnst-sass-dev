@@ -26,6 +26,7 @@ import { getScoreAverage } from "../utils/AdminClientsPageUtils";
 import AccessTokenModal from "./modals/AccessTokenModal/AccessTokenModal";
 import CreateStubModal from "./modals/CreateStubModal/CreateStubModal";
 import DeleteClientModal from "./modals/DeleteClientModal/DeleteClientModal";
+import ImportStubsModal from "./modals/ImportStubsModal/ImportStubsModal";
 import ManageTokensModal from "./modals/ManageTokensModal/ManageTokensModal";
 import SessionNotesModal from "./modals/SessionNotesModal/SessionNotesModal";
 
@@ -252,6 +253,7 @@ export default function AdminClientsPage() {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [manageTokensModal, setManageTokensModal] = useState(false);
   const [createStubOpen, setCreateStubOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
@@ -316,6 +318,7 @@ export default function AdminClientsPage() {
             options={[
               { label: "Manage tokens", onClick: () => setManageTokensModal(true) },
               { label: "Create offline client", onClick: () => setCreateStubOpen(true) },
+              { label: "Import CSV", onClick: () => setImportOpen(true) },
             ]}
             secondaryLabel="View more options"
           />
@@ -371,6 +374,7 @@ export default function AdminClientsPage() {
       {showTokenModal && <AccessTokenModal onClose={() => setShowTokenModal(false)} />}
       {manageTokensModal && <ManageTokensModal onClose={() => setManageTokensModal(false)} />}
       {createStubOpen && <CreateStubModal onClose={() => setCreateStubOpen(false)} />}
+      {importOpen && <ImportStubsModal onClose={() => setImportOpen(false)} />}
     </div>
   );
 }

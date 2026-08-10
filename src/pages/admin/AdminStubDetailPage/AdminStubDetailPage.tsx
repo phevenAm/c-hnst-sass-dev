@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import DateInput from "@components/shared/DateInput/DateInput";
 import Modal from "@components/shared/Modal/Modal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
@@ -17,6 +19,7 @@ import { deleteClientStub, fetchClientStubs, selectStubById, updateClientStub } 
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
 import CreateStubModal from "../AdminClientsPage/modals/CreateStubModal/CreateStubModal";
+import InviteStubModal from "./InviteStubModal";
 
 import styles from "./AdminStubDetailPage.module.scss";
 
@@ -33,6 +36,7 @@ type SessionForm = {
   amount_paid: string;
   currency: string;
   notes: string;
+  code: string;
 };
 
 const EMPTY_SESSION_FORM: SessionForm = {
@@ -42,6 +46,15 @@ const EMPTY_SESSION_FORM: SessionForm = {
   amount_paid: "",
   currency: "GBP",
   notes: "",
+  code: "",
+};
+
+type EditForm = {
+  status: StubSession["status"];
+  amount_paid: string;
+  duration_minutes: string;
+  notes: string;
+  code: string;
 };
 
 const STATUS_LABELS: Record<StubSession["status"], string> = {
@@ -83,9 +96,19 @@ export default function AdminStubDetailPage() {
 
   const [addSessionOpen, setAddSessionOpen] = useState(false);
   const [sessionForm, setSessionForm] = useState<SessionForm>(EMPTY_SESSION_FORM);
+  const [sessionDate, setSessionDate] = useState<Dayjs | null>(null);
   const [savingSession, setSavingSession] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [cancellingSessionId, setCancellingSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>({
+    status: "attended",
+    amount_paid: "",
+    duration_minutes: "",
+    notes: "",
+    code: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [noteContent, setNoteContent] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -96,6 +119,8 @@ export default function AdminStubDetailPage() {
   const [selectedLinkUserId, setSelectedLinkUserId] = useState("");
   const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -176,6 +201,7 @@ export default function AdminStubDetailPage() {
         amount_paid: sessionForm.amount_paid ? Number(sessionForm.amount_paid) : null,
         currency: sessionForm.currency,
         notes: sessionForm.notes.trim() || null,
+        code: sessionForm.code.trim() || null,
       })
       .select()
       .single();
@@ -185,6 +211,7 @@ export default function AdminStubDetailPage() {
     } else {
       setSessions((prev) => [data as StubSession, ...prev]);
       setSessionForm(EMPTY_SESSION_FORM);
+      setSessionDate(null);
       setAddSessionOpen(false);
       showToast("Session added.");
     }
@@ -234,6 +261,42 @@ export default function AdminStubDetailPage() {
       setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, status: "scheduled" } : s)));
       showToast("Session restored.");
     }
+  };
+
+  const openEditSession = (s: StubSession) => {
+    setEditingSessionId(s.id);
+    setEditForm({
+      status: s.status,
+      amount_paid: s.amount_paid != null ? String(s.amount_paid) : "",
+      duration_minutes: s.duration_minutes != null ? String(s.duration_minutes) : "",
+      notes: s.notes ?? "",
+      code: s.code ?? "",
+    });
+  };
+
+  const handleUpdateSession = async () => {
+    if (!editingSessionId) return;
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    setSavingEdit(true);
+    const updates = {
+      status: editForm.status,
+      amount_paid: editForm.amount_paid ? Number(editForm.amount_paid) : null,
+      duration_minutes: editForm.duration_minutes ? Number(editForm.duration_minutes) : null,
+      notes: editForm.notes.trim() || null,
+      code: editForm.code.trim() || null,
+    };
+    const { error } = await supabase.from("stub_sessions").update(updates).eq("id", editingSessionId);
+    if (error) {
+      showToast("Failed to update session.", "danger");
+    } else {
+      setSessions((prev) => prev.map((s) => (s.id === editingSessionId ? { ...s, ...updates } : s)));
+      setEditingSessionId(null);
+      showToast("Session updated.");
+    }
+    setSavingEdit(false);
   };
 
   const handleAddNote = async () => {
@@ -353,6 +416,7 @@ export default function AdminStubDetailPage() {
   }
 
   const splitOptions = [
+    { label: "Invite to platform", onClick: () => setInviteOpen(true) },
     { label: stub.linked_user_id ? "Relink client" : "Link to real client", onClick: () => setLinkOpen(true) },
     ...(stub.linked_user_id ? [{ label: "Unlink", onClick: handleUnlink, disabled: unlinking }] : []),
   ];
@@ -431,12 +495,14 @@ export default function AdminStubDetailPage() {
             <div className={styles.addSessionForm}>
               <div className={styles.formGrid}>
                 <div className={styles.field}>
-                  <label htmlFor="session-date">Date &amp; time</label>
-                  <input
-                    id="session-date"
-                    type="datetime-local"
-                    value={sessionForm.scheduled_at}
-                    onChange={(e) => setSessionForm((f) => ({ ...f, scheduled_at: e.target.value }))}
+                  <label>Date &amp; time</label>
+                  <DateInput
+                    mode="datetime"
+                    value={sessionDate}
+                    onChange={(val) => {
+                      setSessionDate(val);
+                      setSessionForm((f) => ({ ...f, scheduled_at: val?.toISOString() ?? "" }));
+                    }}
                   />
                 </div>
                 <div className={styles.field}>
@@ -475,6 +541,15 @@ export default function AdminStubDetailPage() {
                     placeholder="0.00"
                   />
                 </div>
+                <div className={styles.field}>
+                  <label htmlFor="session-code">Code (optional)</label>
+                  <input
+                    id="session-code"
+                    value={sessionForm.code}
+                    onChange={(e) => setSessionForm((f) => ({ ...f, code: e.target.value }))}
+                    placeholder="e.g. PROMO10"
+                  />
+                </div>
                 <div className={`${styles.field} ${styles.formGridFull}`}>
                   <label htmlFor="session-notes">Notes</label>
                   <textarea
@@ -498,61 +573,120 @@ export default function AdminStubDetailPage() {
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  className={[styles.sessionRow, s.status === "cancelled" ? styles.sessionRowCancelled : ""]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <p className={styles.sessionDate}>{dayjs(s.scheduled_at).format("D MMM YYYY, h:mma")}</p>
-                  <div className={styles.sessionMeta}>
-                    <span className={`${styles.statusBadge} ${STATUS_STYLES[s.status]}`}>
-                      {STATUS_LABELS[s.status]}
-                    </span>
-                    <span
-                      className={
-                        s.amount_paid != null && s.amount_paid > 0 ? styles.paymentPillPaid : styles.paymentPillUnpaid
-                      }
-                    >
-                      {s.amount_paid != null && s.amount_paid > 0
-                        ? formatCurrency(s.amount_paid, s.currency)
-                        : "Unpaid"}
-                    </span>
-                    {s.duration_minutes && <span className={styles.sessionDuration}>{s.duration_minutes} min</span>}
-                    {s.notes && <span className={styles.sessionNotes}>{s.notes}</span>}
-                  </div>
-                  <div className={styles.sessionActions}>
-                    {s.status === "cancelled" && (
+                <div key={s.id}>
+                  <div
+                    className={[styles.sessionRow, s.status === "cancelled" ? styles.sessionRowCancelled : ""]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    <p className={styles.sessionDate}>{dayjs(s.scheduled_at).format("D MMM YYYY, h:mma")}</p>
+                    <div className={styles.sessionMeta}>
+                      <span className={`${styles.statusBadge} ${STATUS_STYLES[s.status]}`}>
+                        {STATUS_LABELS[s.status]}
+                      </span>
+                      <span
+                        className={
+                          s.amount_paid != null && s.amount_paid > 0 ? styles.paymentPillPaid : styles.paymentPillUnpaid
+                        }
+                      >
+                        {s.amount_paid != null && s.amount_paid > 0
+                          ? formatCurrency(s.amount_paid, s.currency)
+                          : "Unpaid"}
+                      </span>
+                      {s.duration_minutes && <span className={styles.sessionDuration}>{s.duration_minutes} min</span>}
+                      {s.code && <span className={styles.sessionCode}>{s.code}</span>}
+                      {s.notes && <span className={styles.sessionNotes}>{s.notes}</span>}
+                    </div>
+                    <div className={styles.sessionActions}>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRestoreSession(s.id)}
-                        aria-label="Restore session"
+                        onClick={() => (editingSessionId === s.id ? setEditingSessionId(null) : openEditSession(s))}
                       >
-                        Restore
+                        {editingSessionId === s.id ? "Close" : "Edit"}
                       </Button>
-                    )}
-                    {s.status !== "cancelled" && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleCancelSession(s.id)}
-                        disabled={cancellingSessionId === s.id}
-                        aria-label="Cancel session"
+                        onClick={() => handleDeleteSession(s.id)}
+                        disabled={deletingSessionId === s.id}
+                        aria-label="Delete session"
                       >
-                        {cancellingSessionId === s.id ? "…" : "Cancel"}
+                        {deletingSessionId === s.id ? "…" : "Delete"}
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSession(s.id)}
-                      disabled={deletingSessionId === s.id}
-                      aria-label="Delete session"
-                    >
-                      {deletingSessionId === s.id ? "…" : "Delete"}
-                    </Button>
+                    </div>
                   </div>
+
+                  {editingSessionId === s.id && (
+                    <div className={styles.addSessionForm}>
+                      <div className={styles.formGrid}>
+                        <div className={styles.field}>
+                          <label htmlFor={`edit-status-${s.id}`}>Status</label>
+                          <select
+                            id={`edit-status-${s.id}`}
+                            value={editForm.status}
+                            onChange={(e) =>
+                              setEditForm((f) => ({ ...f, status: e.target.value as StubSession["status"] }))
+                            }
+                          >
+                            <option value="attended">Attended</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="no_show">No show</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                        <div className={styles.field}>
+                          <label htmlFor={`edit-amount-${s.id}`}>Amount paid</label>
+                          <input
+                            id={`edit-amount-${s.id}`}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editForm.amount_paid}
+                            onChange={(e) => setEditForm((f) => ({ ...f, amount_paid: e.target.value }))}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label htmlFor={`edit-duration-${s.id}`}>Duration (minutes)</label>
+                          <input
+                            id={`edit-duration-${s.id}`}
+                            type="number"
+                            min="0"
+                            value={editForm.duration_minutes}
+                            onChange={(e) => setEditForm((f) => ({ ...f, duration_minutes: e.target.value }))}
+                            placeholder="60"
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label htmlFor={`edit-code-${s.id}`}>Code (optional)</label>
+                          <input
+                            id={`edit-code-${s.id}`}
+                            value={editForm.code}
+                            onChange={(e) => setEditForm((f) => ({ ...f, code: e.target.value }))}
+                            placeholder="e.g. PROMO10"
+                          />
+                        </div>
+                        <div className={`${styles.field} ${styles.formGridFull}`}>
+                          <label htmlFor={`edit-notes-${s.id}`}>Notes</label>
+                          <textarea
+                            id={`edit-notes-${s.id}`}
+                            value={editForm.notes}
+                            onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                            placeholder="Session notes…"
+                          />
+                        </div>
+                      </div>
+                      <div className={styles.formActions}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingSessionId(null)}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleUpdateSession} disabled={savingEdit}>
+                          {savingEdit ? "Saving…" : "Save changes"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -615,6 +749,9 @@ export default function AdminStubDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Invite to platform modal */}
+      {inviteOpen && <InviteStubModal stub={stub} onClose={() => setInviteOpen(false)} />}
 
       {/* Edit stub modal */}
       {editOpen && <CreateStubModal existing={stub} onClose={() => setEditOpen(false)} />}
