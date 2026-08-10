@@ -28,7 +28,7 @@ export function InterfacePrefsProvider({ children }: { children: React.ReactNode
       .from("practice_settings")
       .select("hidden_sections, reduce_motion")
       .eq("admin_id", userProfile.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (data?.hidden_sections) setHiddenSections(data.hidden_sections);
         if (data?.reduce_motion) applyMotion(true);
