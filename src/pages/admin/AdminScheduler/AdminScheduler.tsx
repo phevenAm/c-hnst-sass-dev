@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { View } from "react-big-calendar";
 import { Views } from "react-big-calendar";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -28,6 +28,7 @@ import type { AdminPrivateEvent, Session, UserProfile } from "@/models/globalTyp
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchPrivateEvents } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
+import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import AvailabilityEditor from "./AvailabilityEditor";
@@ -91,6 +92,7 @@ const periodRange = (period: SchedulerPeriod): { start: Date; end: Date } | null
 
 const AdminScheduler = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
@@ -126,6 +128,18 @@ const AdminScheduler = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // When an offline client is picked from the new-session dropdown, navigate to
+  // their stub detail page instead of opening CreateSessionModal (stub sessions
+  // live in stub_sessions, not sessions — the FK would reject a sessions insert).
+  useEffect(() => {
+    if (!newSessionClientId) return;
+    if (allStubs.some((s) => s.id === newSessionClientId)) {
+      navigate(`/admin/clients/stub/${newSessionClientId}`);
+      setNewSessionClientId(null);
+      setNewSessionWithoutId(false);
+    }
+  }, [newSessionClientId, allStubs]);
+
   useEffect(() => {
     if (searchParams.get("newSession") === "1") {
       setNewSessionWithoutId(true);
@@ -152,6 +166,7 @@ const AdminScheduler = () => {
   useFetchOnIdle((s: RootState) => s.userDirectory.status, fetchAllUsers, "Failed to load users");
   useFetchOnIdle((s: RootState) => s.availability.status, fetchAvailability, "Failed to load availability");
   useFetchOnIdle((s: RootState) => s.adminPrivateEvents.status, fetchPrivateEvents, "Failed to load private events");
+  useFetchOnIdle((s: RootState) => s.clientStubs.status, fetchClientStubs, "Failed to load offline clients");
 
   // Any admin-side session change (from any device) refreshes the grid.
   // duration_minutes>=0 matches every row; RLS still scopes the stream to
@@ -161,6 +176,7 @@ const AdminScheduler = () => {
   const sessions = useAppSelector((s) => s.sessions.sessions);
   const users = useAppSelector(selectAllUsers) as UserProfile[];
   const clients = useAppSelector(selectClientUsers);
+  const allStubs = useAppSelector(selectAllStubs);
   const rules = useAppSelector((s) => s.availability.rules);
   const overrides = useAppSelector((s) => s.availability.overrides);
   const privateEvents = useAppSelector((s) => s.adminPrivateEvents.events);
@@ -558,7 +574,16 @@ const AdminScheduler = () => {
               </Button>
               <Button
                 disabled={!newSessionClientId}
-                onClick={() => newSessionClientId && startNewSessionForClient(newSessionClientId)}
+                onClick={() => {
+                  if (!newSessionClientId) return;
+                  const isStub = allStubs.some((s) => s.id === newSessionClientId);
+                  if (isStub) {
+                    navigate(`/admin/clients/stub/${newSessionClientId}`);
+                    closeNewSessionPicker();
+                  } else {
+                    startNewSessionForClient(newSessionClientId);
+                  }
+                }}
               >
                 Continue
               </Button>
@@ -582,12 +607,23 @@ const AdminScheduler = () => {
                   {clientDisplayName(client, useCodenames)}
                 </option>
               ))}
+              {allStubs.length > 0 && (
+                <optgroup label="Offline clients">
+                  {allStubs.map((stub) => (
+                    <option key={stub.id} value={stub.id}>
+                      {useCodenames
+                        ? stub.codename || `${stub.first_name} ${stub.last_name}`
+                        : `${stub.first_name} ${stub.last_name}`}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
         </Modal>
       )}
 
-      {newSessionClientId && (
+      {newSessionClientId && !allStubs.some((s) => s.id === newSessionClientId) && (
         <CreateSessionModal
           clientId={newSessionClientId}
           clientName={clientDisplayName(

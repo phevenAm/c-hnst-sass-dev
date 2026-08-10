@@ -55,7 +55,7 @@ const BANK_FIELDS = [
 type BankField = (typeof BANK_FIELDS)[number]["key"];
 
 const SettingsPage = () => {
-  const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings } = useAuth();
+  const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
   const { hiddenSections, toggleSection, reduceMotion, setReduceMotion } = useInterfacePrefs();
   const { showToast } = useToast();
   const [name, setName] = useState(userProfile?.display_name ?? "");
@@ -203,6 +203,7 @@ const SettingsPage = () => {
       .from("practice_settings")
       .update({ use_client_codenames: useCodenames })
       .eq("admin_id", userProfile.id);
+    await refreshPracticeSettings();
     setSavingCodenames(false);
     showToast("Client display settings saved.");
   };
