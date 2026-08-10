@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
-import { CheckIcon, ClipboardIcon, LogoIcon, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
+import { CheckIcon, ClarityLogoMark, ClipboardIcon, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
@@ -175,9 +175,9 @@ export default function SubscribePage() {
       <div className={styles.container}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
-            <LogoIcon />
+            <ClarityLogoMark size={52} />
           </div>
-          <h1 className={styles.logoTitle}>WithMe</h1>
+          <h1 className={styles.logoTitle}>Clarity</h1>
           <p className={styles.logoSub}>Start your subscription</p>
         </div>
 

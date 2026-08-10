@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
+import { ClarityLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
@@ -10,24 +11,6 @@ import { useEncryption } from "@context/EncryptionContext";
 import { supabase } from "@/lib/supabase";
 
 import styles from "./LoginPage.module.scss";
-
-const LogoIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M12 22V12" />
-    <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
-    <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
-  </svg>
-);
 
 function ResetPasswordForm() {
   const navigate = useNavigate();
@@ -269,9 +252,9 @@ export default function LoginPage() {
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
-            <LogoIcon />
+            <ClarityLogoMark size={52} />
           </div>
-          <h1 className={styles.logoTitle}>WithMe</h1>
+          <h1 className={styles.logoTitle}>Clarity</h1>
           <p className={styles.logoSub}>A safe space for your journey</p>
         </div>
 

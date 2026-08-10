@@ -40,9 +40,10 @@ $transition: 0.22s ease;
 
 .top {
   padding: $sp-2 $sp-2;
-  // border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
+  padding-bottom: 15px;
 }
 
 .logo {
@@ -50,7 +51,8 @@ $transition: 0.22s ease;
   align-items: center;
   gap: $sp-3;
   text-decoration: none;
-  padding: $sp-2;
+  padding-left: $sp-3;
+
   border-radius: var(--r-md);
 
   &:focus-visible {
@@ -61,20 +63,9 @@ $transition: 0.22s ease;
 }
 
 .logoMark {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-sm);
-  background: var(--accent);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-inverse);
-  flex-shrink: 0;
-
-  svg {
-    width: 14px;
-    height: 14px;
-  }
 }
 
 .logoText {

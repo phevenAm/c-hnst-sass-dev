@@ -62,15 +62,9 @@
 }
 
 .logoMark {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-sm);
-  background: var(--accent);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-inverse);
-  flex-shrink: 0;
 }
 
 .logoText {

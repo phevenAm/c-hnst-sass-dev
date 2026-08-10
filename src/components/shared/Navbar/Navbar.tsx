@@ -8,7 +8,7 @@ import { supabase } from "../../../lib/supabase.js";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
-import { CloseIcon, DarkmodeIcon, LightmodeIcon, LogoIcon, MenuIcon, Settingsicon } from "../Icons/Icons";
+import { ClarityLogoMark, CloseIcon, DarkmodeIcon, LightmodeIcon, MenuIcon, Settingsicon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 import SkipToMain from "../SkipToMain/SkipToMain";
 
@@ -69,7 +69,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           to={isAdmin ? "/admin" : "/dashboard"}
-          aria-label={isAdmin ? "WithMe Admin — home" : "WithMe — home"}
+          aria-label={isAdmin ? "Clarity Admin — home" : "Clarity — home"}
           className={styles.logo}
           data-testid="logo-link"
         >
@@ -77,10 +77,10 @@ export default function Navbar() {
             {practiceLogoUrl ? (
               <img src={practiceLogoUrl} alt="Logo" style={{ width: 20, height: 20, objectFit: "contain" }} />
             ) : (
-              <LogoIcon />
+              <ClarityLogoMark size={32} />
             )}
           </div>
-          <span className={styles.logoText}>WithMe</span>
+          <span className={styles.logoText}>Clarity</span>
           {isAdmin && (
             <span className={styles.adminBadge} aria-hidden="true">
               Admin
