@@ -441,6 +441,11 @@
   width: 100%;
   display: flex;
   align-items: center;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--bg-muted);
+  }
 }
 
 .emailRowExpandBtn {
@@ -454,12 +459,7 @@
   cursor: pointer;
   text-align: left;
   gap: $sp-4;
-  transition: background 0.15s;
   min-width: 0;
-
-  &:hover {
-    background: var(--bg-muted);
-  }
 
   > div {
     display: flex;
@@ -494,7 +494,6 @@
 .emailRowBody {
   padding: $sp-5 $sp-6;
   border-top: 1px solid var(--border);
-  background: var(--bg-muted);
   display: flex;
   flex-direction: column;
   gap: $sp-5;
