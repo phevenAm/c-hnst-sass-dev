@@ -75,6 +75,24 @@
     color: var(--text-primary) !important;
   }
 
+  // Cancelled sessions — greyed out, non-interactive, strikethrough title.
+  .cal-cancelled-session {
+    background-color: color-mix(in srgb, var(--text-muted) 18%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent) !important;
+    color: var(--text-muted) !important;
+    opacity: 0.65;
+    pointer-events: none;
+
+    .cal-chipTitle {
+      text-decoration: line-through;
+    }
+  }
+
+  // Client calendar: darken time slots outside the admin's availability windows.
+  .rbc-time-slot.cal-slot-blocked {
+    background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+  }
+
   // ─── react-big-calendar theme overrides ─────────────────
   // RBC ships light-theme CSS; remap its greys onto our tokens for dark mode.
   .rbc-calendar {
