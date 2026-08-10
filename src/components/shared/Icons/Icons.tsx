@@ -177,11 +177,11 @@ export const LeafLogoMark = ({ size = 36 }: { size?: number }) => (
       </filter>
     </defs>
 
-    {/* Large secondary circle — sage mint */}
-    <circle cx="15" cy="18" r="15" fill="#8ecfc3" />
+    {/* Large solid circle — warm amber, right side, behind */}
+    <circle cx="29" cy="18" r="15" fill="#d4905a" />
 
-    {/* Smaller frosted primary circle — overlapping middle-right, blurred, no outline */}
-    <circle cx="29" cy="18" r="12" fill="rgba(45,114,100,0.78)" filter="url(#lm-frost)" />
+    {/* Smaller frosted circle — blurred, left side, in front */}
+    <circle cx="15" cy="18" r="12" fill="rgba(45,114,100,0.82)" filter="url(#lm-frost)" />
   </svg>
 );
 
