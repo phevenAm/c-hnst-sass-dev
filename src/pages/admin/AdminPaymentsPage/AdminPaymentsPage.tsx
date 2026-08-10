@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
 import { Card, CollapsibleSection } from "@components/shared/index";
+import Modal from "@components/shared/Modal/Modal";
 import SortableTable, { type SortableColumn } from "@components/shared/SortableTable/SortableTable";
 import type { RootState } from "@/store";
 
@@ -13,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
+import type { StubSession } from "@/models/globalTypes";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
 import { revenueByMonth } from "@/pages/admin/AdminDashboard/dashboardUtils";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
@@ -44,7 +46,7 @@ type PaymentRow = {
   date: string;
   amountPence: number;
   isPaid: boolean;
-  source: "session" | "manual";
+  source: "session" | "manual" | "stub-session";
   description: string | null;
   viewPath: string | null;
 };
@@ -66,6 +68,9 @@ const AdminPaymentsPage = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [manualPayments, setManualPayments] = useState<ManualPayment[]>([]);
+  const [stubSessions, setStubSessions] = useState<StubSession[]>([]);
+  const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
+  const [markAmount, setMarkAmount] = useState("");
 
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
   useFetchOnIdle((s: RootState) => s.userDirectory.status, fetchAllUsers, "Failed to load users");
@@ -85,9 +90,15 @@ const AdminPaymentsPage = () => {
     if (data) setManualPayments(data as ManualPayment[]);
   }, [userProfile?.id]);
 
+  const loadStubSessions = useCallback(async () => {
+    const { data } = await supabase.from("stub_sessions").select("*").order("scheduled_at", { ascending: false });
+    if (data) setStubSessions(data as StubSession[]);
+  }, []);
+
   useEffect(() => {
     loadManualPayments();
-  }, [loadManualPayments]);
+    loadStubSessions();
+  }, [loadManualPayments, loadStubSessions]);
 
   // ── Name resolution ───────────────────────────────────────────────────────
 
@@ -176,8 +187,26 @@ const AdminPaymentsPage = () => {
       viewPath: p.client_id ? `/admin/clients/${p.client_id}` : p.stub_id ? `/admin/clients/stub/${p.stub_id}` : null,
     }));
 
-    return [...sessionRows, ...manualRows];
-  }, [scopedSessions, manualPayments, selectedClientId, clientNameById]);
+    const scopedStubSessions =
+      selectedClientId === "all" ? stubSessions : stubSessions.filter((s) => s.stub_id === selectedClientId);
+
+    const stubSessionRows: PaymentRow[] = scopedStubSessions
+      .filter((s) => s.status !== "cancelled")
+      .map((s) => ({
+        id: s.id,
+        clientId: null,
+        stubId: s.stub_id,
+        clientName: clientNameById(null, s.stub_id),
+        date: s.scheduled_at,
+        amountPence: Math.round((s.amount_paid ?? 0) * 100),
+        isPaid: s.amount_paid != null && s.amount_paid > 0,
+        source: "stub-session" as const,
+        description: s.notes ?? null,
+        viewPath: `/admin/clients/stub/${s.stub_id}`,
+      }));
+
+    return [...sessionRows, ...stubSessionRows, ...manualRows];
+  }, [scopedSessions, stubSessions, manualPayments, selectedClientId, clientNameById]);
 
   const filteredRows = useMemo(() => {
     if (statusFilter === "paid") return allRows.filter((r) => r.isPaid);
@@ -197,6 +226,24 @@ const AdminPaymentsPage = () => {
     }
     await dispatch(updateSession({ id: sessionId, paid: true })).unwrap();
     showToast("Session marked as paid.");
+  };
+
+  const handleConfirmMarkStubPaid = async () => {
+    if (!markStubPaid) return;
+    const amount = parseFloat(markAmount);
+    if (!amount || amount <= 0) {
+      showToast("Enter a valid amount.", "danger");
+      return;
+    }
+    const { error } = await supabase.from("stub_sessions").update({ amount_paid: amount }).eq("id", markStubPaid.id);
+    if (error) {
+      showToast("Failed to update payment.", "danger");
+      return;
+    }
+    setStubSessions((prev) => prev.map((s) => (s.id === markStubPaid.id ? { ...s, amount_paid: amount } : s)));
+    showToast("Payment recorded.");
+    setMarkStubPaid(null);
+    setMarkAmount("");
   };
 
   const handleDeleteManual = async (e: React.MouseEvent, id: string) => {
@@ -239,7 +286,10 @@ const AdminPaymentsPage = () => {
       label: "Description",
       mobileHide: true,
       render: (r) => (
-        <span className={styles.descCell}>{r.description || (r.source === "session" ? "Session" : "—")}</span>
+        <span className={styles.descCell}>
+          {r.description ||
+            (r.source === "session" ? "Session" : r.source === "stub-session" ? "Offline session" : "—")}
+        </span>
       ),
     },
     {
@@ -256,6 +306,19 @@ const AdminPaymentsPage = () => {
         <div className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
           {!r.isPaid && r.source === "session" && (
             <Button size="sm" variant="ghost" onClick={(e) => handleMarkPaid(e, r.id)}>
+              Mark paid
+            </Button>
+          )}
+          {!r.isPaid && r.source === "stub-session" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMarkAmount("");
+                setMarkStubPaid({ id: r.id, currency: "GBP" });
+              }}
+            >
               Mark paid
             </Button>
           )}
@@ -403,6 +466,49 @@ const AdminPaymentsPage = () => {
             setAddPaymentOpen(false);
           }}
         />
+      )}
+
+      {markStubPaid && (
+        <Modal
+          title="Record payment amount"
+          size="sm"
+          onClose={() => setMarkStubPaid(null)}
+          actions={
+            <>
+              <Button variant="ghost" onClick={() => setMarkStubPaid(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmMarkStubPaid} disabled={!markAmount}>
+                Save
+              </Button>
+            </>
+          }
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-2)" }}>
+            <label style={{ fontSize: "0.82rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+              Amount paid (£)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="85.00"
+              value={markAmount}
+              onChange={(e) => setMarkAmount(e.target.value)}
+              autoFocus
+              style={{
+                padding: "10px 14px",
+                border: "1.5px solid var(--border)",
+                borderRadius: "var(--r-md)",
+                background: "var(--bg-card)",
+                color: "var(--text-primary)",
+                fontSize: "0.9rem",
+                fontFamily: "var(--font-sans)",
+                outline: "none",
+              }}
+            />
+          </div>
+        </Modal>
       )}
     </div>
   );

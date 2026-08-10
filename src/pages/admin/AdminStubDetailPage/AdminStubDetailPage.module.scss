@@ -330,6 +330,18 @@
   color: var(--text-secondary);
 }
 
+.sessionCode {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: monospace;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
 .sessionNotes {
   font-size: 0.8rem;
   color: var(--text-muted);

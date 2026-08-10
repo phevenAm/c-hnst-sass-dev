@@ -55,7 +55,13 @@ export default function InviteStubModal({ stub, onClose }: Props) {
     });
 
     if (fnError) {
-      setError(fnError.message);
+      let msg = fnError.message;
+      try {
+        // The actual error detail is in the raw Response on fnError.context
+        const body = await (fnError as any).context?.json?.();
+        if (body?.error) msg = body.error;
+      } catch {}
+      setError(msg);
       setLoading(false);
       return;
     }
