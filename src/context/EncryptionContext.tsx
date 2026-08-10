@@ -6,40 +6,43 @@ import {
   deriveKEK,
   fromBase64,
   generateDataKey,
-  generateRecoveryCode,
+  generateEncryptionCode,
   generateSalt,
+  isEncryptedValue,
   toBase64,
   unwrapDataKey,
   wrapDataKey,
 } from "../lib/noteEncryption";
 import { supabase } from "../lib/supabase.js";
 
-// "checking"       — haven't yet determined if encryption is configured
-// "disabled"       — no encryption set up for this practice
-// "locked"         — configured but data key not in memory (browser closed, session persisted)
-// "unlocked"       — data key in memory, ready to encrypt / decrypt
-// "needs_recovery" — password was reset via email; old KEK no longer matches
-export type EncryptionStatus = "checking" | "disabled" | "locked" | "unlocked" | "needs_recovery";
+// "checking"  — haven't yet determined if encryption is configured
+// "disabled"  — never set up (no enc_code_wrapped in DB)
+// "locked"    — configured but data key not in memory (browser closed / session expired)
+// "unlocked"  — data key in memory, ready to encrypt / decrypt
+export type EncryptionStatus = "checking" | "disabled" | "locked" | "unlocked";
 
 export type UnlockResult = "unlocked" | "no_key" | "wrong_password";
 
 interface EncryptionContextType {
   status: EncryptionStatus;
-  /** Set up encryption for the first time using the admin's login password. */
-  setupEncryption: (password: string) => Promise<string>;
-  /** Unlock using the admin's login password. Returns result string so callers know which case occurred. */
-  unlockEncryption: (password: string) => Promise<UnlockResult>;
-  /** Re-derive keys from a recovery code + new password after an email password reset. */
-  recoverWithCode: (recoveryCode: string, newPassword: string) => Promise<boolean>;
-  /** Re-wrap data key under a new password KEK (called from change-password flow). */
-  rotateKey: (oldPassword: string, newPassword: string) => Promise<void>;
-  /** Set status without needing a password — for resolving "checking" state. */
+  /** The 4-word code shown once after first setup. Cleared when user acknowledges. */
+  pendingCode: string | null;
+  clearPendingCode: () => void;
   checkStatus: () => Promise<void>;
-  /** One-time recovery code shown after first setup. Null after the user acknowledges it. */
-  pendingRecoveryCode: string | null;
-  clearPendingRecoveryCode: () => void;
+  /** First-time setup. Generates code + data key, wraps both, saves to DB. */
+  setupEncryption: (password: string) => Promise<void>;
+  /** Daily unlock: password → decrypt code → decrypt data key. */
+  unlockWithPassword: (password: string) => Promise<UnlockResult>;
+  /** Unlock via code (e.g. after email password reset). Re-wraps code under currentPassword. */
+  relinkWithCode: (code: string, currentPassword: string) => Promise<boolean>;
+  /** Change password: re-wraps code under new password. Data key untouched. */
+  rotatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   encryptNote: (content: string) => Promise<{ iv: string; ciphertext: string }>;
   decryptNote: (ciphertext: string, iv: string) => Promise<string>;
+  /** Encrypts a PII string to JSON {c, iv} — idempotent if already encrypted. */
+  encryptPII: (value: string) => Promise<string>;
+  /** Decrypts a PII JSON {c, iv} string back to plaintext. Pass-through if plaintext. */
+  decryptPII: (value: string) => Promise<string>;
 }
 
 const EncryptionContext = createContext<EncryptionContextType | null>(null);
@@ -47,11 +50,12 @@ const EncryptionContext = createContext<EncryptionContextType | null>(null);
 const SESSION_KEY = "enc_dk";
 
 type EncSettings = {
-  note_enc_key: string | null;
-  note_enc_salt: string | null;
-  note_enc_key_iv: string | null;
-  note_enc_rec_key: string | null;
-  note_enc_rec_iv: string | null;
+  enc_code_wrapped: string | null;
+  enc_code_salt: string | null;
+  enc_code_iv: string | null;
+  enc_data_key: string | null;
+  enc_data_key_salt: string | null;
+  enc_data_key_iv: string | null;
 };
 
 async function saveKeyToSession(dataKey: CryptoKey) {
@@ -73,27 +77,28 @@ async function loadKeyFromSession(): Promise<CryptoKey | null> {
 export function EncryptionProvider({ children }: { children: React.ReactNode }) {
   const dataKeyRef = useRef<CryptoKey | null>(null);
   const [status, setStatus] = useState<EncryptionStatus>("checking");
-  const [pendingRecoveryCode, setPendingRecoveryCode] = useState<string | null>(null);
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
 
-  const clearPendingRecoveryCode = useCallback(() => setPendingRecoveryCode(null), []);
+  const clearPendingCode = useCallback(() => setPendingCode(null), []);
 
   const fetchSettings = useCallback(async (): Promise<EncSettings | null> => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
     const { data } = await supabase
       .from("practice_settings")
-      .select("note_enc_key, note_enc_salt, note_enc_key_iv, note_enc_rec_key, note_enc_rec_iv")
+      .select("enc_code_wrapped, enc_code_salt, enc_code_iv, enc_data_key, enc_data_key_salt, enc_data_key_iv")
+      .eq("admin_id", user.id)
       .maybeSingle();
     return data as EncSettings | null;
   }, []);
 
   const checkStatus = useCallback(async () => {
     const settings = await fetchSettings();
-    setStatus(settings?.note_enc_key ? "locked" : "disabled");
+    setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
   }, [fetchSettings]);
 
-  // INITIAL_SESSION: page load with cached session — restore key from sessionStorage or set locked/disabled.
-  // SIGNED_IN is intentionally NOT handled here — status is set by LoginPage after signIn resolves,
-  // which avoids a race condition where this handler overwrites "unlocked" back to "disabled".
-  // SIGNED_OUT: wipe everything.
   useEffect(() => {
     const {
       data: { subscription },
@@ -103,8 +108,6 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         dataKeyRef.current = null;
         setStatus("checking");
       } else if (event === "SIGNED_IN") {
-        // Fresh login — restore from sessionStorage if handleSubmit already saved the key.
-        // Do NOT fall back to locked/disabled here; that would race with setupEncryption.
         const sessionKey = await loadKeyFromSession();
         if (sessionKey) {
           dataKeyRef.current = sessionKey;
@@ -117,90 +120,108 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
           setStatus("unlocked");
         } else {
           const settings = await fetchSettings();
-          setStatus(settings?.note_enc_key ? "locked" : "disabled");
+          setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
         }
       }
     });
     return () => subscription.unsubscribe();
   }, [fetchSettings]);
 
-  const setupEncryption = useCallback(async (password: string): Promise<string> => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
+  const setupEncryption = useCallback(
+    async (password: string): Promise<void> => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-    const salt = generateSalt();
-    const dataKey = await generateDataKey();
+      const code = generateEncryptionCode();
+      const dataKey = await generateDataKey();
 
-    const kek = await deriveKEK(password, salt);
-    const { iv, wrapped } = await wrapDataKey(dataKey, kek);
+      // Layer 1: wrap data key with code-derived KEK
+      const dataKeySalt = generateSalt();
+      const codeKEK = await deriveKEK(code, dataKeySalt);
+      const { iv: dataKeyIv, wrapped: dataKeyWrapped } = await wrapDataKey(dataKey, codeKEK);
 
-    const recoveryCode = generateRecoveryCode();
-    const recoveryKEK = await deriveKEK(recoveryCode.replace(/-/g, ""), salt);
-    const { iv: recIv, wrapped: recWrapped } = await wrapDataKey(dataKey, recoveryKEK);
+      // Layer 2: encrypt the code with password-derived KEK
+      const codeSalt = generateSalt();
+      const pwKEK = await deriveKEK(password, codeSalt);
+      const { iv: codeIv, ciphertext: codeWrapped } = await cryptoEncrypt(code, pwKEK);
 
-    const { error } = await supabase
-      .from("practice_settings")
-      .update({
-        note_enc_key: wrapped,
-        note_enc_salt: toBase64(salt.buffer as ArrayBuffer),
-        note_enc_key_iv: iv,
-        note_enc_rec_key: recWrapped,
-        note_enc_rec_iv: recIv,
-      })
-      .eq("admin_id", user.id);
-    if (error) throw new Error(error.message);
+      const { error } = await supabase.from("practice_settings").upsert(
+        {
+          admin_id: user.id,
+          enc_code_wrapped: codeWrapped,
+          enc_code_salt: toBase64(codeSalt.buffer as ArrayBuffer),
+          enc_code_iv: codeIv,
+          enc_data_key: dataKeyWrapped,
+          enc_data_key_salt: toBase64(dataKeySalt.buffer as ArrayBuffer),
+          enc_data_key_iv: dataKeyIv,
+        },
+        { onConflict: "admin_id" },
+      );
+      if (error) throw new Error(error.message);
 
-    dataKeyRef.current = dataKey;
-    await saveKeyToSession(dataKey);
-    setStatus("unlocked");
-    setPendingRecoveryCode(recoveryCode);
-    return recoveryCode;
-  }, []);
+      const verify = await fetchSettings();
+      if (!verify?.enc_code_wrapped) {
+        throw new Error("Encryption setup did not persist — check RLS on practice_settings.");
+      }
 
-  const unlockEncryption = useCallback(
+      dataKeyRef.current = dataKey;
+      await saveKeyToSession(dataKey);
+      setStatus("unlocked");
+      setPendingCode(code);
+    },
+    [fetchSettings],
+  );
+
+  const unlockWithPassword = useCallback(
     async (password: string): Promise<UnlockResult> => {
       const settings = await fetchSettings();
-      if (!settings?.note_enc_key) {
+      if (!settings?.enc_code_wrapped) {
         setStatus("disabled");
         return "no_key";
       }
       try {
-        const salt = fromBase64(settings.note_enc_salt!);
-        const kek = await deriveKEK(password, salt);
-        const dataKey = await unwrapDataKey(settings.note_enc_key, settings.note_enc_key_iv!, kek);
+        const pwKEK = await deriveKEK(password, fromBase64(settings.enc_code_salt!));
+        const code = await cryptoDecrypt(settings.enc_code_wrapped, settings.enc_code_iv!, pwKEK);
+        const codeKEK = await deriveKEK(code, fromBase64(settings.enc_data_key_salt!));
+        const dataKey = await unwrapDataKey(settings.enc_data_key!, settings.enc_data_key_iv!, codeKEK);
         dataKeyRef.current = dataKey;
         await saveKeyToSession(dataKey);
         setStatus("unlocked");
         return "unlocked";
       } catch {
-        setStatus("needs_recovery");
         return "wrong_password";
       }
     },
     [fetchSettings],
   );
 
-  const recoverWithCode = useCallback(
-    async (recoveryCode: string, newPassword: string): Promise<boolean> => {
+  const relinkWithCode = useCallback(
+    async (code: string, currentPassword: string): Promise<boolean> => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return false;
       const settings = await fetchSettings();
-      if (!settings?.note_enc_rec_key) return false;
+      if (!settings?.enc_data_key) return false;
       try {
-        const salt = fromBase64(settings.note_enc_salt!);
-        const rawCode = recoveryCode.replace(/-/g, "");
-        const recoveryKEK = await deriveKEK(rawCode, salt);
-        const dataKey = await unwrapDataKey(settings.note_enc_rec_key, settings.note_enc_rec_iv!, recoveryKEK);
+        // Use the code to unlock the data key
+        const codeKEK = await deriveKEK(code.trim(), fromBase64(settings.enc_data_key_salt!));
+        const dataKey = await unwrapDataKey(settings.enc_data_key, settings.enc_data_key_iv!, codeKEK);
 
-        const newKEK = await deriveKEK(newPassword, salt);
-        const { iv, wrapped } = await wrapDataKey(dataKey, newKEK);
+        // Re-wrap the code under the current password so future password unlocks work
+        const newCodeSalt = generateSalt();
+        const newPwKEK = await deriveKEK(currentPassword, newCodeSalt);
+        const { iv: newCodeIv, ciphertext: newCodeWrapped } = await cryptoEncrypt(code.trim(), newPwKEK);
+
         await supabase
           .from("practice_settings")
-          .update({ note_enc_key: wrapped, note_enc_key_iv: iv })
+          .update({
+            enc_code_wrapped: newCodeWrapped,
+            enc_code_salt: toBase64(newCodeSalt.buffer as ArrayBuffer),
+            enc_code_iv: newCodeIv,
+          })
           .eq("admin_id", user.id);
 
         dataKeyRef.current = dataKey;
@@ -214,28 +235,31 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     [fetchSettings],
   );
 
-  const rotateKey = useCallback(
+  const rotatePassword = useCallback(
     async (oldPassword: string, newPassword: string): Promise<void> => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
       const settings = await fetchSettings();
-      if (!settings?.note_enc_key) return;
+      if (!settings?.enc_code_wrapped) return;
 
-      const salt = fromBase64(settings.note_enc_salt!);
-      const oldKEK = await deriveKEK(oldPassword, salt);
-      const dataKey = await unwrapDataKey(settings.note_enc_key, settings.note_enc_key_iv!, oldKEK);
+      // Decrypt the code with the old password, re-wrap with the new password
+      const oldPwKEK = await deriveKEK(oldPassword, fromBase64(settings.enc_code_salt!));
+      const code = await cryptoDecrypt(settings.enc_code_wrapped, settings.enc_code_iv!, oldPwKEK);
 
-      const newKEK = await deriveKEK(newPassword, salt);
-      const { iv, wrapped } = await wrapDataKey(dataKey, newKEK);
+      const newSalt = generateSalt();
+      const newPwKEK = await deriveKEK(newPassword, newSalt);
+      const { iv: newIv, ciphertext: newWrapped } = await cryptoEncrypt(code, newPwKEK);
+
       await supabase
         .from("practice_settings")
-        .update({ note_enc_key: wrapped, note_enc_key_iv: iv })
+        .update({
+          enc_code_wrapped: newWrapped,
+          enc_code_salt: toBase64(newSalt.buffer as ArrayBuffer),
+          enc_code_iv: newIv,
+        })
         .eq("admin_id", user.id);
-
-      dataKeyRef.current = dataKey;
-      await saveKeyToSession(dataKey);
     },
     [fetchSettings],
   );
@@ -250,19 +274,39 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     return cryptoDecrypt(ciphertext, iv, dataKeyRef.current);
   }, []);
 
+  const encryptPII = useCallback(async (value: string): Promise<string> => {
+    if (!dataKeyRef.current || !value) return value;
+    if (isEncryptedValue(value)) return value;
+    const { iv, ciphertext } = await cryptoEncrypt(value, dataKeyRef.current);
+    return JSON.stringify({ c: ciphertext, iv });
+  }, []);
+
+  const decryptPII = useCallback(async (value: string): Promise<string> => {
+    if (!dataKeyRef.current || !value) return value;
+    if (!isEncryptedValue(value)) return value;
+    try {
+      const { c, iv } = JSON.parse(value);
+      return await cryptoDecrypt(c, iv, dataKeyRef.current);
+    } catch {
+      return value;
+    }
+  }, []);
+
   return (
     <EncryptionContext.Provider
       value={{
         status,
-        setupEncryption,
-        unlockEncryption,
-        recoverWithCode,
-        rotateKey,
+        pendingCode,
+        clearPendingCode,
         checkStatus,
-        pendingRecoveryCode,
-        clearPendingRecoveryCode,
+        setupEncryption,
+        unlockWithPassword,
+        relinkWithCode,
+        rotatePassword,
         encryptNote,
         decryptNote,
+        encryptPII,
+        decryptPII,
       }}
     >
       {children}

@@ -1,11 +1,10 @@
 // Web Crypto API utilities for client-side AES-256-GCM note encryption.
 //
-// Architecture (envelope encryption):
-//   - A random 256-bit "data key" encrypts all notes for a practice.
-//   - The data key is itself wrapped (encrypted) with a "key-encryption-key" (KEK).
-//   - The KEK is derived from the admin's password via PBKDF2 — it is never stored.
-//   - A second wrapped copy of the data key exists, derived from a recovery code,
-//     so notes survive a password reset if the admin has their recovery code.
+// Architecture (two-layer envelope):
+//   - generateEncryptionCode() generates a random 4-word code, stored permanently.
+//   - A random data key encrypts notes; it is wrapped with PBKDF2(code).
+//   - The code itself is wrapped with PBKDF2(password) and stored in the DB.
+//   - Password changes only re-wrap the code — the data key wrapper never changes.
 //   - The DB stores only ciphertext; the data key only ever lives in browser memory.
 
 const PBKDF2_ITERATIONS = 310_000; // OWASP-recommended minimum for SHA-256
@@ -593,11 +592,22 @@ const WORD_LIST = [
   "zoom",
 ];
 
-export function generateRecoveryCode(): string {
+export function generateEncryptionCode(): string {
   const indices = crypto.getRandomValues(new Uint8Array(4));
   return Array.from(indices)
     .map((i) => WORD_LIST[i])
     .join("-");
+}
+
+// Detects whether a field value was encrypted by encryptPII (stored as JSON {c, iv}).
+export function isEncryptedValue(value: string): boolean {
+  if (!value || !value.startsWith("{")) return false;
+  try {
+    const p = JSON.parse(value);
+    return typeof p.c === "string" && typeof p.iv === "string";
+  } catch {
+    return false;
+  }
 }
 
 // Derives a key-encryption-key from a password (or recovery code) and a salt.

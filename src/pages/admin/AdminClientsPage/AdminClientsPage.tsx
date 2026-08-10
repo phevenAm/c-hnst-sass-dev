@@ -226,6 +226,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
             options={[
               { label: "Edit", onClick: () => setEditOpen(true) },
               { label: "Delete", onClick: () => setConfirmDelete(true) },
+              { label: "Link to real client", onClick: () => setConfirmDelete(true) },
             ]}
             secondaryLabel="More options"
             variant="secondary"
@@ -298,7 +299,9 @@ export default function AdminClientsPage() {
           <div>
             <h1>Clients</h1>
             <p>
-              {allClients.length} active {allClients.length === 1 ? "client" : "clients"}
+              {allClients.length} active {allClients.length === 1 ? "client" : "clients"}{" "}
+              {allStubs.length > 0 &&
+                `  |   ${allStubs.length}  offline ${allStubs.length === 1 ? "client" : "clients"}`}
             </p>
           </div>
 

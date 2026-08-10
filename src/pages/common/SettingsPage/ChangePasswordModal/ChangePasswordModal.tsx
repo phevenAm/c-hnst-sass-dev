@@ -43,7 +43,7 @@ export default function ChangePasswordModal({ onClose }: Props) {
       if (encryptionActive) {
         // Rotate the note-encryption key before changing the Supabase password,
         // while the old password is still valid for deriving the old KEK.
-        await encryption.rotateKey(currentPassword, newPassword);
+        await encryption.rotatePassword(currentPassword, newPassword);
       }
 
       const { error: err } = await supabase.auth.updateUser({ password: newPassword });
