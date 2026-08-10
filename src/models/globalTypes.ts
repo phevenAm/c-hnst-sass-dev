@@ -267,5 +267,6 @@ export type StubSession = {
   amount_paid: number | null;
   currency: string;
   notes: string | null;
+  code: string | null;
   created_at: string;
 };

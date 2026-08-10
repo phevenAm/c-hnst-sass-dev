@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import DateInput from "@components/shared/DateInput/DateInput";
 import Modal from "@components/shared/Modal/Modal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
@@ -17,6 +19,7 @@ import { deleteClientStub, fetchClientStubs, selectStubById, updateClientStub } 
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
 import CreateStubModal from "../AdminClientsPage/modals/CreateStubModal/CreateStubModal";
+import InviteStubModal from "./InviteStubModal";
 
 import styles from "./AdminStubDetailPage.module.scss";
 
@@ -33,6 +36,7 @@ type SessionForm = {
   amount_paid: string;
   currency: string;
   notes: string;
+  code: string;
 };
 
 const EMPTY_SESSION_FORM: SessionForm = {
@@ -42,6 +46,15 @@ const EMPTY_SESSION_FORM: SessionForm = {
   amount_paid: "",
   currency: "GBP",
   notes: "",
+  code: "",
+};
+
+type EditForm = {
+  status: StubSession["status"];
+  amount_paid: string;
+  duration_minutes: string;
+  notes: string;
+  code: string;
 };
 
 const STATUS_LABELS: Record<StubSession["status"], string> = {
@@ -83,9 +96,19 @@ export default function AdminStubDetailPage() {
 
   const [addSessionOpen, setAddSessionOpen] = useState(false);
   const [sessionForm, setSessionForm] = useState<SessionForm>(EMPTY_SESSION_FORM);
+  const [sessionDate, setSessionDate] = useState<Dayjs | null>(null);
   const [savingSession, setSavingSession] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [cancellingSessionId, setCancellingSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>({
+    status: "attended",
+    amount_paid: "",
+    duration_minutes: "",
+    notes: "",
+    code: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [noteContent, setNoteContent] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -96,6 +119,8 @@ export default function AdminStubDetailPage() {
   const [selectedLinkUserId, setSelectedLinkUserId] = useState("");
   const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -185,6 +210,7 @@ export default function AdminStubDetailPage() {
     } else {
       setSessions((prev) => [data as StubSession, ...prev]);
       setSessionForm(EMPTY_SESSION_FORM);
+      setSessionDate(null);
       setAddSessionOpen(false);
       showToast("Session added.");
     }
@@ -353,6 +379,7 @@ export default function AdminStubDetailPage() {
   }
 
   const splitOptions = [
+    { label: "Invite to platform", onClick: () => setInviteOpen(true) },
     { label: stub.linked_user_id ? "Relink client" : "Link to real client", onClick: () => setLinkOpen(true) },
     ...(stub.linked_user_id ? [{ label: "Unlink", onClick: handleUnlink, disabled: unlinking }] : []),
   ];
@@ -431,12 +458,14 @@ export default function AdminStubDetailPage() {
             <div className={styles.addSessionForm}>
               <div className={styles.formGrid}>
                 <div className={styles.field}>
-                  <label htmlFor="session-date">Date &amp; time</label>
-                  <input
-                    id="session-date"
-                    type="datetime-local"
-                    value={sessionForm.scheduled_at}
-                    onChange={(e) => setSessionForm((f) => ({ ...f, scheduled_at: e.target.value }))}
+                  <label>Date &amp; time</label>
+                  <DateInput
+                    mode="datetime"
+                    value={sessionDate}
+                    onChange={(val) => {
+                      setSessionDate(val);
+                      setSessionForm((f) => ({ ...f, scheduled_at: val?.toISOString() ?? "" }));
+                    }}
                   />
                 </div>
                 <div className={styles.field}>
@@ -615,6 +644,9 @@ export default function AdminStubDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Invite to platform modal */}
+      {inviteOpen && <InviteStubModal stub={stub} onClose={() => setInviteOpen(false)} />}
 
       {/* Edit stub modal */}
       {editOpen && <CreateStubModal existing={stub} onClose={() => setEditOpen(false)} />}
