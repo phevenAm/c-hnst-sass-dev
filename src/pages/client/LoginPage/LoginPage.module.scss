@@ -49,30 +49,9 @@
 }
 
 .logoMark {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--r-lg);
-  background: var(--accent);
   display: flex;
   align-items: center;
-
-  @media (max-width: 800px) {
-
-    .logoTitle,
-    .logoSub,
-    .heading,
-    .label,
-    .footer,
-    .demoDivider,
-    .demoRole,
-    .demoDesc,
-    .link {
-      color: white;
-    }
-  }
-
   justify-content: center;
-  color: var(--text-inverse);
   margin: 0 auto $sp-4;
 }
 

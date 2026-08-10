@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { LogoIcon, MailIcon } from "@components/shared/Icons/Icons";
+import { ClarityLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
@@ -127,9 +127,9 @@ export default function SignUpPage() {
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
-            <LogoIcon />
+            <ClarityLogoMark size={52} />
           </div>
-          <h1 className={styles.logoTitle}>WithMe</h1>
+          <h1 className={styles.logoTitle}>Clarity</h1>
           <p className={styles.logoSub}>Create your account</p>
         </div>
 

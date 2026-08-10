@@ -11,11 +11,11 @@ import {
   ChatIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ClarityLogoMark,
   CpdIcon,
   FormsIcon,
   HistoryIcon,
   HomeIcon,
-  LogoIcon,
   MoneyIcon,
   SupervisionLogo,
   UsersIcon,
@@ -76,11 +76,11 @@ export default function AdminSidebar({
         aria-label="Admin navigation"
       >
         <div className={styles.top}>
-          <Link to="/admin" className={styles.logo} aria-label="WithMe Admin — home">
+          <Link to="/admin" className={styles.logo} aria-label="Clarity Admin — home">
             <div className={styles.logoMark}>
-              <LogoIcon />
+              <ClarityLogoMark size={34} />
             </div>
-            <span className={styles.logoText}>WithMe</span>
+            <span className={styles.logoText}>Clarity</span>
           </Link>
         </div>
 
