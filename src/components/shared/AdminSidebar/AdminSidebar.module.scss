@@ -63,6 +63,7 @@ $transition: 0.22s ease;
   gap: $sp-3;
   text-decoration: none;
   padding-left: $sp-3;
+  transition: padding-left $transition, gap $transition;
 
   border-radius: var(--r-md);
 
