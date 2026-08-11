@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { Size, Variant } from "@constants/constants";
 
@@ -25,21 +24,14 @@ const SplitButton = ({
   secondaryLabel = "Show more options",
 }: SplitButtonProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
   const classes = [styles.btn, styles[variant], styles[size]].filter(Boolean).join(" ");
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const handleToggle = () => {
-    if (!isDropdownOpen && wrapperRef.current) {
-      setDropdownRect(wrapperRef.current.getBoundingClientRect());
-    }
-    setIsDropdownOpen((prev) => !prev);
-  };
+  const handleToggle = () => setIsDropdownOpen((prev) => !prev);
 
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent | KeyboardEvent) => {
-      if (wrapperRef.current?.contains(e.target as Node) || dropdownRef.current?.contains(e.target as Node)) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (wrapperRef.current?.contains(e.target as Node)) return;
       setIsDropdownOpen(false);
     };
     document.addEventListener("click", handleOutsideClick);
@@ -67,37 +59,26 @@ const SplitButton = ({
         <ChevronDown />
       </button>
 
-      {isDropdownOpen &&
-        dropdownRect &&
-        createPortal(
-          <div
-            ref={dropdownRef}
-            className={styles.portalDropdown}
-            style={{
-              top: dropdownRect.bottom,
-              right: Math.max(4, window.innerWidth - dropdownRect.right),
-              minWidth: dropdownRect.width,
-            }}
-          >
-            <ul>
-              {options.map(({ label, onClick }) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    className={styles.labelButton}
-                    onClick={() => {
-                      onClick();
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    {label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>,
-          document.body,
-        )}
+      {isDropdownOpen && (
+        <div className={styles.dropdown}>
+          <ul>
+            {options.map(({ label, onClick }) => (
+              <li key={label}>
+                <button
+                  type="button"
+                  className={styles.labelButton}
+                  onClick={() => {
+                    onClick();
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
