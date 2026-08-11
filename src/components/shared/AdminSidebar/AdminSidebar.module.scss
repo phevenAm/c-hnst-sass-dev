@@ -34,6 +34,11 @@ $transition: 0.22s ease;
   .branding {
     opacity: 0;
   }
+
+  .logo {
+    justify-content: center;
+    padding-left: 0;
+  }
 }
 
 // ── Top / logo ──────────────────────────────────────────────
@@ -237,6 +242,11 @@ $transition: 0.22s ease;
     .branding {
       opacity: 0;
       pointer-events: none;
+    }
+
+    .logo {
+      justify-content: center;
+      padding-left: 0;
     }
 
     // When overlay is open, expand and show labels
