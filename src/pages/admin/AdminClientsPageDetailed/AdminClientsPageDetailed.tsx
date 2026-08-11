@@ -566,6 +566,7 @@ export default function AdminClientsPageDetailed() {
                     session={s}
                     isDemo={isDemo}
                     isAdmin
+                    clientLabel={displayedClientName}
                     onNotesClick={(id) => setSelectedNoteSessionId(id)}
                   />
                 ))

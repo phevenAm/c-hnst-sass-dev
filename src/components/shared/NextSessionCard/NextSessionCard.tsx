@@ -7,7 +7,7 @@ import Card from "@components/shared/Card/Card";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
-import { downloadSessionIcs } from "@/Helpers/calendarExport";
+import { downloadClientSessionIcs } from "@/Helpers/calendarExport";
 import { formatSessionDate } from "@/Helpers/sessionDate";
 import type { Session } from "@/models/globalTypes";
 import PaymentModal from "../PaymentModal/PaymentModal";
@@ -117,7 +117,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
         <div className={styles.stripRight}>
           {compact ? (
             <>
-              <Button size="sm" variant="secondary" onClick={() => downloadSessionIcs(session)}>
+              <Button size="sm" variant="secondary" onClick={() => downloadClientSessionIcs(session)}>
                 Add to calendar
               </Button>
               <Link to="/my-sessions" style={{ textDecoration: "none" }}>
@@ -128,7 +128,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
             </>
           ) : (
             <>
-              <Button size="sm" variant="secondary" onClick={() => downloadSessionIcs(session)}>
+              <Button size="sm" variant="secondary" onClick={() => downloadClientSessionIcs(session)}>
                 Add to calendar
               </Button>
               {!session.paid && (
