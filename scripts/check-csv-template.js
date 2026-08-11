@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Checks that ImportStubsModal's CSV HEADERS stay in sync with StubSession fields.
+ * Checks that ImportStubsModal's SESSION_HEADERS stay in sync with StubSession fields.
  * Run manually: node scripts/check-csv-template.js
  * Also runs automatically in the pre-push hook.
  */
@@ -31,15 +31,15 @@ if (!match) {
 
 const dbFields = [...match[1].matchAll(/^\s+(\w+):/gm)].map((m) => m[1]).filter((f) => !SKIP_FIELDS.has(f));
 
-// ── Read CSV HEADERS ──────────────────────────────────────────────────────────
+// ── Read SESSION_HEADERS ──────────────────────────────────────────────────────
 
 const modal = readFileSync(
   join(root, "src/pages/admin/AdminClientsPage/modals/ImportStubsModal/ImportStubsModal.tsx"),
   "utf8",
 );
-const headersMatch = modal.match(/const HEADERS = \[([\s\S]*?)\];/);
+const headersMatch = modal.match(/export const SESSION_HEADERS = \[([\s\S]*?)\];/);
 if (!headersMatch) {
-  console.error("❌  Could not find HEADERS array in ImportStubsModal.tsx");
+  console.error("❌  Could not find SESSION_HEADERS array in ImportStubsModal.tsx");
   process.exit(1);
 }
 const csvCols = new Set([...headersMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]));
@@ -56,12 +56,12 @@ for (const field of dbFields) {
 
 if (missing.length) {
   console.error("");
-  console.error("❌  CSV template is out of sync with StubSession:");
+  console.error("❌  SESSION_HEADERS is out of sync with StubSession:");
   for (const f of missing) {
-    console.error(`   Missing: "${f}" — add a column to HEADERS in ImportStubsModal.tsx`);
+    console.error(`   Missing: "${f}" — add a column to SESSION_HEADERS in ImportStubsModal.tsx`);
   }
   console.error("");
   process.exit(1);
 }
 
-console.log(`OK CSV template covers all ${dbFields.length} StubSession session fields`);
+console.log(`OK SESSION_HEADERS covers all ${dbFields.length} StubSession session fields`);

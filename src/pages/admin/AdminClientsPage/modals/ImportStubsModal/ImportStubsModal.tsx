@@ -10,13 +10,12 @@ import { fetchClientStubs } from "@store/slices/clientStubsSlice";
 
 import styles from "../../AdminClientsPage.module.scss";
 
-// ── CSV template ──────────────────────────────────────────────────────────────
+// ── Templates ─────────────────────────────────────────────────────────────────
 
-const HEADERS = [
-  "first_name",
-  "last_name",
-  "email",
-  "codename",
+export const CLIENT_HEADERS = ["client_id", "first_name", "last_name", "email", "codename"];
+
+export const SESSION_HEADERS = [
+  "client_id",
   "session_date",
   "session_time",
   "duration_minutes",
@@ -27,84 +26,59 @@ const HEADERS = [
   "code",
 ];
 
-// Jane Smith: 3 sessions — same email = one client with 3 history rows
-// Bob Jones: 1 session — no email, matched by name
-// Alice Brown: client-only — no sessions yet (session columns left blank)
-const TEMPLATE_ROWS = [
-  [
-    "Jane",
-    "Smith",
-    "jane@example.com",
-    "Jasmine",
-    "2026-05-01",
-    "10:00",
-    "60",
-    "attended",
-    "85.00",
-    "GBP",
-    "Good progress this week.",
-    "",
-  ],
-  ["Jane", "Smith", "jane@example.com", "", "2026-05-08", "10:00", "60", "attended", "85.00", "GBP", "", ""],
-  [
-    "Jane",
-    "Smith",
-    "jane@example.com",
-    "",
-    "2026-05-15",
-    "10:00",
-    "60",
-    "no_show",
-    "",
-    "GBP",
-    "Cancelled last minute.",
-    "",
-  ],
-  ["Bob", "Jones", "", "", "2026-05-10", "14:00", "50", "attended", "70.00", "GBP", "", "PROMO10"],
-  ["Alice", "Brown", "alice@example.com", "Ali", "", "", "", "", "", "", "", ""],
+const CLIENT_INSTRUCTIONS = [
+  "# CLIENTS — one row per client",
+  "# client_id: your own reference number (1, 2, 3…). Not stored — used to link rows in sessions.csv.",
+  "# email and codename are optional.",
+  "#",
 ];
 
-const INSTRUCTIONS = [
-  "# HOW TO USE THIS TEMPLATE",
-  "# ─────────────────────────────────────────────────────────────────────────────",
-  "# MULTIPLE SESSIONS PER CLIENT",
-  "#   Give each session its own row. Rows sharing the same email address are",
-  "#   automatically grouped into ONE client with multiple sessions.",
-  "#   No email? Rows with the same first_name + last_name are grouped instead.",
-  "#   (See Jane Smith below — 3 rows, same email = 1 client, 3 sessions.)",
+const SESSION_INSTRUCTIONS = [
+  "# SESSIONS — one row per session. client_id must match a row in clients.csv.",
+  "# session_date: YYYY-MM-DD  |  session_time: HH:MM  |  status: attended / scheduled / no_show / cancelled",
+  "# amount_paid: pounds (e.g. 85.00)  |  currency: GBP / USD / EUR  |  code: optional promo code",
   "#",
-  "# CLIENT WITH NO SESSIONS",
-  "#   Fill in first_name, last_name and optionally email / codename.",
-  "#   Leave session_date and all session columns blank.",
-  "#   (See Alice Brown below.)",
-  "#",
-  "# COLUMN GUIDE",
-  "#   session_date    YYYY-MM-DD format, e.g. 2026-05-01",
-  "#   session_time    HH:MM format, e.g. 10:00  (defaults to 09:00 if blank)",
-  "#   status          attended | scheduled | no_show | cancelled",
-  "#   amount_paid     numeric pounds e.g. 85.00  (leave blank if unpaid)",
-  "#   currency        e.g. GBP, USD, EUR",
-  "#   codename        optional alias shown when codenames mode is enabled",
-  "#   code            optional promo / discount code for that session",
-  "#   session_notes   freeform text note for that session row",
-  "#",
-  "# Delete the example rows below and replace with your own data.",
-  "# ─────────────────────────────────────────────────────────────────────────────",
+];
+
+const CLIENT_ROWS = [
+  ["1", "Jane", "Smith", "jane@example.com", "Jasmine"],
+  ["2", "Bob", "Jones", "", ""],
+  ["3", "Alice", "Brown", "alice@example.com", "Ali"],
+];
+
+const SESSION_ROWS = [
+  ["1", "2026-05-01", "10:00", "60", "attended", "85.00", "GBP", "Good progress this week.", ""],
+  ["1", "2026-05-08", "10:00", "60", "attended", "85.00", "GBP", "", ""],
+  ["1", "2026-05-15", "10:00", "60", "no_show", "", "GBP", "Cancelled last minute.", ""],
+  ["2", "2026-05-10", "14:00", "50", "attended", "70.00", "GBP", "", "PROMO10"],
 ];
 
 function csvEscape(v: string) {
   return v.includes(",") || v.includes('"') || v.includes("\n") ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
-function downloadTemplate() {
-  const lines = [...INSTRUCTIONS, HEADERS.join(","), ...TEMPLATE_ROWS.map((r) => r.map(csvEscape).join(","))];
+function triggerDownload(lines: string[], filename: string) {
   const blob = new Blob([lines.join("\r\n")], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "offline_clients_template.csv";
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadClientsTemplate() {
+  triggerDownload(
+    [...CLIENT_INSTRUCTIONS, CLIENT_HEADERS.join(","), ...CLIENT_ROWS.map((r) => r.map(csvEscape).join(","))],
+    "clients_template.csv",
+  );
+}
+
+function downloadSessionsTemplate() {
+  triggerDownload(
+    [...SESSION_INSTRUCTIONS, SESSION_HEADERS.join(","), ...SESSION_ROWS.map((r) => r.map(csvEscape).join(","))],
+    "sessions_template.csv",
+  );
 }
 
 // ── CSV parser ────────────────────────────────────────────────────────────────
@@ -144,11 +118,16 @@ function parseCSV(text: string): string[][] {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ParsedRow = {
+type ParsedClient = {
+  csvId: string;
   first_name: string;
   last_name: string;
   email: string;
   codename: string;
+};
+
+type ParsedSession = {
+  csvClientId: string;
   session_date: string;
   session_time: string;
   duration_minutes: string;
@@ -172,35 +151,79 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
   const { userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
 
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const clientsFileRef = useRef<HTMLInputElement>(null);
+  const sessionsFileRef = useRef<HTMLInputElement>(null);
+
+  const [clients, setClients] = useState<ParsedClient[]>([]);
+  const [sessions, setSessions] = useState<ParsedSession[]>([]);
   const [parseError, setParseError] = useState("");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [step, setStep] = useState<"upload" | "preview">("upload");
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const parseClientsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setParseError("");
-    setRows([]);
-    setResult(null);
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const text = ev.target?.result as string;
-        const all = parseCSV(text);
+        const all = parseCSV(ev.target?.result as string);
         if (all.length < 2) {
-          setParseError("File appears empty or only has a header row.");
+          setParseError("Clients file appears empty or only has a header row.");
           return;
         }
         const [header, ...data] = all;
         const idx = (col: string) => header.findIndex((h) => h.toLowerCase().trim() === col);
         const col = {
+          csvId: idx("client_id"),
           first_name: idx("first_name"),
           last_name: idx("last_name"),
           email: idx("email"),
           codename: idx("codename"),
+        };
+        if (col.first_name === -1 || col.last_name === -1) {
+          setParseError("Clients CSV must have first_name and last_name columns.");
+          return;
+        }
+        const get = (row: string[], c: number) => (c === -1 ? "" : (row[c] ?? "").trim());
+        const parsed: ParsedClient[] = data
+          .map((row) => ({
+            csvId: get(row, col.csvId),
+            first_name: get(row, col.first_name),
+            last_name: get(row, col.last_name),
+            email: get(row, col.email),
+            codename: get(row, col.codename),
+          }))
+          .filter((r) => r.first_name && r.last_name);
+        if (parsed.length === 0) {
+          setParseError("No valid client rows found (each row needs at least first_name and last_name).");
+          return;
+        }
+        setClients(parsed);
+      } catch {
+        setParseError("Failed to parse clients file. Make sure it's a valid CSV.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const parseSessionsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParseError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const all = parseCSV(ev.target?.result as string);
+        if (all.length < 2) {
+          setSessions([]);
+          return;
+        }
+        const [header, ...data] = all;
+        const idx = (col: string) => header.findIndex((h) => h.toLowerCase().trim() === col);
+        const col = {
+          csvClientId: idx("client_id"),
           session_date: idx("session_date"),
           session_time: idx("session_time"),
           duration_minutes: idx("duration_minutes"),
@@ -210,40 +233,34 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
           session_notes: idx("session_notes"),
           code: idx("code"),
         };
-        if (col.first_name === -1 || col.last_name === -1) {
-          setParseError("CSV must have first_name and last_name columns.");
+        if (col.csvClientId === -1 || col.session_date === -1) {
+          setParseError("Sessions CSV must have client_id and session_date columns.");
           return;
         }
         const get = (row: string[], c: number) => (c === -1 ? "" : (row[c] ?? "").trim());
-        const parsed: ParsedRow[] = data.map((row) => ({
-          first_name: get(row, col.first_name),
-          last_name: get(row, col.last_name),
-          email: get(row, col.email),
-          codename: get(row, col.codename),
-          session_date: get(row, col.session_date),
-          session_time: get(row, col.session_time),
-          duration_minutes: get(row, col.duration_minutes),
-          status: get(row, col.status),
-          amount_paid: get(row, col.amount_paid),
-          currency: get(row, col.currency),
-          session_notes: get(row, col.session_notes),
-          code: get(row, col.code),
-        }));
-        const valid = parsed.filter((r) => r.first_name && r.last_name);
-        if (valid.length === 0) {
-          setParseError("No valid rows found. Each row needs at least first_name and last_name.");
-          return;
-        }
-        setRows(valid);
+        const parsed: ParsedSession[] = data
+          .map((row) => ({
+            csvClientId: get(row, col.csvClientId),
+            session_date: get(row, col.session_date),
+            session_time: get(row, col.session_time),
+            duration_minutes: get(row, col.duration_minutes),
+            status: get(row, col.status),
+            amount_paid: get(row, col.amount_paid),
+            currency: get(row, col.currency),
+            session_notes: get(row, col.session_notes),
+            code: get(row, col.code),
+          }))
+          .filter((r) => r.session_date);
+        setSessions(parsed);
       } catch {
-        setParseError("Failed to parse file. Make sure it's a valid CSV.");
+        setParseError("Failed to parse sessions file. Make sure it's a valid CSV.");
       }
     };
     reader.readAsText(file);
   };
 
   const handleImport = async () => {
-    if (!userProfile || rows.length === 0) return;
+    if (!userProfile || clients.length === 0) return;
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
@@ -254,64 +271,59 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
     let clientsCreated = 0;
     let sessionsCreated = 0;
 
-    // Group rows by client key: email (if present) or "first_name|last_name"
-    const clientMap = new Map<string, { rows: ParsedRow[]; stubId: string | null }>();
-    for (const row of rows) {
-      const key = row.email
-        ? row.email.toLowerCase()
-        : `${row.first_name.toLowerCase()}|${row.last_name.toLowerCase()}`;
-      if (!clientMap.has(key)) {
-        clientMap.set(key, { rows: [], stubId: null });
-      }
-      clientMap.get(key)!.rows.push(row);
-    }
+    const csvIdToStubId = new Map<string, string>();
 
-    for (const [, group] of clientMap) {
-      const first = group.rows[0];
+    for (const client of clients) {
       const { data: stub, error: stubErr } = await supabase
         .from("client_stubs")
         .insert({
           created_by: userProfile.id,
-          first_name: first.first_name,
-          last_name: first.last_name,
-          email: first.email || null,
-          codename: first.codename || null,
+          first_name: client.first_name,
+          last_name: client.last_name,
+          email: client.email || null,
+          codename: client.codename || null,
         })
         .select("id")
         .single();
 
       if (stubErr || !stub) {
-        errors.push(
-          `Failed to create client ${first.first_name} ${first.last_name}: ${stubErr?.message ?? "unknown error"}`,
-        );
+        errors.push(`Failed to create ${client.first_name} ${client.last_name}: ${stubErr?.message ?? "unknown"}`);
         continue;
       }
       clientsCreated++;
-      group.stubId = stub.id;
+      if (client.csvId) csvIdToStubId.set(client.csvId, stub.id);
+    }
 
-      for (const row of group.rows) {
-        if (!row.session_date) continue;
-        const time = row.session_time || "09:00";
-        const scheduled_at = new Date(`${row.session_date}T${time}:00`).toISOString();
-        const status = ["attended", "scheduled", "no_show", "cancelled"].includes(row.status) ? row.status : "attended";
+    for (const session of sessions) {
+      const stubId = csvIdToStubId.get(session.csvClientId);
+      if (!stubId) {
+        errors.push(
+          `Session on ${session.session_date}: client_id "${session.csvClientId}" not found in clients file.`,
+        );
+        continue;
+      }
+      const time = session.session_time || "09:00";
+      const scheduled_at = new Date(`${session.session_date}T${time}:00`).toISOString();
+      const status = ["attended", "scheduled", "no_show", "cancelled"].includes(session.status)
+        ? session.status
+        : "attended";
 
-        const { error: sessErr } = await supabase.from("stub_sessions").insert({
-          stub_id: stub.id,
-          admin_id: userProfile.id,
-          scheduled_at,
-          duration_minutes: row.duration_minutes ? Number(row.duration_minutes) : null,
-          status,
-          amount_paid: row.amount_paid ? Number(row.amount_paid) : null,
-          currency: row.currency || "GBP",
-          notes: row.session_notes || null,
-          code: row.code || null,
-        });
+      const { error: sessErr } = await supabase.from("stub_sessions").insert({
+        stub_id: stubId,
+        admin_id: userProfile.id,
+        scheduled_at,
+        duration_minutes: session.duration_minutes ? Number(session.duration_minutes) : null,
+        status,
+        amount_paid: session.amount_paid ? Number(session.amount_paid) : null,
+        currency: session.currency || "GBP",
+        notes: session.session_notes || null,
+        code: session.code || null,
+      });
 
-        if (sessErr) {
-          errors.push(`Session for ${first.first_name} ${first.last_name} (${row.session_date}): ${sessErr.message}`);
-        } else {
-          sessionsCreated++;
-        }
+      if (sessErr) {
+        errors.push(`Session ${session.session_date} (client ${session.csvClientId}): ${sessErr.message}`);
+      } else {
+        sessionsCreated++;
       }
     }
 
@@ -320,7 +332,7 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
     setImporting(false);
   };
 
-  // ── Done screen ───────────────────────────────────────────────────────────
+  // ── Done ──────────────────────────────────────────────────────────────────
 
   if (result) {
     return (
@@ -345,13 +357,9 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
     );
   }
 
-  // ── Preview screen ────────────────────────────────────────────────────────
+  // ── Preview ───────────────────────────────────────────────────────────────
 
-  if (rows.length > 0) {
-    const clientCount = new Set(rows.map((r) => (r.email ? r.email.toLowerCase() : `${r.first_name}|${r.last_name}`)))
-      .size;
-    const sessionCount = rows.filter((r) => r.session_date).length;
-
+  if (step === "preview" && clients.length > 0) {
     return (
       <Modal
         title="Preview import"
@@ -359,75 +367,147 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         onClose={onClose}
         actions={
           <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setRows([]);
-                if (fileRef.current) fileRef.current.value = "";
-              }}
-            >
+            <Button variant="ghost" onClick={() => setStep("upload")}>
               Back
             </Button>
             <Button onClick={handleImport} disabled={importing}>
-              {importing ? "Importing…" : `Import ${clientCount} ${clientCount === 1 ? "client" : "clients"}`}
+              {importing
+                ? "Importing…"
+                : `Import ${clients.length} ${clients.length === 1 ? "client" : "clients"}${sessions.length > 0 ? ` + ${sessions.length} sessions` : ""}`}
             </Button>
           </>
         }
       >
-        <p className={styles.modalText}>
-          <strong>{clientCount}</strong> offline {clientCount === 1 ? "client" : "clients"} and{" "}
-          <strong>{sessionCount}</strong> {sessionCount === 1 ? "session" : "sessions"} will be created.
-        </p>
-        <div style={{ overflowX: "auto", marginTop: "var(--sp-4)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-            <thead>
-              <tr>
-                {["Name", "Email", "Codename", "Session date", "Status", "Amount", "Code"].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: "left",
-                      padding: "6px 10px",
-                      borderBottom: "1px solid var(--border)",
-                      color: "var(--text-muted)",
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.slice(0, 50).map((r, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                    {r.first_name} {r.last_name}
-                  </td>
-                  <td style={{ padding: "6px 10px", color: "var(--text-muted)" }}>{r.email || "—"}</td>
-                  <td style={{ padding: "6px 10px", color: "var(--text-muted)" }}>{r.codename || "—"}</td>
-                  <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                    {r.session_date ? `${r.session_date} ${r.session_time || "09:00"}` : "—"}
-                  </td>
-                  <td style={{ padding: "6px 10px" }}>{r.status || (r.session_date ? "attended" : "—")}</td>
-                  <td style={{ padding: "6px 10px" }}>{r.amount_paid ? `£${r.amount_paid}` : "—"}</td>
-                  <td style={{ padding: "6px 10px", fontFamily: "monospace" }}>{r.code || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length > 50 && (
-            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "var(--sp-2)" }}>
-              Showing first 50 of {rows.length} rows.
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)" }}>
+          {/* Clients preview */}
+          <div>
+            <p
+              style={{
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                color: "var(--text-secondary)",
+                margin: "0 0 var(--sp-2)",
+              }}
+            >
+              {clients.length} {clients.length === 1 ? "client" : "clients"}
             </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                <thead>
+                  <tr>
+                    {["ID", "Name", "Email", "Codename"].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          textAlign: "left",
+                          padding: "5px 10px",
+                          borderBottom: "1px solid var(--border)",
+                          color: "var(--text-muted)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.slice(0, 20).map((c, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: "5px 10px", fontFamily: "monospace", color: "var(--text-muted)" }}>
+                        {c.csvId || "—"}
+                      </td>
+                      <td style={{ padding: "5px 10px" }}>
+                        {c.first_name} {c.last_name}
+                      </td>
+                      <td style={{ padding: "5px 10px", color: "var(--text-muted)" }}>{c.email || "—"}</td>
+                      <td style={{ padding: "5px 10px", color: "var(--text-muted)" }}>{c.codename || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {clients.length > 20 && (
+                <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "var(--sp-1)" }}>
+                  Showing 20 of {clients.length}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Sessions preview */}
+          {sessions.length > 0 && (
+            <div>
+              <p
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  color: "var(--text-secondary)",
+                  margin: "0 0 var(--sp-2)",
+                }}
+              >
+                {sessions.length} {sessions.length === 1 ? "session" : "sessions"}
+              </p>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                  <thead>
+                    <tr>
+                      {["Client ID", "Date", "Status", "Amount", "Notes"].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            textAlign: "left",
+                            padding: "5px 10px",
+                            borderBottom: "1px solid var(--border)",
+                            color: "var(--text-muted)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.slice(0, 30).map((s, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "5px 10px", fontFamily: "monospace", color: "var(--text-muted)" }}>
+                          {s.csvClientId}
+                        </td>
+                        <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                          {s.session_date} {s.session_time || "09:00"}
+                        </td>
+                        <td style={{ padding: "5px 10px" }}>{s.status || "attended"}</td>
+                        <td style={{ padding: "5px 10px" }}>{s.amount_paid ? `£${s.amount_paid}` : "—"}</td>
+                        <td
+                          style={{
+                            padding: "5px 10px",
+                            color: "var(--text-muted)",
+                            maxWidth: "180px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {s.session_notes || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sessions.length > 30 && (
+                  <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "var(--sp-1)" }}>
+                    Showing 30 of {sessions.length}
+                  </p>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </Modal>
     );
   }
 
-  // ── Upload screen ─────────────────────────────────────────────────────────
+  // ── Upload ────────────────────────────────────────────────────────────────
 
   return (
     <Modal
@@ -439,20 +519,88 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => fileRef.current?.click()}>Choose CSV file</Button>
+          <Button onClick={() => setStep("preview")} disabled={clients.length === 0}>
+            Preview import
+          </Button>
         </>
       }
     >
       <p className={styles.modalText}>
-        Upload a CSV to bulk-create offline clients and their sessions. Download the template to see the expected format
-        — rows with the same email (or same name if no email) are treated as one client with multiple sessions.
+        Use two CSVs: one for clients (name, email, codename) and one for their sessions (date, amount, notes). The
+        client_id column links them together.
       </p>
-      <div style={{ marginBottom: "var(--sp-4)" }}>
-        <Button variant="secondary" size="sm" onClick={downloadTemplate}>
-          Download template
+
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--sp-2)",
+          marginBottom: "var(--sp-5)",
+          flexWrap: "wrap",
+        }}
+      >
+        <Button variant="secondary" size="sm" onClick={downloadClientsTemplate}>
+          Clients template ↓
+        </Button>
+        <Button variant="secondary" size="sm" onClick={downloadSessionsTemplate}>
+          Sessions template ↓
         </Button>
       </div>
-      <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={handleFile} />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-4)" }}>
+        {/* Clients file */}
+        <div>
+          <p
+            style={{ fontSize: "0.82rem", fontWeight: 600, margin: "0 0 var(--sp-2)", color: "var(--text-secondary)" }}
+          >
+            Clients CSV <span style={{ color: "var(--danger)", marginLeft: 2 }}>*</span>
+          </p>
+          <div style={{ display: "flex", gap: "var(--sp-2)", alignItems: "center" }}>
+            <Button size="sm" variant="secondary" onClick={() => clientsFileRef.current?.click()}>
+              Choose file
+            </Button>
+            {clients.length > 0 && (
+              <span style={{ fontSize: "0.8rem", color: "var(--accent)" }}>
+                {clients.length} {clients.length === 1 ? "client" : "clients"} ready
+              </span>
+            )}
+          </div>
+          <input
+            ref={clientsFileRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={parseClientsFile}
+          />
+        </div>
+
+        {/* Sessions file */}
+        <div>
+          <p
+            style={{ fontSize: "0.82rem", fontWeight: 600, margin: "0 0 var(--sp-2)", color: "var(--text-secondary)" }}
+          >
+            Sessions CSV{" "}
+            <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
+          </p>
+          <div style={{ display: "flex", gap: "var(--sp-2)", alignItems: "center" }}>
+            <Button size="sm" variant="secondary" onClick={() => sessionsFileRef.current?.click()}>
+              Choose file
+            </Button>
+            {sessions.length > 0 && (
+              <span style={{ fontSize: "0.8rem", color: "var(--accent)" }}>
+                {sessions.length} {sessions.length === 1 ? "session" : "sessions"} ready
+              </span>
+            )}
+          </div>
+          <input
+            ref={sessionsFileRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={parseSessionsFile}
+          />
+        </div>
+      </div>
+
       {parseError && <p className={styles.modalError}>{parseError}</p>}
     </Modal>
   );
