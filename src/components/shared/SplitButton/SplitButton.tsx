@@ -24,10 +24,18 @@ const SplitButton = ({
   secondaryLabel = "Show more options",
 }: SplitButtonProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [opensUpward, setOpensUpward] = useState(false);
   const classes = [styles.btn, styles[variant], styles[size]].filter(Boolean).join(" ");
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const handleToggle = () => setIsDropdownOpen((prev) => !prev);
+  const handleToggle = () => {
+    if (!isDropdownOpen && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const estimatedHeight = options.length * 36 + 16;
+      setOpensUpward(rect.bottom + estimatedHeight > window.innerHeight);
+    }
+    setIsDropdownOpen((prev) => !prev);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -38,11 +46,16 @@ const SplitButton = ({
     return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
 
+  const wrapperClass = [
+    styles.buttonWrapper,
+    isDropdownOpen ? styles.dropdownOpen : "",
+    isDropdownOpen && opensUpward ? styles.opensUpward : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div
-      ref={wrapperRef}
-      className={[styles.buttonWrapper, isDropdownOpen ? styles.dropdownOpen : ""].filter(Boolean).join(" ")}
-    >
+    <div ref={wrapperRef} className={wrapperClass}>
       <button
         type="button"
         className={[classes, styles.mainButton].filter(Boolean).join(" ")}
@@ -60,7 +73,7 @@ const SplitButton = ({
       </button>
 
       {isDropdownOpen && (
-        <div className={styles.dropdown}>
+        <div className={[styles.dropdown, opensUpward ? styles.dropdownUp : ""].filter(Boolean).join(" ")}>
           <ul>
             {options.map(({ label, onClick }) => (
               <li key={label}>
