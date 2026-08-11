@@ -41,8 +41,7 @@ $transition: 0.22s ease;
   }
 
   .logo {
-    justify-content: center;
-    padding-left: 0;
+    padding-left: $sp-3;
     gap: 0;
   }
 }
@@ -256,8 +255,7 @@ $transition: 0.22s ease;
     }
 
     .logo {
-      justify-content: center;
-      padding-left: 0;
+      padding-left: $sp-3;
       gap: 0;
     }
 
