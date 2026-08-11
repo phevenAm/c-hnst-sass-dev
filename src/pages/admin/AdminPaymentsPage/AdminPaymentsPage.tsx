@@ -125,24 +125,39 @@ const AdminPaymentsPage = () => {
     [sessions, selectedClientId],
   );
 
-  const stats = useMemo(
-    () =>
-      scopedSessions.reduce(
-        (acc, s) => {
-          if (s.status === "cancelled") return acc;
-          if (s.paid) {
-            acc.collectedPence += s.price_pence ?? 0;
-            acc.paidCount += 1;
-          } else {
-            acc.outstandingPence += s.price_pence ?? 0;
-            acc.unpaidCount += 1;
-          }
-          return acc;
-        },
-        { collectedPence: 0, outstandingPence: 0, paidCount: 0, unpaidCount: 0 },
-      ),
-    [scopedSessions],
+  const scopedStubSessions = useMemo(
+    () => (selectedClientId === "all" ? stubSessions : stubSessions.filter((s) => s.stub_id === selectedClientId)),
+    [stubSessions, selectedClientId],
   );
+
+  const stats = useMemo(() => {
+    const base = scopedSessions.reduce(
+      (acc, s) => {
+        if (s.status === "cancelled") return acc;
+        if (s.paid) {
+          acc.collectedPence += s.price_pence ?? 0;
+          acc.paidCount += 1;
+        } else {
+          acc.outstandingPence += s.price_pence ?? 0;
+          acc.unpaidCount += 1;
+        }
+        return acc;
+      },
+      { collectedPence: 0, outstandingPence: 0, paidCount: 0, unpaidCount: 0 },
+    );
+    return scopedStubSessions
+      .filter((s) => s.status !== "cancelled")
+      .reduce((acc, s) => {
+        const amountPence = Math.round((s.amount_paid ?? 0) * 100);
+        if (s.amount_paid != null && s.amount_paid > 0) {
+          acc.collectedPence += amountPence;
+          acc.paidCount += 1;
+        } else {
+          acc.unpaidCount += 1;
+        }
+        return acc;
+      }, base);
+  }, [scopedSessions, scopedStubSessions]);
 
   const revenueData = useMemo(() => revenueByMonth(scopedSessions, 6), [scopedSessions]);
 
@@ -187,9 +202,6 @@ const AdminPaymentsPage = () => {
       viewPath: p.client_id ? `/admin/clients/${p.client_id}` : p.stub_id ? `/admin/clients/stub/${p.stub_id}` : null,
     }));
 
-    const scopedStubSessions =
-      selectedClientId === "all" ? stubSessions : stubSessions.filter((s) => s.stub_id === selectedClientId);
-
     const stubSessionRows: PaymentRow[] = scopedStubSessions
       .filter((s) => s.status !== "cancelled")
       .map((s) => ({
@@ -206,7 +218,7 @@ const AdminPaymentsPage = () => {
       }));
 
     return [...sessionRows, ...stubSessionRows, ...manualRows];
-  }, [scopedSessions, stubSessions, manualPayments, selectedClientId, clientNameById]);
+  }, [scopedSessions, scopedStubSessions, manualPayments, clientNameById]);
 
   const filteredRows = useMemo(() => {
     if (statusFilter === "paid") return allRows.filter((r) => r.isPaid);
@@ -230,6 +242,10 @@ const AdminPaymentsPage = () => {
 
   const handleConfirmMarkStubPaid = async () => {
     if (!markStubPaid) return;
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
     const amount = parseFloat(markAmount);
     if (!amount || amount <= 0) {
       showToast("Enter a valid amount.", "danger");
