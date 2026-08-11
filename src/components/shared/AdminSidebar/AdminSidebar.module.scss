@@ -41,7 +41,7 @@ $transition: 0.22s ease;
   }
 
   .logo {
-    padding-left: $sp-3;
+    padding-left: $sp-5; // $sp-2(nav container) + $sp-3(navLink) = 20px, matches nav icon offset
     gap: 0;
   }
 }
@@ -255,7 +255,7 @@ $transition: 0.22s ease;
     }
 
     .logo {
-      padding-left: $sp-3;
+      padding-left: $sp-5; // match nav icon offset
       gap: 0;
     }
 
@@ -269,6 +269,16 @@ $transition: 0.22s ease;
       .branding {
         opacity: 1;
         pointer-events: auto;
+      }
+
+      .logoText {
+        width: auto;
+        overflow: visible;
+      }
+
+      .logo {
+        padding-left: $sp-3;
+        gap: $sp-3;
       }
     }
   }
