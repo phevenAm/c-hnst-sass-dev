@@ -533,3 +533,50 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+// ── Mobile ────────────────────────────────────────────────────
+@include bp(lt-s) {
+  .hero {
+    gap: $sp-3;
+    margin: $sp-4 0 $sp-5;
+  }
+
+  .heroLeft {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $sp-3;
+  }
+
+  .heroName {
+    font-size: 1.4rem;
+  }
+
+  .heroActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .statsRow {
+    flex-wrap: wrap;
+    gap: $sp-3;
+    padding: $sp-3;
+  }
+
+  .statDivider {
+    display: none;
+  }
+
+  .statBlock {
+    flex: 1 1 80px;
+    text-align: left;
+  }
+
+  .progressControls {
+    flex-direction: column;
+    align-items: flex-start;
+
+    select {
+      min-width: 0;
+      width: 100%;
+    }
+  }
+}

@@ -258,8 +258,6 @@ $transition: 0.22s ease;
 
 .collapseBtn {
   position: absolute;
-  // sits on the right edge of the sidebar, vertically centred in the logo row
-  top: 55px;
   right: -13px;
   width: 24px;
   height: 24px;
@@ -274,7 +272,7 @@ $transition: 0.22s ease;
   color: var(--text-secondary);
   padding: 0;
   transition: background var(--transition-base), color var(--transition-base),
-    border-color var(--transition-base), top 450ms ease-in-out, bottom 450ms ease-in-out;
+    border-color var(--transition-base), top 450ms ease-in-out;
 
   &:hover {
     background: var(--accent-light);
@@ -287,21 +285,8 @@ $transition: 0.22s ease;
     outline-offset: 2px;
   }
 
-  // On mobile: stay on right edge, just bigger for easier tapping
   @include until-md {
     width: 36px;
     height: 36px;
-  }
-
-  // Vertical position variants — controlled via Settings
-  &.btnMiddle {
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  &.btnBottom {
-    top: 95vh;
-    // top: unset;
-    bottom: $sp-6;
   }
 }

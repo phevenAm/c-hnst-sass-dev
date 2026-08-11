@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createSession, updateSession } from "@/store/slices/sessionsSlice";
 
 import styles from "./CreateSessionModal.module.scss";
@@ -28,6 +28,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
+  const allSessions = useAppSelector((state) => state.sessions.sessions);
   const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : null);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -94,6 +95,25 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
       }
     }
 
+    // Overlap check — block double booking before any inserts.
+    for (const d of dates) {
+      const start = d.toDate();
+      const end = dayjs(start).add(sessionDuration, "minute").toDate();
+      const clash = allSessions.some((s) => {
+        if (s.status === "cancelled") return false;
+        const sStart = new Date(s.scheduled_at);
+        const sEnd = dayjs(sStart)
+          .add(s.duration_minutes ?? 50, "minute")
+          .toDate();
+        return start < sEnd && end > sStart;
+      });
+      if (clash) {
+        setError(`${d.format("D MMM [at] h:mma")} overlaps with an existing session.`);
+        setIsSaving(false);
+        return;
+      }
+    }
+
     // For batch creates, tag every session with a shared block_id so the
     // counsellor can see "Block 15 Jan · 2/4" on each card and track cadence.
     const blockId = isRecurring ? crypto.randomUUID().slice(0, 6) : null;
@@ -151,6 +171,23 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
     if (!authUser || !scheduledAt) return;
     setError("");
     setIsSaving(true);
+
+    // Overlap check — exclude the session being edited.
+    const updStart = scheduledAt.toDate();
+    const updEnd = dayjs(updStart).add(sessionDuration, "minute").toDate();
+    const updateClash = allSessions.some((s) => {
+      if (s.id === sess.id || s.status === "cancelled") return false;
+      const sStart = new Date(s.scheduled_at);
+      const sEnd = dayjs(sStart)
+        .add(s.duration_minutes ?? 50, "minute")
+        .toDate();
+      return updStart < sEnd && updEnd > sStart;
+    });
+    if (updateClash) {
+      setError("This time overlaps with an existing session.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       await dispatch(

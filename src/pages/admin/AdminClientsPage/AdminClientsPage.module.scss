@@ -1,5 +1,6 @@
 // AdminClientsPage.scss
 @use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
 
 .pageHeader {
   display: flex;
@@ -515,6 +516,14 @@
   }
 }
 
+.stubDate {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .stubRow {
   display: flex;
   align-items: center;
@@ -576,6 +585,49 @@
   &:focus {
     outline: none;
     border-color: var(--border-focus);
+  }
+}
+
+// ── Mobile ────────────────────────────────────────────────
+@include bp(lt-s) {
+  .clientRow,
+  .stubRow {
+    padding: $sp-3 $sp-4;
+    gap: $sp-3;
+  }
+
+  // Name/email column: let it shrink and truncate instead of pushing buttons off screen
+  .clientMeta {
+    min-width: 0;
+  }
+
+  .clientName,
+  .clientEmail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Stats are too wide for small screens — hide them; the client detail page has full info
+  .statBlock,
+  .statValueDate {
+    display: none;
+  }
+
+  // Badges stay visible (Offline / Linked) but move them with the name row
+  .badgeLinked,
+  .badgeUnlinked {
+    flex-shrink: 0;
+  }
+
+  .stubDate {
+    display: none;
+  }
+
+  // Action buttons: push to their own full-width row, right-aligned
+  .rowActions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 

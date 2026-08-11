@@ -306,3 +306,29 @@
   font-size: 0.9rem;
   margin: 0;
 }
+// ── Mobile (<640px) ──────────────────────────────────────────
+@media (max-width: 639px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-1);
+  }
+
+  .filterSelect {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .calendarCard {
+    padding: var(--sp-2);
+    overflow-x: auto;
+  }
+}

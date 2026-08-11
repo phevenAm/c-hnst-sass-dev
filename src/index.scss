@@ -34,7 +34,7 @@
   --bg-overlay: #{$color-bg-overlay};
   --bg-grey: #dae0de;
   --bg-card-rgb: 255, 255, 255;
-  --border-rgb: 191, 229, 223;
+  --border-rgb: 195, 212, 207;
   --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-bg-heavy: rgba(245, 245, 245, 0.92);
 
@@ -70,7 +70,7 @@
   --font-serif: #{$font-serif};
   --font-sans: #{$font-sans};
 
-  // Spacing
+  // Spacing 
   --sp-1: #{$sp-1};
   --sp-2: #{$sp-2};
   --sp-3: #{$sp-3};
@@ -107,19 +107,19 @@
   --text-primary: #{$dark-text-primary};
   --text-secondary: #{$dark-text-secondary};
   --text-muted: #{$dark-text-muted};
-  --text-disabled: #{$warm-400};
-  --text-inverse: #0f1f1c;
+  --text-disabled: #3d4258;
+  --text-inverse: #111318;
 
   // Backgrounds
   --bg-base: #{$dark-bg-base};
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
-  --bg-grey: #1a3330;
-  --bg-overlay: rgba(15, 31, 28, 0.92);
-  --bg-card-rgb: 22, 38, 34;
-  --border-rgb: 37, 79, 73;
-  --glass-bg: rgba(22, 38, 34, 0.891);
-  --glass-bg-heavy: rgba(22, 38, 34, 0.95);
+  --bg-grey: #202837;
+  --bg-overlay: rgba(17, 19, 24, 0.92);
+  --bg-card-rgb: 27, 30, 39;
+  --border-rgb: 45, 50, 69;
+  --glass-bg: rgba(27, 30, 39, 0.891);
+  --glass-bg-heavy: rgba(27, 30, 39, 0.95);
 
   // Borders
   --border: #{$dark-border};
@@ -130,7 +130,7 @@
   --danger: #fca5a5;
   --danger-light: rgba(185, 28, 28, 0.2);
   --danger-border: rgba(185, 28, 28, 0.4);
-  --success: #9fbbb3;
+  --success: #{$teal-300};
   --warning: #fcd34d;
   --warning-light: rgba(146, 64, 14, 0.2);
 
@@ -257,6 +257,7 @@ $admin-sidebar-collapsed-w: 60px;
 }
 
 @include until-md {
+
   .adminBody,
   .adminBodyCollapsed {
     margin-left: $admin-sidebar-collapsed-w !important; // icon strip always visible

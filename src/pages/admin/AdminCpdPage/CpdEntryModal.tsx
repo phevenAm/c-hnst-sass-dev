@@ -29,6 +29,8 @@ const ACTIVITY_TYPES: { value: CpdActivityType; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
+const NEW_ACTIVITY_TYPES = ACTIVITY_TYPES.filter((t) => t.value !== "supervision");
+
 const MODES = [
   { value: "remote", label: "Remote" },
   { value: "in_person", label: "In person" },
@@ -38,7 +40,7 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
 
-  const [activityType, setActivityType] = useState<CpdActivityType>(initial?.activity_type ?? "supervision");
+  const [activityType, setActivityType] = useState<CpdActivityType>(initial?.activity_type ?? "training");
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().split("T")[0]);
   const [sessionNumber, setSessionNumber] = useState<string>(
     initial?.session_number != null ? String(initial.session_number) : String(nextSessionNumber),
@@ -57,6 +59,7 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
     initial?.duration_minutes != null ? String(initial.duration_minutes % 60) : "0",
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [customCategory, setCustomCategory] = useState(initial?.custom_category ?? "");
 
   // Reset session number suggestion when switching to supervision
   useEffect(() => {
@@ -98,6 +101,7 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
       provider: !isSupervision ? provider || null : null,
       duration_minutes: totalMins || null,
       notes: notes || null,
+      custom_category: activityType === "other" ? customCategory.trim() || null : null,
     };
 
     const { error } = initial
@@ -137,7 +141,7 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
                 value={activityType}
                 onChange={(e) => setActivityType(e.target.value as CpdActivityType)}
               >
-                {ACTIVITY_TYPES.map((t) => (
+                {(initial ? ACTIVITY_TYPES : NEW_ACTIVITY_TYPES).map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>
@@ -256,6 +260,20 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
             </>
           ) : (
             <>
+              {activityType === "other" && (
+                <div className={styles.field}>
+                  <label htmlFor="cpd-custom-cat">
+                    Category name <span className={styles.optional}>(optional — e.g. "Yoga Therapy")</span>
+                  </label>
+                  <input
+                    id="cpd-custom-cat"
+                    type="text"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Leave blank to keep as 'Other'…"
+                  />
+                </div>
+              )}
               <div className={styles.field}>
                 <label htmlFor="cpd-title">Title</label>
                 <input
