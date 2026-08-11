@@ -21,7 +21,6 @@ import Search from "@/components/shared/Search/Search";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
-import { supabase } from "@/lib/supabase";
 import { useAppDispatch } from "@/store/hooks";
 import { getScoreAverage } from "../utils/AdminClientsPageUtils";
 import AccessTokenModal from "./modals/AccessTokenModal/AccessTokenModal";
@@ -29,6 +28,7 @@ import CreateStubModal from "./modals/CreateStubModal/CreateStubModal";
 import DeleteClientModal from "./modals/DeleteClientModal/DeleteClientModal";
 import ImportStubsModal from "./modals/ImportStubsModal/ImportStubsModal";
 import ManageTokensModal from "./modals/ManageTokensModal/ManageTokensModal";
+import MergeStubModal from "./modals/MergeStubModal/MergeStubModal";
 import SessionNotesModal from "./modals/SessionNotesModal/SessionNotesModal";
 
 import styles from "./AdminClientsPage.module.scss";
@@ -159,11 +159,12 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [linking, setLinking] = useState(false);
   const platformClients = (useAppSelector(selectAllUsers) as UserProfile[]).filter(
     (u) => u.role !== "admin" && !u.deleted_at,
   );
+  const selectedUser = platformClients.find((c) => c.id === selectedUserId) ?? null;
 
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const displayName = useCodenames
@@ -183,24 +184,6 @@ function StubRow({ stub }: { stub: ClientStub }) {
       showToast("Failed to delete client.", "danger");
       setDeleting(false);
     }
-  };
-
-  const handleLink = async () => {
-    if (!selectedUserId) return;
-    if (isDemo) {
-      showToast("Demo mode — changes are not saved.", "warning");
-      return;
-    }
-    setLinking(true);
-    const { error } = await supabase.from("client_stubs").update({ linked_user_id: selectedUserId }).eq("id", stub.id);
-    setLinking(false);
-    if (error) {
-      showToast("Failed to link client.", "danger");
-      return;
-    }
-    await dispatch(fetchClientStubs());
-    setLinkOpen(false);
-    showToast("Client linked to platform account.");
   };
 
   if (linkOpen) {
@@ -237,10 +220,21 @@ function StubRow({ stub }: { stub: ClientStub }) {
           <Button size="sm" variant="ghost" onClick={() => setLinkOpen(false)}>
             Cancel
           </Button>
-          <Button size="sm" onClick={handleLink} disabled={linking || !selectedUserId}>
-            {linking ? "Linking…" : "Link account"}
+          <Button size="sm" onClick={() => setMergeOpen(true)} disabled={!selectedUserId}>
+            Review merge →
           </Button>
         </div>
+        {mergeOpen && selectedUser && (
+          <MergeStubModal
+            stub={stub}
+            realUser={selectedUser}
+            onClose={() => setMergeOpen(false)}
+            onMerged={() => {
+              setMergeOpen(false);
+              setLinkOpen(false);
+            }}
+          />
+        )}
       </div>
     );
   }

@@ -125,10 +125,16 @@ const AdminPaymentsPage = () => {
     [sessions, selectedClientId],
   );
 
-  const scopedStubSessions = useMemo(
-    () => (selectedClientId === "all" ? stubSessions : stubSessions.filter((s) => s.stub_id === selectedClientId)),
-    [stubSessions, selectedClientId],
-  );
+  const scopedStubSessions = useMemo(() => {
+    if (selectedClientId === "all") return stubSessions;
+    // Direct stub filter (stub selected in dropdown)
+    if (allStubs.some((s) => s.id === selectedClientId)) {
+      return stubSessions.filter((s) => s.stub_id === selectedClientId);
+    }
+    // Real user selected — include sessions from stubs merged into this user
+    const linkedStubIds = new Set(allStubs.filter((s) => s.linked_user_id === selectedClientId).map((s) => s.id));
+    return stubSessions.filter((s) => linkedStubIds.has(s.stub_id));
+  }, [stubSessions, allStubs, selectedClientId]);
 
   const stats = useMemo(() => {
     const base = scopedSessions.reduce(
@@ -386,15 +392,17 @@ const AdminPaymentsPage = () => {
                     {clientDisplayName(c, useCodenames)}
                   </option>
                 ))}
-                {allStubs.length > 0 && (
+                {allStubs.some((s) => !s.linked_user_id) && (
                   <optgroup label="Offline clients">
-                    {allStubs.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {useCodenames
-                          ? s.codename || `${s.first_name} ${s.last_name}`
-                          : `${s.first_name} ${s.last_name}`}
-                      </option>
-                    ))}
+                    {allStubs
+                      .filter((s) => !s.linked_user_id)
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {useCodenames
+                            ? s.codename || `${s.first_name} ${s.last_name}`
+                            : `${s.first_name} ${s.last_name}`}
+                        </option>
+                      ))}
                   </optgroup>
                 )}
               </select>
