@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { useAuth } from "@context/AuthContext";
@@ -31,7 +31,7 @@ const NAV = [
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
   { to: "/admin/forms", label: "Forms", Icon: FormsIcon, exact: false },
   { to: "/admin/cpd", label: "CPD Log", Icon: CpdIcon, exact: false },
-  { to: "/admin/supervision", label: "Supervision", Icon: SupervisionLogo, exact: false },
+  // { to: "/admin/supervision", label: "Supervision", Icon: SupervisionLogo, exact: false },
 ];
 
 export default function AdminSidebar({
@@ -52,6 +52,30 @@ export default function AdminSidebar({
   const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
     () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
   );
+
+  const topRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState({ top: 55, bottom: 120 });
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      setMeasured({
+        top: topRef.current?.offsetHeight ?? 55,
+        bottom: bottomRef.current?.offsetHeight ?? 120,
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const halfBtn = isMobile ? 18 : 12;
+  const collapseBtnStyle: CSSProperties = (() => {
+    if (btnPos === "top") return { top: measured.top - halfBtn, bottom: "auto", transform: "none" };
+    if (btnPos === "bottom")
+      return { top: window.innerHeight - measured.bottom - halfBtn, bottom: "auto", transform: "none" };
+    return { top: "50%", bottom: "auto", transform: "translateY(-50%)" };
+  })();
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 768);
@@ -75,7 +99,7 @@ export default function AdminSidebar({
         className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""} ${isOpen ? styles.mobileOpen : ""}`}
         aria-label="Admin navigation"
       >
-        <div className={styles.top}>
+        <div className={styles.top} ref={topRef}>
           <Link to="/admin" className={styles.logo} aria-label="Clarity Admin — home">
             <div className={styles.logoMark}>
               <LeafLogoMark size={28} />
@@ -108,7 +132,7 @@ export default function AdminSidebar({
           </ul>
         </nav>
 
-        <div className={styles.bottom}>
+        <div className={styles.bottom} ref={bottomRef}>
           {!isDemo && (
             <button
               type="button"
@@ -150,13 +174,8 @@ export default function AdminSidebar({
         {/* Collapse/expand arrow on the right edge of the sidebar */}
         <button
           type="button"
-          className={[
-            styles.collapseBtn,
-            btnPos === "middle" ? styles.btnMiddle : "",
-            btnPos === "bottom" ? styles.btnBottom : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className={styles.collapseBtn}
+          style={collapseBtnStyle}
           onClick={onToggle}
           aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isOpen || !collapsed}
