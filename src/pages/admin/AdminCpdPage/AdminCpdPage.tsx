@@ -37,6 +37,7 @@ export type CpdLog = {
   provider: string | null;
   duration_minutes: number | null;
   notes: string | null;
+  custom_category: string | null;
   created_at: string;
 };
 
@@ -49,6 +50,11 @@ const ACTIVITY_LABELS: Record<CpdActivityType, string> = {
   personal_therapy: "Personal Therapy",
   other: "Other",
 };
+
+function activityLabel(log: CpdLog): string {
+  if (log.activity_type === "other" && log.custom_category) return log.custom_category;
+  return ACTIVITY_LABELS[log.activity_type];
+}
 
 function minutesToHours(mins: number | null): string {
   if (!mins) return "—";
@@ -69,7 +75,7 @@ export default function AdminCpdPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<CpdLog | null>(null);
   const [target, setTarget] = useState(30);
-  const [filterType, setFilterType] = useState<CpdActivityType | "all">("all");
+  const [filterType, setFilterType] = useState<string>("all");
 
   const currentYear = new Date().getFullYear();
 
@@ -182,7 +188,25 @@ export default function AdminCpdPage() {
   const hoursLogged = totalHours(thisYearLogs);
   const progressPct = Math.min(100, (hoursLogged / target) * 100);
 
-  const visibleLogs = filterType === "all" ? logs : logs.filter((l) => l.activity_type === filterType);
+  const standardFilterTypes: CpdActivityType[] = [
+    "training",
+    "reading",
+    "conference",
+    "peer_consultation",
+    "personal_therapy",
+  ];
+  const customCategoryFilters = Array.from(
+    new Set(logs.filter((l) => l.activity_type === "other" && l.custom_category).map((l) => l.custom_category!)),
+  );
+  const hasGenericOther = logs.some((l) => l.activity_type === "other" && !l.custom_category);
+
+  const visibleLogs = (() => {
+    if (filterType === "all") return logs;
+    if (standardFilterTypes.includes(filterType as CpdActivityType))
+      return logs.filter((l) => l.activity_type === filterType);
+    if (filterType === "other") return logs.filter((l) => l.activity_type === "other" && !l.custom_category);
+    return logs.filter((l) => l.activity_type === "other" && l.custom_category === filterType);
+  })();
 
   const nextSessionNumber = (logs.filter((l) => l.activity_type === "supervision").length ?? 0) + 1;
 
@@ -235,18 +259,7 @@ export default function AdminCpdPage() {
 
         {/* Filter tabs */}
         <div className={styles.filters}>
-          {(
-            [
-              "all",
-              "supervision",
-              "training",
-              "reading",
-              "conference",
-              "peer_consultation",
-              "personal_therapy",
-              "other",
-            ] as const
-          ).map((t) => (
+          {(["all", ...standardFilterTypes, ...(hasGenericOther ? ["other"] : [])] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -254,6 +267,16 @@ export default function AdminCpdPage() {
               onClick={() => setFilterType(t)}
             >
               {t === "all" ? "All" : ACTIVITY_LABELS[t as CpdActivityType]}
+            </button>
+          ))}
+          {customCategoryFilters.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className={`${styles.filterBtn} ${filterType === cat ? styles.filterBtnActive : ""}`}
+              onClick={() => setFilterType(cat)}
+            >
+              {cat}
             </button>
           ))}
         </div>
@@ -282,7 +305,7 @@ export default function AdminCpdPage() {
                     <td className={styles.dateCell}>{log.date}</td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${log.activity_type}`]}`}>
-                        {ACTIVITY_LABELS[log.activity_type]}
+                        {activityLabel(log)}
                         {log.activity_type === "supervision" && log.session_number ? ` #${log.session_number}` : ""}
                       </span>
                     </td>
