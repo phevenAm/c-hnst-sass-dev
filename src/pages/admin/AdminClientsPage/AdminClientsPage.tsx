@@ -22,6 +22,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useAppDispatch } from "@/store/hooks";
+import InviteStubModal from "../AdminStubDetailPage/InviteStubModal";
 import { getScoreAverage } from "../utils/AdminClientsPageUtils";
 import AccessTokenModal from "./modals/AccessTokenModal/AccessTokenModal";
 import CreateStubModal from "./modals/CreateStubModal/CreateStubModal";
@@ -160,6 +161,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const [deleting, setDeleting] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
   const platformClients = (useAppSelector(selectAllUsers) as UserProfile[]).filter(
     (u) => u.role !== "admin" && !u.deleted_at,
@@ -282,9 +284,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
           {stub.linked_user_id ? "Linked" : "Offline"}
         </span>
 
-        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
-          Added {dayjs(stub.created_at).format("D MMM YYYY")}
-        </p>
+        <p className={styles.stubDate}>Added {dayjs(stub.created_at).format("D MMM YYYY")}</p>
 
         <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
           <SplitButton
@@ -292,6 +292,9 @@ function StubRow({ stub }: { stub: ClientStub }) {
             primaryAction={() => navigate(`/admin/clients/stub/${stub.id}`)}
             options={[
               { label: "Edit", onClick: () => setEditOpen(true) },
+              ...(stub.email && !stub.linked_user_id
+                ? [{ label: "Send invite email", onClick: () => setInviteOpen(true) }]
+                : []),
               { label: "Delete", onClick: () => setConfirmDelete(true) },
               {
                 label: "Link to real client",
@@ -308,6 +311,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
       </div>
 
       {editOpen && <CreateStubModal existing={stub} onClose={() => setEditOpen(false)} />}
+      {inviteOpen && <InviteStubModal stub={stub} onClose={() => setInviteOpen(false)} />}
     </>
   );
 }

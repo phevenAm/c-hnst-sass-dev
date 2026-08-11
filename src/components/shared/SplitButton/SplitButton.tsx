@@ -75,7 +75,7 @@ const SplitButton = ({
             className={styles.portalDropdown}
             style={{
               top: dropdownRect.bottom,
-              right: window.innerWidth - dropdownRect.right,
+              right: Math.max(4, window.innerWidth - dropdownRect.right),
               minWidth: dropdownRect.width,
             }}
           >

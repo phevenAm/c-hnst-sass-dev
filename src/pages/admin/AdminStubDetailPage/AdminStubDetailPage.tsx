@@ -37,6 +37,9 @@ type SessionForm = {
   currency: string;
   notes: string;
   code: string;
+  location: string;
+  isRecurring: boolean;
+  recurringWeeks: number;
 };
 
 const EMPTY_SESSION_FORM: SessionForm = {
@@ -47,6 +50,9 @@ const EMPTY_SESSION_FORM: SessionForm = {
   currency: "GBP",
   notes: "",
   code: "",
+  location: "",
+  isRecurring: false,
+  recurringWeeks: 3,
 };
 
 type EditForm = {
@@ -190,30 +196,43 @@ export default function AdminStubDetailPage() {
       return;
     }
     setSavingSession(true);
-    const { data, error } = await supabase
-      .from("stub_sessions")
-      .insert({
-        stub_id: stubId,
-        admin_id: userProfile.id,
-        scheduled_at: sessionForm.scheduled_at,
-        duration_minutes: sessionForm.duration_minutes ? Number(sessionForm.duration_minutes) : null,
-        status: sessionForm.status,
-        amount_paid: sessionForm.amount_paid ? Number(sessionForm.amount_paid) : null,
-        currency: sessionForm.currency,
-        notes: sessionForm.notes.trim() || null,
-        code: sessionForm.code.trim() || null,
-      })
-      .select()
-      .single();
+
+    // Build list of dates — base + weekly repeats if recurring.
+    const base = dayjs(sessionForm.scheduled_at);
+    const dates = [base];
+    if (sessionForm.isRecurring) {
+      for (let i = 1; i <= sessionForm.recurringWeeks; i++) {
+        dates.push(base.add(i, "week"));
+      }
+    }
+
+    const rows = dates.map((d) => ({
+      stub_id: stubId,
+      admin_id: userProfile.id,
+      scheduled_at: d.toISOString(),
+      duration_minutes: sessionForm.duration_minutes ? Number(sessionForm.duration_minutes) : null,
+      status: sessionForm.status,
+      amount_paid: sessionForm.amount_paid ? Number(sessionForm.amount_paid) : null,
+      currency: sessionForm.currency,
+      notes: sessionForm.notes.trim() || null,
+      code: sessionForm.code.trim() || null,
+      location: sessionForm.location.trim() || null,
+    }));
+
+    const { data, error } = await supabase.from("stub_sessions").insert(rows).select();
 
     if (error) {
       showToast("Failed to add session.", "danger");
     } else {
-      setSessions((prev) => [data as StubSession, ...prev]);
+      setSessions((prev) =>
+        [...(data as StubSession[]), ...prev].sort(
+          (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(),
+        ),
+      );
       setSessionForm(EMPTY_SESSION_FORM);
       setSessionDate(null);
       setAddSessionOpen(false);
-      showToast("Session added.");
+      showToast(dates.length > 1 ? `${dates.length} sessions added.` : "Session added.");
     }
     setSavingSession(false);
   };
@@ -542,12 +561,21 @@ export default function AdminStubDetailPage() {
                   />
                 </div>
                 <div className={styles.field}>
-                  <label htmlFor="session-code">Code (optional)</label>
+                  <label htmlFor="session-code">Reference code (optional)</label>
                   <input
                     id="session-code"
                     value={sessionForm.code}
                     onChange={(e) => setSessionForm((f) => ({ ...f, code: e.target.value }))}
-                    placeholder="e.g. PROMO10"
+                    placeholder="e.g. S-001"
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="session-location">Location (optional)</label>
+                  <input
+                    id="session-location"
+                    value={sessionForm.location}
+                    onChange={(e) => setSessionForm((f) => ({ ...f, location: e.target.value }))}
+                    placeholder="e.g. 15 London Rd or Zoom link"
                   />
                 </div>
                 <div className={`${styles.field} ${styles.formGridFull}`}>
@@ -560,9 +588,40 @@ export default function AdminStubDetailPage() {
                   />
                 </div>
               </div>
+
+              {/* Recurring */}
+              <div className={styles.recurringRow}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={sessionForm.isRecurring}
+                    onChange={(e) => setSessionForm((f) => ({ ...f, isRecurring: e.target.checked }))}
+                  />
+                  Repeat weekly
+                </label>
+                {sessionForm.isRecurring && (
+                  <div className={styles.field} style={{ flex: "0 0 auto", minWidth: 0 }}>
+                    <label htmlFor="recurring-weeks">Additional weeks</label>
+                    <input
+                      id="recurring-weeks"
+                      type="number"
+                      min={1}
+                      max={11}
+                      value={sessionForm.recurringWeeks}
+                      onChange={(e) => setSessionForm((f) => ({ ...f, recurringWeeks: Number(e.target.value) }))}
+                      style={{ width: "80px" }}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className={styles.formActions}>
                 <Button size="sm" onClick={handleAddSession} disabled={savingSession || !sessionForm.scheduled_at}>
-                  {savingSession ? "Saving…" : "Add session"}
+                  {savingSession
+                    ? "Saving…"
+                    : sessionForm.isRecurring
+                      ? `Schedule ${sessionForm.recurringWeeks + 1} sessions`
+                      : "Add session"}
                 </Button>
               </div>
             </div>
