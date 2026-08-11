@@ -38,12 +38,18 @@ const SplitButton = ({
   };
 
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const close = (e: MouseEvent | TouchEvent) => {
       if (wrapperRef.current?.contains(e.target as Node)) return;
       setIsDropdownOpen(false);
     };
-    document.addEventListener("click", handleOutsideClick);
-    return () => document.removeEventListener("click", handleOutsideClick);
+    // mousedown fires before the next click handler, ensuring this dropdown
+    // closes before another one opens when the user clicks a different trigger
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("touchstart", close);
+    };
   }, []);
 
   const wrapperClass = [
