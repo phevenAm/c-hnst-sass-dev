@@ -217,7 +217,14 @@ const AdminScheduler = () => {
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
       ...sessionEvents(filteredSessions, users, useCodenames),
-      ...stubSessionEvents(allStubSessions, allStubs, useCodenames),
+      ...stubSessionEvents(
+        allStubSessions.filter((s) => {
+          const stub = allStubs.find((st) => st.id === s.stub_id);
+          return stub && !stub.linked_user_id;
+        }),
+        allStubs,
+        useCodenames,
+      ),
     ],
     [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, allStubSessions, allStubs],
   );

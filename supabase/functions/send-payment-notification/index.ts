@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detailsTable, emailTemplate, formatDate, noteBox, para, sendEmail } from "../_shared/email.ts";
+import { detailsTable, emailTemplate, formatDate, logEmail, para, sendEmail } from "../_shared/email.ts";
+
+const EMAIL_TYPE = "payment_confirmed";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,23 +50,54 @@ Deno.serve(async (req) => {
 
     const { data: practiceSettings } = await supabase
       .from("practice_settings")
-      .select("disabled_email_types")
+      .select("disabled_email_types, counsellor_name")
       .eq("admin_id", user.id)
       .maybeSingle();
-    if ((practiceSettings?.disabled_email_types ?? []).includes("payment_received")) {
-      return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
-    }
+
+    const counsellorName = practiceSettings?.counsellor_name ?? undefined;
 
     const [{ data: clientProfile }, { data: authResult }] = await Promise.all([
-      supabase.from("users").select("first_name").eq("id", session.client_id).single(),
+      supabase
+        .from("users")
+        .select("first_name, email_prefs_disabled, unsubscribe_token")
+        .eq("id", session.client_id)
+        .single(),
       supabase.auth.admin.getUserById(session.client_id),
     ]);
 
     const clientEmail = authResult?.user?.email;
-    const firstName = clientProfile?.first_name ?? "there";
+    if (!clientEmail) {
+      return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422, headers: corsHeaders });
+    }
+
     const dateStr = formatDate(session.scheduled_at);
     const pricePounds = (session.price_pence / 100).toFixed(2);
+    const subject = `Payment confirmed — your session on ${dateStr}`;
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+
+    const logBase = {
+      adminId: user.id,
+      clientId: session.client_id,
+      sessionId: session_id,
+      emailType: EMAIL_TYPE,
+      recipientEmail: clientEmail,
+      subject,
+    };
+
+    if ((practiceSettings?.disabled_email_types ?? []).includes("payment_confirmed")) {
+      await logEmail(supabase, { ...logBase, status: "skipped" });
+      return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
+    }
+
+    if ((clientProfile?.email_prefs_disabled ?? []).includes(EMAIL_TYPE)) {
+      await logEmail(supabase, { ...logBase, status: "skipped" });
+      return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
+    }
+
+    const firstName = clientProfile?.first_name ?? "there";
+    const unsubscribeUrl = clientProfile?.unsubscribe_token
+      ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${EMAIL_TYPE}`
+      : undefined;
 
     const html = emailTemplate({
       label: "Payment Confirmed",
@@ -80,28 +113,29 @@ Deno.serve(async (req) => {
           { label: "Amount paid", value: `£${pricePounds}` },
         ]),
       cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
-      footerNote: "This email was sent because your payment was confirmed through the WithMe portal.",
+      footerNote: "You received this email because your payment was confirmed through the WithMe portal.",
+      unsubscribeUrl,
+      counsellorName,
     });
 
     const resendKey = Deno.env.get("RESEND_API_KEY")!;
     const fromEmail = Deno.env.get("RESEND_FROM_EMAIL")!;
 
+    let resendId: string | null = null;
+    try {
+      resendId = await sendEmail({ to: clientEmail, subject, html, resendKey, fromEmail });
+    } catch (sendErr: any) {
+      await logEmail(supabase, { ...logBase, status: "failed", errorMessage: sendErr.message });
+      throw sendErr;
+    }
+
     await Promise.all([
+      logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" }),
       supabase.from("notifications").insert({
         user_id: session.client_id,
         type: "marked_paid",
         message: `Your session on ${dateStr} has been marked as paid.`,
       }),
-
-      clientEmail
-        ? sendEmail({
-            to: clientEmail,
-            subject: `Payment confirmed — your session on ${dateStr}`,
-            html,
-            resendKey,
-            fromEmail,
-          })
-        : Promise.resolve(),
     ]);
 
     return new Response(JSON.stringify({ ok: true }), {

@@ -32,7 +32,7 @@ const pill: React.CSSProperties = {
 
 export default function MergeStubModal({ stub, realUser, onClose, onMerged }: Props) {
   const dispatch = useAppDispatch();
-  const { isDemo, practiceSettings } = useAuth();
+  const { isDemo, practiceSettings, userProfile } = useAuth();
   const { showToast } = useToast();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
@@ -93,7 +93,11 @@ export default function MergeStubModal({ stub, realUser, onClose, onMerged }: Pr
       await supabase.from("users").update({ admin_codename: applyCodename }).eq("id", realUser.id);
     }
 
-    const { error } = await supabase.from("client_stubs").update({ linked_user_id: realUser.id }).eq("id", stub.id);
+    const { error } = await supabase.rpc("merge_stub_into_client", {
+      p_stub_id: stub.id,
+      p_real_user_id: realUser.id,
+      p_admin_id: userProfile!.id,
+    });
 
     if (error) {
       showToast("Merge failed — please try again.", "danger");

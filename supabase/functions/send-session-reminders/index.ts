@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detailsTable, emailTemplate, formatDate, noteBox, para, sendEmail } from "../_shared/email.ts";
+import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
 
+const EMAIL_TYPE = "session_reminder";
 const DEFAULT_HOURS_BEFORE = 120; // 5 days
 const WINDOW_HALF_HOURS = 12; // daily cron: ±12h tolerance
 
@@ -39,12 +40,23 @@ Deno.serve(async (req) => {
 
   const clientIds = [...new Set(sessions.map((s: any) => s.client_id as string))];
 
-  // Client profiles → get first_name + admin_id
-  const { data: profiles } = await supabase.from("users").select("id, first_name, admin_id").in("id", clientIds);
+  // Client profiles including email preferences
+  const { data: profiles } = await supabase
+    .from("users")
+    .select("id, first_name, admin_id, email_prefs_disabled, unsubscribe_token")
+    .in("id", clientIds);
 
-  const profileMap: Record<string, { firstName: string; adminId: string }> = {};
+  const profileMap: Record<
+    string,
+    { firstName: string; adminId: string; emailPrefsDisabled: string[]; unsubscribeToken: string | null }
+  > = {};
   for (const p of profiles ?? []) {
-    profileMap[p.id] = { firstName: p.first_name ?? "there", adminId: p.admin_id };
+    profileMap[p.id] = {
+      firstName: p.first_name ?? "there",
+      adminId: p.admin_id,
+      emailPrefsDisabled: p.email_prefs_disabled ?? [],
+      unsubscribeToken: p.unsubscribe_token ?? null,
+    };
   }
 
   // Practice settings for each admin
@@ -58,13 +70,14 @@ Deno.serve(async (req) => {
   const { data: practiceRows } = await supabase
     .from("practice_settings")
     .select(
-      "admin_id, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours",
+      "admin_id, counsellor_name, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours",
     )
     .in("admin_id", adminIds);
 
   const settingsMap: Record<
     string,
     {
+      counsellorName: string | null;
       hoursBefore: number;
       subject: string | null;
       body: string | null;
@@ -75,6 +88,7 @@ Deno.serve(async (req) => {
   > = {};
   for (const ps of practiceRows ?? []) {
     settingsMap[ps.admin_id] = {
+      counsellorName: ps.counsellor_name ?? null,
       hoursBefore: ps.reminder_hours_before ?? DEFAULT_HOURS_BEFORE,
       subject: ps.reminder_email_subject ?? null,
       body: ps.reminder_email_body ?? null,
@@ -117,36 +131,57 @@ Deno.serve(async (req) => {
       const adminSettings = profile?.adminId ? settingsMap[profile.adminId] : null;
       const hoursBefore = adminSettings?.hoursBefore ?? DEFAULT_HOURS_BEFORE;
 
-      if (adminSettings?.disabledTypes.includes("reminder")) return;
-
       const dateStr = formatDate(session.scheduled_at);
-      const locationLabel = session.location !== "in_person" ? "Online" : "In person";
       const daysBefore = Math.round(hoursBefore / 24);
       const timeLabel =
         daysBefore >= 1
           ? `${daysBefore} day${daysBefore !== 1 ? "s" : ""}`
           : `${hoursBefore} hour${hoursBefore !== 1 ? "s" : ""}`;
 
+      const baseSubject = adminSettings?.subject
+        ? (adminSettings.subject ?? `Reminder: your session on ${dateStr}`).replace(/\{\{date\}\}/gi, dateStr)
+        : session.paid
+          ? `Reminder: your session on ${dateStr}`
+          : `Action needed: please pay for your session on ${dateStr}`;
+
+      const logBase = {
+        adminId: profile?.adminId ?? null,
+        clientId: session.client_id,
+        sessionId: session.id,
+        emailType: EMAIL_TYPE,
+        recipientEmail: toEmail,
+        subject: baseSubject,
+      };
+
+      // Admin-level disable
+      if (adminSettings?.disabledTypes.includes(EMAIL_TYPE)) {
+        await logEmail(supabase, { ...logBase, status: "skipped" });
+        return;
+      }
+
+      // Client-level disable
+      if ((profile?.emailPrefsDisabled ?? []).includes(EMAIL_TYPE)) {
+        await logEmail(supabase, { ...logBase, status: "skipped" });
+        return;
+      }
+
+      const locationLabel = session.location !== "in_person" ? "Online" : "In person";
       const sessionDetails = detailsTable([
         { label: "Date & time", value: dateStr, bold: true },
         { label: "Duration", value: `${session.duration_minutes} minutes` },
         { label: "Location", value: locationLabel },
       ]);
 
-      let subject: string;
       let body: string;
 
       if (adminSettings?.body) {
-        // Custom template — interpolate placeholders
         const interpolated = adminSettings.body
           .replace(/\{\{name\}\}/gi, firstName)
           .replace(/\{\{date\}\}/gi, dateStr)
           .replace(/\{\{location\}\}/gi, locationLabel)
           .replace(/\{\{duration\}\}/gi, `${session.duration_minutes} minutes`);
         body = para(interpolated) + sessionDetails;
-        subject = (adminSettings.subject ?? `Reminder: your session on ${dateStr}`).replace(/\{\{date\}\}/gi, dateStr);
       } else if (session.paid) {
-        subject = `Reminder: your session on ${dateStr}`;
         body =
           para(`This is a friendly reminder that you have a confirmed session coming up in ${timeLabel}.`) +
           sessionDetails +
@@ -156,14 +191,13 @@ Deno.serve(async (req) => {
         const deadlineDays = Math.round(deadlineHours / 24);
         const deadlineLabel =
           deadlineHours >= 24 ? `${deadlineDays} day${deadlineDays !== 1 ? "s" : ""}` : `${deadlineHours} hours`;
-        subject = `Action needed: please pay for your session on ${dateStr}`;
         body =
           para(
             `You have a session coming up in ${timeLabel}. <strong style="color:#2d2926;">Your session has not been paid yet.</strong> Please pay at least ${deadlineLabel} before your session to keep your booking.`,
           ) +
           sessionDetails +
           noteBox(
-            `Sessions that remain unpaid within ${deadlineLabel} may be cancelled. If you have questions, please reply to this email.`,
+            `Sessions that remain unpaid within ${deadlineLabel} may be cancelled. If you have questions, please contact your therapist.`,
           );
       }
 
@@ -171,15 +205,29 @@ Deno.serve(async (req) => {
         ? adminSettings.heading.replace(/\{\{name\}\}/gi, firstName)
         : `Hi ${firstName},`;
 
+      const unsubscribeUrl = profile?.unsubscribeToken
+        ? `${appUrl}/unsubscribe?token=${profile.unsubscribeToken}&type=${EMAIL_TYPE}`
+        : undefined;
+
       const html = emailTemplate({
         label: "Session Reminder",
         title: heading,
         body,
         ...(!session.paid ? { cta: { label: "Pay now", url: `${appUrl}/my-sessions` } } : {}),
-        footerNote: "This email was sent because you have a session booked through the WithMe portal.",
+        footerNote: "You received this email because you have a session booked through the WithMe portal.",
+        unsubscribeUrl,
+        counsellorName: adminSettings?.counsellorName ?? undefined,
       });
 
-      await sendEmail({ to: toEmail, subject, html, resendKey, fromEmail });
+      let resendId: string | null = null;
+      try {
+        resendId = await sendEmail({ to: toEmail, subject: baseSubject, html, resendKey, fromEmail });
+      } catch (sendErr: any) {
+        await logEmail(supabase, { ...logBase, status: "failed", errorMessage: sendErr.message });
+        throw sendErr;
+      }
+
+      await logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" });
     }),
   );
 
