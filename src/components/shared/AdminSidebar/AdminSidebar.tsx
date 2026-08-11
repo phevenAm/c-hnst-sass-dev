@@ -17,7 +17,7 @@ import {
   HomeIcon,
   LeafLogoMark,
   MoneyIcon,
-  SupervisionLogo,
+  SupervisionLogoMark,
   UsersIcon,
 } from "../Icons/Icons";
 
@@ -31,7 +31,7 @@ const NAV = [
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
   { to: "/admin/forms", label: "Forms", Icon: FormsIcon, exact: false },
   { to: "/admin/cpd", label: "CPD Log", Icon: CpdIcon, exact: false },
-  // { to: "/admin/supervision", label: "Supervision", Icon: SupervisionLogo, exact: false },
+  { to: "/admin/supervision", label: "Supervision", Icon: SupervisionLogoMark, exact: false },
 ];
 
 export default function AdminSidebar({

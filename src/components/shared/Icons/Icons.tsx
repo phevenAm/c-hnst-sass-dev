@@ -161,23 +161,90 @@ export const PlusIcon = () => (
   </svg>
 );
 
-// size = rendered height; width is wider to fit the two-circle overlap
-export const LeafLogoMark = ({ size = 36 }: { size?: number }) => (
+// Supervision nav icon — two circles, one noticeably smaller
+export const SupervisionLogoMark = ({ size = 36 }: { size?: number }) => (
   <svg
-    width={Math.round(size * 1.22)}
+    width={Math.round(size * 1.1)}
     height={size}
-    viewBox="0 0 44 36"
+    viewBox="0 0 40 30"
     xmlns="http://www.w3.org/2000/svg"
     role="img"
-    aria-label="Clarity"
+    aria-label="Supervision"
   >
-    {/* Large solid circle — warm-200 beige, right side, behind */}
-    <circle cx="29" cy="18" r="15" fill="#e5e0dc" />
-
-    {/* Frosted glass circle — translucent teal, solid outline, left side, in front */}
-    <circle cx="15" cy="18" r="12" fill="rgba(45,114,100,0.28)" stroke="#2d7264" strokeWidth="1.5" />
+    {/* Small beige circle — right, behind */}
+    <circle cx="27" cy="14" r="9" fill="#e5e0dc" />
+    {/* Teal glass circle — left, larger, in front */}
+    <circle cx="14" cy="16" r="12" fill="rgba(45,114,100,0.28)" stroke="#2d7264" strokeWidth="1.5" />
   </svg>
 );
+
+// Main app logo mark — restored 'withme' blob style
+export const LeafLogoMark = ({ size = 36 }: { size?: number }) => {
+  const uid = `llm-${Math.random().toString(36).slice(2, 7)}`;
+  const blurId = `${uid}-b`;
+  const clipId = `${uid}-c`;
+  const glassPath =
+    "M861.858,322.681c0,0 -446.972,7.641 -271.24,343.825c175.733,336.184 536.87,435.512 631.361,141.35c94.492,-294.161 105.952,-515.737 -360.121,-485.175Z";
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 1418 1418"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Clarity"
+    >
+      <defs>
+        <filter id={blurId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="90" in="SourceGraphic" />
+        </filter>
+        <clipPath id={clipId}>
+          <path d={glassPath} />
+        </clipPath>
+      </defs>
+      <path
+        d="M454.073,263.599c0,0 -488.995,282.701 -240.677,576.862c248.318,294.161 523.378,267.419 630.346,118.429c106.968,-148.991 -26.742,-878.664 -389.668,-695.29"
+        fill="#ffd08b"
+      />
+      <path
+        d="M644.632,767.955c0,0 269.277,-106.333 249.277,244.115c-20,350.448 -510.527,286.925 -485.355,54.883c25.172,-232.043 197.663,-297.036 236.078,-298.998Z"
+        fill="#5d9aff"
+      />
+      <g clipPath={`url(#${clipId})`}>
+        <path
+          d="M454.073,263.599c0,0 -488.995,282.701 -240.677,576.862c248.318,294.161 523.378,267.419 630.346,118.429c106.968,-148.991 -26.742,-878.664 -389.668,-695.29"
+          fill="#ffd08b"
+          filter={`url(#${blurId})`}
+        />
+        <path
+          d="M644.632,767.955c0,0 269.277,-106.333 249.277,244.115c-20,350.448 -510.527,286.925 -485.355,54.883c25.172,-232.043 197.663,-297.036 236.078,-298.998Z"
+          fill="#5d9aff"
+          filter={`url(#${blurId})`}
+        />
+      </g>
+      <path d={glassPath} fill="rgba(62,175,155,0.40)" />
+      <path d={glassPath} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="12" />
+      <path
+        d="M 890,400 C 980,355 1095,358 1165,412"
+        stroke="rgba(255,255,255,0.60)"
+        strokeWidth="16"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <text
+        x="508.505"
+        y="888.597"
+        style={{
+          fontFamily: "'MicrosoftHimalaya','Microsoft Himalaya','Cormorant Garamond',Georgia,serif",
+          fontSize: "896px",
+          fill: "#ffffff",
+        }}
+      >
+        C
+      </text>
+    </svg>
+  );
+};
 
 export const ClarityLogoMark = ({ size = 36 }: { size?: number }) => {
   const uid = `clm-${Math.random().toString(36).slice(2, 7)}`;

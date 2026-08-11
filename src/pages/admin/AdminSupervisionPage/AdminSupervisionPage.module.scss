@@ -1,0 +1,353 @@
+@use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.header {
+  @include flex-between;
+  flex-wrap: wrap;
+  gap: $sp-4;
+}
+
+.title {
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: $sp-1;
+}
+
+// ── Stats ──────────────────────────────────────────────────────
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: $sp-4;
+}
+
+.statCard {
+  padding: $sp-5;
+}
+
+.statValue {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 $sp-1;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+// ── Chart ──────────────────────────────────────────────────────
+
+.chartCard {
+  padding: $sp-5 $sp-6;
+}
+
+.chartTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 $sp-4;
+}
+
+// ── Table ──────────────────────────────────────────────────────
+
+.tableCard {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th {
+    padding: $sp-3 $sp-4;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-muted);
+  }
+
+  td {
+    padding: $sp-4;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-muted);
+  }
+}
+
+.numCell {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  width: 2.5rem;
+}
+
+.dateCell {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  width: 7rem;
+}
+
+.nameCell {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.durationCell,
+.costCell {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  width: 5rem;
+}
+
+.actionsCell {
+  display: flex;
+  gap: $sp-2;
+  justify-content: flex-end;
+  width: 8rem;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.badgeManual {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px $sp-3;
+  border-radius: var(--r-full);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.badgeCalendar {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px $sp-3;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+// ── Empty state ────────────────────────────────────────────────
+
+.empty {
+  padding: $sp-10;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+// ── Modal ──────────────────────────────────────────────────────
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $sp-6;
+}
+
+.modal {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $sp-5 $sp-6;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+  }
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.modalBody {
+  padding: $sp-5 $sp-6;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-3;
+  padding: $sp-4 $sp-6;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: $sp-3;
+
+  @include until-md {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @include bp(lt-s) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  input,
+  select,
+  textarea {
+    padding: $sp-2 $sp-3;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-muted);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color var(--transition-base);
+
+    &:focus {
+      border-color: var(--border-focus);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 64px;
+  }
+}
+
+.costRow {
+  display: flex;
+  gap: $sp-1;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.currencySelect {
+  width: 3rem;
+  flex-shrink: 0;
+  padding-left: $sp-2 !important;
+  padding-right: $sp-1 !important;
+}
+
+.optional {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
