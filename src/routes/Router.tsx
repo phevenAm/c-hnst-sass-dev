@@ -33,6 +33,7 @@ import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
 import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
 import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
 import TermsPage from "../pages/common/TermsPage/TermsPage";
+import UnsubscribePage from "../pages/common/UnsubscribePage/UnsubscribePage";
 import SuperAdminPage from "../pages/superadmin/SuperAdminPage/SuperAdminPage";
 import { useAppSelector } from "../store/hooks";
 import { selectThemeMode } from "../store/slices/themeSlice";
@@ -184,6 +185,7 @@ export default function AppRoutes() {
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/register" element={<CounsellorSignupPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
           {/* Standalone — no navbar, own minimal header */}
           <Route
