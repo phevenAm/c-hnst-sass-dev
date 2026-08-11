@@ -27,18 +27,77 @@ const HEADERS = [
   "code",
 ];
 
+// Jane Smith: 3 sessions — same email = one client with 3 history rows
+// Bob Jones: 1 session — no email, matched by name
+// Alice Brown: client-only — no sessions yet (session columns left blank)
 const TEMPLATE_ROWS = [
-  ["Jane", "Smith", "jane@example.com", "Jasmine", "2026-07-01", "10:00", "60", "attended", "85.00", "GBP", "", ""],
-  ["Jane", "Smith", "", "", "2026-07-08", "10:00", "60", "attended", "85.00", "GBP", "", ""],
-  ["Bob", "Jones", "", "", "2026-07-05", "14:00", "50", "no_show", "", "GBP", "Late cancellation", "PROMO10"],
-  ["Alice", "Brown", "alice@example.com", "", "", "", "", "", "", "", "", ""],
+  [
+    "Jane",
+    "Smith",
+    "jane@example.com",
+    "Jasmine",
+    "2026-05-01",
+    "10:00",
+    "60",
+    "attended",
+    "85.00",
+    "GBP",
+    "Good progress this week.",
+    "",
+  ],
+  ["Jane", "Smith", "jane@example.com", "", "2026-05-08", "10:00", "60", "attended", "85.00", "GBP", "", ""],
+  [
+    "Jane",
+    "Smith",
+    "jane@example.com",
+    "",
+    "2026-05-15",
+    "10:00",
+    "60",
+    "no_show",
+    "",
+    "GBP",
+    "Cancelled last minute.",
+    "",
+  ],
+  ["Bob", "Jones", "", "", "2026-05-10", "14:00", "50", "attended", "70.00", "GBP", "", "PROMO10"],
+  ["Alice", "Brown", "alice@example.com", "Ali", "", "", "", "", "", "", "", ""],
 ];
 
+const INSTRUCTIONS = [
+  "# HOW TO USE THIS TEMPLATE",
+  "# ─────────────────────────────────────────────────────────────────────────────",
+  "# MULTIPLE SESSIONS PER CLIENT",
+  "#   Give each session its own row. Rows sharing the same email address are",
+  "#   automatically grouped into ONE client with multiple sessions.",
+  "#   No email? Rows with the same first_name + last_name are grouped instead.",
+  "#   (See Jane Smith below — 3 rows, same email = 1 client, 3 sessions.)",
+  "#",
+  "# CLIENT WITH NO SESSIONS",
+  "#   Fill in first_name, last_name and optionally email / codename.",
+  "#   Leave session_date and all session columns blank.",
+  "#   (See Alice Brown below.)",
+  "#",
+  "# COLUMN GUIDE",
+  "#   session_date    YYYY-MM-DD format, e.g. 2026-05-01",
+  "#   session_time    HH:MM format, e.g. 10:00  (defaults to 09:00 if blank)",
+  "#   status          attended | scheduled | no_show | cancelled",
+  "#   amount_paid     numeric pounds e.g. 85.00  (leave blank if unpaid)",
+  "#   currency        e.g. GBP, USD, EUR",
+  "#   codename        optional alias shown when codenames mode is enabled",
+  "#   code            optional promo / discount code for that session",
+  "#   session_notes   freeform text note for that session row",
+  "#",
+  "# Delete the example rows below and replace with your own data.",
+  "# ─────────────────────────────────────────────────────────────────────────────",
+];
+
+function csvEscape(v: string) {
+  return v.includes(",") || v.includes('"') || v.includes("\n") ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
 function downloadTemplate() {
-  const lines = [
-    HEADERS.join(","),
-    ...TEMPLATE_ROWS.map((r) => r.map((v) => (v.includes(",") ? `"${v}"` : v)).join(",")),
-  ];
+  const lines = [...INSTRUCTIONS, HEADERS.join(","), ...TEMPLATE_ROWS.map((r) => r.map(csvEscape).join(","))];
   const blob = new Blob([lines.join("\r\n")], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -53,7 +112,7 @@ function downloadTemplate() {
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
   for (const raw of text.split(/\r?\n/)) {
-    if (!raw.trim()) continue;
+    if (!raw.trim() || raw.trimStart().startsWith("#")) continue;
     const row: string[] = [];
     let field = "";
     let inQuotes = false;

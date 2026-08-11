@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
@@ -40,12 +40,13 @@ const getAutoComplete = (id: FieldId): string | undefined => {
 
 export default function SignUpPage() {
   const { signUp } = useAuth();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState<Record<FieldId, string>>({
     firstName: "",
     lastName: "",
     email: "",
     dob: "",
-    accessToken: "",
+    accessToken: searchParams.get("token") ?? "",
     password: "",
     confirm: "",
   });

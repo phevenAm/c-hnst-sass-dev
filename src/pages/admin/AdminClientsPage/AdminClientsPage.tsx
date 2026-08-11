@@ -21,6 +21,7 @@ import Search from "@/components/shared/Search/Search";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import { supabase } from "@/lib/supabase";
 import { useAppDispatch } from "@/store/hooks";
 import { getScoreAverage } from "../utils/AdminClientsPageUtils";
 import AccessTokenModal from "./modals/AccessTokenModal/AccessTokenModal";
@@ -157,6 +158,12 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [linking, setLinking] = useState(false);
+  const platformClients = (useAppSelector(selectAllUsers) as UserProfile[]).filter(
+    (u) => u.role !== "admin" && !u.deleted_at,
+  );
 
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const displayName = useCodenames
@@ -177,6 +184,66 @@ function StubRow({ stub }: { stub: ClientStub }) {
       setDeleting(false);
     }
   };
+
+  const handleLink = async () => {
+    if (!selectedUserId) return;
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    setLinking(true);
+    const { error } = await supabase.from("client_stubs").update({ linked_user_id: selectedUserId }).eq("id", stub.id);
+    setLinking(false);
+    if (error) {
+      showToast("Failed to link client.", "danger");
+      return;
+    }
+    await dispatch(fetchClientStubs());
+    setLinkOpen(false);
+    showToast("Client linked to platform account.");
+  };
+
+  if (linkOpen) {
+    return (
+      <div className={styles.stubRow}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "var(--sp-2)" }}>
+          <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", margin: 0 }}>
+            Link <strong>{displayName}</strong> to an existing platform client.
+          </p>
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            style={{
+              padding: "6px 10px",
+              border: "1.5px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              background: "var(--bg-card)",
+              color: "var(--text-primary)",
+              fontSize: "0.85rem",
+              fontFamily: "var(--font-sans)",
+              outline: "none",
+              maxWidth: "280px",
+            }}
+          >
+            <option value="">Choose a platform client…</option>
+            {platformClients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {clientDisplayName(c, useCodenames)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className={styles.rowActions}>
+          <Button size="sm" variant="ghost" onClick={() => setLinkOpen(false)}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleLink} disabled={linking || !selectedUserId}>
+            {linking ? "Linking…" : "Link account"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (confirmDelete) {
     return (
@@ -232,7 +299,13 @@ function StubRow({ stub }: { stub: ClientStub }) {
             options={[
               { label: "Edit", onClick: () => setEditOpen(true) },
               { label: "Delete", onClick: () => setConfirmDelete(true) },
-              { label: "Link to real client", onClick: () => setConfirmDelete(true) },
+              {
+                label: "Link to real client",
+                onClick: () => {
+                  setSelectedUserId("");
+                  setLinkOpen(true);
+                },
+              },
             ]}
             secondaryLabel="More options"
             variant="secondary"
@@ -250,6 +323,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
 export default function AdminClientsPage() {
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const allStubs = useAppSelector(selectAllStubs);
+  const unlinkedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id), [allStubs]);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [manageTokensModal, setManageTokensModal] = useState(false);
   const [createStubOpen, setCreateStubOpen] = useState(false);
@@ -307,8 +381,8 @@ export default function AdminClientsPage() {
             <h1>Clients</h1>
             <p>
               {allClients.length} active {allClients.length === 1 ? "client" : "clients"}{" "}
-              {allStubs.length > 0 &&
-                `  |   ${allStubs.length}  offline ${allStubs.length === 1 ? "client" : "clients"}`}
+              {unlinkedStubs.length > 0 &&
+                `  |   ${unlinkedStubs.length}  offline ${unlinkedStubs.length === 1 ? "client" : "clients"}`}
             </p>
           </div>
 
@@ -316,9 +390,9 @@ export default function AdminClientsPage() {
             primaryLabel="Create access token"
             primaryAction={() => setShowTokenModal(true)}
             options={[
-              { label: "Manage tokens", onClick: () => setManageTokensModal(true) },
               { label: "Create offline client", onClick: () => setCreateStubOpen(true) },
-              { label: "Import CSV", onClick: () => setImportOpen(true) },
+              { label: "Manage tokens", onClick: () => setManageTokensModal(true) },
+              { label: "CSV client import", onClick: () => setImportOpen(true) },
             ]}
             secondaryLabel="View more options"
           />
@@ -354,16 +428,17 @@ export default function AdminClientsPage() {
         </Card>
 
         {/* Offline clients section */}
-        {allStubs.length > 0 && (
+        {unlinkedStubs.length > 0 && (
           <div className={styles.stubsSection}>
             <div className={styles.stubsSectionHeader}>
               <h2>Offline clients</h2>
               <p>
-                {allStubs.length} offline {allStubs.length === 1 ? "client" : "clients"} — not yet on the platform
+                {unlinkedStubs.length} offline {unlinkedStubs.length === 1 ? "client" : "clients"} — not yet on the
+                platform
               </p>
             </div>
             <Card>
-              {allStubs.map((stub) => (
+              {unlinkedStubs.map((stub) => (
                 <StubRow key={stub.id} stub={stub} />
               ))}
             </Card>
