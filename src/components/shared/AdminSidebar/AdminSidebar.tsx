@@ -102,7 +102,7 @@ export default function AdminSidebar({
         <div className={styles.top} ref={topRef}>
           <Link to="/admin" className={styles.logo} aria-label="Clarity Admin — home">
             <div className={styles.logoMark}>
-              <LeafLogoMark size={28} />
+              <LeafLogoMark size={20} />
             </div>
             <span className={styles.logoText}>Clarity</span>
           </Link>
