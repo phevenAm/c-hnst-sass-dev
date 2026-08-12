@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
@@ -39,8 +39,15 @@ const getAutoComplete = (id: FieldId): string | undefined => {
 };
 
 export default function SignUpPage() {
-  const { signUp } = useAuth();
+  const { signUp, loading: authLoading, isAuthenticated, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+    }
+  }, [authLoading, isAuthenticated, isAdmin, navigate]);
   const [form, setForm] = useState<Record<FieldId, string>>({
     firstName: "",
     lastName: "",
