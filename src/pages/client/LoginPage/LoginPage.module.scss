@@ -13,42 +13,25 @@
   overflow-y: auto;
 }
 
-// Subtle background shapes — teal tints
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-
-  &Top {
-    top: -8%;
-    right: -6%;
-    width: clamp(200px, 30vw, 400px);
-    height: clamp(200px, 30vw, 400px);
-    background: radial-gradient(circle, rgba(#bfe5df, 0.55), transparent 70%);
-  }
-
-  &Bottom {
-    bottom: -6%;
-    left: -4%;
-    width: clamp(180px, 26vw, 360px);
-    height: clamp(180px, 26vw, 360px);
-    background: radial-gradient(circle, rgba(#cfe8e0, 0.45), transparent 70%);
-  }
-}
-
 .container {
   width: 100%;
   max-width: 400px;
   position: relative;
 }
 
-// ── Logo ───────────────────────────────────────────────────
+// ── Hero banner (logo + tagline, overlaps card below) ──────
 .logoWrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $sp-3;
-  margin-bottom: $sp-5;
+  gap: $sp-4;
+  background: var(--accent);
+  border-radius: var(--r-xl);
+  padding: $sp-6 $sp-8;
+  color: white;
+  position: relative;
+  z-index: 2;
+  margin-bottom: -28px;
 }
 
 .logoText {
@@ -59,14 +42,14 @@
   font-family: var(--font-serif);
   font-size: 1.8rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: white;
   margin: 0;
   line-height: 1.1;
 }
 
 .logoSub {
   font-size: 0.875rem;
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.85);
   margin: 0;
 }
 
@@ -76,8 +59,10 @@
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   padding: $sp-8;
+  padding-top: calc($sp-8 + 28px);
   box-shadow: var(--shadow-lg);
-
+  position: relative;
+  z-index: 1;
 }
 
 .heading {
@@ -120,9 +105,9 @@
 
 .input {
   width: 100%;
-  padding: $sp-3 $sp-4;
+  padding: $sp-3 $sp-5;
   border: 1.5px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--r-full);
   background: var(--bg-muted);
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -274,12 +259,4 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   line-height: 1.4;
-}
-
-.logoSub,
-.demoDivider,
-.logoTitle {
-  @media (max-width: 1000px) {
-    color: white;
-  }
 }
