@@ -161,21 +161,39 @@ export const PlusIcon = () => (
   </svg>
 );
 
-// size = rendered height; width is wider to fit the two-circle overlap
-export const LeafLogoMark = ({ size = 36 }: { size?: number }) => (
+export const SupervisionLogoMark = () => (
   <svg
-    width={Math.round(size * 1.22)}
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M17 8h2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-3-3h-1" />
+    <path d="M9 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h3l3 3V5a2 2 0 0 0-2-2z" />
+  </svg>
+);
+
+export const LeafLogoMark = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
     height={size}
-    viewBox="0 0 44 36"
-    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     role="img"
     aria-label="Clarity"
   >
-    {/* Large solid circle — warm-200 beige, right side, behind */}
-    <circle cx="29" cy="18" r="15" fill="#e5e0dc" />
-
-    {/* Frosted glass circle — translucent teal, solid outline, left side, in front */}
-    <circle cx="15" cy="18" r="12" fill="rgba(45,114,100,0.28)" stroke="#2d7264" strokeWidth="1.5" />
+    <path d="M12 22V12" />
+    <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+    <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
   </svg>
 );
 

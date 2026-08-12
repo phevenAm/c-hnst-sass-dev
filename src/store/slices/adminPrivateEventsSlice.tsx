@@ -48,7 +48,12 @@ export const createPrivateEvent = createAsyncThunk<
 
 export const updatePrivateEvent = createAsyncThunk<
   AdminPrivateEvent,
-  { id: string } & Partial<Pick<AdminPrivateEvent, "title" | "starts_at" | "ends_at" | "notes">>,
+  { id: string } & Partial<
+    Pick<
+      AdminPrivateEvent,
+      "title" | "starts_at" | "ends_at" | "notes" | "is_supervision" | "is_cpd" | "cost_pence" | "currency"
+    >
+  >,
   { rejectValue: string }
 >("adminPrivateEvents/update", async ({ id, ...fields }, { rejectWithValue }) => {
   const { data, error } = await supabase.from("admin_private_events").update(fields).eq("id", id).select("*").single();

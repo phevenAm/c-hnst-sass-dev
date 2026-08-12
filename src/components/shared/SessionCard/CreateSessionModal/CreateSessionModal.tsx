@@ -43,6 +43,11 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
   const [referenceCode, setReferenceCode] = useState(session?.reference_code ?? "");
+  const [isSupervision, setIsSupervision] = useState((session as any)?.is_supervision ?? false);
+  const [trackAsCpd, setTrackAsCpd] = useState(false);
+  const [supervisionCost, setSupervisionCost] = useState(
+    (session as any)?.supervision_cost_pence ? ((session as any).supervision_cost_pence / 100).toFixed(2) : "",
+  );
   const [error, setError] = useState("");
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
@@ -131,6 +136,9 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
             reference_code: referenceCode.trim() || undefined,
             location: location,
             address: sessionAddress,
+            is_supervision: isSupervision || undefined,
+            supervision_cost_pence:
+              isSupervision && supervisionCost ? Math.round(parseFloat(supervisionCost) * 100) : undefined,
             created_by: authUser.id,
             metadata: blockId
               ? {
@@ -201,6 +209,9 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
           duration_minutes: sessionDuration,
           location: location,
           address: sessionAddress,
+          is_supervision: isSupervision || undefined,
+          supervision_cost_pence:
+            isSupervision && supervisionCost ? Math.round(parseFloat(supervisionCost) * 100) : undefined,
           status: "rescheduled",
         }),
       ).unwrap();
@@ -402,6 +413,50 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
               onChange={(e) => setReferenceCode(e.target.value)}
             />
           </div>
+
+          <div className={styles.checkboxGroup}>
+            <input
+              id="is-supervision"
+              type="checkbox"
+              checked={isSupervision}
+              onChange={(e) => setIsSupervision(e.target.checked)}
+            />
+            <label htmlFor="is-supervision" className={styles.checkboxLabel}>
+              Add to supervision log
+            </label>
+          </div>
+
+          {isSupervision && (
+            <>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="supervision-cost">
+                  Supervision fee <span className={styles.optional}>(optional)</span>
+                </label>
+                <input
+                  id="supervision-cost"
+                  className={styles.input}
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder="e.g. 80.00"
+                  value={supervisionCost}
+                  onChange={(e) => setSupervisionCost(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.checkboxGroup}>
+                <input
+                  id="track-as-cpd"
+                  type="checkbox"
+                  checked={trackAsCpd}
+                  onChange={(e) => setTrackAsCpd(e.target.checked)}
+                />
+                <label htmlFor="track-as-cpd" className={styles.checkboxLabel}>
+                  Track as CPD item
+                </label>
+              </div>
+            </>
+          )}
 
           {error && <p className={styles.error}>{error}</p>}
         </div>

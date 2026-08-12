@@ -202,6 +202,12 @@
   &:hover { text-decoration: underline; }
 }
 
+.privateTag {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 // ── Activity badges ────────────────────────────────────────
 
 .badge {

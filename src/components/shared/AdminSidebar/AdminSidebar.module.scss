@@ -31,9 +31,15 @@ $transition: 0.22s ease;
     pointer-events: none;
   }
 
+  .logoText {
+    width: 0;
+    overflow: hidden;
+  }
+
   .branding {
     opacity: 0;
   }
+
 }
 
 // ── Top / logo ──────────────────────────────────────────────
@@ -52,7 +58,7 @@ $transition: 0.22s ease;
   align-items: center;
   gap: $sp-3;
   text-decoration: none;
-  padding-left: $sp-3;
+  padding-left: $sp-5; // always 20px — matches nav icon offset, never moves
 
   border-radius: var(--r-md);
 
@@ -67,6 +73,7 @@ $transition: 0.22s ease;
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  color: var(--text-primary);
 }
 
 .logoText {
@@ -76,7 +83,7 @@ $transition: 0.22s ease;
   color: var(--text-primary);
   letter-spacing: -0.01em;
   white-space: nowrap;
-  transition: opacity $transition;
+  transition: opacity $transition, width $transition;
 }
 
 // ── Nav ─────────────────────────────────────────────────────
@@ -238,6 +245,11 @@ $transition: 0.22s ease;
       pointer-events: none;
     }
 
+    .logoText {
+      width: 0;
+      overflow: hidden;
+    }
+
     // When overlay is open, expand and show labels
     &.mobileOpen {
       width: $w;
@@ -248,6 +260,11 @@ $transition: 0.22s ease;
       .branding {
         opacity: 1;
         pointer-events: auto;
+      }
+
+      .logoText {
+        width: auto;
+        overflow: visible;
       }
     }
   }

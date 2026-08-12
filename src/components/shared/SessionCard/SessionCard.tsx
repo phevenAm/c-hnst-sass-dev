@@ -4,9 +4,11 @@ import dayjs from "dayjs";
 
 import Button from "@components/shared/Button";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
+import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
+import { downloadAdminSessionIcs } from "@/Helpers/calendarExport";
 import { supabase } from "@/lib/supabase.js";
 import { Session, SessionBlockMeta, SessionEvent } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -23,10 +25,11 @@ interface SessionCardProps {
   session: Session;
   isDemo?: boolean;
   isAdmin?: boolean;
+  clientLabel?: string;
   onNotesClick?: (sessionId: string) => void;
 }
 
-export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionCardProps) {
+export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClick }: SessionCardProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -41,7 +44,22 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
 
   const dispatch = useAppDispatch();
   const sessionNumber = useAppSelector(selectSessionNumberMap).get(session.id);
+  const allSessions = useAppSelector((state) => state.sessions.sessions);
   const { showToast } = useToast();
+  const { practiceSettings } = useAuth();
+
+  const handleAddToCalendar = () => {
+    const totalSessions = session.client_id
+      ? allSessions.filter((s) => s.client_id === session.client_id).length
+      : undefined;
+    downloadAdminSessionIcs(session, {
+      clientLabel: clientLabel ?? "Client",
+      businessName: practiceSettings?.business_name ?? undefined,
+      sessionNumber,
+      totalSessions,
+      lastNotes: session.notes ?? undefined,
+    });
+  };
 
   const handleSaveCode = () => {
     dispatch(updateSession({ id: session.id, reference_code: codeText.trim() || null }));
@@ -280,6 +298,9 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
                     Reschedule
                   </Button>
                 )}
+                <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>
+                  Add to calendar
+                </Button>
                 <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
                   Cancel
                 </Button>
@@ -297,6 +318,7 @@ export function SessionCard({ session, isDemo, isAdmin, onNotesClick }: SessionC
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),
+                    { label: "Add to calendar", onClick: handleAddToCalendar },
                     {
                       label: "Cancel",
                       onClick: () => {

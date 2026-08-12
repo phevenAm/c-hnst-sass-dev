@@ -241,6 +241,10 @@ export type AdminPrivateEvent = {
   starts_at: string;
   ends_at: string;
   notes: string | null;
+  is_supervision: boolean;
+  is_cpd: boolean;
+  cost_pence: number | null;
+  currency: string;
   created_at: string;
 };
 

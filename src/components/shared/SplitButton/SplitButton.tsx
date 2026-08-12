@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { Size, Variant } from "@constants/constants";
 
@@ -25,32 +24,44 @@ const SplitButton = ({
   secondaryLabel = "Show more options",
 }: SplitButtonProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
+  const [opensUpward, setOpensUpward] = useState(false);
   const classes = [styles.btn, styles[variant], styles[size]].filter(Boolean).join(" ");
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggle = () => {
     if (!isDropdownOpen && wrapperRef.current) {
-      setDropdownRect(wrapperRef.current.getBoundingClientRect());
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const estimatedHeight = options.length * 36 + 16;
+      setOpensUpward(rect.bottom + estimatedHeight > window.innerHeight);
     }
     setIsDropdownOpen((prev) => !prev);
   };
 
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent | KeyboardEvent) => {
-      if (wrapperRef.current?.contains(e.target as Node) || dropdownRef.current?.contains(e.target as Node)) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (wrapperRef.current?.contains(e.target as Node)) return;
       setIsDropdownOpen(false);
     };
-    document.addEventListener("click", handleOutsideClick);
-    return () => document.removeEventListener("click", handleOutsideClick);
+    // mousedown fires before the next click handler, ensuring this dropdown
+    // closes before another one opens when the user clicks a different trigger
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("touchstart", close);
+    };
   }, []);
 
+  const wrapperClass = [
+    styles.buttonWrapper,
+    isDropdownOpen ? styles.dropdownOpen : "",
+    isDropdownOpen && opensUpward ? styles.opensUpward : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div
-      ref={wrapperRef}
-      className={[styles.buttonWrapper, isDropdownOpen ? styles.dropdownOpen : ""].filter(Boolean).join(" ")}
-    >
+    <div ref={wrapperRef} className={wrapperClass}>
       <button
         type="button"
         className={[classes, styles.mainButton].filter(Boolean).join(" ")}
@@ -67,37 +78,26 @@ const SplitButton = ({
         <ChevronDown />
       </button>
 
-      {isDropdownOpen &&
-        dropdownRect &&
-        createPortal(
-          <div
-            ref={dropdownRef}
-            className={styles.portalDropdown}
-            style={{
-              top: dropdownRect.bottom,
-              right: Math.max(4, window.innerWidth - dropdownRect.right),
-              minWidth: dropdownRect.width,
-            }}
-          >
-            <ul>
-              {options.map(({ label, onClick }) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    className={styles.labelButton}
-                    onClick={() => {
-                      onClick();
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    {label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>,
-          document.body,
-        )}
+      {isDropdownOpen && (
+        <div className={[styles.dropdown, opensUpward ? styles.dropdownUp : ""].filter(Boolean).join(" ")}>
+          <ul>
+            {options.map(({ label, onClick }) => (
+              <li key={label}>
+                <button
+                  type="button"
+                  className={styles.labelButton}
+                  onClick={() => {
+                    onClick();
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
