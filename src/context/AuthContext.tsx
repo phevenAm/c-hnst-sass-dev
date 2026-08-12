@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(message);
       }
 
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -181,6 +181,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(signUpError.message);
         throw signUpError;
       }
+
+      // Auto-confirm email — invite email is proof the address is valid
+      await supabase.functions.invoke("auto-confirm-signup", {
+        body: { user_id: signUpData.user!.id, access_token: cleanedToken },
+      });
 
       const { data: tokenConsumed, error: consumeTokenError } = await supabase.rpc("consume_platform_access_token", {
         input_token: cleanedToken,
@@ -196,6 +201,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(message);
         throw new Error(message);
       }
+
+      await supabase.auth.signInWithPassword({ email, password });
     },
     [],
   );
