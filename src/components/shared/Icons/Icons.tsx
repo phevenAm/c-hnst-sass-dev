@@ -1,5 +1,3 @@
-import { useId } from "react";
-
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -232,60 +230,24 @@ export const SupervisionLogoMark = () => (
   </svg>
 );
 
-export const LeafLogoMark = ({ size = 28 }: { size?: number }) => {
-  const uid = useId().replace(/:/g, "lm");
-  const L = `${uid}l`;
-  const R = `${uid}r`;
-  const S = `${uid}s`;
-  const G = `${uid}g`;
-
-  const leftLeaf = "M12 12C12 7 7 3 2 3c0 5 4 9 10 9z";
-  const rightLeaf = "M12 12C12 7 17 3 22 3c0 5-4 9-10 9z";
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Clarity">
-      <defs>
-        {/* Left leaf: light mint tip → deep teal at join */}
-        <linearGradient id={L} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#6ee7b7" />
-          <stop offset="100%" stopColor="#059669" />
-        </linearGradient>
-
-        {/* Right leaf: very light mint tip → teal at join */}
-        <linearGradient id={R} x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#a7f3d0" />
-          <stop offset="100%" stopColor="#0d9488" />
-        </linearGradient>
-
-        {/* Glass sheen: white fade from top */}
-        <linearGradient id={S} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="white" stopOpacity="0.58" />
-          <stop offset="62%" stopColor="white" stopOpacity="0" />
-        </linearGradient>
-
-        {/* Soft glow */}
-        <filter id={G} x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="1.6" />
-        </filter>
-      </defs>
-
-      {/* Glow layer — blurred blobs behind fills */}
-      <path d={leftLeaf} fill="#2dd4bf" opacity="0.45" filter={`url(#${G})`} />
-      <path d={rightLeaf} fill="#34d399" opacity="0.38" filter={`url(#${G})`} />
-
-      {/* Right leaf — drawn first (appears behind) */}
-      <path d={rightLeaf} fill={`url(#${R})`} opacity="0.84" />
-      <path d={rightLeaf} fill={`url(#${S})`} />
-
-      {/* Left leaf — drawn second (appears in front) */}
-      <path d={leftLeaf} fill={`url(#${L})`} opacity="0.90" />
-      <path d={leftLeaf} fill={`url(#${S})`} />
-
-      {/* Stem — filled pill, no stroke */}
-      <rect x="11.3" y="12" width="1.4" height="9.6" rx="0.7" fill="#0d9488" opacity="0.72" />
-    </svg>
-  );
-};
+export const LeafLogoMark = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    role="img"
+    aria-label="Clarity"
+  >
+    <path d="M12 22V12" />
+    <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+    <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
+  </svg>
+);
 
 export const ClarityLogoMark = ({ size = 36 }: { size?: number }) => {
   const uid = `clm-${Math.random().toString(36).slice(2, 7)}`;
