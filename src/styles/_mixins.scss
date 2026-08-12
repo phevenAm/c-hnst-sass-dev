@@ -180,7 +180,8 @@
   background: #ffffff !important;
 
   .dark & {
-    background: var(--bg-muted) !important;
+    background: #ffffff !important;
+    color: #2d2520 !important;
   }
   color: var(--text-primary);
   font-family: var(--font-sans);

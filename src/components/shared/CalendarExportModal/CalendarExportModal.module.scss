@@ -1,0 +1,73 @@
+@use "../../../styles/spacing" as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.hint {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+
+  input[type="radio"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+}
+
+.customInput {
+  margin-top: $sp-1;
+  margin-left: calc(16px + #{$sp-3});
+  width: calc(100% - 16px - #{$sp-3});
+  padding: $sp-2 $sp-3;
+  border: 1.5px solid var(--border-focus);
+  border-radius: var(--r-md);
+  background: #ffffff;
+  color: #2d2520;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+}
+
+.locationToggle {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding-top: $sp-2;
+  border-top: 1px solid var(--border);
+
+  input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+}

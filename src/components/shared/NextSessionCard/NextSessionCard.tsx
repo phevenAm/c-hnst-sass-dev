@@ -7,9 +7,9 @@ import Card from "@components/shared/Card/Card";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
-import { downloadClientSessionIcs } from "@/Helpers/calendarExport";
 import { formatSessionDate } from "@/Helpers/sessionDate";
 import type { Session } from "@/models/globalTypes";
+import CalendarExportModal from "../CalendarExportModal/CalendarExportModal";
 import PaymentModal from "../PaymentModal/PaymentModal";
 import CancelSessionModal from "../SessionCard/CancelSessionModal/CancelSessionModal";
 import ClientRescheduleModal from "../SessionCard/ClientRescheduleModal/ClientRescheduleModal";
@@ -64,6 +64,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   const { showToast } = useToast();
   const { isWithin48Hours } = useSessionCard(session);
@@ -117,7 +118,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
         <div className={styles.stripRight}>
           {compact ? (
             <>
-              <Button size="sm" variant="secondary" onClick={() => downloadClientSessionIcs(session)}>
+              <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
                 Add to calendar
               </Button>
               <Link to="/my-sessions" style={{ textDecoration: "none" }}>
@@ -128,7 +129,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
             </>
           ) : (
             <>
-              <Button size="sm" variant="secondary" onClick={() => downloadClientSessionIcs(session)}>
+              <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
                 Add to calendar
               </Button>
               {!session.paid && (
@@ -161,6 +162,8 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
           )}
         </div>
       </Card>
+
+      {isCalendarModalOpen && <CalendarExportModal session={session} onClose={() => setIsCalendarModalOpen(false)} />}
 
       {!compact && (
         <>

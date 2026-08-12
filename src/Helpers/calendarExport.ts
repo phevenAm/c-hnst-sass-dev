@@ -70,12 +70,19 @@ export function downloadAdminSessionIcs(session: Session, opts: AdminIcsOptions)
   triggerDownload(lines, filename);
 }
 
-export function downloadClientSessionIcs(session: Session): void {
+export interface ClientIcsOptions {
+  title: string;
+  includeLocation: boolean;
+}
+
+export function downloadClientSessionIcs(session: Session, opts?: ClientIcsOptions): void {
   const start = new Date(session.scheduled_at);
   const end = new Date(start.getTime() + session.duration_minutes * 60_000);
 
   const dateStr = start.toISOString().slice(0, 10);
   const filename = `session-${dateStr}.ics`;
+  const summary = opts?.title ?? "Therapy Session";
+  const includeLocation = opts?.includeLocation ?? true;
 
   const lines = [
     "BEGIN:VCALENDAR",
@@ -85,8 +92,8 @@ export function downloadClientSessionIcs(session: Session): void {
     `UID:${session.id}@clarity.app`,
     `DTSTART:${toIcsDate(start)}`,
     `DTEND:${toIcsDate(end)}`,
-    "SUMMARY:Therapy Session",
-    session.address ? fold(`LOCATION:${session.address}`) : null,
+    fold(`SUMMARY:${summary}`),
+    includeLocation && session.address ? fold(`LOCATION:${session.address}`) : null,
     "END:VEVENT",
     "END:VCALENDAR",
   ]
