@@ -68,6 +68,8 @@ export default function AdminSidebar({
     () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
   );
   const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
+  const [flyoutTop, setFlyoutTop] = useState(0);
+  const groupBtnRef = useRef<HTMLButtonElement>(null);
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -114,13 +116,18 @@ export default function AdminSidebar({
   const isActive = (to: string, exact: boolean) =>
     exact ? location.pathname === to : location.pathname.startsWith(to);
 
+  const firstChildRef = useRef<HTMLAnchorElement>(null);
+  const isFlyoutMode = collapsed || (isMobile && !isOpen);
+
+  useEffect(() => {
+    if (logsOpen) firstChildRef.current?.focus();
+  }, [logsOpen]);
+
   const handleGroupClick = () => {
-    if (collapsed) {
-      onToggle();
-      setLogsOpen(true);
-    } else {
-      setLogsOpen((v) => !v);
+    if (!logsOpen && isFlyoutMode && groupBtnRef.current) {
+      setFlyoutTop(groupBtnRef.current.getBoundingClientRect().top);
     }
+    setLogsOpen((v) => !v);
   };
 
   return (
@@ -145,8 +152,9 @@ export default function AdminSidebar({
               if (isGroup(item)) {
                 const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
                 return (
-                  <li key={item.label}>
+                  <li key={item.label} className={styles.groupItem}>
                     <button
+                      ref={groupBtnRef}
                       type="button"
                       className={`${styles.groupBtn} ${anyChildActive ? styles.groupActive : ""}`}
                       onClick={handleGroupClick}
@@ -161,17 +169,29 @@ export default function AdminSidebar({
                         <ChevronDownSmIcon />
                       </span>
                     </button>
-                    <ul className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}>
-                      {item.children.map((child) => {
+                    <ul
+                      className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}
+                      style={isFlyoutMode ? ({ "--flyout-top": `${flyoutTop}px` } as React.CSSProperties) : undefined}
+                      onBlur={(e) => {
+                        if (isFlyoutMode && !e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setLogsOpen(false);
+                        }
+                      }}
+                    >
+                      {item.children.map((child, i) => {
                         const active = location.pathname.startsWith(child.to);
                         return (
                           <li key={child.to}>
                             <Link
+                              ref={i === 0 ? firstChildRef : undefined}
                               to={child.to}
                               className={`${styles.childLink} ${active ? styles.active : ""}`}
                               aria-current={active ? "page" : undefined}
                               tabIndex={logsOpen ? undefined : -1}
-                              onClick={onClose}
+                              onClick={() => {
+                                setLogsOpen(false);
+                                onClose();
+                              }}
                             >
                               <span className={styles.icon}>
                                 <child.Icon />
