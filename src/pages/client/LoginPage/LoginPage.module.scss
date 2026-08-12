@@ -51,11 +51,15 @@
   margin-bottom: $sp-5;
   padding: $sp-3;
   border-radius: var(--r-lg);
-  background-color: #6e5c5c4a;
-  color: white !important;
-  fill: white !important;
+  background-color: #937a7a4a;
+  color: var(--text-inverse) !important;
+  transform: translateX(42px);
+  fill: var(--text-inverse) !important;
+  stroke: var(--text-inverse) !important;
+
   backdrop-filter: blur(10px);
   padding-right: $sp-5;
+  margin-left: $sp-5;
 }
 
 .logoText {

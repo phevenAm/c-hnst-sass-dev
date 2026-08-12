@@ -130,11 +130,11 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
           </Button>
         ) : (
           <>
-            <Button variant="primary" onClick={handleSend} disabled={submitting || !email}>
-              {submitting ? "Sending…" : "Send reset link"}
-            </Button>
             <Button variant="secondary" onClick={onClose}>
               Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSend} disabled={submitting || !email}>
+              {submitting ? "Sending…" : "Send reset link"}
             </Button>
           </>
         )
