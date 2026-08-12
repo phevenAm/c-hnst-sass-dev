@@ -223,11 +223,28 @@ h6 {
   font-weight: 600;
 }
 
-// ── iOS input zoom prevention ──────────────────────────────
+// ── iOS input zoom prevention + input backgrounds ──────────
 input,
 select,
 textarea {
   font-size: max(16px, 1em);
+  background: #ffffff !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background: var(--bg-muted) !important;
+}
+
+// ── MUI input background overrides ─────────────────────────
+.MuiInputBase-root,
+.MuiOutlinedInput-root {
+  background: #ffffff !important;
+}
+
+.dark .MuiInputBase-root,
+.dark .MuiOutlinedInput-root {
   background: var(--bg-muted) !important;
 }
 

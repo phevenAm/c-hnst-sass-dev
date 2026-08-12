@@ -81,7 +81,9 @@ $transition: 0.22s ease;
   flex-shrink: 0;
   overflow: hidden;
   padding-bottom: 15px;
+  height: 68px;
   padding-left: 0;
+  padding-top: 20px;
 }
 
 .logo {
@@ -202,6 +204,7 @@ $transition: 0.22s ease;
   width: 100%;
   font-family: var(--font-sans);
   text-align: left;
+  touch-action: manipulation;
   transition: background var(--transition-base), color var(--transition-base);
 
   &:hover {
@@ -263,7 +266,10 @@ $transition: 0.22s ease;
   font-size: 0.82rem;
   white-space: nowrap;
   overflow: hidden;
+  touch-action: manipulation;
   transition: background var(--transition-base), color var(--transition-base);
+  margin: $sp-1 0 $sp-1 $sp-2;
+  width: 95%;
 
   &:hover {
     background: var(--bg-muted);

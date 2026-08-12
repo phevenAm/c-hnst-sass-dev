@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
+import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
@@ -51,7 +51,6 @@ export default function SignUpPage() {
     confirm: "",
   });
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const set = (id: FieldId, value: string) => setForm((current) => ({ ...current, [id]: value }));
@@ -93,32 +92,12 @@ export default function SignUpPage() {
         },
         form.accessToken,
       );
-      setDone(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
-
-  if (done)
-    return (
-      <main className={styles.confirmPage}>
-        <div className={styles.confirmBox}>
-          <div className={styles.confirmIconWrap}>
-            <MailIcon />
-          </div>
-          <h2 className={styles.confirmTitle}>Check your email</h2>
-          <p className={styles.confirmText}>
-            We've sent a confirmation link to <strong>{form.email}</strong>. Click it to activate your account, then
-            come back to sign in. Check your spam folder if you don't see it within a few minutes.
-          </p>
-          <Link to="/login" className={styles.backLink}>
-            ← Back to sign in
-          </Link>
-        </div>
-      </main>
-    );
 
   return (
     <main className={`${styles.page} page`}>

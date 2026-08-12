@@ -69,10 +69,12 @@ export default function AdminSidebar({
   );
   const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
   const [flyoutTop, setFlyoutTop] = useState(0);
-  const groupBtnRef = useRef<HTMLButtonElement>(null);
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const groupBtnRef = useRef<HTMLButtonElement>(null);
+  const flyoutListRef = useRef<HTMLUListElement>(null);
+  const firstChildRef = useRef<HTMLAnchorElement>(null);
   const [measured, setMeasured] = useState({ top: 55, bottom: 120 });
 
   useLayoutEffect(() => {
@@ -107,21 +109,46 @@ export default function AdminSidebar({
     return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
-  useEffect(() => {
-    if (LOG_PATHS.some((p) => location.pathname.startsWith(p))) {
-      setLogsOpen(true);
-    }
-  }, [location.pathname]);
-
-  const isActive = (to: string, exact: boolean) =>
-    exact ? location.pathname === to : location.pathname.startsWith(to);
-
-  const firstChildRef = useRef<HTMLAnchorElement>(null);
   const isFlyoutMode = collapsed || (isMobile && !isOpen);
 
   useEffect(() => {
-    if (logsOpen) firstChildRef.current?.focus();
-  }, [logsOpen]);
+    if (!isFlyoutMode && LOG_PATHS.some((p) => location.pathname.startsWith(p))) {
+      setLogsOpen(true);
+    }
+  }, [location.pathname, isFlyoutMode]);
+
+  useEffect(() => {
+    if (collapsed) setLogsOpen(false);
+  }, [collapsed]);
+
+  useEffect(() => {
+    if (isMobile && !isOpen) setLogsOpen(false);
+  }, [isMobile, isOpen]);
+
+  // Close flyout on outside tap — more reliable than onBlur on iOS
+  useEffect(() => {
+    if (!logsOpen || !isFlyoutMode) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (!flyoutListRef.current?.contains(target) && !groupBtnRef.current?.contains(target)) {
+        setLogsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [logsOpen, isFlyoutMode]);
+
+  // Autofocus first item on desktop keyboard navigation
+  useEffect(() => {
+    if (logsOpen && !isMobile) firstChildRef.current?.focus();
+  }, [logsOpen, isMobile]);
+
+  const isActive = (to: string, exact: boolean) =>
+    exact ? location.pathname === to : location.pathname.startsWith(to);
 
   const handleGroupClick = () => {
     if (!logsOpen && isFlyoutMode && groupBtnRef.current) {
@@ -170,13 +197,9 @@ export default function AdminSidebar({
                       </span>
                     </button>
                     <ul
+                      ref={flyoutListRef}
                       className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}
                       style={isFlyoutMode ? ({ "--flyout-top": `${flyoutTop}px` } as React.CSSProperties) : undefined}
-                      onBlur={(e) => {
-                        if (isFlyoutMode && !e.currentTarget.contains(e.relatedTarget as Node)) {
-                          setLogsOpen(false);
-                        }
-                      }}
                     >
                       {item.children.map((child, i) => {
                         const active = location.pathname.startsWith(child.to);
@@ -266,7 +289,6 @@ export default function AdminSidebar({
           </div>
         </div>
 
-        {/* Collapse/expand arrow on the right edge of the sidebar */}
         <button
           type="button"
           className={styles.collapseBtn}
