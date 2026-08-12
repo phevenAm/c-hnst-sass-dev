@@ -109,13 +109,21 @@ export default function AdminSidebar({
     return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
+  const isFlyoutMode = collapsed || (isMobile && !isOpen);
+
   useEffect(() => {
-    if (LOG_PATHS.some((p) => location.pathname.startsWith(p))) {
+    if (!isFlyoutMode && LOG_PATHS.some((p) => location.pathname.startsWith(p))) {
       setLogsOpen(true);
     }
-  }, [location.pathname]);
+  }, [location.pathname, isFlyoutMode]);
 
-  const isFlyoutMode = collapsed || (isMobile && !isOpen);
+  useEffect(() => {
+    if (collapsed) setLogsOpen(false);
+  }, [collapsed]);
+
+  useEffect(() => {
+    if (isMobile && !isOpen) setLogsOpen(false);
+  }, [isMobile, isOpen]);
 
   // Close flyout on outside tap — more reliable than onBlur on iOS
   useEffect(() => {

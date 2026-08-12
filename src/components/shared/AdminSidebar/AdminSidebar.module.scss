@@ -266,6 +266,8 @@ $transition: 0.22s ease;
   overflow: hidden;
   touch-action: manipulation;
   transition: background var(--transition-base), color var(--transition-base);
+  margin: $sp-1 0 $sp-1 $sp-2;
+  width: 95%;
 
   &:hover {
     background: var(--bg-muted);
