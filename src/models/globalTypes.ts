@@ -241,6 +241,8 @@ export type AdminPrivateEvent = {
   starts_at: string;
   ends_at: string;
   notes: string | null;
+  is_supervision: boolean;
+  is_cpd: boolean;
   created_at: string;
 };
 

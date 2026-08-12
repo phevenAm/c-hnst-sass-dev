@@ -49,3 +49,19 @@
     font-size: 0.78rem;
     color: var(--text-muted);
 }
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+}

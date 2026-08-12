@@ -42,6 +42,8 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
   const [endsAt, setEndsAt] = useState<Dayjs | null>(event ? dayjs(event.ends_at) : nextHour().add(1, "hour"));
 
   const [notes, setNotes] = useState(event?.notes ?? "");
+  const [isSupervision, setIsSupervision] = useState(event?.is_supervision ?? false);
+  const [isCpd, setIsCpd] = useState(event?.is_cpd ?? false);
   const [isSaving, setIsSaving] = useState(false);
 
   const demoGuard = (): boolean => {
@@ -73,6 +75,8 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
       notes: notes.trim() || null,
+      is_supervision: isSupervision,
+      is_cpd: isCpd,
     };
 
     const res =
@@ -164,6 +168,16 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
+
+        <label className={styles.checkboxLabel}>
+          <input type="checkbox" checked={isSupervision} onChange={(e) => setIsSupervision(e.target.checked)} />
+          Add to supervision log
+        </label>
+
+        <label className={styles.checkboxLabel}>
+          <input type="checkbox" checked={isCpd} onChange={(e) => setIsCpd(e.target.checked)} />
+          Add to CPD log
+        </label>
       </div>
     </Modal>
   );

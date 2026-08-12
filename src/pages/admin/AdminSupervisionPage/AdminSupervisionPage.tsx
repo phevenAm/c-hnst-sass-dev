@@ -362,6 +362,7 @@ export default function AdminSupervisionPage() {
   const { showToast } = useToast();
   const [manual, setManual] = useState<ManualRow[]>([]);
   const [calendar, setCalendar] = useState<CalendarRow[]>([]);
+  const [privateEvents, setPrivateEvents] = useState<CalendarRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ManualRow | null>(null);
@@ -370,7 +371,7 @@ export default function AdminSupervisionPage() {
 
   const fetchData = useCallback(async () => {
     if (!userProfile?.id) return;
-    const [manualRes, calRes] = await Promise.all([
+    const [manualRes, calRes, privateRes] = await Promise.all([
       supabase
         .from("supervision_sessions")
         .select("*")
@@ -382,10 +383,26 @@ export default function AdminSupervisionPage() {
         .eq("admin_id", userProfile.id)
         .eq("is_supervision", true)
         .order("scheduled_at", { ascending: false }),
+      supabase
+        .from("admin_private_events")
+        .select("id, starts_at, title, notes")
+        .eq("is_supervision", true)
+        .order("starts_at", { ascending: false }),
     ]);
     if (manualRes.error) showToast("Failed to load supervision log", "error");
     else setManual((manualRes.data as ManualRow[]) ?? []);
     if (!calRes.error) setCalendar((calRes.data as CalendarRow[]) ?? []);
+    if (!privateRes.error)
+      setPrivateEvents(
+        (privateRes.data ?? []).map((e: any) => ({
+          id: e.id,
+          scheduled_at: e.starts_at,
+          supervisor_name: e.title,
+          duration_minutes: null,
+          supervision_cost_pence: null,
+          notes: e.notes,
+        })),
+      );
     setLoading(false);
   }, [userProfile?.id]);
 
@@ -424,6 +441,25 @@ export default function AdminSupervisionPage() {
       }),
     ),
     ...calendar.map(
+      (r): Entry => ({
+        id: r.id,
+        source: "calendar",
+        date: dayjs(r.scheduled_at).format("YYYY-MM-DD"),
+        supervisorName: r.supervisor_name,
+        durationMinutes: r.duration_minutes,
+        costPence: r.supervision_cost_pence,
+        currency: "GBP",
+        mode: null,
+        sessionNumber: null,
+        contractCode: null,
+        issuesRaised: null,
+        venue: null,
+        notes: r.notes,
+        trackAsCpd: false,
+        raw: null,
+      }),
+    ),
+    ...privateEvents.map(
       (r): Entry => ({
         id: r.id,
         source: "calendar",
