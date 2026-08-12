@@ -8,6 +8,7 @@ import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Footer from "../components/shared/Footer/Footer";
 import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
+import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
 import Spinner from "../components/shared/Spinner/Spinner";
 import { useAuth } from "../context/AuthContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
@@ -100,6 +101,7 @@ function AdminLayout() {
   return (
     <>
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
+      <SkipToMain />
       <div className="adminShell">
         <AdminSidebar
           collapsed={sidebarCollapsed}
