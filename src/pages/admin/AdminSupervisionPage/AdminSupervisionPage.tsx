@@ -39,6 +39,7 @@ type CalendarRow = {
   supervisor_name: string | null;
   duration_minutes: number | null;
   supervision_cost_pence: number | null;
+  currency?: string;
   notes: string | null;
 };
 
@@ -385,7 +386,7 @@ export default function AdminSupervisionPage() {
         .order("scheduled_at", { ascending: false }),
       supabase
         .from("admin_private_events")
-        .select("id, starts_at, title, notes")
+        .select("id, starts_at, ends_at, title, notes, cost_pence, currency")
         .eq("is_supervision", true)
         .order("starts_at", { ascending: false }),
     ]);
@@ -398,8 +399,9 @@ export default function AdminSupervisionPage() {
           id: e.id,
           scheduled_at: e.starts_at,
           supervisor_name: e.title,
-          duration_minutes: null,
-          supervision_cost_pence: null,
+          duration_minutes: Math.round((new Date(e.ends_at).getTime() - new Date(e.starts_at).getTime()) / 60000),
+          supervision_cost_pence: e.cost_pence ?? null,
+          currency: e.currency ?? "GBP",
           notes: e.notes,
         })),
       );
@@ -467,7 +469,7 @@ export default function AdminSupervisionPage() {
         supervisorName: r.supervisor_name,
         durationMinutes: r.duration_minutes,
         costPence: r.supervision_cost_pence,
-        currency: "GBP",
+        currency: r.currency ?? "GBP",
         mode: null,
         sessionNumber: null,
         contractCode: null,

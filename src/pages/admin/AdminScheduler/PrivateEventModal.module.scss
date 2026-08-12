@@ -50,6 +50,26 @@
     color: var(--text-muted);
 }
 
+.feeRow {
+    margin-top: -$sp-2;
+    padding-left: $sp-5;
+}
+
+.costRow {
+    display: flex;
+    gap: $sp-2;
+}
+
+.select {
+    padding: $sp-2 $sp-3;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+}
+
 .checkboxLabel {
     display: flex;
     align-items: center;

@@ -39,6 +39,7 @@ export type CpdLog = {
   notes: string | null;
   custom_category: string | null;
   created_at: string;
+  _source?: "private_event";
 };
 
 const ACTIVITY_LABELS: Record<CpdActivityType, string> = {
@@ -81,13 +82,38 @@ export default function AdminCpdPage() {
 
   const fetchLogs = useCallback(async () => {
     if (!userProfile?.id) return;
-    const { data, error } = await supabase
-      .from("cpd_logs")
-      .select("*")
-      .eq("admin_id", userProfile.id)
-      .order("date", { ascending: false });
+    const [{ data, error }, { data: privateData }] = await Promise.all([
+      supabase.from("cpd_logs").select("*").eq("admin_id", userProfile.id).order("date", { ascending: false }),
+      supabase
+        .from("admin_private_events")
+        .select("id, admin_id, title, starts_at, ends_at, notes, is_supervision, created_at")
+        .eq("is_cpd", true),
+    ]);
     if (error) showToast("Failed to load CPD log", "error");
-    else setLogs((data as CpdLog[]) ?? []);
+    else {
+      const manual: CpdLog[] = (data as CpdLog[]) ?? [];
+      const fromPrivate: CpdLog[] = (privateData ?? []).map((pe) => ({
+        id: pe.id,
+        admin_id: pe.admin_id,
+        date: pe.starts_at.slice(0, 10),
+        activity_type: (pe.is_supervision ? "supervision" : "other") as CpdActivityType,
+        session_number: null,
+        contract_code: null,
+        mode: null,
+        venue: null,
+        issues_raised: pe.is_supervision ? pe.notes : null,
+        supervisor_name: pe.is_supervision ? pe.title : null,
+        title: pe.is_supervision ? null : pe.title,
+        provider: null,
+        duration_minutes: Math.round((new Date(pe.ends_at).getTime() - new Date(pe.starts_at).getTime()) / 60000),
+        notes: pe.notes,
+        custom_category: null,
+        created_at: pe.created_at,
+        _source: "private_event" as const,
+      }));
+      const merged = [...manual, ...fromPrivate].sort((a, b) => b.date.localeCompare(a.date));
+      setLogs(merged);
+    }
     setLoading(false);
   }, [userProfile?.id]);
 
@@ -317,19 +343,25 @@ export default function AdminCpdPage() {
                     </td>
                     <td className={styles.durationCell}>{minutesToHours(log.duration_minutes)}</td>
                     <td className={styles.actionsCell}>
-                      <button
-                        type="button"
-                        className={styles.editBtn}
-                        onClick={() => {
-                          setEditing(log);
-                          setModalOpen(true);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log.id)}>
-                        Delete
-                      </button>
+                      {log._source === "private_event" ? (
+                        <span className={styles.privateTag}>Private event</span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={styles.editBtn}
+                            onClick={() => {
+                              setEditing(log);
+                              setModalOpen(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log.id)}>
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

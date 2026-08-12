@@ -243,6 +243,8 @@ export type AdminPrivateEvent = {
   notes: string | null;
   is_supervision: boolean;
   is_cpd: boolean;
+  cost_pence: number | null;
+  currency: string;
   created_at: string;
 };
 

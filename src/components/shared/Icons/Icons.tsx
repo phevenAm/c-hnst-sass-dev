@@ -161,20 +161,20 @@ export const PlusIcon = () => (
   </svg>
 );
 
-// Supervision nav icon — two circles, one noticeably smaller
-export const SupervisionLogoMark = ({ size = 36 }: { size?: number }) => (
+export const SupervisionLogoMark = () => (
   <svg
-    width={Math.round(size * 1.1)}
-    height={size}
-    viewBox="0 0 40 30"
-    xmlns="http://www.w3.org/2000/svg"
-    role="img"
-    aria-label="Supervision"
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
   >
-    {/* Small beige circle — right, behind */}
-    <circle cx="27" cy="14" r="9" fill="#e5e0dc" />
-    {/* Teal glass circle — left, larger, in front */}
-    <circle cx="14" cy="16" r="12" fill="rgba(45,114,100,0.28)" stroke="#2d7264" strokeWidth="1.5" />
+    <path d="M17 8h2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-3-3h-1" />
+    <path d="M9 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h3l3 3V5a2 2 0 0 0-2-2z" />
   </svg>
 );
 
