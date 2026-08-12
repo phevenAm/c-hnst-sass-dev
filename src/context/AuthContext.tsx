@@ -187,6 +187,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: { user_id: signUpData.user!.id, access_token: cleanedToken },
       });
 
+      // Sign in first so auth.uid() is set when consume_platform_access_token
+      // runs — the RPC uses auth.uid() to write admin_id onto the user row
+      await supabase.auth.signInWithPassword({ email, password });
+
       const { data: tokenConsumed, error: consumeTokenError } = await supabase.rpc("consume_platform_access_token", {
         input_token: cleanedToken,
       });
@@ -201,8 +205,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(message);
         throw new Error(message);
       }
-
-      await supabase.auth.signInWithPassword({ email, password });
     },
     [],
   );

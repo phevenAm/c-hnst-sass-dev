@@ -162,18 +162,12 @@ export default function ClientDashboard() {
           <p>Here's a look at how you've been doing</p>
         </div>
 
-        <div className={styles.nextSessionCard}>
-          <h3 className={styles.cardTitle}>Next session</h3>
-          {nextSession ? (
+        {nextSession && (
+          <div className={styles.nextSessionCard}>
+            <h3 className={styles.cardTitle}>Next session</h3>
             <NextSessionCard session={nextSession} compact />
-          ) : (
-            <Card>
-              <div className={styles.cardPad}>
-                <p className={styles.emptyText}>No upcoming sessions booked.</p>
-              </div>
-            </Card>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className={styles.statsRow}>
           {stats.map((s) => (

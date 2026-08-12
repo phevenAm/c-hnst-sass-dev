@@ -30,7 +30,7 @@ const ClientSchedule = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTabs, setActiveTabs] = useState<"past" | "upcoming">("upcoming");
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(true);
   const [calDate, setCalDate] = useState<Date>(new Date());
   const [calView, setCalView] = useState<View>(Views.WORK_WEEK);
 
