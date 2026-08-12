@@ -45,7 +45,31 @@ $transition: 0.22s ease;
   }
 
   .groupChildren {
-    max-height: 0 !important;
+    position: fixed;
+    left: $w-collapsed;
+    top: var(--flyout-top, 0px);
+    max-height: none !important;
+    overflow: visible;
+    visibility: hidden;
+    pointer-events: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: $sp-2;
+    min-width: 150px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    z-index: 300;
+  }
+
+  .groupChildrenOpen {
+    visibility: visible;
+    pointer-events: auto;
+
+    // Flyout is outside the collapsed sidebar — show labels and icons at full opacity
+    .label {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 }
 
@@ -98,7 +122,7 @@ $transition: 0.22s ease;
 .nav {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   padding: $sp-3 $sp-2;
 }
 
@@ -208,6 +232,10 @@ $transition: 0.22s ease;
 
 .groupChevronOpen {
   transform: rotate(180deg);
+}
+
+.groupItem {
+  position: relative;
 }
 
 .groupChildren {
@@ -357,8 +385,32 @@ $transition: 0.22s ease;
       display: none;
     }
 
+    // Icon-strip: fly out to the right of the sidebar
     .groupChildren {
-      max-height: 0 !important;
+      position: fixed;
+      left: $w-collapsed;
+      top: var(--flyout-top, 0px);
+      max-height: none !important;
+      overflow: visible;
+      visibility: hidden;
+      pointer-events: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: $sp-2;
+      min-width: 150px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      z-index: 300;
+    }
+
+    .groupChildrenOpen {
+      visibility: visible;
+      pointer-events: auto;
+
+      .label {
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
 
     // When overlay is open, expand and show labels
@@ -382,8 +434,23 @@ $transition: 0.22s ease;
         display: flex;
       }
 
+      // Revert to inline dropdown
       .groupChildren {
-        max-height: unset;
+        position: static;
+        max-height: 0;
+        overflow: hidden;
+        visibility: visible;
+        pointer-events: auto;
+        box-shadow: none;
+        border: none;
+        background: none;
+        padding: 0;
+        min-width: unset;
+        transition: max-height $transition;
+      }
+
+      .groupChildrenOpen {
+        max-height: 120px;
       }
     }
   }
