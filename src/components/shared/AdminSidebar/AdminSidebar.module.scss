@@ -40,6 +40,13 @@ $transition: 0.22s ease;
     opacity: 0;
   }
 
+  .groupChevron {
+    display: none;
+  }
+
+  .groupChildren {
+    max-height: 0 !important;
+  }
 }
 
 // ── Top / logo ──────────────────────────────────────────────
@@ -152,6 +159,102 @@ $transition: 0.22s ease;
   transition: opacity $transition;
 }
 
+// ── Nav group (Logs dropdown) ───────────────────────────────
+
+.groupBtn {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-3;
+  border-radius: var(--r-md);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  font-family: var(--font-sans);
+  text-align: left;
+  transition: background var(--transition-base), color var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--r-md);
+  }
+}
+
+.groupActive {
+  background: var(--accent-light);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.groupChevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: transform $transition;
+}
+
+.groupChevronOpen {
+  transform: rotate(180deg);
+}
+
+.groupChildren {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height $transition;
+}
+
+.groupChildrenOpen {
+  max-height: 120px;
+}
+
+.childLink {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3 $sp-2 calc($sp-5 + $sp-3);
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--transition-base), color var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: var(--accent-light);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--r-md);
+  }
+}
+
 // ── Bottom utilities ────────────────────────────────────────
 
 .bottom {
@@ -250,6 +353,14 @@ $transition: 0.22s ease;
       overflow: hidden;
     }
 
+    .groupChevron {
+      display: none;
+    }
+
+    .groupChildren {
+      max-height: 0 !important;
+    }
+
     // When overlay is open, expand and show labels
     &.mobileOpen {
       width: $w;
@@ -265,6 +376,14 @@ $transition: 0.22s ease;
       .logoText {
         width: auto;
         overflow: visible;
+      }
+
+      .groupChevron {
+        display: flex;
+      }
+
+      .groupChildren {
+        max-height: unset;
       }
     }
   }

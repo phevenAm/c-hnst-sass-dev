@@ -3,8 +3,8 @@
 
 // ── Skip to main ───────────────────────────────────────────
 .skipToMain {
-  position: absolute;
-  top: -100%;
+  position: fixed;
+  top: -100px;
   left: var(--sp-4);
   background: var(--bg-card);
   color: var(--text-primary);

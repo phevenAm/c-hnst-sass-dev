@@ -8,7 +8,6 @@ import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
 import { MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
-import SkipToMain from "../SkipToMain/SkipToMain";
 
 import styles from "./AdminTopbar.module.scss";
 
@@ -27,8 +26,6 @@ export default function AdminTopbar() {
 
   return (
     <header className={styles.topbar}>
-      <SkipToMain />
-
       <div className={styles.actions}>
         <button
           type="button"

@@ -5,16 +5,17 @@ import { useAuth } from "@context/AuthContext";
 
 import FeedbackModal from "../FeedbackModal/FeedbackModal";
 import {
-  ArticleIcon,
   BookIcon,
   CalendarIcon,
-  ChatIcon,
+  ChevronDownSmIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CpdIcon,
   FormsIcon,
+  HelpIcon,
   HistoryIcon,
   HomeIcon,
+  LayersIcon,
   LeafLogoMark,
   MoneyIcon,
   SupervisionLogoMark,
@@ -23,16 +24,30 @@ import {
 
 import styles from "./AdminSidebar.module.scss";
 
-const NAV = [
+type NavLeaf = { to: string; label: string; Icon: React.ComponentType; exact: boolean };
+type NavGroup = { label: string; Icon: React.ComponentType; children: Omit<NavLeaf, "exact">[] };
+type NavItem = NavLeaf | NavGroup;
+
+const isGroup = (item: NavItem): item is NavGroup => "children" in item;
+
+const NAV: NavItem[] = [
   { to: "/admin", label: "Dashboard", Icon: HomeIcon, exact: true },
   { to: "/admin/scheduler", label: "Schedule", Icon: CalendarIcon, exact: false },
   { to: "/admin/clients", label: "Clients", Icon: UsersIcon, exact: false },
   { to: "/admin/payments", label: "Payments", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
   { to: "/admin/forms", label: "Forms", Icon: FormsIcon, exact: false },
-  { to: "/admin/cpd", label: "CPD Log", Icon: CpdIcon, exact: false },
-  { to: "/admin/supervision", label: "Supervision", Icon: SupervisionLogoMark, exact: false },
+  {
+    label: "Logs",
+    Icon: LayersIcon,
+    children: [
+      { to: "/admin/cpd", label: "CPD", Icon: CpdIcon },
+      { to: "/admin/supervision", label: "Supervision", Icon: SupervisionLogoMark },
+    ],
+  },
 ];
+
+const LOG_PATHS = ["/admin/cpd", "/admin/supervision"];
 
 export default function AdminSidebar({
   collapsed,
@@ -52,6 +67,7 @@ export default function AdminSidebar({
   const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
     () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
   );
+  const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -89,8 +105,23 @@ export default function AdminSidebar({
     return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
+  useEffect(() => {
+    if (LOG_PATHS.some((p) => location.pathname.startsWith(p))) {
+      setLogsOpen(true);
+    }
+  }, [location.pathname]);
+
   const isActive = (to: string, exact: boolean) =>
     exact ? location.pathname === to : location.pathname.startsWith(to);
+
+  const handleGroupClick = () => {
+    if (collapsed) {
+      onToggle();
+      setLogsOpen(true);
+    } else {
+      setLogsOpen((v) => !v);
+    }
+  };
 
   return (
     <>
@@ -110,21 +141,65 @@ export default function AdminSidebar({
 
         <nav aria-label="Admin pages" className={styles.nav}>
           <ul className={styles.navList}>
-            {NAV.map(({ to, label, Icon, exact }) => {
-              const active = isActive(to, exact);
+            {NAV.map((item) => {
+              if (isGroup(item)) {
+                const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
+                return (
+                  <li key={item.label}>
+                    <button
+                      type="button"
+                      className={`${styles.groupBtn} ${anyChildActive ? styles.groupActive : ""}`}
+                      onClick={handleGroupClick}
+                      title={collapsed ? item.label : undefined}
+                      aria-expanded={logsOpen}
+                    >
+                      <span className={styles.icon}>
+                        <item.Icon />
+                      </span>
+                      <span className={styles.label}>{item.label}</span>
+                      <span className={`${styles.groupChevron} ${logsOpen ? styles.groupChevronOpen : ""}`}>
+                        <ChevronDownSmIcon />
+                      </span>
+                    </button>
+                    <ul className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}>
+                      {item.children.map((child) => {
+                        const active = location.pathname.startsWith(child.to);
+                        return (
+                          <li key={child.to}>
+                            <Link
+                              to={child.to}
+                              className={`${styles.childLink} ${active ? styles.active : ""}`}
+                              aria-current={active ? "page" : undefined}
+                              tabIndex={logsOpen ? undefined : -1}
+                              onClick={onClose}
+                            >
+                              <span className={styles.icon}>
+                                <child.Icon />
+                              </span>
+                              <span className={styles.label}>{child.label}</span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                );
+              }
+
+              const active = isActive(item.to, item.exact);
               return (
-                <li key={to}>
+                <li key={item.to}>
                   <Link
-                    to={to}
+                    to={item.to}
                     className={`${styles.navLink} ${active ? styles.active : ""}`}
                     aria-current={active ? "page" : undefined}
-                    title={collapsed || !isOpen ? label : undefined}
+                    title={collapsed || !isOpen ? item.label : undefined}
                     onClick={onClose}
                   >
                     <span className={styles.icon}>
-                      <Icon />
+                      <item.Icon />
                     </span>
-                    <span className={styles.label}>{label}</span>
+                    <span className={styles.label}>{item.label}</span>
                   </Link>
                 </li>
               );
@@ -141,7 +216,7 @@ export default function AdminSidebar({
               title={collapsed ? "Report an issue" : undefined}
             >
               <span className={styles.icon}>
-                <ChatIcon />
+                <HelpIcon />
               </span>
               <span className={styles.label}>Report an issue</span>
             </button>
@@ -150,13 +225,13 @@ export default function AdminSidebar({
           <Link
             to="/admin/audit-logs"
             className={styles.bottomLink}
-            title={collapsed ? "Activity log" : undefined}
+            title={collapsed ? "Activity" : undefined}
             onClick={onClose}
           >
             <span className={styles.icon}>
               <HistoryIcon />
             </span>
-            <span className={styles.label}>Activity log</span>
+            <span className={styles.label}>Activity</span>
           </Link>
 
           <div className={styles.branding}>
