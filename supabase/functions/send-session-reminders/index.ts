@@ -235,7 +235,107 @@ Deno.serve(async (req) => {
   const failed = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
   if (failed.length) failed.forEach((f) => console.error(f.reason));
 
-  return new Response(JSON.stringify({ sent, failed: failed.length }), {
+  // ── Stub session reminders ────────────────────────────────────────────────
+  // Offline clients have email stored directly on client_stubs — no auth lookup.
+  // No per-stub unsubscribe or payment CTA; just a plain upcoming-session reminder.
+
+  const { data: stubSessions } = await supabase
+    .from("stub_sessions")
+    .select("id, scheduled_at, duration_minutes, location, admin_id, client_stubs(first_name, email)")
+    .gte("scheduled_at", broadFrom)
+    .lte("scheduled_at", broadTo)
+    .eq("status", "scheduled");
+
+  const stubResults = await Promise.allSettled(
+    (stubSessions ?? []).map(async (ss: any) => {
+      const stub = ss.client_stubs as { first_name: string; email: string | null } | null;
+      if (!stub?.email) return;
+
+      const adminSettings = settingsMap[ss.admin_id];
+      if (!adminSettings) return;
+
+      // Check if admin has disabled reminders
+      if (adminSettings.disabledTypes.includes(EMAIL_TYPE)) return;
+
+      // Check this stub session falls within the admin's reminder window
+      const hoursBefore = adminSettings.hoursBefore ?? DEFAULT_HOURS_BEFORE;
+      const targetMs = now + hoursBefore * 3600 * 1000;
+      const diffHours = Math.abs(new Date(ss.scheduled_at).getTime() - targetMs) / 3600000;
+      if (diffHours > WINDOW_HALF_HOURS) return;
+
+      const dateStr = formatDate(ss.scheduled_at);
+      const daysBefore = Math.round(hoursBefore / 24);
+      const timeLabel =
+        daysBefore >= 1
+          ? `${daysBefore} day${daysBefore !== 1 ? "s" : ""}`
+          : `${hoursBefore} hour${hoursBefore !== 1 ? "s" : ""}`;
+
+      const firstName = stub.first_name ?? "there";
+      const isOnline = ss.location !== "in_person";
+
+      const subject = adminSettings.subject
+        ? adminSettings.subject.replace(/\{\{date\}\}/gi, dateStr)
+        : `Reminder: your session on ${dateStr}`;
+
+      const logBase = {
+        adminId: ss.admin_id,
+        clientId: null,
+        sessionId: null,
+        emailType: EMAIL_TYPE,
+        recipientEmail: stub.email,
+        subject,
+      };
+
+      const sessionDetails = detailsTable([
+        { label: "Date & time", value: dateStr, bold: true },
+        ...(ss.duration_minutes ? [{ label: "Duration", value: `${ss.duration_minutes} minutes` }] : []),
+        { label: "Location", value: isOnline ? "Online" : "In person" },
+      ]);
+
+      let body: string;
+      if (adminSettings.body) {
+        const interpolated = adminSettings.body
+          .replace(/\{\{name\}\}/gi, firstName)
+          .replace(/\{\{date\}\}/gi, dateStr)
+          .replace(/\{\{location\}\}/gi, isOnline ? "Online" : "In person")
+          .replace(/\{\{duration\}\}/gi, ss.duration_minutes ? `${ss.duration_minutes} minutes` : "");
+        body = para(interpolated) + sessionDetails;
+      } else {
+        body =
+          para(`This is a friendly reminder that you have a session coming up in ${timeLabel}.`) +
+          sessionDetails +
+          noteBox("If you need to cancel or reschedule, please contact your therapist directly.");
+      }
+
+      const heading = adminSettings.heading
+        ? adminSettings.heading.replace(/\{\{name\}\}/gi, firstName)
+        : `Hi ${firstName},`;
+
+      const html = emailTemplate({
+        label: "Session Reminder",
+        title: heading,
+        body,
+        footerNote: "You received this email because you have a session booked.",
+        counsellorName: adminSettings.counsellorName ?? undefined,
+      });
+
+      let resendId: string | null = null;
+      try {
+        resendId = await sendEmail({ to: stub.email, subject, html, resendKey, fromEmail });
+      } catch (sendErr: any) {
+        await logEmail(supabase, { ...logBase, status: "failed", errorMessage: sendErr.message });
+        throw sendErr;
+      }
+
+      await logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" });
+    }),
+  );
+
+  const stubSent = stubResults.filter((r) => r.status === "fulfilled").length;
+  const stubFailed = stubResults.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+  if (stubFailed.length) stubFailed.forEach((f) => console.error(f.reason));
+
+  return new Response(JSON.stringify({ sent: sent + stubSent, failed: failed.length + stubFailed.length }), {
     headers: { "Content-Type": "application/json" },
   });
 });
