@@ -233,6 +233,11 @@ export default function AdminStubDetailPage() {
       setSessionDate(null);
       setAddSessionOpen(false);
       showToast(dates.length > 1 ? `${dates.length} sessions added.` : "Session added.");
+      for (const session of data as StubSession[]) {
+        if (session.status === "scheduled") {
+          supabase.functions.invoke("notify-stub-session-booked", { body: { stub_session_id: session.id } });
+        }
+      }
     }
     setSavingSession(false);
   };
@@ -299,6 +304,7 @@ export default function AdminStubDetailPage() {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
     }
+    const prevSession = sessions.find((s) => s.id === editingSessionId);
     setSavingEdit(true);
     const updates = {
       status: editForm.status,
@@ -314,6 +320,11 @@ export default function AdminStubDetailPage() {
       setSessions((prev) => prev.map((s) => (s.id === editingSessionId ? { ...s, ...updates } : s)));
       setEditingSessionId(null);
       showToast("Session updated.");
+      if (updates.status === "cancelled" && prevSession?.status !== "cancelled") {
+        supabase.functions.invoke("notify-stub-session-cancelled", { body: { stub_session_id: editingSessionId } });
+      } else if (updates.amount_paid && !prevSession?.amount_paid) {
+        supabase.functions.invoke("notify-stub-payment-recorded", { body: { stub_session_id: editingSessionId } });
+      }
     }
     setSavingEdit(false);
   };
