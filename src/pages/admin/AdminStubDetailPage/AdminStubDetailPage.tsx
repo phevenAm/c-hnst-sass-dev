@@ -260,7 +260,7 @@ export default function AdminStubDetailPage() {
     setAssigning(true);
     const { data, error } = await supabase
       .from("questionnaire_assignments")
-      .insert({ stub_id: stubId, questionnaire_id: selectedFormId, admin_id: userProfile.id })
+      .insert({ stub_id: stubId, questionnaire_id: selectedFormId })
       .select("id, assigned_at")
       .single();
     if (error) {
