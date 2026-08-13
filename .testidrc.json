@@ -1,0 +1,23 @@
+{
+  "attribute": "data-testid",
+  "naming": "kebab-case",
+  "include": ["src/**/*.tsx", "src/**/*.jsx"],
+  "exclude": [
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.stories.tsx",
+    "node_modules/**"
+  ],
+  "elements": ["button", "input", "select", "textarea", "a", "form", "nav", "header", "main", "section"],
+  "components": {
+    "Button": "btn",
+    "Input": "input",
+    "Card": "card",
+    "Modal": "modal",
+    "Form": "form"
+  },
+  "ignore": {
+    "attributes": ["aria-hidden"],
+    "patterns": ["icon", "Icon", "Spinner", "spinner", "Svg", "svg"]
+  }
+}
