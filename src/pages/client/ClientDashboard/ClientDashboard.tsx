@@ -6,6 +6,7 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
 import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
+import UpdateBanner from "@components/shared/UpdateBanner/UpdateBanner";
 import { useAuth } from "@context/AuthContext";
 import type { Response } from "@models/globalTypes";
 import { useGetQuotesByTagQuery } from "@services/inspirationalQuotesApi";
@@ -154,8 +155,9 @@ export default function ClientDashboard() {
 
   return (
     <div className="page">
+      <UpdateBanner />
       <div className="inner">
-        <div className={styles.header}>
+        <div className={styles.header} id="client-dash-header">
           <h1>
             {greeting}, {displayName ?? "friend"}
           </h1>
@@ -163,13 +165,13 @@ export default function ClientDashboard() {
         </div>
 
         {nextSession && (
-          <div className={styles.nextSessionCard}>
+          <div className={styles.nextSessionCard} id="client-next-session">
             <h3 className={styles.cardTitle}>Next session</h3>
             <NextSessionCard session={nextSession} compact />
           </div>
         )}
 
-        <div className={styles.statsRow}>
+        <div className={styles.statsRow} id="client-stats">
           {stats.map((s) => (
             <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
               <p className={styles.statLabel}>{s.label}</p>
@@ -186,12 +188,12 @@ export default function ClientDashboard() {
           </section>
         ) : null}
 
-        <div className={styles.chartWrap}>
+        <div className={styles.chartWrap} id="client-chart">
           <ProgressChart responses={chartResponses} questions={allAssignedQuestions} title="Your Wellbeing Over Time" />
           {/* //!TODO: questons should really have categories like sleep, selfcare, love-tank etc etc, for each question thats made, it should map to a category. and its these cats. that will be plotted and not the long winded questions. assignment to cat. is required */}
         </div>
 
-        <div className={styles.bottomGrid}>
+        <div className={styles.bottomGrid} id="client-checkins">
           <Card>
             <div className={styles.cardPad}>
               <h3 className={styles.cardTitle}>Your Check-ins</h3>

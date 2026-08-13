@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import { BookIcon, CreateSession, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
+import UpdateBanner from "@components/shared/UpdateBanner/UpdateBanner";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -50,13 +51,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
+      <UpdateBanner />
       <div className="inner">
-        <div className={styles.header}>
+        <div className={styles.header} id="dash-header">
           <div>
             <h1>Welcome back, {userProfile?.first_name}</h1>
             <p>Here's how your practice is doing</p>
           </div>
-          <Card className={styles.quickActionsCard}>
+          <Card className={styles.quickActionsCard} id="dash-quick-actions">
             <p className={styles.quickActionsLabel}>Quick actions</p>
             <div className={styles.quickActionsRow}>
               <Link to="/admin/scheduler?newSession=1" title="Create a new session">
