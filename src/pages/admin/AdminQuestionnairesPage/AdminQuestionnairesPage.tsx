@@ -454,7 +454,6 @@ function AssignModal({
       await supabase.from("questionnaire_assignments").insert({
         questionnaire_id: questionnaire.id,
         stub_id: stubId,
-        admin_id: userProfile?.id,
       });
       setStubAssignedIds((prev) => new Set([...prev, stubId]));
     }
@@ -706,7 +705,9 @@ export default function AdminQuestionnairesPage() {
   const guard = isPageStatusLoading(questionnairesStatus, usersStatus, tagsStatus);
   if (guard) return guard;
 
-  const tabQuestionnaires = questionnaires.filter((q) => ((q as any).form_type ?? "outcome_measure") === activeTab);
+  const tabQuestionnaires = questionnaires.filter(
+    (q) => !q.is_system_default && ((q as any).form_type ?? "outcome_measure") === activeTab,
+  );
 
   const handleCreate = (data: QuestionnaireFormData) => dispatch(createQuestionnaire(data as unknown as Questionnaire));
 

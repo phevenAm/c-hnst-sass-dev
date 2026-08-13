@@ -175,7 +175,7 @@ export default function AdminStubDetailPage() {
     [assignedForms],
   );
   const unassignedQuestionnaires = useMemo(
-    () => questionnaires.filter((q) => q.is_active && !assignedFormIds.has(q.id)),
+    () => questionnaires.filter((q) => q.is_active && !q.is_system_default && !assignedFormIds.has(q.id)),
     [questionnaires, assignedFormIds],
   );
 
@@ -260,7 +260,7 @@ export default function AdminStubDetailPage() {
     setAssigning(true);
     const { data, error } = await supabase
       .from("questionnaire_assignments")
-      .insert({ stub_id: stubId, questionnaire_id: selectedFormId, admin_id: userProfile.id })
+      .insert({ stub_id: stubId, questionnaire_id: selectedFormId, assigned_at: new Date().toISOString() })
       .select("id, assigned_at")
       .single();
     if (error) {
