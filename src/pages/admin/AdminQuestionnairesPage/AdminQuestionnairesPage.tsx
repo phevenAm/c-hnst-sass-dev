@@ -705,7 +705,9 @@ export default function AdminQuestionnairesPage() {
   const guard = isPageStatusLoading(questionnairesStatus, usersStatus, tagsStatus);
   if (guard) return guard;
 
-  const tabQuestionnaires = questionnaires.filter((q) => ((q as any).form_type ?? "outcome_measure") === activeTab);
+  const tabQuestionnaires = questionnaires.filter(
+    (q) => !q.is_system_default && ((q as any).form_type ?? "outcome_measure") === activeTab,
+  );
 
   const handleCreate = (data: QuestionnaireFormData) => dispatch(createQuestionnaire(data as unknown as Questionnaire));
 
