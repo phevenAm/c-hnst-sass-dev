@@ -226,6 +226,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } finally {
+        // Clear all cached Redux data so the dashboard fetches fresh on mount.
+        // This covers both the happy path and any error path where stale data
+        // might have been loaded before the merge completed.
+        store.dispatch(resetStore());
         setIsFinishingSignup(false);
       }
     },
