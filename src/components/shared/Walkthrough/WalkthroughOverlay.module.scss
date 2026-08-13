@@ -1,0 +1,413 @@
+@use '../../../styles/mixins' as *;
+
+$card-width: 440;
+
+// Accent glow colour as a CSS custom prop so dark-mode overrides work inside keyframes
+:root {
+  --wt-glow: rgba(45, 114, 100, 0.45);
+}
+
+:global(.dark) {
+  --wt-glow: rgba(159, 187, 179, 0.45);
+}
+
+// ── Spotlight ────────────────────────────────────────────────────────────────
+
+.spotlight {
+  position: fixed;
+  z-index: 9010;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  animation: spotlightGlow 2s ease-in-out infinite;
+  transition:
+    top 0.3s ease,
+    left 0.3s ease,
+    width 0.3s ease,
+    height 0.3s ease;
+
+  &:focus-visible {
+    outline: none; // glow ring is already the visual indicator
+  }
+}
+
+@keyframes spotlightGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4000px rgba(0, 0, 0, 0.52),
+      0 0 0 2px var(--accent),
+      0 0 10px 2px var(--wt-glow);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 4000px rgba(0, 0, 0, 0.44),
+      0 0 0 2px var(--accent),
+      0 0 22px 8px var(--wt-glow);
+  }
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────────
+
+.card {
+  position: fixed;
+  z-index: 9020;
+  width: min(#{$card-width}px, calc(100vw - 32px));
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow:
+    var(--shadow-xl),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  transition:
+    top 0.28s ease,
+    left 0.28s ease;
+}
+
+// No spotlight target → pin to bottom-right so it stays out of the way
+.cardCentered {
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  left: auto;
+  top: auto !important;
+  transform: none;
+  width: min(400px, calc(100vw - 32px));
+  animation: walkthroughSlideUpRight 0.28s ease both;
+
+  @include until-sm {
+    right: var(--sp-3);
+    bottom: var(--sp-4);
+    border-radius: var(--r-lg);
+  }
+}
+
+.cardExpanded {
+  animation: walkthroughFadeIn 0.22s ease both;
+}
+
+.cardCompact {
+  animation: walkthroughFadeIn 0.18s ease both;
+}
+
+@keyframes walkthroughSlideUpRight {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes walkthroughSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes walkthroughFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+
+.header {
+  @include flex-between;
+  margin-bottom: var(--sp-2);
+}
+
+.pageTag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: var(--sp-2);
+}
+
+.dotsInline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--border);
+  transition: background var(--transition-base), transform var(--transition-base);
+  flex-shrink: 0;
+}
+
+.dotActive {
+  background: var(--accent);
+  transform: scale(1.3);
+}
+
+%icon-btn {
+  @include flex-center;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  padding: 3px;
+  width: 22px;
+  height: 22px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+
+  @include focus-ring;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-muted);
+  }
+}
+
+.expandBtn {
+  @extend %icon-btn;
+}
+
+.closeBtn {
+  @extend %icon-btn;
+}
+
+// ── Content ──────────────────────────────────────────────────────────────────
+
+.stepTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-2);
+  line-height: 1.35;
+}
+
+.stepBody {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+// ── Footer (expanded) ─────────────────────────────────────────────────────────
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-4);
+  gap: var(--sp-2);
+
+  @include until-sm {
+    flex-wrap: wrap;
+  }
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+// ── Footer (compact) ─────────────────────────────────────────────────────────
+
+.compactFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+// ── Buttons ──────────────────────────────────────────────────────────────────
+
+%btn-base {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: var(--r-md);
+  border: none;
+  cursor: pointer;
+  padding: var(--sp-2) var(--sp-3);
+  transition: background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+
+  @include focus-ring;
+}
+
+.btnDismiss {
+  @extend %btn-base;
+  background: none;
+  color: var(--text-muted);
+  padding-left: 0;
+  font-size: 0.775rem;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.btnBack {
+  @extend %btn-base;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+
+  &:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+}
+
+.btnNext {
+  @extend %btn-base;
+  background: var(--accent);
+  color: #fff;
+
+  &:hover {
+    opacity: 0.88;
+  }
+
+  .dark & {
+    color: var(--bg-base);
+  }
+}
+
+// ── Prompt card ───────────────────────────────────────────────────────────────
+
+.prompt {
+  position: fixed;
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  z-index: 9020;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  animation: walkthroughSlideUpRight 0.3s ease both;
+
+  @include until-sm {
+    right: var(--sp-3);
+    bottom: var(--sp-4);
+  }
+}
+
+.promptQuestion {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-3);
+  line-height: 1.4;
+}
+
+.promptActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+.btnDecline {
+  @extend %btn-base;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+
+  &:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+}
+
+.btnAccept {
+  @extend %btn-base;
+  background: var(--accent);
+  color: #fff;
+
+  &:hover {
+    opacity: 0.88;
+  }
+
+  .dark & {
+    color: var(--bg-base);
+  }
+}
+
+// ── Decline message ───────────────────────────────────────────────────────────
+
+.declineMessage {
+  position: fixed;
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  z-index: 9020;
+  width: min(300px, calc(100vw - 32px));
+  background: var(--text-primary);
+  color: var(--bg-card);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-lg);
+  animation: declineFadeInOut 3s ease both;
+  pointer-events: none;
+
+  .dark & {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  @include until-sm {
+    right: var(--sp-3);
+    bottom: var(--sp-4);
+  }
+}
+
+@keyframes declineFadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
