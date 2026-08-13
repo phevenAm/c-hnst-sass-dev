@@ -24,6 +24,7 @@ type AuthContextType = {
   practiceSettings: PracticeSettings | null;
   displayName: string | null;
   loading: boolean;
+  isFinishingSignup: boolean;
   error: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [practiceSettings, setPracticeSettings] = useState<PracticeSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFinishingSignup, setIsFinishingSignup] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const prevUserIdRef = useRef<string | null>(null);
@@ -187,36 +189,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: { user_id: signUpData.user!.id, access_token: cleanedToken },
       });
 
-      // Sign in first so auth.uid() is set when consume_platform_access_token
-      // runs — the RPC uses auth.uid() to write admin_id onto the user row
-      await supabase.auth.signInWithPassword({ email, password });
+      // Hold ProtectedRoute behind a spinner until the token is consumed and
+      // the stub merge is complete — prevents the dashboard from fetching
+      // sessions before they've been imported.
+      setIsFinishingSignup(true);
+      try {
+        // Sign in first so auth.uid() is set when consume_platform_access_token
+        // runs — the RPC uses auth.uid() to write admin_id onto the user row
+        await supabase.auth.signInWithPassword({ email, password });
 
-      const { data: tokenConsumed, error: consumeTokenError } = await supabase.rpc("consume_platform_access_token", {
-        input_token: cleanedToken,
-      });
-
-      if (consumeTokenError) {
-        setError(consumeTokenError.message);
-        throw consumeTokenError;
-      }
-
-      if (!tokenConsumed) {
-        const message = "This access token has already been used.";
-        setError(message);
-        throw new Error(message);
-      }
-
-      // If this signup was converted from an offline stub, notify the admin
-      const { data: linkedStub } = await supabase
-        .from("client_stubs")
-        .select("id")
-        .eq("linked_user_id", signUpData.user!.id)
-        .maybeSingle();
-
-      if (linkedStub?.id) {
-        supabase.functions.invoke("notify-admin-stub-joined", {
-          body: { stub_id: linkedStub.id, new_user_id: signUpData.user!.id },
+        const { data: tokenConsumed, error: consumeTokenError } = await supabase.rpc("consume_platform_access_token", {
+          input_token: cleanedToken,
         });
+
+        if (consumeTokenError) {
+          setError(consumeTokenError.message);
+          throw consumeTokenError;
+        }
+
+        if (!tokenConsumed) {
+          const message = "This access token has already been used.";
+          setError(message);
+          throw new Error(message);
+        }
+
+        // If this signup was converted from an offline stub, notify the admin
+        const { data: linkedStub } = await supabase
+          .from("client_stubs")
+          .select("id")
+          .eq("linked_user_id", signUpData.user!.id)
+          .maybeSingle();
+
+        if (linkedStub?.id) {
+          supabase.functions.invoke("notify-admin-stub-joined", {
+            body: { stub_id: linkedStub.id, new_user_id: signUpData.user!.id },
+          });
+        }
+      } finally {
+        setIsFinishingSignup(false);
       }
     },
     [],
@@ -272,6 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName,
       error,
       loading,
+      isFinishingSignup,
       isAuthenticated: !!authUser,
       isAdmin: userProfile?.role === "admin",
       isDemo: userProfile?.is_demo ?? false,
@@ -289,6 +300,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName,
       error,
       loading,
+      isFinishingSignup,
       signIn,
       signUp,
       signOut,

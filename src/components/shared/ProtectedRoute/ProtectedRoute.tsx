@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, loading, userProfile } = useAuth();
+  const { isAuthenticated, isAdmin, loading, isFinishingSignup, userProfile } = useAuth();
   const location = useLocation();
 
   // Wait for session check to finish
@@ -26,6 +26,10 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   // Wait for profile to load before making role decisions
   // (profile loads async after auth, so isAdmin may briefly be false for admins)
   if (!userProfile) return <Spinner />;
+
+  // Wait for token consumption + stub merge to complete before rendering the
+  // dashboard — prevents a race where sessions are fetched before they're imported
+  if (isFinishingSignup) return <Spinner />;
 
   // Wrong role redirects
   if (requiredRole === "admin" && !isAdmin) {
