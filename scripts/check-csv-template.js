@@ -18,6 +18,7 @@ const SKIP_FIELDS = new Set(["id", "stub_id", "admin_id", "created_at"]);
 const RENAMED = {
   scheduled_at: ["session_date", "session_time"],
   notes: ["session_notes"],
+  code: ["reference_code"],
 };
 
 // ── Read StubSession type ─────────────────────────────────────────────────────
