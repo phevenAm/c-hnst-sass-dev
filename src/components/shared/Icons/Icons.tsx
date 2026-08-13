@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -16,6 +18,11 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
+import Lottie from "lottie-react";
+
+import saplingSway from "../../../LOGO Asset/sapling-sway.json";
+import { useAppSelector } from "../../../store/hooks";
+import { selectThemeMode } from "../../../store/slices/themeSlice";
 
 export const ArticleIcon = () => (
   <svg
@@ -248,6 +255,31 @@ export const LeafLogoMark = ({ size = 28 }: { size?: number }) => (
     <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
   </svg>
 );
+
+export const LeafLottieLogoMark = ({ size = 48 }: { size?: number }) => {
+  const themeMode = useAppSelector(selectThemeMode);
+
+  const animationData = useMemo(() => {
+    const stroke = themeMode === "dark" ? [1, 1, 1, 1] : [0, 0, 0, 1];
+    const data = JSON.parse(JSON.stringify(saplingSway));
+    const shapes = data.layers[0].shapes;
+    shapes[0].it[2].c.k = stroke; // stem stroke
+    shapes[1].it[2].c.k = stroke; // left leaf stroke
+    // shapes[2].it[2] is the right leaf fill — teal, left as-is in JSON
+    shapes[2].it[3].c.k = stroke; // right leaf stroke only
+    return data;
+  }, [themeMode]);
+
+  return (
+    <Lottie
+      animationData={animationData}
+      loop={false}
+      style={{ width: size, height: size }}
+      aria-label="Clarity"
+      role="img"
+    />
+  );
+};
 
 export const ClarityLogoMark = ({ size = 36 }: { size?: number }) => {
   const uid = `clm-${Math.random().toString(36).slice(2, 7)}`;
