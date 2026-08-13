@@ -133,12 +133,23 @@ export default function AdminCpdPage() {
       });
   }, [userProfile?.id]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("cpd_logs").delete().eq("id", id);
-    if (error) showToast("Failed to delete entry", "error");
-    else {
-      showToast("Entry deleted.");
-      setLogs((prev) => prev.filter((l) => l.id !== id));
+  const handleDelete = async (log: CpdLog) => {
+    if (log._source === "private_event") {
+      // Calendar entries aren't in cpd_logs — just unmark is_cpd so the event
+      // stays on the calendar but is removed from the CPD log.
+      const { error } = await supabase.from("admin_private_events").update({ is_cpd: false }).eq("id", log.id);
+      if (error) showToast("Failed to remove entry", "error");
+      else {
+        showToast("Removed from CPD log. The calendar event is unchanged.");
+        setLogs((prev) => prev.filter((l) => l.id !== log.id));
+      }
+    } else {
+      const { error } = await supabase.from("cpd_logs").delete().eq("id", log.id);
+      if (error) showToast("Failed to delete entry", "error");
+      else {
+        showToast("Entry deleted.");
+        setLogs((prev) => prev.filter((l) => l.id !== log.id));
+      }
     }
   };
 
@@ -344,7 +355,9 @@ export default function AdminCpdPage() {
                     <td className={styles.durationCell}>{minutesToHours(log.duration_minutes)}</td>
                     <td className={styles.actionsCell}>
                       {log._source === "private_event" ? (
-                        <span className={styles.privateTag}>Private event</span>
+                        <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log)}>
+                          Remove
+                        </button>
                       ) : (
                         <>
                           <button
@@ -357,7 +370,7 @@ export default function AdminCpdPage() {
                           >
                             Edit
                           </button>
-                          <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log.id)}>
+                          <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log)}>
                             Delete
                           </button>
                         </>
