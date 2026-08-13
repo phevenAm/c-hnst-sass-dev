@@ -6,7 +6,7 @@ import {
   CheckIcon,
   ClarityLogoMark,
   ClipboardIcon,
-  LeafLottieLogoMark,
+  LeafLogoMark,
   PaidIcon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
@@ -182,7 +182,7 @@ export default function SubscribePage() {
       <div className={styles.container}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>
-            <LeafLottieLogoMark size={36} />
+            <LeafLogoMark />
           </div>
           <h1 className={styles.logoTitle}>Clarity</h1>
           <p className={styles.logoSub}>Start your subscription</p>

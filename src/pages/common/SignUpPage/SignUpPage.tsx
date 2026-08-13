@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
-import { LeafLottieLogoMark } from "@components/shared/Icons/Icons";
+import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
@@ -116,7 +116,7 @@ export default function SignUpPage() {
       />
       <div className={`${styles.container} container`}>
         <div className={styles.logoWrap}>
-          <LeafLottieLogoMark size={48} />
+          <LeafLogoMark size={48} />
           <div className={styles.logoText}>
             <h1 className={styles.logoTitle}>Clarity</h1>
             <p className={styles.logoSub}>Create your account</p>
