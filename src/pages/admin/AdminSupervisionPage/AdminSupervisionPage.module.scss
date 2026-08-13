@@ -83,7 +83,7 @@
     text-align: left;
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     border-bottom: 1px solid var(--border);
@@ -182,6 +182,7 @@
   border-radius: var(--r-full);
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 // ── Empty state ────────────────────────────────────────────────
