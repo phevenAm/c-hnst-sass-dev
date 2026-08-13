@@ -381,7 +381,7 @@ export default function AdminSupervisionPage() {
         .order("date", { ascending: false }),
       supabase
         .from("sessions")
-        .select("id, scheduled_at, supervisor_name, duration_minutes, supervision_cost_pence, notes")
+        .select("id, scheduled_at, duration_minutes, supervision_cost_pence, notes")
         .eq("admin_id", userProfile.id)
         .eq("is_supervision", true)
         .order("scheduled_at", { ascending: false }),
@@ -457,7 +457,7 @@ export default function AdminSupervisionPage() {
         source: "calendar",
         sourceTable: "sessions",
         date: dayjs(r.scheduled_at).format("YYYY-MM-DD"),
-        supervisorName: r.supervisor_name,
+        supervisorName: (r as any).supervisor_name ?? null,
         durationMinutes: r.duration_minutes,
         costPence: r.supervision_cost_pence,
         currency: "GBP",

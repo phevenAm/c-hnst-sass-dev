@@ -261,12 +261,18 @@ export default function AdminStubDetailPage() {
     const { data, error } = await supabase
       .from("questionnaire_assignments")
       .insert({ stub_id: stubId, questionnaire_id: selectedFormId, admin_id: userProfile.id })
-      .select("id, assigned_at, questionnaires(id, title, form_type)")
+      .select("id, assigned_at")
       .single();
     if (error) {
       showToast("Failed to assign survey.", "danger");
     } else {
-      setAssignedForms((prev) => [data as AssignedForm, ...prev]);
+      const q = questionnaires.find((q) => q.id === selectedFormId);
+      const newForm: AssignedForm = {
+        id: data.id,
+        assigned_at: data.assigned_at,
+        questionnaires: q ? { id: q.id, title: q.title, form_type: q.form_type } : null,
+      };
+      setAssignedForms((prev) => [newForm, ...prev]);
       setSelectedFormId("");
       setAssignFormOpen(false);
       showToast("Survey assigned.");

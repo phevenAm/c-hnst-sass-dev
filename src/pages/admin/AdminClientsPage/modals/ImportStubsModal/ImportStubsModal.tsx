@@ -24,6 +24,7 @@ export const SESSION_HEADERS = [
   "currency",
   "session_notes",
   "code",
+  "location",
 ];
 
 const CLIENT_INSTRUCTIONS = [
