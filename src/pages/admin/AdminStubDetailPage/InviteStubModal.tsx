@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default function InviteStubModal({ stub, onClose }: Props) {
-  const { isDemo } = useAuth();
+  const { isDemo, authUser } = useAuth();
   const { showToast } = useToast();
 
   const [email, setEmail] = useState(stub.email ?? "");
@@ -42,7 +42,7 @@ export default function InviteStubModal({ stub, onClose }: Props) {
 
     const { error: insertError } = await supabase
       .from("platform_access_token")
-      .insert({ token, stub_id: stub.id, is_used: false });
+      .insert({ token, stub_id: stub.id, admin_id: authUser!.id, is_used: false });
 
     if (insertError) {
       setError(insertError.message);

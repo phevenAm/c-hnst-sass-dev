@@ -2,12 +2,14 @@ import { useState } from "react";
 
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
+import { useAuth } from "@context/AuthContext";
 import { supabase } from "@lib/supabase";
 
 import { generateAccessToken } from "../../../utils/AdminClientsPageUtils";
 import styles from "../../AdminClientsPage.module.scss";
 
 export default function AccessTokenModal({ onClose }: { onClose: () => void }) {
+  const { authUser } = useAuth();
   const [token, setToken] = useState(generateAccessToken());
   const [createdToken, setCreatedToken] = useState("");
   const [error, setError] = useState("");
@@ -28,7 +30,7 @@ export default function AccessTokenModal({ onClose }: { onClose: () => void }) {
 
     const { data, error } = await supabase
       .from("platform_access_token")
-      .insert({ token: cleanedToken, is_used: false })
+      .insert({ token: cleanedToken, admin_id: authUser!.id, is_used: false })
       .select("token")
       .single();
 
