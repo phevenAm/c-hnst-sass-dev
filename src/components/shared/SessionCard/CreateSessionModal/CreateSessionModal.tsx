@@ -48,6 +48,8 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   const [supervisionCost, setSupervisionCost] = useState(
     (session as any)?.supervision_cost_pence ? ((session as any).supervision_cost_pence / 100).toFixed(2) : "",
   );
+  const [sendConfirmation, setSendConfirmation] = useState(true);
+  const [sendReminders, setSendReminders] = useState(true);
   const [error, setError] = useState("");
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
@@ -139,6 +141,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
             is_supervision: isSupervision || undefined,
             supervision_cost_pence:
               isSupervision && supervisionCost ? Math.round(parseFloat(supervisionCost) * 100) : undefined,
+            send_reminders: sendReminders,
             created_by: authUser.id,
             metadata: blockId
               ? {
@@ -156,12 +159,15 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
     const allSuccess = result.every((i) => i?.meta.requestStatus === "fulfilled");
 
     if (allSuccess) {
-      result.forEach((r) => {
-        if (r?.meta.requestStatus === "fulfilled") {
-          supabase.functions.invoke("notify-session-booked", { body: { session_id: (r.payload as Session).id } });
-        }
-      });
-      showToast("Sessions saved!");
+      if (sendConfirmation) {
+        result.forEach((r) => {
+          if (r?.meta.requestStatus === "fulfilled") {
+            supabase.functions.invoke("notify-session-booked", { body: { session_id: (r.payload as Session).id } });
+          }
+        });
+      }
+      const emailNote = sendConfirmation ? " — confirmation email sent" : "";
+      showToast(`${dates.length > 1 ? `${dates.length} sessions` : "Session"} scheduled${emailNote}.`);
       onClose();
     } else {
       setError("Failed to schedule session. Please try again.");
@@ -456,6 +462,34 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
                 </label>
               </div>
             </>
+          )}
+
+          {!session && (
+            <fieldset className={styles.fieldGroup}>
+              <legend className={styles.label}>Email notifications</legend>
+              <div className={styles.checkboxGroup}>
+                <input
+                  id="send-confirmation"
+                  type="checkbox"
+                  checked={sendConfirmation}
+                  onChange={(e) => setSendConfirmation(e.target.checked)}
+                />
+                <label htmlFor="send-confirmation" className={styles.checkboxLabel}>
+                  Send booking confirmation now
+                </label>
+              </div>
+              <div className={styles.checkboxGroup}>
+                <input
+                  id="send-reminders"
+                  type="checkbox"
+                  checked={sendReminders}
+                  onChange={(e) => setSendReminders(e.target.checked)}
+                />
+                <label htmlFor="send-reminders" className={styles.checkboxLabel}>
+                  Send automatic reminder emails
+                </label>
+              </div>
+            </fieldset>
           )}
 
           {error && <p className={styles.error}>{error}</p>}

@@ -46,6 +46,7 @@ type CalendarRow = {
 type Entry = {
   id: string;
   source: "manual" | "calendar";
+  sourceTable: "supervision_sessions" | "sessions" | "admin_private_events";
   date: string;
   supervisorName: string | null;
   durationMinutes: number | null;
@@ -218,7 +219,7 @@ function SupervisionModal({
             </div>
           </div>
 
-          <div className={styles.row}>
+          <div className={styles.row3}>
             <div className={styles.field}>
               <label>Hours</label>
               <input
@@ -282,6 +283,9 @@ function SupervisionModal({
                 />
               </div>
             </div>
+          </div>
+
+          <div className={styles.row}>
             <div className={styles.field}>
               <label>
                 Contract code <span className={styles.optional}>(optional)</span>
@@ -293,9 +297,6 @@ function SupervisionModal({
                 placeholder="e.g. SUP-2026-01"
               />
             </div>
-          </div>
-
-          <div className={styles.row}>
             <div className={styles.field}>
               <label>
                 Venue <span className={styles.optional}>(optional)</span>
@@ -380,7 +381,7 @@ export default function AdminSupervisionPage() {
         .order("date", { ascending: false }),
       supabase
         .from("sessions")
-        .select("id, scheduled_at, supervisor_name, duration_minutes, supervision_cost_pence, notes")
+        .select("id, scheduled_at, duration_minutes, supervision_cost_pence, notes")
         .eq("admin_id", userProfile.id)
         .eq("is_supervision", true)
         .order("scheduled_at", { ascending: false }),
@@ -412,13 +413,20 @@ export default function AdminSupervisionPage() {
     void fetchData();
   }, [fetchData]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("supervision_sessions").delete().eq("id", id);
-    if (error) showToast("Failed to delete entry", "error");
-    else {
-      showToast("Entry deleted.");
-      setManual((prev) => prev.filter((r) => r.id !== id));
+  const handleDelete = async (entry: Entry) => {
+    let error: { message: string } | null = null;
+    if (entry.sourceTable === "supervision_sessions") {
+      ({ error } = await supabase.from("supervision_sessions").delete().eq("id", entry.id));
+      if (!error) setManual((prev) => prev.filter((r) => r.id !== entry.id));
+    } else if (entry.sourceTable === "sessions") {
+      ({ error } = await supabase.from("sessions").update({ is_supervision: false }).eq("id", entry.id));
+      if (!error) setCalendar((prev) => prev.filter((r) => r.id !== entry.id));
+    } else if (entry.sourceTable === "admin_private_events") {
+      ({ error } = await supabase.from("admin_private_events").update({ is_supervision: false }).eq("id", entry.id));
+      if (!error) setPrivateEvents((prev) => prev.filter((r) => r.id !== entry.id));
     }
+    if (error) showToast("Failed to remove entry", "error");
+    else showToast("Entry removed.");
   };
 
   // Merge manual + calendar into unified list
@@ -427,6 +435,7 @@ export default function AdminSupervisionPage() {
       (r): Entry => ({
         id: r.id,
         source: "manual",
+        sourceTable: "supervision_sessions",
         date: r.date,
         supervisorName: r.supervisor_name,
         durationMinutes: r.duration_minutes,
@@ -446,8 +455,9 @@ export default function AdminSupervisionPage() {
       (r): Entry => ({
         id: r.id,
         source: "calendar",
+        sourceTable: "sessions",
         date: dayjs(r.scheduled_at).format("YYYY-MM-DD"),
-        supervisorName: r.supervisor_name,
+        supervisorName: (r as any).supervisor_name ?? null,
         durationMinutes: r.duration_minutes,
         costPence: r.supervision_cost_pence,
         currency: "GBP",
@@ -465,6 +475,7 @@ export default function AdminSupervisionPage() {
       (r): Entry => ({
         id: r.id,
         source: "calendar",
+        sourceTable: "admin_private_events",
         date: dayjs(r.scheduled_at).format("YYYY-MM-DD"),
         supervisorName: r.supervisor_name,
         durationMinutes: r.duration_minutes,
@@ -605,22 +616,20 @@ export default function AdminSupervisionPage() {
                     </td>
                     <td className={styles.actionsCell}>
                       {entry.source === "manual" && (
-                        <>
-                          <button
-                            type="button"
-                            className={styles.editBtn}
-                            onClick={() => {
-                              setEditing(entry.raw as ManualRow);
-                              setModalOpen(true);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(entry.id)}>
-                            Delete
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          className={styles.editBtn}
+                          onClick={() => {
+                            setEditing(entry.raw as ManualRow);
+                            setModalOpen(true);
+                          }}
+                        >
+                          Edit
+                        </button>
                       )}
+                      <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(entry)}>
+                        {entry.source === "calendar" ? "Remove" : "Delete"}
+                      </button>
                     </td>
                   </tr>
                 ))}

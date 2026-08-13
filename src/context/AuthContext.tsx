@@ -205,6 +205,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(message);
         throw new Error(message);
       }
+
+      // If this signup was converted from an offline stub, notify the admin
+      const { data: linkedStub } = await supabase
+        .from("client_stubs")
+        .select("id")
+        .eq("linked_user_id", signUpData.user!.id)
+        .maybeSingle();
+
+      if (linkedStub?.id) {
+        supabase.functions.invoke("notify-admin-stub-joined", {
+          body: { stub_id: linkedStub.id, new_user_id: signUpData.user!.id },
+        });
+      }
     },
     [],
   );

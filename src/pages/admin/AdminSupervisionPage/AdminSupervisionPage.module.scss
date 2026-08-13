@@ -83,7 +83,7 @@
     text-align: left;
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     border-bottom: 1px solid var(--border);
@@ -182,6 +182,7 @@
   border-radius: var(--r-full);
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 // ── Empty state ────────────────────────────────────────────────
@@ -252,9 +253,14 @@
 .modalBody {
   padding: $sp-5 $sp-6;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: $sp-4;
+
+  @include bp(lt-s) {
+    padding: $sp-4;
+  }
 }
 
 .modalFooter {
@@ -267,6 +273,16 @@
 }
 
 .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-3;
+
+  @include bp(lt-s) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.row3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: $sp-3;
@@ -284,6 +300,7 @@
   display: flex;
   flex-direction: column;
   gap: $sp-1;
+  min-width: 0;
 
   label {
     font-size: 0.78rem;
