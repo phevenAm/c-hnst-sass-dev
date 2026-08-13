@@ -507,7 +507,7 @@ export default function AdminSupervisionPage() {
   return (
     <div className="page">
       <div className={`inner ${styles.page}`}>
-        <div className={styles.header}>
+        <div className={styles.header} id="supervision-header">
           <div>
             <h1 className={styles.title}>Supervision</h1>
             <p className={styles.sub}>Track your professional supervision sessions</p>
@@ -524,7 +524,7 @@ export default function AdminSupervisionPage() {
         </div>
 
         {/* Stats */}
-        <div className={styles.statsRow}>
+        <div className={styles.statsRow} id="supervision-stats">
           <Card className={styles.statCard}>
             <p className={styles.statValue}>{sessionCount}</p>
             <p className={styles.statLabel}>Sessions this year</p>
@@ -543,7 +543,7 @@ export default function AdminSupervisionPage() {
 
         {/* Monthly chart */}
         {entries.length > 0 && (
-          <Card className={styles.chartCard}>
+          <Card className={styles.chartCard} id="supervision-chart">
             <p className={styles.chartTitle}>Hours per month — {currentYear}</p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>

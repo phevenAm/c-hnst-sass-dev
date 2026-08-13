@@ -1,0 +1,151 @@
+@use '../../../styles/mixins' as *;
+
+$arrow-size: 5px;
+
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+// ── Trigger button ────────────────────────────────────────────────────────────
+
+.trigger {
+  @include flex-center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: var(--r-full);
+  transition: color var(--transition-fast);
+  flex-shrink: 0;
+
+  @include focus-ring;
+
+  &:hover {
+    color: var(--text-secondary);
+  }
+}
+
+// ── Tooltip bubble ─────────────────────────────────────────────────────────────
+
+.tooltip {
+  position: absolute;
+  z-index: 9050;
+  width: max-content;
+  max-width: 220px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--text-primary);
+  color: var(--bg-card);
+  font-size: 0.775rem;
+  line-height: 1.5;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  animation: tooltipFade 0.15s ease both;
+
+  // Dark mode: invert so it stands out
+  .dark & {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+}
+
+@keyframes tooltipFade {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// ── Arrow ────────────────────────────────────────────────────────────────────
+
+.arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: $arrow-size solid transparent;
+}
+
+// ── Position variants ─────────────────────────────────────────────────────────
+
+.top {
+  bottom: calc(100% + $arrow-size + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+
+  .arrow {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-top-color: var(--text-primary);
+    border-bottom: none;
+
+    .dark & {
+      border-top-color: var(--bg-card);
+    }
+  }
+}
+
+.bottom {
+  top: calc(100% + $arrow-size + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+
+  .arrow {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-bottom-color: var(--text-primary);
+    border-top: none;
+
+    .dark & {
+      border-bottom-color: var(--bg-card);
+    }
+  }
+}
+
+.left {
+  right: calc(100% + $arrow-size + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+
+  .arrow {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: var(--text-primary);
+    border-right: none;
+
+    .dark & {
+      border-left-color: var(--bg-card);
+    }
+  }
+}
+
+.right {
+  left: calc(100% + $arrow-size + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+
+  .arrow {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-right-color: var(--text-primary);
+    border-left: none;
+
+    .dark & {
+      border-right-color: var(--bg-card);
+    }
+  }
+}

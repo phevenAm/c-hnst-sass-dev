@@ -1,0 +1,102 @@
+@use '../../../styles/mixins' as *;
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.875rem;
+  animation: bannerSlideDown 0.3s ease both;
+
+  .dark & {
+    color: var(--bg-base);
+  }
+
+  @include until-sm {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+}
+
+@keyframes bannerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 500;
+}
+
+.icon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+%btn {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  padding: var(--sp-1) var(--sp-3);
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
+
+.btnLater {
+  @extend %btn;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .dark & {
+    color: var(--bg-base);
+  }
+}
+
+.btnUpdate {
+  @extend %btn;
+  background: #fff;
+  color: var(--accent);
+  font-weight: 600;
+
+  &:hover {
+    opacity: 0.92;
+  }
+
+  .dark & {
+    background: var(--bg-base);
+    color: var(--accent);
+  }
+}

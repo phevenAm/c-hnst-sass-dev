@@ -5,12 +5,13 @@ import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
 import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
-import Footer from "../components/shared/Footer/Footer";
 import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
 import Spinner from "../components/shared/Spinner/Spinner";
+import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
 import { useAuth } from "../context/AuthContext";
+import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
@@ -69,7 +70,6 @@ function AppLayout() {
           <Outlet />
         </div>
       </main>
-      <Footer />
     </>
   );
 }
@@ -182,87 +182,90 @@ export default function AppRoutes() {
   return (
     <ThemeWrapper>
       <BrowserRouter>
-        <OnboardingGate />
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
-          <Route path="/register" element={<CounsellorSignupPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/unsubscribe" element={<UnsubscribePage />} />
+        <WalkthroughProvider>
+          <OnboardingGate />
+          <WalkthroughOverlay />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/register" element={<CounsellorSignupPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
-          {/* Standalone — no navbar, own minimal header */}
-          <Route
-            path="/subscribe"
-            element={
-              <ProtectedRoute>
-                <SubscribePage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Standalone — no navbar, own minimal header */}
+            <Route
+              path="/subscribe"
+              element={
+                <ProtectedRoute>
+                  <SubscribePage />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            element={
-              <ProtectedRoute>
-                <RoleAwareLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
-          </Route>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <RoleAwareLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
+            </Route>
 
-          <Route
-            element={
-              <ProtectedRoute requiredRole="client">
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<ClientDashboard />} />
-            <Route path="/forms" element={<CheckInPage />} />
-            <Route path="/my-sessions" element={<ClientSchedule />} />
-            <Route path="/resources" element={<ResourcesPage />} />
-          </Route>
+            <Route
+              element={
+                <ProtectedRoute requiredRole="client">
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<ClientDashboard />} />
+              <Route path="/forms" element={<CheckInPage />} />
+              <Route path="/my-sessions" element={<ClientSchedule />} />
+              <Route path="/resources" element={<ResourcesPage />} />
+            </Route>
 
-          <Route
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <SubscriptionGate>
-                  <AdminLayout />
-                </SubscriptionGate>
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/clients" element={<AdminClientsPage />} />
-            <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
-            <Route path="/admin/clients/stub/:stubId" element={<AdminStubDetailPage />} />
-            <Route path="/admin/forms" element={<AdminQuestionnairesPage />} />
-            <Route path="/admin/resources" element={<AdminResourcesPage />} />
-            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
-            <Route path="/admin/scheduler" element={<AdminScheduler />} />
-            <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
-            <Route path="/admin/payments" element={<AdminPaymentsPage />} />
-            <Route path="/admin/cpd" element={<AdminCpdPage />} />
-            <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
-            {/* //! make admin/schedule/userSchedule route */}
-          </Route>
+            <Route
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <SubscriptionGate>
+                    <AdminLayout />
+                  </SubscriptionGate>
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/clients" element={<AdminClientsPage />} />
+              <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
+              <Route path="/admin/clients/stub/:stubId" element={<AdminStubDetailPage />} />
+              <Route path="/admin/forms" element={<AdminQuestionnairesPage />} />
+              <Route path="/admin/resources" element={<AdminResourcesPage />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+              <Route path="/admin/scheduler" element={<AdminScheduler />} />
+              <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
+              <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+              <Route path="/admin/cpd" element={<AdminCpdPage />} />
+              <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
+              {/* //! make admin/schedule/userSchedule route */}
+            </Route>
 
-          <Route
-            path="/superadmin"
-            element={
-              <ProtectedRoute>
-                <SuperAdminGate>
-                  <SuperAdminPage />
-                </SuperAdminGate>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/superadmin"
+              element={
+                <ProtectedRoute>
+                  <SuperAdminGate>
+                    <SuperAdminPage />
+                  </SuperAdminGate>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="*" element={<div>CAUGHT: {window.location.pathname}</div>} />
-          {/* // ! create action page not do page. todo} */}
-        </Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="*" element={<div>CAUGHT: {window.location.pathname}</div>} />
+            {/* // ! create action page not do page. todo} */}
+          </Routes>
+        </WalkthroughProvider>
       </BrowserRouter>
     </ThemeWrapper>
   );

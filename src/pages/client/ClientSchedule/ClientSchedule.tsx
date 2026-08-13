@@ -35,11 +35,13 @@ const ClientSchedule = () => {
   const [calView, setCalView] = useState<View>(Views.WORK_WEEK);
 
   useEffect(() => {
-    if (searchParams.get("payment") === "success") {
+    const paymentStatus = searchParams.get("payment");
+
+    if (paymentStatus === "success") {
       showToast("Payment successful — your session is confirmed.", "success");
       setSearchParams({}, { replace: true });
     }
-  }, []);
+  }, [searchParams, setSearchParams, showToast]);
 
   useFetchOnIdle(
     (state: RootState) => state.sessions.status,
@@ -113,9 +115,9 @@ const ClientSchedule = () => {
   return (
     <div className="page">
       <div className="inner">
-        <div className={styles.headingRow}>
+        <div className={styles.headingRow} id="sessions-header">
           <h1 className={styles.heading}>My Sessions</h1>
-          <div className={styles.viewToggle}>
+          <div className={styles.viewToggle} id="sessions-view-toggle">
             <Button size="sm" variant={showCalendar ? "ghost" : "primary"} onClick={() => setShowCalendar(false)}>
               List
             </Button>

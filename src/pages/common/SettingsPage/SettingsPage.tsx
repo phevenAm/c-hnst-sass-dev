@@ -12,6 +12,7 @@ import { useAuth } from "@context/AuthContext";
 import { useEncryption } from "@context/EncryptionContext";
 import { useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
+import { useWalkthrough } from "@context/WalkthroughContext";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
 import {
@@ -69,6 +70,7 @@ const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
   const { status: encStatus, encryptPII, decryptPII } = useEncryption();
   const { hiddenSections, toggleSection, reduceMotion, setReduceMotion } = useInterfacePrefs();
+  const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
   const { showToast } = useToast();
   const [name, setName] = useState(userProfile?.display_name ?? "");
   const [imageUrl, setImageUrl] = useState(userProfile?.avatar_url ?? "");
@@ -318,14 +320,14 @@ const SettingsPage = () => {
   return (
     <div className="page">
       <div className={`inner ${styles.columns}`}>
-        <div className={styles.pageHeader}>
+        <div className={styles.pageHeader} id="settings-header">
           <h1>Settings</h1>
           <p>{isAdmin ? "Manage your profile, practice, and account" : "Update or remove your profile"}</p>
         </div>
 
         {/* ── Tab bar (admin only) ── */}
         {isAdmin && (
-          <div className={styles.tabs}>
+          <div className={styles.tabs} id="settings-tabs">
             {ADMIN_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -705,6 +707,36 @@ const SettingsPage = () => {
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
+              </section>
+            </Card>
+
+            {/* Guided tour */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Guided tours</h2>
+                <p>
+                  Page walkthroughs appear the first time you visit each section. Reset them here to replay any tour.
+                </p>
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Walkthrough status</strong>
+                    <span>
+                      {walkthroughOff
+                        ? "All walkthroughs are turned off."
+                        : "Walkthroughs play automatically on first visit to each page."}
+                    </span>
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      resetWalkthrough();
+                      showToast("Walkthroughs reset — they'll play again on each page.", "success");
+                    }}
+                  >
+                    Reset walkthroughs
+                  </Button>
+                </div>
               </section>
             </Card>
 

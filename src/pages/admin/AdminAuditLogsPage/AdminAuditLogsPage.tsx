@@ -128,7 +128,7 @@ export default function AdminAuditLogsPage() {
   return (
     <div className="page">
       <div className="inner">
-        <div className={styles.pageHeader}>
+        <div className={styles.pageHeader} id="audit-header">
           <div>
             <h1>Activity</h1>
             <p>
@@ -145,7 +145,7 @@ export default function AdminAuditLogsPage() {
           </Button>
         </div>
 
-        <div className={styles.filterRow}>
+        <div className={styles.filterRow} id="audit-filters">
           {FILTERS.map((f) => (
             <button
               key={f.label}
@@ -158,7 +158,7 @@ export default function AdminAuditLogsPage() {
           ))}
         </div>
 
-        <div className={styles.feed}>
+        <div className={styles.feed} id="audit-feed">
           {filtered.map((log) => (
             <div key={log.id} className={styles.entry}>
               <span className={styles.message}>{formatMessage(log)}</span>

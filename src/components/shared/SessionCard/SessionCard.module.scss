@@ -23,12 +23,12 @@
 }
 
 .sessionItemCancelled {
-    background: color-mix(in srgb, var(--text-muted) 6%, transparent);
-    border-color: color-mix(in srgb, var(--text-muted) 20%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 20%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--text-muted) 45%, transparent);
 
     .date {
         text-decoration: line-through;
-        color: var(--text-muted);
+        color: var(--text-secondary);
     }
 }
 
@@ -96,8 +96,8 @@
 }
 
 .statusCancelled {
-    background: color-mix(in srgb, var(--text-muted) 15%, transparent);
-    color: var(--text-muted);
+    background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+    color: var(--text-secondary);
 }
 
 .statusRescheduled {

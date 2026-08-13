@@ -234,7 +234,8 @@ textarea {
 .dark input,
 .dark select,
 .dark textarea {
-  background: var(--bg-muted) !important;
+  background: #ffffff !important;
+  color: #2d2520 !important;
 }
 
 // ── MUI input background overrides ─────────────────────────
@@ -245,7 +246,8 @@ textarea {
 
 .dark .MuiInputBase-root,
 .dark .MuiOutlinedInput-root {
-  background: var(--bg-muted) !important;
+  background: #ffffff !important;
+  color: #2d2520 !important;
 }
 
 // ── Admin shell layout ─────────────────────────────────────

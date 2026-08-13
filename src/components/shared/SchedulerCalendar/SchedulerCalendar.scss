@@ -78,18 +78,22 @@
   // Cancelled sessions — greyed out, non-interactive, strikethrough title.
   // Mix with bg-card (not transparent) so light mode stays readable.
   .cal-cancelled-session {
-    background-color: color-mix(in srgb, var(--text-muted) 22%, var(--bg-card)) !important;
-    border: 1px solid color-mix(in srgb, var(--text-muted) 45%, transparent) !important;
-    color: var(--text-secondary) !important;
+    background-color: color-mix(in srgb, var(--text-muted) 42%, var(--bg-card)) !important;
+    border: 1px solid color-mix(in srgb, var(--text-muted) 65%, transparent) !important;
     pointer-events: none;
+
+    // Override the white-text rule that applies to all non-window chips
+    .cal-chip {
+      color: var(--text-secondary) !important;
+      text-shadow: none !important;
+    }
 
     .cal-chipTitle {
       text-decoration: line-through;
-      opacity: 0.75;
     }
 
     .cal-chipMeta {
-      opacity: 0.75;
+      opacity: 0.85;
     }
   }
 

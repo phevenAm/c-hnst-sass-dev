@@ -141,12 +141,12 @@ export default function ResourcesPage() {
   return (
     <div className="page">
       <div className="inner">
-        <div className={styles.header}>
+        <div className={styles.header} id="resources-header">
           <h1>Resources</h1>
           <p>Curated by your practitioner — take your time with these.</p>
         </div>
 
-        <div className={styles.searchWrap}>
+        <div className={styles.searchWrap} id="resources-search">
           <input
             placeholder="Search for resource..."
             type="search"
@@ -157,7 +157,7 @@ export default function ResourcesPage() {
           />
         </div>
 
-        <div role="tablist" aria-label="Filter resources by type" className={styles.filterRow}>
+        <div role="tablist" aria-label="Filter resources by type" className={styles.filterRow} id="resources-filter">
           {types.map((type: string) => (
             <button
               key={type}
