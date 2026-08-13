@@ -219,7 +219,7 @@ function SupervisionModal({
             </div>
           </div>
 
-          <div className={styles.row}>
+          <div className={styles.row3}>
             <div className={styles.field}>
               <label>Hours</label>
               <input
@@ -283,6 +283,9 @@ function SupervisionModal({
                 />
               </div>
             </div>
+          </div>
+
+          <div className={styles.row}>
             <div className={styles.field}>
               <label>
                 Contract code <span className={styles.optional}>(optional)</span>
@@ -294,9 +297,6 @@ function SupervisionModal({
                 placeholder="e.g. SUP-2026-01"
               />
             </div>
-          </div>
-
-          <div className={styles.row}>
             <div className={styles.field}>
               <label>
                 Venue <span className={styles.optional}>(optional)</span>
