@@ -103,6 +103,8 @@ const SettingsPage = () => {
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
+  const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
+  const [savingAutoCancel, setSavingAutoCancel] = useState(false);
   const [sidebarBtnPos, setSidebarBtnPos] = useState<"top" | "middle" | "bottom">(
     () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
   );
@@ -198,6 +200,7 @@ const SettingsPage = () => {
         setDisabledEmailTypes(data.disabled_email_types ?? []);
         setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
         setUseCodenames(data.use_client_codenames ?? false);
+        setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
       });
   }, [isAdmin, userProfile?.id, encStatus, decryptPII]);
 
@@ -290,11 +293,24 @@ const SettingsPage = () => {
         reminder_email_body: reminderBody || null,
         reminder_email_heading: reminderHeading || null,
         disabled_email_types: disabledEmailTypes,
-        payment_deadline_hours: paymentDeadlineHours,
       })
       .eq("admin_id", userProfile.id);
     setSavingReminders(false);
     showToast("Email settings saved.");
+  };
+
+  const handleSaveAutoCancel = async () => {
+    if (!userProfile?.id) return;
+    setSavingAutoCancel(true);
+    await supabase
+      .from("practice_settings")
+      .update({
+        auto_cancel_enabled: autoCancelEnabled,
+        payment_deadline_hours: paymentDeadlineHours,
+      })
+      .eq("admin_id", userProfile.id);
+    setSavingAutoCancel(false);
+    showToast("Auto-cancel settings saved.");
   };
 
   const handleManageSubscription = async () => {
@@ -541,6 +557,64 @@ const SettingsPage = () => {
               </section>
             </Card>
 
+            {/* Session automation */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Session automation</h2>
+                <p>Automatically manage sessions where payment hasn't been received.</p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Auto-cancel unpaid sessions</strong>
+                    <span>
+                      {autoCancelEnabled
+                        ? "When a session is still unpaid after the cutoff period, it is automatically cancelled and the client is sent a cancellation email."
+                        : "Off by default — enable to automatically cancel sessions when payment isn't received by the cutoff date."}
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={autoCancelEnabled}
+                      onChange={(e) => setAutoCancelEnabled(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                {autoCancelEnabled && (
+                  <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+                    <label htmlFor="paymentDeadlinePractice">Cutoff period</label>
+                    <select
+                      id="paymentDeadlinePractice"
+                      value={paymentDeadlineHours}
+                      onChange={(e) => setPaymentDeadlineHours(Number(e.target.value))}
+                      className={styles.select}
+                    >
+                      <option value={24}>1 day</option>
+                      <option value={48}>2 days</option>
+                      <option value={72}>3 days</option>
+                      <option value={168}>1 week</option>
+                    </select>
+                    <p className={styles.toggleHint}>
+                      How long after the session date before the session is cancelled and the cancellation email is
+                      sent.
+                    </p>
+                  </div>
+                )}
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveAutoCancel}
+                  disabled={savingAutoCancel}
+                >
+                  {savingAutoCancel ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+
             {/* Subscription */}
             {practiceSettings && (
               <Card className={styles.card}>
@@ -778,23 +852,6 @@ const SettingsPage = () => {
             <section className={styles.businessSection}>
               <h2>Manage emails</h2>
               <p>Control which emails go out, customise their content, and send tests to your inbox.</p>
-              <div className={styles.field}>
-                <label htmlFor="paymentDeadline">Unpaid session cutoff</label>
-                <select
-                  id="paymentDeadline"
-                  value={paymentDeadlineHours}
-                  onChange={(e) => setPaymentDeadlineHours(Number(e.target.value))}
-                  className={styles.select}
-                >
-                  <option value={24}>1 day (24 hours)</option>
-                  <option value={48}>2 days — default</option>
-                  <option value={72}>3 days</option>
-                  <option value={168}>1 week</option>
-                </select>
-                <p className={styles.toggleHint} style={{ marginTop: "var(--spacing-2, 8px)" }}>
-                  How long clients have to pay before their session may be cancelled.
-                </p>
-              </div>
             </section>
 
             {[

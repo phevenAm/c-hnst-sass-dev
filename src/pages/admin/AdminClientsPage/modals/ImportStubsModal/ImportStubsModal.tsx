@@ -37,7 +37,7 @@ const CLIENT_INSTRUCTIONS = [
 
 const SESSION_INSTRUCTIONS = [
   "# SESSIONS — one row per session. client_id must match a row in clients.csv.",
-  "# session_date: YYYY-MM-DD  |  session_time: HH:MM  |  status: attended / scheduled / no_show / cancelled",
+  "# session_date: DD/MM/YYYY or YYYY-MM-DD  |  session_time: HH:MM (24-hour)  |  status: attended / scheduled / no_show / cancelled",
   "# amount_paid: pounds (e.g. 85.00)  |  currency: GBP / USD / EUR",
   "# reference_code: optional session ID (e.g. S-001)  |  location: optional address or meeting link",
   "#",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import dayjs from "dayjs";
@@ -21,6 +21,7 @@ import {
 } from "@store/slices/questionnairesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
+import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import CreateStubModal from "../AdminClientsPage/modals/CreateStubModal/CreateStubModal";
 import AddStubSessionModal from "./AddStubSessionModal";
 import InviteStubModal from "./InviteStubModal";
@@ -130,17 +131,29 @@ export default function AdminStubDetailPage() {
     if (questionnairesStatus === "idle") dispatch(fetchQuestionnaires());
   }, [dispatch, questionnairesStatus]);
 
-  useEffect(() => {
-    if (!stubId) return;
+  // Stable ref so Realtime callback always calls the latest version without
+  // needing to re-subscribe when stubId changes.
+  const stubIdRef = useRef(stubId);
+  stubIdRef.current = stubId;
 
+  const loadSessions = () => {
+    if (!stubIdRef.current) return;
     supabase
       .from("stub_sessions")
       .select("*")
-      .eq("stub_id", stubId)
+      .eq("stub_id", stubIdRef.current)
       .order("scheduled_at", { ascending: false })
       .then(({ data }) => {
         if (data) setSessions(data as StubSession[]);
       });
+  };
+
+  useRealtimeTable("stub_sessions", stubId ? `stub_id=eq.${stubId}` : undefined, loadSessions);
+
+  useEffect(() => {
+    if (!stubId) return;
+
+    loadSessions();
 
     supabase
       .from("session_notes")

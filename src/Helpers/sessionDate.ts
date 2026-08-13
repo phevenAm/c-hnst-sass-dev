@@ -1,4 +1,7 @@
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+
+dayjs.extend(customParseFormat);
 
 // Single source of truth for session date handling across the app.
 //
@@ -21,14 +24,21 @@ export const formatDate = (iso: string): string => dayjs(iso).format("D MMM YYYY
 /** Time only: "10:00am" */
 export const formatTime = (iso: string): string => dayjs(iso).format("h:mma");
 
+// Accepted CSV date formats — tried in order. DD/MM/YYYY is listed first since
+// that's the UK default and matches what spreadsheet apps export in en-GB locale.
+const CSV_DATE_FORMATS = ["DD/MM/YYYY", "D/M/YYYY", "YYYY-MM-DD"];
+
 /**
- * Converts a CSV date (YYYY-MM-DD) + time (HH:MM) into an ISO-8601 string for
- * DB storage. Parses as local time (matching how the UI date pickers work) so
- * the stored UTC value round-trips correctly back to the entered local time.
+ * Converts a CSV date + time into an ISO-8601 string for DB storage.
+ * Accepts DD/MM/YYYY (spreadsheet default) and YYYY-MM-DD. Parses as local
+ * time so the stored UTC value round-trips correctly to the entered local time.
  * Returns null when the date is missing or not a valid calendar date.
  */
 export function csvToIso(date: string, time = "09:00"): string | null {
   if (!date) return null;
-  const dt = dayjs(`${date} ${time}`);
-  return dt.isValid() ? dt.toISOString() : null;
+  for (const fmt of CSV_DATE_FORMATS) {
+    const dt = dayjs(`${date} ${time}`, `${fmt} HH:mm`, true);
+    if (dt.isValid()) return dt.toISOString();
+  }
+  return null;
 }
