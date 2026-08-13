@@ -149,6 +149,7 @@
   width: auto;
   align-items: flex-start;
   text-align: left;
+  padding: $sp-4;
 }
 
 // ── Add client modal ───────────────────────────────────────
@@ -590,6 +591,7 @@
 
 // ── Mobile ────────────────────────────────────────────────
 @include bp(lt-s) {
+
   .clientRow,
   .stubRow {
     padding: $sp-3 $sp-4;

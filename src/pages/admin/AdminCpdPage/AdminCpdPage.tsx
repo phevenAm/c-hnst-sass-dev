@@ -241,7 +241,7 @@ export default function AdminCpdPage() {
   return (
     <div className="page">
       <div className={`inner ${styles.page}`}>
-        <div className={styles.header}>
+        <div className={styles.header} id="cpd-header">
           <div>
             <h1 className={styles.title}>CPD Log</h1>
             <p className={styles.sub}>Track your continuing professional development activities</p>
@@ -261,7 +261,7 @@ export default function AdminCpdPage() {
         </div>
 
         {/* Annual progress */}
-        <Card className={styles.progressCard}>
+        <Card className={styles.progressCard} id="cpd-progress">
           <div className={styles.progressHeader}>
             <span className={styles.progressLabel}>
               {currentYear} progress — <strong>{hoursLogged.toFixed(1)} hrs</strong> of{" "}
@@ -284,7 +284,7 @@ export default function AdminCpdPage() {
         </Card>
 
         {/* Filter tabs */}
-        <div className={styles.filters}>
+        <div className={styles.filters} id="cpd-filters">
           {(["all", ...standardFilterTypes, ...(hasGenericOther ? ["other"] : [])] as const).map((t) => (
             <button
               key={t}

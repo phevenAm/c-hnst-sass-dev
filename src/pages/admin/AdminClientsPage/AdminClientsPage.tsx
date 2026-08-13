@@ -374,7 +374,7 @@ export default function AdminClientsPage() {
   return (
     <div className="page">
       <div className="inner">
-        <div className={styles.pageHeader}>
+        <div className={styles.pageHeader} id="clients-header">
           <div>
             <h1>Clients</h1>
             <p>
@@ -409,12 +409,12 @@ export default function AdminClientsPage() {
         </HideableSection>
 
         <Card>
-          {allClients.length === 0 ? (
+          {allClients.length === 0 && unlinkedStubs.length === 0 ? (
             <div className={styles.freshAccount}>
               <p>
                 No clients on the platform yet. Create an access token and share it with a client so they can sign up.
               </p>
-              <Button onClick={() => setShowTokenModal(true)}>Create access token</Button>
+              {/* <Button onClick={() => setShowTokenModal(true)}>Create access token</Button> */}
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
