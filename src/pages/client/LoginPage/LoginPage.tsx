@@ -186,7 +186,8 @@ export default function LoginPage() {
   // listener below catches PKCE-flow recovery (async exchange, fires after mount).
   const [resetMode, setResetMode] = useState(() => {
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    return hashParams.get("type") === "recovery";
+    const queryParams = new URLSearchParams(window.location.search);
+    return hashParams.get("type") === "recovery" || queryParams.get("type") === "recovery";
   });
 
   useEffect(() => {
