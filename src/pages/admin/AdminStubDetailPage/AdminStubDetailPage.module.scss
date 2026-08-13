@@ -478,6 +478,66 @@
   line-height: 1.5;
 }
 
+// ── Surveys ───────────────────────────────────────────────────
+.assignFormRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  margin-bottom: $sp-5;
+  flex-wrap: wrap;
+}
+
+.assignSelect {
+  flex: 1;
+  min-width: 0;
+  padding: $sp-2 $sp-3;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+
+  &:focus {
+    border-color: var(--border-focus);
+  }
+}
+
+.formList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.formItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  padding: $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+}
+
+.formTitle {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 $sp-1;
+}
+
+.formMeta {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 // ── Link modal ───────────────────────────────────────────────
 .linkField {
   display: flex;
