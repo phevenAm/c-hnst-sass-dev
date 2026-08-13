@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 
+import { csvToIso } from "@Helpers/sessionDate";
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
@@ -23,7 +24,7 @@ export const SESSION_HEADERS = [
   "amount_paid",
   "currency",
   "session_notes",
-  "code",
+  "reference_code",
   "location",
 ];
 
@@ -37,7 +38,8 @@ const CLIENT_INSTRUCTIONS = [
 const SESSION_INSTRUCTIONS = [
   "# SESSIONS — one row per session. client_id must match a row in clients.csv.",
   "# session_date: YYYY-MM-DD  |  session_time: HH:MM  |  status: attended / scheduled / no_show / cancelled",
-  "# amount_paid: pounds (e.g. 85.00)  |  currency: GBP / USD / EUR  |  code: optional promo code",
+  "# amount_paid: pounds (e.g. 85.00)  |  currency: GBP / USD / EUR",
+  "# reference_code: optional session ID (e.g. S-001)  |  location: optional address or meeting link",
   "#",
 ];
 
@@ -48,10 +50,10 @@ const CLIENT_ROWS = [
 ];
 
 const SESSION_ROWS = [
-  ["1", "2026-05-01", "10:00", "60", "attended", "85.00", "GBP", "Good progress this week.", ""],
-  ["1", "2026-05-08", "10:00", "60", "attended", "85.00", "GBP", "", ""],
-  ["1", "2026-05-15", "10:00", "60", "no_show", "", "GBP", "Cancelled last minute.", ""],
-  ["2", "2026-05-10", "14:00", "50", "attended", "70.00", "GBP", "", "PROMO10"],
+  ["1", "2026-05-01", "10:00", "60", "attended", "85.00", "GBP", "Good progress this week.", "", ""],
+  ["1", "2026-05-08", "10:00", "60", "attended", "85.00", "GBP", "", "", ""],
+  ["1", "2026-05-15", "10:00", "60", "no_show", "", "GBP", "Cancelled last minute.", "", ""],
+  ["2", "2026-05-10", "14:00", "50", "attended", "70.00", "GBP", "", "S-001", "15 London Rd"],
 ];
 
 function csvEscape(v: string) {
@@ -136,7 +138,8 @@ type ParsedSession = {
   amount_paid: string;
   currency: string;
   session_notes: string;
-  code: string;
+  reference_code: string;
+  location: string;
 };
 
 type ImportResult = {
@@ -232,7 +235,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
           amount_paid: idx("amount_paid"),
           currency: idx("currency"),
           session_notes: idx("session_notes"),
-          code: idx("code"),
+          reference_code: idx("reference_code"),
+          location: idx("location"),
         };
         if (col.csvClientId === -1 || col.session_date === -1) {
           setParseError("Sessions CSV must have client_id and session_date columns.");
@@ -249,7 +253,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
             amount_paid: get(row, col.amount_paid),
             currency: get(row, col.currency),
             session_notes: get(row, col.session_notes),
-            code: get(row, col.code),
+            reference_code: get(row, col.reference_code),
+            location: get(row, col.location),
           }))
           .filter((r) => r.session_date);
         setSessions(parsed);
@@ -303,8 +308,13 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         );
         continue;
       }
-      const time = session.session_time || "09:00";
-      const scheduled_at = new Date(`${session.session_date}T${time}:00`).toISOString();
+      const scheduled_at = csvToIso(session.session_date, session.session_time || "09:00");
+      if (!scheduled_at) {
+        errors.push(
+          `Session for client "${session.csvClientId}": invalid date "${session.session_date}" — use YYYY-MM-DD format.`,
+        );
+        continue;
+      }
       const status = ["attended", "scheduled", "no_show", "cancelled"].includes(session.status)
         ? session.status
         : "attended";
@@ -318,7 +328,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         amount_paid: session.amount_paid ? Number(session.amount_paid) : null,
         currency: session.currency || "GBP",
         notes: session.session_notes || null,
-        code: session.code || null,
+        code: session.reference_code || null,
+        location: session.location || null,
       });
 
       if (sessErr) {
