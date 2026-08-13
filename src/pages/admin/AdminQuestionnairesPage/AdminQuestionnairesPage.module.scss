@@ -322,6 +322,15 @@
   strong { color: var(--text-primary); font-weight: 600; }
 }
 
+.sectionLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: $sp-4 0 $sp-2;
+}
+
 .clientList {
   list-style: none;
   margin: 0 0 $sp-2;
