@@ -171,31 +171,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(message);
       }
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: meta,
-        },
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        throw signUpError;
-      }
-
-      // Auto-confirm email — invite email is proof the address is valid
-      await supabase.functions.invoke("auto-confirm-signup", {
-        body: { user_id: signUpData.user!.id, access_token: cleanedToken },
-      });
-
-      // Hold ProtectedRoute behind a spinner until the token is consumed and
-      // the stub merge is complete — prevents the dashboard from fetching
-      // sessions before they've been imported.
+      // Set the spinner flag BEFORE signUp() — the Supabase project has
+      // email auto-confirm enabled, so signUp() immediately signs the user in
+      // and fires onAuthStateChange. If we wait until after, the dashboard
+      // can mount and fetch 0 sessions before the stub merge runs.
       setIsFinishingSignup(true);
       try {
-        // Sign in first so auth.uid() is set when consume_platform_access_token
-        // runs — the RPC uses auth.uid() to write admin_id onto the user row
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: meta,
+          },
+        });
+
+        if (signUpError) {
+          setError(signUpError.message);
+          throw signUpError;
+        }
+
+        // Auto-confirm email — invite email is proof the address is valid
+        await supabase.functions.invoke("auto-confirm-signup", {
+          body: { user_id: signUpData.user!.id, access_token: cleanedToken },
+        });
+
+        // Sign in so auth.uid() is set when consume_platform_access_token runs
         await supabase.auth.signInWithPassword({ email, password });
 
         const { data: tokenConsumed, error: consumeTokenError } = await supabase.rpc("consume_platform_access_token", {
