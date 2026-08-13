@@ -561,14 +561,18 @@ const SettingsPage = () => {
             <Card className={styles.card}>
               <section className={styles.businessSection}>
                 <h2>Session automation</h2>
-                <p>Automatically manage sessions where payment hasn't been received.</p>
+                <p>
+                  Off by default. When enabled, any session that remains unpaid past the cutoff date is{" "}
+                  <strong>automatically cancelled</strong> and a{" "}
+                  <strong>cancellation email is sent to the client</strong>.
+                </p>
                 <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
                     <strong>Auto-cancel unpaid sessions</strong>
                     <span>
                       {autoCancelEnabled
-                        ? "When a session is still unpaid after the cutoff period, it is automatically cancelled and the client is sent a cancellation email."
-                        : "Off by default — enable to automatically cancel sessions when payment isn't received by the cutoff date."}
+                        ? "On — sessions will be cancelled and clients emailed when payment is missed."
+                        : "Off — no sessions will be automatically cancelled."}
                     </span>
                   </span>
                   <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
