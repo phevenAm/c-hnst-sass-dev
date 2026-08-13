@@ -183,7 +183,7 @@ export type SessionBlockMeta = {
   block_start: string;
 };
 
-export type Session = Tables<"sessions">;
+export type Session = Tables<"sessions"> & { send_reminders?: boolean };
 
 export type RescheduleRequest = {
   id: string;
@@ -272,5 +272,6 @@ export type StubSession = {
   currency: string;
   notes: string | null;
   code: string | null;
+  location: string | null;
   created_at: string;
 };

@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
     .select("id, scheduled_at, duration_minutes, paid, location, client_id")
     .gte("scheduled_at", new Date(now).toISOString())
     .lte("scheduled_at", broadTo)
-    .eq("status", "scheduled");
+    .eq("status", "scheduled")
+    .eq("send_reminders", true);
 
   if (sessionsError) {
     return new Response(JSON.stringify({ error: sessionsError.message }), { status: 500 });
