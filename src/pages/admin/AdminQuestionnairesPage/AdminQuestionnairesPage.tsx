@@ -454,7 +454,6 @@ function AssignModal({
       await supabase.from("questionnaire_assignments").insert({
         questionnaire_id: questionnaire.id,
         stub_id: stubId,
-        admin_id: userProfile?.id,
       });
       setStubAssignedIds((prev) => new Set([...prev, stubId]));
     }
