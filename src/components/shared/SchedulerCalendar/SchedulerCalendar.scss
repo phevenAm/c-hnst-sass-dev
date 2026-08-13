@@ -99,7 +99,7 @@
 
   // Client calendar: darken time slots outside the admin's availability windows.
   .rbc-time-slot.cal-slot-blocked {
-    background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 22%, transparent);
   }
 
   // ─── react-big-calendar theme overrides ─────────────────

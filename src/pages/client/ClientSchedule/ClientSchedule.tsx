@@ -85,17 +85,27 @@ const ClientSchedule = () => {
     [calDate, rules, overrides, mySessions],
   );
 
-  // Darken time slots that fall outside the admin's availability windows so
-  // clients can clearly see when sessions can be booked.
+  // Darken time slots that fall outside the admin's availability windows.
+  // Slots covered by a booked session stay ungreyed even if outside availability.
   const slotPropGetter = useCallback(
     (slotDate: Date) => {
       const windows = bookableWindowsForDate(slotDate, rules, overrides);
       const isAvailable = windows.some(
         (w) => slotDate.getTime() >= w.start.getTime() && slotDate.getTime() < w.end.getTime(),
       );
-      return isAvailable ? {} : { className: "cal-slot-blocked" };
+      if (isAvailable) return {};
+
+      const slotMs = slotDate.getTime();
+      const hasSession = mySessions.some((s) => {
+        if (s.status === "cancelled") return false;
+        const start = new Date(s.scheduled_at).getTime();
+        const end = start + (s.duration_minutes ?? 50) * 60_000;
+        return slotMs >= start && slotMs < end;
+      });
+
+      return hasSession ? {} : { className: "cal-slot-blocked" };
     },
-    [rules, overrides],
+    [rules, overrides, mySessions],
   );
 
   const guard = isPageStatusLoading(sessionStatus);
