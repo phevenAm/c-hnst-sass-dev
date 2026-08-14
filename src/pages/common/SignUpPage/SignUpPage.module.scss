@@ -24,6 +24,9 @@
   max-width: 420px;
   position: relative;
   z-index: 2;
+  height: 100%;
+  display: grid;
+  place-content: center;
 }
 
 .photoCredit {

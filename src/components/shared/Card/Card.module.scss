@@ -1,7 +1,8 @@
 @use '../../../styles/mixins' as *;
 
 .card {
-  @include glass();
+  // @include glass();
+  background-color: var(--bg-card);
   border-radius: var(--r-lg);
   height: 100%;
   transition: box-shadow var(--transition-base);
