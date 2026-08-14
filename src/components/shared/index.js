@@ -16,6 +16,8 @@ export {
   CheckIcon,
   ChevronDown,
   ClarityLogoMark,
+  IdeasIcon,
+  PollsIcon,
   ClipboardIcon,
   CloseIcon,
   CopyIcon,

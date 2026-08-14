@@ -16,7 +16,9 @@ import InsertLinkOutlinedIcon from "@mui/icons-material/InsertLinkOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
+import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
 import Lottie from "lottie-react";
 
@@ -43,7 +45,7 @@ export const ArticleIcon = () => (
     <polyline points="10 9 9 9 8 9" />
   </svg>
 );
-
+export const IdeasIcon = () => <TipsAndUpdatesOutlinedIcon />;
 export const VideoIcon = () => (
   <svg
     width="20"
@@ -98,6 +100,8 @@ export const FormsIcon = () => (
     <line x1="8" y1="17" x2="16" y2="17" />
   </svg>
 );
+
+export const PollsIcon = () => <PollOutlinedIcon />;
 
 export const ClipboardIcon = () => (
   <svg
@@ -237,24 +241,31 @@ export const SupervisionLogoMark = () => (
   </svg>
 );
 
-export const LeafLogoMark = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    role="img"
-    aria-label="Clarity"
-  >
-    <path d="M12 22V12" />
-    <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
-    <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
-  </svg>
-);
+export const LeafLogoMark = ({ size = 28, color }: { size?: number; color?: string }) => {
+  const themeMode = useAppSelector(selectThemeMode);
+
+  const colorValue = color ?? (themeMode === "dark" ? "var(--bg-base)" : "var(--text-primary)");
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label="Clarity"
+      style={{ color: colorValue }}
+    >
+      <path d="M12 22V12" />
+      <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+      <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
+    </svg>
+  );
+};
 
 export const LeafLottieLogoMark = ({ size = 48 }: { size?: number }) => {
   const themeMode = useAppSelector(selectThemeMode);
