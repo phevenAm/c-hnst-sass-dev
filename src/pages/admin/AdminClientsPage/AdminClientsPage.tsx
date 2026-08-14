@@ -411,10 +411,11 @@ export default function AdminClientsPage() {
         <Card>
           {allClients.length === 0 && unlinkedStubs.length === 0 ? (
             <div className={styles.freshAccount}>
-              <p>
-                No clients on the platform yet. Create an access token and share it with a client so they can sign up.
-              </p>
-              {/* <Button onClick={() => setShowTokenModal(true)}>Create access token</Button> */}
+              <h3>No clients yet</h3>
+              <p>Create an access token invite someone to your practice, or add an offline client below.</p>
+              <Button variant="ghost" onClick={() => setCreateStubOpen(true)}>
+                Add offline client
+              </Button>
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>

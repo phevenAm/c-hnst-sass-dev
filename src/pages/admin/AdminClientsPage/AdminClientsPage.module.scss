@@ -145,12 +145,26 @@
 .freshAccount {
   display: flex;
   flex-direction: column;
-  gap: $sp-4;
+  gap: $sp-3;
   width: auto;
   align-items: flex-start;
   text-align: left;
-  padding: $sp-4;
+  padding: $sp-6;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
 }
+
 
 // ── Add client modal ───────────────────────────────────────
 .overlay {

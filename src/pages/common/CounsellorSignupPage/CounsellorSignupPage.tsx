@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import AdminTermsAndConditionsModal from "@components/shared/AdminTermsAndConditionsModal/AdminTermsAndConditionsModal";
 
+import AdminTermsAndConditionsModal from "@components/shared/AdminTermsAndConditionsModal/AdminTermsAndConditionsModal";
 import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
