@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdminTermsAndConditionsModal from "@components/shared/AdminTermsAndConditionsModal/AdminTermsAndConditionsModal";
 
 import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
@@ -39,6 +40,42 @@ export default function CounsellorSignupPage() {
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+
+  const termsCheckbox = (insideModal: boolean) => {
+    return (
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          className={styles.checkbox}
+          checked={agreed}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            setAgreed(checked);
+            if (checked && insideModal) setIsTermsModalOpen(false);
+          }}
+        />
+        <span>
+          I have read and agree to the{" "}
+          {!insideModal ? (
+            <Link
+              onClick={(e) => {
+                e.preventDefault();
+
+                setIsTermsModalOpen(true);
+              }}
+              className={styles.link}
+              target="_blank"
+            >
+              Terms &amp; Conditions
+            </Link>
+          ) : (
+            "  Terms & Conditions"
+          )}
+        </span>
+      </label>
+    );
+  };
 
   useEffect(() => {
     if (!loading && isAuthenticated) navigate("/admin", { replace: true });
@@ -121,134 +158,127 @@ export default function CounsellorSignupPage() {
   }
 
   return (
-    <main className={`${styles.page} page`}>
-      <ImageBlurBlock
-        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
-        photographer="Amirali Shaghaghi"
-        sourceLabel="Pexels"
-        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
-      />
-      <div className={`${styles.container} container`}>
-        <div className={styles.logoWrap}>
-          <LeafLogoMark size={48} />
-          <div className={styles.logoText}>
-            <h1 className={styles.logoTitle}>Clarity</h1>
-            <p className={styles.logoSub}>Register your practice</p>
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <div className={styles.stepDots} aria-label={`Step ${step} of 2`}>
-            <div className={`${styles.stepDot} ${step >= 1 ? styles.stepDotActive : ""}`} />
-            <div className={`${styles.stepDot} ${step >= 2 ? styles.stepDotActive : ""}`} />
-          </div>
-
-          <h2 className={styles.heading}>{step === 1 ? "About your practice" : "Your account"}</h2>
-
-          {error && (
-            <div role="alert" className={styles.error}>
-              {error}
+    <>
+      <main className={`${styles.page} page`}>
+        <ImageBlurBlock
+          imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
+          photographer="Amirali Shaghaghi"
+          sourceLabel="Pexels"
+          creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
+        />
+        <div className={`${styles.container} container`}>
+          <div className={styles.logoWrap}>
+            <LeafLogoMark size={48} />
+            <div className={styles.logoText}>
+              <h1 className={styles.logoTitle}>Clarity</h1>
+              <p className={styles.logoSub}>Register your practice</p>
             </div>
-          )}
+          </div>
 
-          {step === 1 ? (
-            <form onSubmit={handleContinue} noValidate>
-              <div className={styles.formGrid}>
-                {STEP1_FIELDS.map(({ id, label, type }) => (
-                  <div
-                    key={id}
-                    className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
+          <div className={styles.card}>
+            <div className={styles.stepDots} aria-label={`Step ${step} of 2`}>
+              <div className={`${styles.stepDot} ${step >= 1 ? styles.stepDotActive : ""}`} />
+              <div className={`${styles.stepDot} ${step >= 2 ? styles.stepDotActive : ""}`} />
+            </div>
+
+            <h2 className={styles.heading}>{step === 1 ? "About your practice" : "Your account"}</h2>
+
+            {error && (
+              <div role="alert" className={styles.error}>
+                {error}
+              </div>
+            )}
+
+            {step === 1 ? (
+              <form onSubmit={handleContinue} noValidate>
+                <div className={styles.formGrid}>
+                  {STEP1_FIELDS.map(({ id, label, type }) => (
+                    <div
+                      key={id}
+                      className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
+                    >
+                      <label htmlFor={id} className={styles.label}>
+                        {label}
+                      </label>
+                      <input
+                        id={id}
+                        type={type}
+                        value={form[id]}
+                        onChange={(e) => set(id, e.target.value)}
+                        required
+                        className={styles.input}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button type="submit" disabled={!step1Valid} className={styles.submitBtn}>
+                  Continue
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} noValidate>
+                <div className={styles.formGrid}>
+                  {STEP2_FIELDS.map(({ id, label, type }) => (
+                    <div key={id} className={`${styles.field} ${styles.fieldFull}`}>
+                      <label htmlFor={id} className={styles.label}>
+                        {label}
+                      </label>
+                      <input
+                        id={id}
+                        type={type}
+                        value={form[id]}
+                        onChange={(e) => set(id, e.target.value)}
+                        required
+                        className={styles.input}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {termsCheckbox()}
+
+                <div className={styles.stepNav}>
+                  <button
+                    type="button"
+                    className={styles.backBtn}
+                    onClick={() => {
+                      setError("");
+                      setStep(1);
+                    }}
                   >
-                    <label htmlFor={id} className={styles.label}>
-                      {label}
-                    </label>
-                    <input
-                      id={id}
-                      type={type}
-                      value={form[id]}
-                      onChange={(e) => set(id, e.target.value)}
-                      required
-                      className={styles.input}
-                    />
-                  </div>
-                ))}
-              </div>
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || !agreed || !form.email || !form.password || !form.confirm}
+                    className={styles.stepSubmitBtn}
+                  >
+                    {submitting ? "Creating account…" : "Create account"}
+                  </button>
+                </div>
+              </form>
+            )}
 
-              <button type="submit" disabled={!step1Valid} className={styles.submitBtn}>
-                Continue
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmit} noValidate>
-              <div className={styles.formGrid}>
-                {STEP2_FIELDS.map(({ id, label, type }) => (
-                  <div key={id} className={`${styles.field} ${styles.fieldFull}`}>
-                    <label htmlFor={id} className={styles.label}>
-                      {label}
-                    </label>
-                    <input
-                      id={id}
-                      type={type}
-                      value={form[id]}
-                      onChange={(e) => set(id, e.target.value)}
-                      required
-                      className={styles.input}
-                    />
-                  </div>
-                ))}
-              </div>
+            <p className={styles.processNote}>
+              {step === 1
+                ? "You'll set up login details on the next step."
+                : "Check your email for a confirmation link — once confirmed, pick a plan."}
+            </p>
 
-              <label className={styles.checkboxRow}>
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                />
-                <span>
-                  I agree to the{" "}
-                  <Link to="/terms" className={styles.link}>
-                    Terms &amp; Conditions
-                  </Link>
-                </span>
-              </label>
-
-              <div className={styles.stepNav}>
-                <button
-                  type="button"
-                  className={styles.backBtn}
-                  onClick={() => {
-                    setError("");
-                    setStep(1);
-                  }}
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !agreed || !form.email || !form.password || !form.confirm}
-                  className={styles.stepSubmitBtn}
-                >
-                  {submitting ? "Creating account…" : "Create account"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          <p className={styles.processNote}>
-            {step === 1
-              ? "You'll set up login details on the next step."
-              : "Check your email for a confirmation link — once confirmed, pick a plan."}
-          </p>
-
-          <p className={styles.footer}>
-            Already have an account?{" "}
-            <Link to="/login" className={styles.link}>
-              Sign in
-            </Link>
-          </p>
+            <p className={styles.footer}>
+              Already have an account?{" "}
+              <Link to="/login" className={styles.link}>
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {isTermsModalOpen && (
+        <AdminTermsAndConditionsModal action={termsCheckbox(true)} onClose={() => setIsTermsModalOpen(false)} />
+      )}
+    </>
   );
 }

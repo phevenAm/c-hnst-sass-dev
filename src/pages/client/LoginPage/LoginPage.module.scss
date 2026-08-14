@@ -50,16 +50,20 @@
   gap: $sp-3;
   margin-bottom: $sp-5;
   padding: $sp-3;
-  border-radius: var(--r-lg);
-  background-color: #937a7a4a;
-  color: var(--text-inverse) !important;
-  transform: translateX(42px);
-  fill: var(--text-inverse) !important;
-  stroke: var(--text-inverse) !important;
+  // border-radius: var(--r-lg);
+  // background-color: #937a7a4a;
+  // color: var(--text-inverse) !important;
+  // transform: translateX(42px);
 
-  backdrop-filter: blur(10px);
-  padding-right: $sp-5;
-  margin-left: $sp-5;
+
+  // backdrop-filter: blur(10px);
+  // padding-right: $sp-5;
+  // margin-left: $sp-5;
+
+  @media screen and (max-width: 800px) {
+    fill: white !important;
+    stroke: white !important;
+  }
 }
 
 .logoText {
