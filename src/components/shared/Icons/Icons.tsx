@@ -244,7 +244,7 @@ export const SupervisionLogoMark = () => (
 export const LeafLogoMark = ({ size = 28, color }: { size?: number; color?: string }) => {
   const themeMode = useAppSelector(selectThemeMode);
 
-  const colorValue = color ?? (themeMode === "dark" ? "var(--bg-base)" : "var(--text-primary)");
+  const colorValue = color ?? (themeMode === "dark" ? "var(--text-primary)" : "var(--text-primary)");
 
   return (
     <svg

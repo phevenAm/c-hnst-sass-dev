@@ -6,64 +6,64 @@
 
 // ── Brand palette ──────────────────────────────────────────
 $teal-900: #1a3a35;
-$teal-800: #1f4940;   // primary accent
-$teal-700: #235c50;   // hover states
-$teal-600: #2d7264;   // links, active nav — 5.2:1 on white (AA)
+$teal-800: #1f4940; // primary accent
+$teal-700: #235c50; // hover states
+$teal-600: #2d7264; // links, active nav — 5.2:1 on white (AA)
 $teal-500: #3a8f7e;
-$teal-400: #5aaa99;   // dark-mode accent hover
-$teal-300: #8ecfc3;   // dark-mode accent
-$teal-200: #bfe5df;   // borders
-$teal-100: #dff2ef;   // accent-light bg
-$teal-50:  #f0f9f7;   // subtle bg
+$teal-400: #5aaa99; // dark-mode accent hover
+$teal-300: #8ecfc3; // dark-mode accent
+$teal-200: #bfe5df; // borders
+$teal-100: #dff2ef; // accent-light bg
+$teal-50: #f0f9f7; // subtle bg
 
-$warm-900: #2d2520;   // body text — contrast 14:1 on white
-$warm-800: #3d3530;   // headings
-$warm-700: #5c4f48;   // secondary text — 7:1 on white (AAA)
-$warm-600: #7a6e67;   // captions — 4.5:1 on white (AA)
-$warm-500: #9e9490;   // placeholders — 3:1 on white (AA large)
-$warm-400: #bfb8b4;   // disabled
-$warm-200: #e5e0dc;   // borders
+$warm-900: #2d2520; // body text — contrast 14:1 on white
+$warm-800: #3d3530; // headings
+$warm-700: #5c4f48; // secondary text — 7:1 on white (AAA)
+$warm-600: #7a6e67; // captions — 4.5:1 on white (AA)
+$warm-500: #9e9490; // placeholders — 3:1 on white (AA large)
+$warm-400: #bfb8b4; // disabled
+$warm-200: #e5e0dc; // borders
 $warm-100: rgb(245, 245, 238); // light backgrounds
-$warm-50:  #fcfcfc;   // page background
+$warm-50: #fcfcfc; // page background
 
-$ivory: #fffdf9;      // card backgrounds
+$ivory: #fffdf9; // card backgrounds
 
 // ── Semantic aliases ───────────────────────────────────────
-$color-accent:        $teal-600;
-$color-accent-dark:   $teal-800;
-$color-accent-light:  $teal-100;
+$color-accent: $teal-600;
+$color-accent-dark: $teal-800;
+$color-accent-light: $teal-100;
 $color-accent-subtle: $teal-50;
 
-$color-text-primary:   $warm-900;  // 14:1 on white — AAA
-$color-text-secondary: $warm-700;  // 7:1 on white — AAA
-$color-text-muted:     $warm-600;  // 4.5:1 on white — AA
-$color-text-disabled:  $warm-400;
-$color-text-inverse:   #ffffff;
+$color-text-primary: $warm-900; // 14:1 on white — AAA
+$color-text-secondary: $warm-700; // 7:1 on white — AAA
+$color-text-muted: $warm-600; // 4.5:1 on white — AA
+$color-text-disabled: $warm-400;
+$color-text-inverse: #ffffff;
 
-$color-bg-base:    $warm-50;
-$color-bg-card:    $ivory;
-$color-bg-muted:   $warm-100;
+$color-bg-base: whitesmoke; //$warm-50;
+$color-bg-card: $ivory;
+$color-bg-muted: $warm-100;
 $color-bg-overlay: rgba(#fffdf9, 0.92);
 
-$color-border:       $warm-200;
+$color-border: $warm-200;
 $color-border-focus: $teal-600;
 
-$color-danger:        #b91c1c;     // 5.9:1 on white — AA
-$color-danger-light:  #fef2f2;
+$color-danger: #b91c1c; // 5.9:1 on white — AA
+$color-danger-light: #fef2f2;
 $color-danger-border: #fca5a5;
 
 $color-success: $teal-800;
-$color-warning: #92400e;           // 6.2:1 on white — AA
+$color-warning: #92400e; // 6.2:1 on white — AA
 $color-warning-light: #fffbeb;
 
 // ── Dark mode overrides ────────────────────────────────────
 // Applied via .dark class on <html>
-$dark-bg-base:        #0f1f1c;
-$dark-bg-card:        #162622;
-$dark-bg-muted:       #1c3330;
-$dark-text-primary:   #ecf5f3;
+$dark-bg-base: #0f1f1c;
+$dark-bg-card: #162622;
+$dark-bg-muted: #1c3330;
+$dark-text-primary: #ecf5f3;
 $dark-text-secondary: #a8c8c2;
-$dark-text-muted:     #6fa49c;
-$dark-border:         #254f49;
-$dark-accent:         $teal-300;  // pops on dark
-$dark-accent-light:   #1a3d38;
+$dark-text-muted: #6fa49c;
+$dark-border: #254f49;
+$dark-accent: $teal-300; // pops on dark
+$dark-accent-light: #1a3d38;

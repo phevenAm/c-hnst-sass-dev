@@ -113,7 +113,16 @@ test.describe("Client pages", () => {
     await page.close();
   });
 
-  for (const path of ["/dashboard", "/check-in", "/resources", "/my-sessions", "/settings"]) {
+  for (const path of [
+    "/dashboard",
+    "/forms",
+    "check-in",
+    "/payments",
+    "/admin/resources",
+    "/resources",
+    "/my-sessions",
+    "/settings",
+  ]) {
     test(path, async () => {
       await page.goto(BASE + path, { waitUntil: "networkidle" });
       await checkA11y(page, path);

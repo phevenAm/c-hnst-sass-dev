@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
 
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
+  const sessionsStatus = useAppSelector((state: RootState) => state.sessions.status);
   const dispatch = useAppDispatch();
 
   useFetchOnIdle(
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
   const revenueData = useMemo(() => revenueByMonth(allSessions, 6), [allSessions]);
   const sessionVolumeData = useMemo(() => sessionsByWeek(allSessions, 8), [allSessions]);
 
-  const guard = isPageStatusLoading(usersStatus);
+  const guard = isPageStatusLoading(usersStatus, sessionsStatus);
   if (guard) return guard;
 
   return (
