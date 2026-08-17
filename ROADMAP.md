@@ -354,8 +354,8 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | a350a3ca | admin gets no email when shadow client joins | 2.3 | Open |
 | fac84c8f | newly created account from offline can't see assigned sessions | 2.3 | Open |
 | f75e57e4 | offline client UX same as online (paid, attended, etc.) | 2.1 | Open |
-| c6fa915f | auto-cancellation should use Unpaid session cutoff setting | 2.7 | Open |
-| d41546eb | allow therapist to configure session cutoff | 2.7 | Open |
+| c6fa915f | auto-cancellation should use Unpaid session cutoff setting | 2.7 | Fixed 2026-08-17 (migration 20260817000001) |
+| d41546eb | allow therapist to configure session cutoff | 2.7 | Fixed 2026-08-17 (auto_cancel_enabled respected) |
 | 017c15ae | Sidebar menu missing Logs on mobile | 6.2 | Open |
 | 7e73ad3a | drag and drop doesn't work on touchscreens | 6.4 | Open |
 | 1f7662d0 | offline client notes not encrypted; other PII not encrypted | Phase 1/2 | Open |
@@ -375,11 +375,11 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | 9abdaba2 | allow sorting todos by priority | 6.8 | Open |
 | 0d367a69 | bulk delete completed todos | 6.8 | Open |
 | 5772217a | todo date input field leaks | 6.8 | Open |
-| dc9ffd57 | activity log doesn't track much | 7.3 | Open |
+| dc9ffd57 | activity log doesn't track much | 7.3 | Fixed 2026-08-17 (DB triggers on 9 tables, migration 20260817000002) |
 | 3a45855e | supervision calendar form broken | 7.9 | Open |
 | ef827447 | image compression edge function does nothing | 6.12 | Open |
 | c5aa4475 | app getting slow; consider code splitting | 7.1 | Open |
-| 1d69c6eb | change app name to Clarity | 8.1 | Open |
+| 1d69c6eb | change app name to Clarity | 8.1 | Fixed 2026-08-17 (index.html, manifest, Footer, email templates) |
 | 22c2d953 | add reload button in top bar | 6.10 | Open |
 | 8c1c00e0 | use different/consistent loading spinner | 6.9 | Open |
 | ba1e94b1 | manual payment: client marks paid, admin verifies | 2.6 | Open |
@@ -387,8 +387,8 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | 4e2cf27b | signup flow for connected offline clients broken | 2.3 | Open |
 | cd023206 | todo button oversized on mobile | 6.8 | Open |
 | 5a7b869f | version numbers should update per PR | 7.7 | Open |
-| 8124f803 | shadow client codename should pass to real client | 2.4 | Open |
-| 264b4534 | cutoff cancellation should be optional / opt-in | 2.7 | Open |
+| 8124f803 | shadow client codename should pass to real client | 2.4 | Fixed 2026-08-17 (consume_platform_access_token + merge_stub_to_user, migration 20260817000001) |
+| 264b4534 | cutoff cancellation should be optional / opt-in | 2.7 | Fixed 2026-08-17 (auto_cancel_enabled respected, migration 20260817000001) |
 | a1906686 | email confirmations should not be automatic | 4.3 | Open |
 | ea4e1d40 | move DNS to correct Netlify location | 8.4 | Open |
 | 5f3c9f21 | PDF export lacks useful info | 3.3 | Open |
@@ -398,9 +398,9 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | 54d06491 | add Storybook | 7.4 | Open |
 | dcdce17c | SortableTable column configuration | 7.5 | Open |
 | bed56de8 | sidebar notification badges | 6.13 | Open |
-| a167d7dd | client journalling | 5.4 | Open |
-| 81315453 | crisis contacts for clients | 5.4 | Open |
-| 0f26ec01 | client resource favouriting | 5.4 | Open |
+| a167d7dd | client journalling | 5.4 | DB done 2026-08-17 (journal_entries table, migration 20260817000003) — UI still needed |
+| 81315453 | crisis contacts for clients | 5.4 | Open — static display, no DB needed |
+| 0f26ec01 | client resource favouriting | 5.4 | DB done 2026-08-17 (resource_favourites table, migration 20260817000003) — UI still needed |
 
 ---
 
@@ -433,3 +433,7 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | iCal/.ics export | Done |
 | Email for check-in wrong URL | Fixed 2026-08-16 |
 | Phase 1 — security, password reset, subscription, payment realtime, double-booking | Fixed 2026-08-17 |
+| Phase 2 (DB) — codename carry-across, auto-cancel opt-in, merge_stub_to_user completeness | Fixed 2026-08-17 |
+| Phase 7.3 — audit logging triggers on 9 tables | Fixed 2026-08-17 |
+| Phase 5.4 DB — journal_entries + resource_favourites tables | Fixed 2026-08-17 |
+| Phase 8.1 — Rebrand to Clarity (HTML, manifest, Footer, all email templates) | Fixed 2026-08-17 |
