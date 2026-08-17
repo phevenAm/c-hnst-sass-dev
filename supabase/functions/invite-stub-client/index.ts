@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { emailTemplate, noteBox, para, sendEmail } from "../_shared/email.ts";
+import { emailTemplate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +65,10 @@ Deno.serve(async (req) => {
       para(
         "Use the button below to create your account. Your access token has already been applied — just follow the prompts.",
       ),
+      noteBox(
+        `Access code (in case the button doesn't work): <strong style="font-family:monospace;letter-spacing:0.05em;">${token}</strong><br>` +
+          `Enter it at <a href="${signupUrl}" style="color:#8bb898;">${appUrl}/signup</a>`,
+      ),
     ];
 
     const html = emailTemplate({
@@ -76,12 +80,29 @@ Deno.serve(async (req) => {
         "This invitation was sent by your therapist via Clarity. If you weren't expecting this, you can safely ignore it.",
     });
 
-    await sendEmail({
-      to: email,
-      subject: "You've been invited to Clarity",
-      html,
-      resendKey,
-      fromEmail,
+    const subject = "You've been invited to Clarity";
+    let resendId: string | null = null;
+    try {
+      resendId = await sendEmail({ to: email, subject, html, resendKey, fromEmail });
+    } catch (sendErr: any) {
+      await logEmail(supabase, {
+        adminId: user.id,
+        emailType: "stub_invite",
+        recipientEmail: email,
+        subject,
+        status: "failed",
+        errorMessage: sendErr.message,
+      });
+      throw sendErr;
+    }
+
+    await logEmail(supabase, {
+      adminId: user.id,
+      emailType: "stub_invite",
+      recipientEmail: email,
+      subject,
+      resendEmailId: resendId,
+      status: "sent",
     });
 
     return new Response(JSON.stringify({ ok: true }), {
