@@ -39,10 +39,17 @@ export default function UpdateBanner() {
         A new version is available.
       </span>
       <div className={styles.actions}>
-        <button className={styles.btnLater} onClick={() => setDismissed(true)}>
+        <button type="button" className={styles.btnLater} onClick={() => setDismissed(true)}>
           Later
         </button>
-        <button className={styles.btnUpdate} onClick={() => hardRefresh()}>
+        <button
+          type="button"
+          className={styles.btnUpdate}
+          onClick={() => {
+            hardRefresh();
+            setDismissed(true);
+          }}
+        >
           Update now
         </button>
       </div>
