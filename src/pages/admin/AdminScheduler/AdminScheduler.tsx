@@ -203,13 +203,40 @@ const AdminScheduler = () => {
   const privateEvents = useAppSelector((s) => s.adminPrivateEvents.events);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
 
-  // ----- overview: sessions scoped to the selected client (or all)
+  // Derive whether the current filter refers to an offline client (stub) or a
+  // real client. Values are either "all", a real user UUID, or "stub:<stubId>".
+  const selectedStubId = selectedClientId.startsWith("stub:") ? selectedClientId.slice(5) : null;
+  const isStubSelected = selectedStubId !== null;
+  const isRealClientSelected = !isStubSelected && selectedClientId !== "all";
+
+  // ----- overview: sessions scoped to the selected client (or all).
+  // Stub clients have no rows in the sessions table so their filter returns [].
   const filteredSessions = useMemo(
-    () => (selectedClientId === "all" ? sessions : sessions.filter((s) => s.client_id === selectedClientId)),
-    [sessions, selectedClientId],
+    () =>
+      isStubSelected
+        ? []
+        : selectedClientId === "all"
+          ? sessions
+          : sessions.filter((s) => s.client_id === selectedClientId),
+    [sessions, selectedClientId, isStubSelected],
   );
 
-  // ----- events. The session layer honours the client filter so the calendar
+  // ----- stub sessions scoped to the client filter.
+  // Hidden entirely when a real client is selected; narrowed to one stub when
+  // a stub is selected; otherwise all unlinked stubs show (default "all").
+  const filteredStubSessions = useMemo(
+    () =>
+      allStubSessions.filter((s) => {
+        const stub = allStubs.find((st) => st.id === s.stub_id);
+        if (!stub || stub.linked_user_id) return false;
+        if (isRealClientSelected) return false;
+        if (isStubSelected) return s.stub_id === selectedStubId;
+        return true;
+      }),
+    [allStubSessions, allStubs, isRealClientSelected, isStubSelected, selectedStubId],
+  );
+
+  // ----- events. Both session layers honour the client filter so the calendar
   // matches the overview + history below it; availability windows are
   // practice-wide and always shown.
   const events = useMemo<SchedulerEvent[]>(
@@ -217,16 +244,9 @@ const AdminScheduler = () => {
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
       ...sessionEvents(filteredSessions, users, useCodenames),
-      ...stubSessionEvents(
-        allStubSessions.filter((s) => {
-          const stub = allStubs.find((st) => st.id === s.stub_id);
-          return stub && !stub.linked_user_id;
-        }),
-        allStubs,
-        useCodenames,
-      ),
+      ...stubSessionEvents(filteredStubSessions, allStubs, useCodenames),
     ],
-    [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, allStubSessions, allStubs],
+    [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, filteredStubSessions, allStubs],
   );
 
   // Aggregate counts + payment totals in a single pass. Semantics match the
@@ -454,6 +474,19 @@ const AdminScheduler = () => {
                     {clientDisplayName(c, useCodenames)}
                   </option>
                 ))}
+                {allStubs.filter((s) => !s.linked_user_id).length > 0 && (
+                  <optgroup label="Offline clients">
+                    {allStubs
+                      .filter((s) => !s.linked_user_id)
+                      .map((s) => (
+                        <option key={s.id} value={`stub:${s.id}`}>
+                          {useCodenames
+                            ? s.codename || `${s.first_name} ${s.last_name}`
+                            : `${s.first_name} ${s.last_name}`}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
               </select>
             </label>
           }
@@ -543,7 +576,11 @@ const AdminScheduler = () => {
           storageKey="scheduler:history"
           headerRight={
             <span className={styles.historyMeta}>
-              {selectedClientId === "all" ? "Recent across all clients" : "Recent for this client"}
+              {isStubSelected
+                ? "Session history unavailable for offline clients"
+                : selectedClientId === "all"
+                  ? "Recent across all clients"
+                  : "Recent for this client"}
             </span>
           }
         >

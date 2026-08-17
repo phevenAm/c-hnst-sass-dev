@@ -323,9 +323,8 @@ export default function AdminStubDetailPage() {
       showToast("Failed to link client.", "danger");
     } else {
       dispatch(updateClientStub({ id: stubId, linked_user_id: selectedLinkUserId }));
-      setLinkOpen(false);
-      setSelectedLinkUserId("");
       showToast("Client linked. Notes transferred.");
+      navigate(`/admin/clients/${selectedLinkUserId}`);
     }
     setLinking(false);
   };
