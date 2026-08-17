@@ -151,7 +151,7 @@ This is the largest area. Offline clients ("stubs") and real clients should shar
 
 ### 4.4 Admin email notifications
 
-- ✨ `[TODO: a97d229c]` For every email sent to a client, the admin should receive a copy or a notification so they know what was sent and when. The `email_logs` table already tracks this — surface it in the admin UI (email history section in client page or dedicated log).
+- ✨ `[TODO: a97d229c]` For every email sent to a client, the admin should receive a copy or a notification so they know what was sent and when. The `email_logs` table already tracks this — surface it in the admin UI (email history section in client page or dedicated log). A DB trigger on `email_logs` (migration 20260817000010) now auto-inserts a notification for the admin on every sent email — Stephen needs to surface this in the notifications panel UI.
 
 ### 4.5 Email customisation UX
 
@@ -350,9 +350,9 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | 94929d6b | Marking session as attended doesn't change the pill for PAST sessions | 2.5 | Open |
 | d2957ba6 | stub invite takes you to admin signup; token lost | 4.2 | Open |
 | b8fba132 | after inviting shadow client, they get sent back to signup | 2.3 | Open |
-| 83ebe124 | offline client not assigned to admin; no pre-existing sessions | 2.1/2.3 | Open |
+| 83ebe124 | offline client not assigned to admin; no pre-existing sessions | 2.1/2.3 | Fixed — admin_id stamped by 20260813000004 trigger; sessions imported by 20260817000001 |
 | a350a3ca | admin gets no email when shadow client joins | 2.3 | Fixed 2026-08-13 (migration 20260813000004 — RLS for client to read own linked stub) |
-| fac84c8f | newly created account from offline can't see assigned sessions | 2.3 | Open |
+| fac84c8f | newly created account from offline can't see assigned sessions | 2.3 | DB fixed — sessions imported with client_id=user.id in consume_platform_access_token (20260817000001); may need Redux refresh on client side |
 | f75e57e4 | offline client UX same as online (paid, attended, etc.) | 2.1 | Open |
 | c6fa915f | auto-cancellation should use Unpaid session cutoff setting | 2.7 | Fixed 2026-08-17 (migration 20260817000001) |
 | d41546eb | allow therapist to configure session cutoff | 2.7 | Fixed 2026-08-17 (auto_cancel_enabled respected) |
@@ -442,3 +442,5 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | Phase 2.8 DB — is_within_availability + get_availability_for_date helper RPCs | Done 2026-08-17 |
 | Phase 7.8 — verify_jwt audit: handle-unsubscribe was missing config.toml verify_jwt=false | Fixed 2026-08-17 |
 | Email grammar — "through the Clarity" → "through Clarity" in 8 edge functions | Fixed 2026-08-17 |
+| Phase 4.4 DB — admin notification trigger on email_logs (migration 20260817000010) | Done 2026-08-17 |
+| Phase 2.3 (`83ebe124`, `fac84c8f`) — admin_id stamp + session import now in consume_platform_access_token | Fixed by 20260813000004 + 20260817000001 |
