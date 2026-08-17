@@ -46,6 +46,11 @@ function getResourceName(log: AuditLog): string | null {
   return null;
 }
 
+function formatMoney(pence: number | null | undefined): string {
+  if (!pence) return "";
+  return ` (£${(pence / 100).toFixed(2)})`;
+}
+
 function formatMessage(log: AuditLog): string {
   const actor = log.actor ? [log.actor.first_name, log.actor.last_name].filter(Boolean).join(" ") : "System";
   const name = getResourceName(log);
@@ -57,6 +62,30 @@ function formatMessage(log: AuditLog): string {
       if (log.action === "UPDATE") return `${actor} updated client${q}`;
       if (log.action === "DELETE") return `${actor} deleted client${q}`;
       break;
+    case "client_stubs":
+      if (log.action === "INSERT") return `${actor} added offline client${q}`;
+      if (log.action === "UPDATE") return `${actor} updated offline client${q}`;
+      if (log.action === "DELETE") return `${actor} deleted offline client${q}`;
+      break;
+    case "sessions": {
+      const newStatus = log.new_data?.status as string | undefined;
+      const oldPaid = log.old_data?.paid as boolean | undefined;
+      const newPaid = log.new_data?.paid as boolean | undefined;
+      if (log.action === "INSERT") return `${actor} created a session`;
+      if (log.action === "UPDATE") {
+        if (newStatus === "cancelled") return `${actor} cancelled a session`;
+        if (!oldPaid && newPaid) return `${actor} marked a session as paid`;
+        return `${actor} updated a session`;
+      }
+      if (log.action === "DELETE") return `${actor} deleted a session`;
+      break;
+    }
+    case "payments": {
+      const amount = log.action === "DELETE" ? log.old_data?.amount_pence : log.new_data?.amount_pence;
+      if (log.action === "INSERT") return `${actor} recorded a manual payment${formatMoney(amount as number)}`;
+      if (log.action === "DELETE") return `${actor} removed a payment${formatMoney(amount as number)}`;
+      break;
+    }
     case "questionnaires":
       if (log.action === "INSERT") return `${actor} created check-in${q}`;
       if (log.action === "UPDATE") return `${actor} updated check-in${q}`;
@@ -89,7 +118,9 @@ function formatMessage(log: AuditLog): string {
 
 const FILTERS = [
   { label: "All", tables: null },
-  { label: "Clients", tables: ["users", "session_notes"] },
+  { label: "Clients", tables: ["users", "client_stubs", "session_notes"] },
+  { label: "Sessions", tables: ["sessions"] },
+  { label: "Payments", tables: ["payments"] },
   { label: "Check-ins", tables: ["questionnaires", "questionnaire_assignments"] },
   { label: "Resources", tables: ["resources"] },
   { label: "Tags", tables: ["tags"] },
@@ -104,6 +135,7 @@ export default function AdminAuditLogsPage() {
   const logs = useAppSelector(selectAllAuditLogs);
   const status = useAppSelector(selectAuditLogsStatus);
   const [activeFilter, setActiveFilter] = useState<FilterLabel>("All");
+  const [search, setSearch] = useState("");
 
   useFetchOnIdle(
     (state: RootState) => state.auditLogs.status,
@@ -121,9 +153,11 @@ export default function AdminAuditLogsPage() {
   if (guard) return guard;
 
   const currentFilter = FILTERS.find((f) => f.label === activeFilter)!;
-  const filtered = currentFilter.tables
+  const byTable = currentFilter.tables
     ? logs.filter((log) => (currentFilter.tables as readonly string[]).includes(log.table_name))
     : logs;
+  const q = search.trim().toLowerCase();
+  const filtered = q ? byTable.filter((log) => formatMessage(log).toLowerCase().includes(q)) : byTable;
 
   return (
     <div className="page">
@@ -150,13 +184,25 @@ export default function AdminAuditLogsPage() {
             <button
               key={f.label}
               type="button"
-              onClick={() => setActiveFilter(f.label)}
+              onClick={() => {
+                setActiveFilter(f.label);
+                setSearch("");
+              }}
               className={activeFilter === f.label ? styles.filterBtnActive : styles.filterBtn}
             >
               {f.label}
             </button>
           ))}
         </div>
+
+        <input
+          className={styles.searchInput}
+          type="search"
+          placeholder="Search activity…"
+          value={search}
+          aria-label="Search activity log"
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
         <div className={styles.feed} id="audit-feed">
           {filtered.map((log) => (

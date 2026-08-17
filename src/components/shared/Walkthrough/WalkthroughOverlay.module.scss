@@ -31,6 +31,7 @@ $card-width: 440;
 }
 
 @keyframes spotlightGlow {
+
   0%,
   100% {
     box-shadow:
@@ -291,7 +292,7 @@ $card-width: 440;
 .btnNext {
   @extend %btn-base;
   background: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
 
   &:hover {
     opacity: 0.88;
@@ -351,7 +352,7 @@ $card-width: 440;
 .btnAccept {
   @extend %btn-base;
   background: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
 
   &:hover {
     opacity: 0.88;

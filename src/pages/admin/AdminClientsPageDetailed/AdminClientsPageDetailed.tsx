@@ -160,6 +160,11 @@ export default function AdminClientsPageDetailed() {
 
   useEffect(() => {
     if (!clientId) return;
+    supabase.rpc("record_client_view", { p_type: "user", p_ref: clientId });
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!clientId) return;
     supabase
       .from("questionnaire_assignments")
       .select(

@@ -42,6 +42,24 @@
   &:hover { background: var(--accent-dark); }
 }
 
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: $sp-2 $sp-3;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  outline: none;
+  margin-bottom: $sp-6;
+
+  &:focus {
+    border-color: var(--border-focus);
+  }
+}
+
 .feed {
   display: flex;
   flex-direction: column;

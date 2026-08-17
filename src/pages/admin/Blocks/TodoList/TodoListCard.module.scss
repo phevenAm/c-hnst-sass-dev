@@ -31,18 +31,102 @@
   overflow-y: auto;
 }
 
-.completedSection {
+.controls {
   display: flex;
   flex-direction: column;
-  gap: $sp-3;
-  margin-top: $sp-5;
-  border-top: 1px solid var(--bg-muted);
+  gap: $sp-2;
+  margin-bottom: $sp-4;
+}
 
-  h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    padding-top: $sp-3;
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: $sp-2 $sp-3;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--border-focus);
   }
+}
+
+.sortRow {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.sortBtn {
+  padding: $sp-1 $sp-3;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+}
+
+.sortBtnActive {
+  @extend .sortBtn;
+  background: var(--accent-subtle);
+  color: var(--accent-dark);
+  border-color: transparent;
+}
+
+.noResults {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: $sp-4 0;
+  text-align: center;
+  margin: 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $sp-4;
+  padding-top: $sp-4;
+  border-top: 1px solid var(--border);
+  margin-top: $sp-3;
+}
+
+.pageBtn {
+  padding: $sp-1 $sp-3;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: background var(--transition-base);
+
+  &:hover:not(:disabled) {
+    background: var(--bg-muted);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.pageInfo {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 52px;
+  text-align: center;
 }
