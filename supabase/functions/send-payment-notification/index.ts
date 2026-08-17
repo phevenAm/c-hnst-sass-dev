@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
           { label: "Amount paid", value: `£${pricePounds}` },
         ]),
       cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
-      footerNote: "You received this email because your payment was confirmed through the WithMe portal.",
+      footerNote: "You received this email because your payment was confirmed through the Clarity.",
       unsubscribeUrl,
       counsellorName,
     });

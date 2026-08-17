@@ -4,37 +4,37 @@
 // ============================================================
 
 // ── Families ───────────────────────────────────────────────
-// Cormorant Garamond: elegant serif matching Abide's refined tone
+// Cormorant Garamond: elegant serif matching Clarity's refined tone
 // Inter: clean, highly readable sans-serif for UI
 $font-serif: 'Cormorant Garamond', 'Georgia', serif;
-$font-sans:  'Inter', 'system-ui', sans-serif;
+$font-sans: 'Inter', 'system-ui', sans-serif;
 
 // ── Weights ────────────────────────────────────────────────
-$weight-light:    300;
-$weight-regular:  400;
-$weight-medium:   500;
+$weight-light: 300;
+$weight-regular: 400;
+$weight-medium: 500;
 $weight-semibold: 600;
-$weight-bold:     700;
+$weight-bold: 700;
 
 // ── Type scale (1.250 Major Third) ────────────────────────
-$text-xs:   0.64rem;   //  ~10px
-$text-sm:   0.8rem;    //  ~13px
-$text-base: 1rem;      //  16px
-$text-md:   1.125rem;  //  18px
-$text-lg:   1.25rem;   //  20px
-$text-xl:   1.563rem;  //  25px
-$text-2xl:  1.953rem;  //  31px
-$text-3xl:  2.441rem;  //  39px
+$text-xs: 0.64rem; //  ~10px
+$text-sm: 0.8rem; //  ~13px
+$text-base: 1rem; //  16px
+$text-md: 1.125rem; //  18px
+$text-lg: 1.25rem; //  20px
+$text-xl: 1.563rem; //  25px
+$text-2xl: 1.953rem; //  31px
+$text-3xl: 2.441rem; //  39px
 
 // ── Line heights ───────────────────────────────────────────
-$leading-tight:  1.25;
-$leading-snug:   1.4;
+$leading-tight: 1.25;
+$leading-snug: 1.4;
 $leading-normal: 1.6;
 $leading-relaxed: 1.75;
 
 // ── Letter spacing ─────────────────────────────────────────
-$tracking-tight:  -0.01em;
+$tracking-tight: -0.01em;
 $tracking-normal: 0;
-$tracking-wide:   0.04em;
-$tracking-wider:  0.08em;
+$tracking-wide: 0.04em;
+$tracking-wider: 0.08em;
 $tracking-widest: 0.12em;

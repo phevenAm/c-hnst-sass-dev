@@ -50,7 +50,7 @@ function buildTemplate(
           label: "Session Reminder",
           title: `Hi ${EXAMPLE_NAME},`,
           body,
-          footerNote: "This email was sent because you have a session booked through the WithMe portal.",
+          footerNote: "This email was sent because you have a session booked through the Clarity.",
         }),
       };
     }
@@ -73,7 +73,7 @@ function buildTemplate(
               "If you need to cancel or reschedule, please do so at least 48 hours in advance through your client portal.",
             ),
           cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
-          footerNote: "This email was sent because a session was booked for you through the WithMe portal.",
+          footerNote: "This email was sent because a session was booked for you through the Clarity.",
         }),
       };
 
@@ -91,7 +91,7 @@ function buildTemplate(
               { label: "Location", value: "Online" },
             ]) +
             noteBox("If you believe this is an error or would like to rebook, please contact your therapist directly."),
-          footerNote: "This email was sent because a session was cancelled through the WithMe portal.",
+          footerNote: "This email was sent because a session was cancelled through the Clarity.",
         }),
       };
 
@@ -110,7 +110,7 @@ function buildTemplate(
             ]) +
             noteBox("If this new time doesn't work for you, please contact your therapist directly."),
           cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
-          footerNote: "This email was sent because your session was rescheduled through the WithMe portal.",
+          footerNote: "This email was sent because your session was rescheduled through the Clarity.",
         }),
       };
 
@@ -130,7 +130,7 @@ function buildTemplate(
               { label: "Session", value: EXAMPLE_DATE },
             ]),
           cta: { label: "View client page", url: `${appUrl}/admin/clients` },
-          footerNote: "This email was sent because a client completed a payment through the WithMe portal.",
+          footerNote: "This email was sent because a client completed a payment through the Clarity.",
         }),
       };
   }

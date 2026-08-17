@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     const bodyParts = [
       para(`Hi ${displayName},`),
       para(
-        "You've been invited to join the WithMe platform. Once you sign up, you'll be able to view your session history, access resources, and stay connected with your therapist.",
+        "You've been invited to join Clarity, your therapist's practice management platform. Once you sign up, you'll be able to view your session history, access resources, and stay connected with your therapist.",
       ),
       ...(message ? [noteBox(message)] : []),
       para(
@@ -69,16 +69,16 @@ Deno.serve(async (req) => {
 
     const html = emailTemplate({
       label: "You're invited",
-      title: "Join the WithMe platform",
+      title: "Join Clarity",
       body: bodyParts.join(""),
       cta: { label: "Create your account", url: signupUrl },
       footerNote:
-        "This invitation was sent by your therapist via WithMe. If you weren't expecting this, you can safely ignore it.",
+        "This invitation was sent by your therapist via Clarity. If you weren't expecting this, you can safely ignore it.",
     });
 
     await sendEmail({
       to: email,
-      subject: "You've been invited to WithMe",
+      subject: "You've been invited to Clarity",
       html,
       resendKey,
       fromEmail,

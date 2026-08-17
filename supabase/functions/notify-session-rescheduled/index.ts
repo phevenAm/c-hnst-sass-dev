@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
         detailsTable(tableRows) +
         noteBox("If this date does not work for you, please contact your therapist to arrange an alternative."),
       cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
-      footerNote: "You received this email because your session was rescheduled through the WithMe portal.",
+      footerNote: "You received this email because your session was rescheduled through the Clarity.",
       unsubscribeUrl,
       counsellorName,
     });

@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
           { label: "Location", value: session.location !== "in_person" ? "Online" : "In person" },
         ]) +
         noteBox("If you believe this is an error or would like to rebook, please contact your therapist directly."),
-      footerNote: "You received this email because a session was cancelled through the WithMe portal.",
+      footerNote: "You received this email because a session was cancelled through the Clarity.",
       unsubscribeUrl,
       counsellorName,
     });

@@ -51,10 +51,10 @@ export function emailTemplate({
     <!-- Header -->
     <div style="background:#8bb898;border-radius:14px 14px 0 0;padding:28px 40px;text-align:center;">
       <div style="display:inline-block;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.25);line-height:44px;text-align:center;margin-bottom:12px;">
-        <span style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:#ffffff;">W</span>
+        <span style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:#ffffff;">C</span>
       </div>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:600;color:#ffffff;margin:0;letter-spacing:0.03em;">WithMe</h1>
-      <p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.8);margin:5px 0 0;">A safe space for your journey</p>
+      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:600;color:#ffffff;margin:0;letter-spacing:0.03em;">Clarity</h1>
+      <p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.8);margin:5px 0 0;">Counselling practice management</p>
     </div>
 
     <!-- Body -->
@@ -67,7 +67,7 @@ export function emailTemplate({
 
     <!-- Footer -->
     <div style="background:#2d2926;border-radius:0 0 14px 14px;padding:24px 40px;">
-      <p style="font-family:Georgia,serif;font-size:14px;color:#f0ece8;font-weight:600;margin:0 0 12px;">WithMe</p>
+      <p style="font-family:Georgia,serif;font-size:14px;color:#f0ece8;font-weight:600;margin:0 0 12px;">Clarity</p>
       ${counsellorLine}
       <p style="font-family:Arial,sans-serif;font-size:12px;color:#706c68;line-height:1.7;margin:0 0 14px;">${footerNote}</p>
       <div style="border-top:1px solid #3a3834;padding-top:12px;">

@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
         title: heading,
         body,
         ...(!session.paid ? { cta: { label: "Pay now", url: `${appUrl}/my-sessions` } } : {}),
-        footerNote: "You received this email because you have a session booked through the WithMe portal.",
+        footerNote: "You received this email because you have a session booked through the Clarity.",
         unsubscribeUrl,
         counsellorName: adminSettings?.counsellorName ?? undefined,
       });

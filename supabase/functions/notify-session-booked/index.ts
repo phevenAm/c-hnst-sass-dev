@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
           "If you need to cancel or reschedule, please do so at least 48 hours in advance through your client portal.",
         ),
       cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
-      footerNote: "You received this email because a session was booked for you through the WithMe portal.",
+      footerNote: "You received this email because a session was booked for you through the Clarity.",
       unsubscribeUrl,
       counsellorName,
     });
