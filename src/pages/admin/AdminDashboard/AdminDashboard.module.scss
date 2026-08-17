@@ -191,19 +191,68 @@
   margin: 0;
 }
 
-// ── Bottom grid ────────────────────────────────────────────
-.bottomGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: $sp-6;
+// ── Section card (card background for chunking) ────────────
+.sectionCard {
+  padding: $sp-5 $sp-6;
+  border: 1px solid var(--border);
+  margin-bottom: $sp-5;
 
-  @include until-sm {
-    grid-template-columns: 1fr;
+  // Collapse the CollapsibleSection's own bottom margin since the card provides spacing.
+  section {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 480px) {
+    padding: $sp-4 $sp-5;
   }
 }
 
-.todoCard {
-  grid-column: span 1;
+// ── Primary two-column grid (upcoming + recent) ─────────────
+.primaryGrid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: $sp-5;
+  margin-bottom: $sp-5;
+  align-items: start;
+
+  // Both cards same height in grid — use align-items: stretch
+  > * {
+    margin-bottom: 0;
+    height: auto;
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+
+    > * {
+      margin-bottom: $sp-4;
+    }
+  }
+}
+
+// ── Recent clients (stacked list inside sidebar card) ──────
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.recentRowLink {
+  text-decoration: none;
+
+  &:hover .recentRow {
+    background: var(--border);
+  }
+}
+
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-3;
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  transition: background var(--transition-base);
 }
 
 // ── Client list card ───────────────────────────────────────

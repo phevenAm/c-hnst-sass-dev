@@ -6,9 +6,15 @@ const REMINDER_TYPE = "session_reminder";
 const CANCELLED_TYPE = "session_cancelled";
 const DEFAULT_HOURS_BEFORE = 120; // 5 days
 const WINDOW_HALF_HOURS = 12; // daily cron: ±12h tolerance
+const INTERNAL_SECRET = Deno.env.get("INTERNAL_REMINDER_SECRET") ?? "";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200 });
+
+  const providedSecret = req.headers.get("x-internal-secret") ?? "";
+  if (!INTERNAL_SECRET || providedSecret !== INTERNAL_SECRET) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   const resendKey = Deno.env.get("RESEND_API_KEY");
   const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");

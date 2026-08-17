@@ -268,6 +268,8 @@ export type StubSession = {
   scheduled_at: string;
   duration_minutes: number | null;
   status: "scheduled" | "attended" | "no_show" | "cancelled";
+  price_pence: number | null;
+  paid: boolean;
   amount_paid: number | null;
   currency: string;
   notes: string | null;

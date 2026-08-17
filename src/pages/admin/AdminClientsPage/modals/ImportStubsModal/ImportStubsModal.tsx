@@ -21,6 +21,8 @@ export const SESSION_HEADERS = [
   "session_time",
   "duration_minutes",
   "status",
+  "price_pence",
+  "paid",
   "amount_paid",
   "currency",
   "session_notes",
@@ -66,7 +68,9 @@ const SESSION_INSTRUCTIONS = [
   "#  session_time      — HH:MM  24-hour (e.g. 09:00, 14:30)",
   "#  duration_minutes  — e.g. 50 or 60  (optional)",
   "#  status            — attended / scheduled / no_show / cancelled",
-  "#  amount_paid       — e.g. 85.00  (leave blank if unpaid)",
+  "#  price_pence       — session fee in pence e.g. 8500 = £85 (optional)",
+  "#  paid              — true / false / yes / no (default: false)",
+  "#  amount_paid       — legacy: decimal e.g. 85.00 (ignored if price_pence set)",
   "#  currency          — GBP / USD / EUR  (default: GBP)",
   "#  session_notes     — optional free-text notes",
   "#  reference_code    — optional session ID  e.g. S-001",
@@ -81,10 +85,10 @@ const CLIENT_ROWS = [
 ];
 
 const SESSION_ROWS = [
-  ["1", "2026-05-01", "10:00", "60", "attended", "85.00", "GBP", "Good progress this week.", "", ""],
-  ["1", "2026-05-08", "10:00", "60", "attended", "85.00", "GBP", "", "", ""],
-  ["1", "2026-05-15", "10:00", "60", "no_show", "", "GBP", "Cancelled last minute.", "", ""],
-  ["2", "2026-05-10", "14:00", "50", "attended", "70.00", "GBP", "", "S-001", "15 London Rd"],
+  ["1", "2026-05-01", "10:00", "60", "attended", "8500", "true", "", "GBP", "Good progress this week.", "", ""],
+  ["1", "2026-05-08", "10:00", "60", "attended", "8500", "true", "", "GBP", "", "", ""],
+  ["1", "2026-05-15", "10:00", "60", "no_show", "", "false", "", "GBP", "Cancelled last minute.", "", ""],
+  ["2", "2026-05-10", "14:00", "50", "attended", "7000", "true", "", "GBP", "", "S-001", "15 London Rd"],
 ];
 
 function csvEscape(v: string) {
@@ -166,6 +170,8 @@ type ParsedSession = {
   session_time: string;
   duration_minutes: string;
   status: string;
+  price_pence: string;
+  paid: string;
   amount_paid: string;
   currency: string;
   session_notes: string;
@@ -263,6 +269,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
           session_time: idx("session_time"),
           duration_minutes: idx("duration_minutes"),
           status: idx("status"),
+          price_pence: idx("price_pence"),
+          paid: idx("paid"),
           amount_paid: idx("amount_paid"),
           currency: idx("currency"),
           session_notes: idx("session_notes"),
@@ -281,6 +289,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
             session_time: get(row, col.session_time),
             duration_minutes: get(row, col.duration_minutes),
             status: get(row, col.status),
+            price_pence: get(row, col.price_pence),
+            paid: get(row, col.paid),
             amount_paid: get(row, col.amount_paid),
             currency: get(row, col.currency),
             session_notes: get(row, col.session_notes),
@@ -350,12 +360,21 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         ? session.status
         : "attended";
 
+      const pricePence = session.price_pence
+        ? Number(session.price_pence)
+        : session.amount_paid
+          ? Math.round(Number(session.amount_paid) * 100)
+          : null;
+      const isPaid = ["true", "1", "yes"].includes((session.paid || "").toLowerCase());
+
       const { error: sessErr } = await supabase.from("stub_sessions").insert({
         stub_id: stubId,
         admin_id: userProfile.id,
         scheduled_at,
         duration_minutes: session.duration_minutes ? Number(session.duration_minutes) : null,
         status,
+        price_pence: pricePence,
+        paid: isPaid,
         amount_paid: session.amount_paid ? Number(session.amount_paid) : null,
         currency: session.currency || "GBP",
         notes: session.session_notes || null,
@@ -520,7 +539,14 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
                           {s.session_date} {s.session_time || "09:00"}
                         </td>
                         <td style={{ padding: "5px 10px" }}>{s.status || "attended"}</td>
-                        <td style={{ padding: "5px 10px" }}>{s.amount_paid ? `£${s.amount_paid}` : "—"}</td>
+                        <td style={{ padding: "5px 10px" }}>
+                          {s.price_pence
+                            ? `£${(Number(s.price_pence) / 100).toFixed(2)}`
+                            : s.amount_paid
+                              ? `£${s.amount_paid}`
+                              : "—"}
+                          {s.paid && ["true", "1", "yes"].includes(s.paid.toLowerCase()) ? " ✓" : ""}
+                        </td>
                         <td
                           style={{
                             padding: "5px 10px",

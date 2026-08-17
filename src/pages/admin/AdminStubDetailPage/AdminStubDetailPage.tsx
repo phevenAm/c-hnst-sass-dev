@@ -7,6 +7,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
+import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -23,7 +24,6 @@ import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice"
 
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import CreateStubModal from "../AdminClientsPage/modals/CreateStubModal/CreateStubModal";
-import AddStubSessionModal from "./AddStubSessionModal";
 import InviteStubModal from "./InviteStubModal";
 import StubSessionCard from "./StubSessionCard";
 
@@ -170,8 +170,8 @@ export default function AdminStubDetailPage() {
 
   const totalSessions = sessions.length;
   const attendedCount = sessions.filter((s) => s.status === "attended").length;
-  const totalPaid = sessions.reduce((sum, s) => sum + (s.amount_paid ?? 0), 0);
-  const currency = sessions.find((s) => s.amount_paid)?.currency ?? "GBP";
+  const totalPaid = sessions.reduce((sum, s) => sum + (s.paid ? (s.price_pence ?? 0) / 100 : 0), 0);
+  const currency = sessions.find((s) => s.paid)?.currency ?? "GBP";
 
   const assignedFormIds = useMemo(
     () => new Set(assignedForms.map((f) => f.questionnaires?.id).filter(Boolean)),
@@ -576,12 +576,27 @@ export default function AdminStubDetailPage() {
 
       {/* Add session modal */}
       {addSessionOpen && userProfile && (
-        <AddStubSessionModal
-          stubId={stubId!}
-          adminId={userProfile.id}
+        <CreateSessionModal
+          clientName={displayName}
           onClose={() => setAddSessionOpen(false)}
-          onSaved={(saved) => {
-            handleSessionSaved(saved);
+          onSave={async (values) => {
+            const rows = values.dates.map((d) => ({
+              stub_id: stubId!,
+              admin_id: userProfile.id,
+              scheduled_at: d,
+              duration_minutes: values.duration_minutes,
+              price_pence: values.price_pence,
+              paid: values.paid,
+              status: "scheduled" as const,
+              location: values.address || null,
+              notes: values.notes || null,
+              code: values.reference_code || null,
+              currency: "GBP",
+            }));
+            const { data, error } = await supabase.from("stub_sessions").insert(rows).select();
+            if (error) throw new Error("Failed to add session.");
+            handleSessionSaved(data as StubSession[]);
+            showToast(rows.length > 1 ? `${rows.length} sessions added.` : "Session added.");
             setAddSessionOpen(false);
           }}
         />

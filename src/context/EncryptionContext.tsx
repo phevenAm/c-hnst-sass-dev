@@ -112,6 +112,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         if (sessionKey) {
           dataKeyRef.current = sessionKey;
           setStatus("unlocked");
+        } else {
+          const settings = await fetchSettings();
+          setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
         }
       } else if (event === "INITIAL_SESSION") {
         const sessionKey = await loadKeyFromSession();

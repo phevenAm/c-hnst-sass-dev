@@ -515,6 +515,52 @@
   line-height: 1.7;
 }
 
+// ── Encryption status indicator (SessionNotesModal) ────────
+.encStatusBar {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  margin-bottom: $sp-4;
+  border-radius: var(--r-md);
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+}
+
+.noteMeta {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.noteLockBadge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 1px $sp-2;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
+}
+
+.notePlainBadge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 1px $sp-2;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: #78350f;
+  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
+
+  :global(.dark) & {
+    color: var(--warning);
+  }
+}
+
 // ── Client profiles (stubs) section ───────────────────────
 .stubsSection {
   margin-top: $sp-10;
