@@ -12,7 +12,7 @@
   animation: bannerSlideDown 0.3s ease both;
 
   .dark & {
-    color: var(--bg-base);
+    color: var(--text-inverse);
   }
 
   @include until-sm {
@@ -80,7 +80,7 @@
   }
 
   .dark & {
-    color: var(--text-primary);
+    color: var(--text-inverse);
   }
 }
 
@@ -96,6 +96,6 @@
 
   .dark & {
     background: var(--bg-base);
-    color: var(--accent);
+    color: var(--text-inverse);
   }
 }
