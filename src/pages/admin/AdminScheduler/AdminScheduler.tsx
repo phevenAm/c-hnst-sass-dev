@@ -120,6 +120,8 @@ const AdminScheduler = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   // Session-totals period filter.
   const [period, setPeriod] = useState<SchedulerPeriod>("all");
+  // Whether to email the client when confirming a drag-and-drop reschedule.
+  const [notifyOnDrop, setNotifyOnDrop] = useState(true);
 
   // Dashboard "Manage availability" quick action links here with ?availability=1
   // so the editor opens straight away. Clear the param once consumed.
@@ -432,12 +434,15 @@ const AdminScheduler = () => {
     if (!pendingDrop) return;
     const { session, start, prevDate } = pendingDrop;
     dispatch(updateSession({ id: session.id, scheduled_at: start.toISOString() })).then(() => {
-      supabase.functions.invoke("notify-session-rescheduled", {
-        body: { session_id: session.id, previous_date: prevDate },
-      });
+      if (notifyOnDrop) {
+        supabase.functions.invoke("notify-session-rescheduled", {
+          body: { session_id: session.id, previous_date: prevDate },
+        });
+      }
       showToast("Session rescheduled.", "success");
     });
     setPendingDrop(null);
+    setNotifyOnDrop(true);
   };
 
   const editingClientName = useMemo(() => {
@@ -619,10 +624,20 @@ const AdminScheduler = () => {
         <Modal
           title="Confirm reschedule"
           size="sm"
-          onClose={() => setPendingDrop(null)}
+          onClose={() => {
+            setPendingDrop(null);
+            setNotifyOnDrop(true);
+          }}
           actions={
             <>
-              <Button variant="ghost" size="sm" onClick={() => setPendingDrop(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPendingDrop(null);
+                  setNotifyOnDrop(true);
+                }}
+              >
                 Cancel
               </Button>
               <Button size="sm" onClick={handleConfirmDrop}>
@@ -636,7 +651,10 @@ const AdminScheduler = () => {
             <strong>{dayjs(pendingDrop.prevDate).format("D MMM [at] h:mma")}</strong> to{" "}
             <strong>{dayjs(pendingDrop.start).format("D MMM [at] h:mma")}</strong>?
           </p>
-          <p className={styles.confirmNote}>The client will be notified of the change.</p>
+          <label className={styles.notifyCheckbox}>
+            <input type="checkbox" checked={notifyOnDrop} onChange={(e) => setNotifyOnDrop(e.target.checked)} />
+            Notify client by email
+          </label>
         </Modal>
       )}
 
