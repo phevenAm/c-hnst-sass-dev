@@ -326,7 +326,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                   variant="secondary"
                   size="sm"
                   primaryLabel={session.paid ? "Mark as unpaid" : "Mark as paid"}
-                  primaryAction={() => toggleNoShowOrPayment()}
+                  primaryAction={() => dispatch(updateSession({ id: session.id, paid: !session.paid }))}
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),

@@ -6,14 +6,12 @@
   justify-content: space-between;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
-  background: var(--accent);
+  // teal-800 (#1f4940) gives ~16:1 contrast with white in both light and dark modes,
+  // avoiding the dark-mode issue where --accent resolves to the light teal-300.
+  background: #1f4940;
   color: #fff;
   font-size: 0.875rem;
   animation: bannerSlideDown 0.3s ease both;
-
-  .dark & {
-    color: var(--text-inverse);
-  }
 
   @include until-sm {
     flex-direction: column;
@@ -73,29 +71,21 @@
 
 .btnLater {
   @extend %btn;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .dark & {
-    color: var(--text-inverse);
+    background: rgba(255, 255, 255, 0.25);
   }
 }
 
 .btnUpdate {
   @extend %btn;
   background: #fff;
-  color: var(--accent);
+  color: #1f4940;
   font-weight: 600;
 
   &:hover {
     opacity: 0.92;
-  }
-
-  .dark & {
-    background: var(--bg-base);
-    color: var(--text-inverse);
   }
 }

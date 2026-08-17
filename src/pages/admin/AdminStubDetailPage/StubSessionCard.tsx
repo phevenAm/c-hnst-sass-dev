@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button";
+import Modal from "@components/shared/Modal/Modal";
 // Reuse the exact same CSS module as SessionCard so stubs look identical.
 import styles from "@components/shared/SessionCard/SessionCard.module.scss";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
@@ -52,6 +53,9 @@ export default function StubSessionCard({
   const [notesText, setNotesText] = useState(session.notes ?? "");
   const [editingCode, setEditingCode] = useState(false);
   const [codeText, setCodeText] = useState(session.code ?? "");
+  const [payOpen, setPayOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Keep draft text in sync with incoming prop changes (e.g. realtime updates)
   // while the user is NOT actively editing.
@@ -67,6 +71,48 @@ export default function StubSessionCard({
   const isAttended = session.status === "attended";
   const isNoShow = session.status === "no_show";
   const isPaid = session.amount_paid != null && session.amount_paid > 0;
+  const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
+
+  const handleTogglePaid = async () => {
+    if (demoGuard()) return;
+    if (isPaid) {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from("stub_sessions")
+        .update({ amount_paid: null })
+        .eq("id", session.id)
+        .select()
+        .single();
+      setSaving(false);
+      if (error) showToast("Failed to update.", "danger");
+      else onUpdated(data as StubSession);
+    } else {
+      setPayOpen(true);
+    }
+  };
+
+  const handleConfirmPay = async () => {
+    if (demoGuard()) return;
+    const amount = parseFloat(payAmount);
+    if (!amount || amount <= 0) {
+      showToast("Enter a valid amount.", "danger");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("stub_sessions")
+      .update({ amount_paid: amount })
+      .eq("id", session.id)
+      .select()
+      .single();
+    setSaving(false);
+    if (error) showToast("Failed to record payment.", "danger");
+    else {
+      onUpdated(data as StubSession);
+      setPayOpen(false);
+      setPayAmount("");
+    }
+  };
 
   const demoGuard = () => {
     if (isDemo) {
@@ -319,9 +365,14 @@ export default function StubSessionCard({
             </div>
             <div className={styles.actions_Icons}>
               <div className={styles.desktopActions}>
-                <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
-                  Reschedule
+                <Button size="sm" variant="secondary" onClick={handleTogglePaid} disabled={saving}>
+                  {isPaid ? "Mark as unpaid" : "Mark as paid"}
                 </Button>
+                {!isPast && (
+                  <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
+                    Reschedule
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost-danger" onClick={() => updateStatus("cancelled")}>
                   Cancel
                 </Button>
@@ -333,9 +384,10 @@ export default function StubSessionCard({
                 <SplitButton
                   variant="secondary"
                   size="sm"
-                  primaryLabel="Reschedule"
-                  primaryAction={() => setEditOpen(true)}
+                  primaryLabel={isPaid ? "Mark as unpaid" : "Mark as paid"}
+                  primaryAction={handleTogglePaid}
                   options={[
+                    ...(!isPast ? [{ label: "Reschedule", onClick: () => setEditOpen(true) }] : []),
                     { label: "Cancel", onClick: () => updateStatus("cancelled") },
                     { label: "Delete", onClick: handleDelete },
                   ]}
@@ -357,6 +409,70 @@ export default function StubSessionCard({
             setEditOpen(false);
           }}
         />
+      )}
+
+      {payOpen && (
+        <Modal
+          title="Record payment"
+          size="sm"
+          onClose={() => {
+            setPayOpen(false);
+            setPayAmount("");
+          }}
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setPayOpen(false);
+                  setPayAmount("");
+                }}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmPay} disabled={saving || !payAmount}>
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            </>
+          }
+        >
+          <label
+            style={{
+              fontSize: "0.82rem",
+              fontWeight: 500,
+              color: "var(--text-secondary)",
+              display: "block",
+              marginBottom: "var(--sp-2)",
+            }}
+          >
+            Amount paid ({currencySymbol(session.currency)})
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="85.00"
+            value={payAmount}
+            onChange={(e) => setPayAmount(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleConfirmPay();
+            }}
+            autoFocus
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "10px 14px",
+              border: "1.5px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              background: "var(--bg-card)",
+              color: "var(--text-primary)",
+              fontSize: "0.9rem",
+              fontFamily: "var(--font-sans)",
+              outline: "none",
+            }}
+          />
+        </Modal>
       )}
     </div>
   );
