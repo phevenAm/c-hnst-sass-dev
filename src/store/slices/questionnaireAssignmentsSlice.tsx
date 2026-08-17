@@ -9,9 +9,13 @@ import { supabase } from "../../lib/supabase.js";
 
 type Assignment = {
   id: string;
-  questionnaire_id: string;
-  user_id: string;
-  assigned_at: string;
+  questionnaire_id: string | null;
+  user_id: string | null;
+  stub_id: string | null;
+  assigned_at: string | null;
+  is_plotted: boolean;
+  questionnaires?: { title: string } | null;
+  users?: { first_name: string; last_name: string } | null;
 };
 
 type AssignmentsState = {
@@ -120,6 +124,18 @@ export const unassignQuestionnaireByIds = createAsyncThunk<
   return { questionnaire_id, user_id };
 });
 
+// Toggle is_plotted for a client's assignment — at most one can be plotted at a time
+export const setPlottedAssignment = createAsyncThunk<string, string>(
+  "assignments/setPlottedAssignment",
+  async (assignmentId, { rejectWithValue }) => {
+    const { error } = await supabase.rpc("set_plotted_assignment", {
+      p_assignment_id: assignmentId,
+    });
+    if (error) return rejectWithValue(error.message);
+    return assignmentId;
+  },
+);
+
 // ─── Slice ─────────────────────────────────────────────────
 
 const assignmentsSlice = createSlice({
@@ -186,6 +202,27 @@ const assignmentsSlice = createSlice({
       .addCase(unassignQuestionnaireByIds.rejected, (state, action) => {
         state.error = action.payload as string;
       })
+
+      .addCase(setPlottedAssignment.fulfilled, (state, action) => {
+        const target = state.assignments.find((a) => a.id === action.payload);
+        if (!target) return;
+        const wasPlotted = target.is_plotted;
+        const userId = target.user_id;
+        const stubId = target.stub_id;
+        state.assignments = state.assignments.map((a) => {
+          if ((userId && a.user_id === userId) || (stubId && a.stub_id === stubId)) {
+            return { ...a, is_plotted: false };
+          }
+          return a;
+        });
+        if (!wasPlotted) {
+          state.assignments = state.assignments.map((a) => (a.id === action.payload ? { ...a, is_plotted: true } : a));
+        }
+      })
+      .addCase(setPlottedAssignment.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+
       .addCase("RESET_ALL", () => initialState);
   },
 });
@@ -213,6 +250,20 @@ export const selectAssignmentsByQuestionnaire = (questionnaireId: string) =>
 export const selectIsAssigned = (userId: string, questionnaireId: string) =>
   createSelector(selectAllAssignments, (assignments) =>
     assignments.some((a) => a.user_id === userId && a.questionnaire_id === questionnaireId),
+  );
+
+// The single plotted assignment for a real client (null if none set)
+export const selectPlottedAssignmentByUser = (userId: string) =>
+  createSelector(
+    selectAllAssignments,
+    (assignments) => assignments.find((a) => a.user_id === userId && a.is_plotted) ?? null,
+  );
+
+// The single plotted assignment for an offline client stub
+export const selectPlottedAssignmentByStub = (stubId: string) =>
+  createSelector(
+    selectAllAssignments,
+    (assignments) => assignments.find((a) => a.stub_id === stubId && a.is_plotted) ?? null,
   );
 
 export default assignmentsSlice.reducer;

@@ -533,6 +533,140 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+// ── Plot toggle ───────────────────────────────────────────────
+.plotToggle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.plotToggleActive {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+// ── Form results ──────────────────────────────────────────────
+.formResultGroup {
+  margin-bottom: $sp-8;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.formResultGroupHeader {
+  display: flex;
+  align-items: baseline;
+  gap: $sp-3;
+  margin-bottom: $sp-4;
+  flex-wrap: wrap;
+}
+
+.formResultGroupTitle {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.formResultGroupMeta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.tableScroll {
+  overflow-x: auto;
+  margin-bottom: $sp-4;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+}
+
+.resultsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 360px;
+
+  th {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: $sp-2 $sp-3;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: $sp-2 $sp-3;
+    color: var(--text-primary);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    white-space: nowrap;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.totalCell {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.avgRow {
+  td {
+    background: var(--bg-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+}
+
+.legendList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+.legendItem {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+
+  strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-right: $sp-2;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
 // ── Mobile ────────────────────────────────────────────────────
 @include bp(lt-s) {
   .hero {

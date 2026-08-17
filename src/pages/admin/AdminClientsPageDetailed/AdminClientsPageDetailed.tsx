@@ -16,7 +16,7 @@ import {
 } from "@components/shared/index";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
-import type { RescheduleRequest, Session, UserProfile } from "@models/globalTypes";
+import type { RescheduleRequest, Response, Session, UserProfile } from "@models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
@@ -39,12 +39,59 @@ import { exportClientPDF, getScoreAverage } from "../utils/AdminClientsPageUtils
 
 import styles from "./AdminClientsPageDetailed.module.scss";
 
+// ─── Local types ────────────────────────────────────────────
+
 type ExportSections = {
   clientDetails: boolean;
   sessions: boolean;
   checkIns: boolean;
   accountSummary: boolean;
+  formResults: boolean;
 };
+
+type QuestionOption = { label: string; value: number };
+
+type AssignedQuestion = {
+  id: string;
+  text: string;
+  type: string;
+  options: QuestionOption[] | null;
+  order_index: number;
+};
+
+type AssignedForm = {
+  id: string;
+  assigned_at: string;
+  is_plotted: boolean;
+  questionnaires: {
+    id: string;
+    title: string;
+    form_type: string;
+    frequency: string | null;
+    is_active: boolean;
+    questions: AssignedQuestion[];
+  } | null;
+};
+
+// ─── Helpers ────────────────────────────────────────────────
+
+function questionAvg(questionId: string, responses: Response[]): string {
+  const vals = responses
+    .map((r) => (r.scores as Record<string, number>)[questionId])
+    .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  if (!vals.length) return "–";
+  return (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1);
+}
+
+function submissionTotal(questions: AssignedQuestion[], response: Response): number {
+  const scores = response.scores as Record<string, number>;
+  return questions.reduce((sum, q) => {
+    const v = scores[q.id];
+    return sum + (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  }, 0);
+}
+
+// ─── Page ────────────────────────────────────────────────────
 
 export default function AdminClientsPageDetailed() {
   const { clientId } = useParams();
@@ -79,6 +126,7 @@ export default function AdminClientsPageDetailed() {
     sessions: true,
     checkIns: true,
     accountSummary: false,
+    formResults: false,
   });
   const [selectedNoteSessionId, setSelectedNoteSessionId] = useState<string | null>(null);
   const [accountSummaryPreview, setAccountSummaryPreview] = useState<string | null>(null);
@@ -88,26 +136,14 @@ export default function AdminClientsPageDetailed() {
   const [isManageSessionsModal, setIsManageSessionsModal] = useState(false);
   const [sessionPageNumber, setSessionPageNumber] = useState<null | number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
-
   const [sessionsDateTab, setSessopmsDateTab] = useState<"upcoming" | "past">("upcoming");
 
-  type AssignedForm = {
-    id: string;
-    assigned_at: string;
-    questionnaires: {
-      id: string;
-      title: string;
-      form_type: string;
-      frequency: string | null;
-      is_active: boolean;
-    } | null;
-  };
   const [assignedForms, setAssignedForms] = useState<AssignedForm[]>([]);
 
   useFetchOnIdle(
     (state: RootState) => state.sessions.status,
     () => fetchSessionsByClientId(clientId!),
-    "Failed to fetch questionnaires:",
+    "Failed to fetch sessions:",
   );
 
   useEffect(() => {
@@ -126,7 +162,9 @@ export default function AdminClientsPageDetailed() {
     if (!clientId) return;
     supabase
       .from("questionnaire_assignments")
-      .select("id, assigned_at, questionnaires(id, title, form_type, frequency, is_active)")
+      .select(
+        "id, assigned_at, is_plotted, questionnaires(id, title, form_type, frequency, is_active, questions(id, text, type, options, order_index))",
+      )
       .eq("user_id", clientId)
       .order("assigned_at", { ascending: false })
       .then(({ data }) => {
@@ -150,7 +188,6 @@ export default function AdminClientsPageDetailed() {
     dispatch(fetchSessionsByClientId(clientId!)),
   );
 
-  // Fetch latest account summary note and decrypt if possible
   useEffect(() => {
     if (!clientId) return;
     supabase
@@ -229,6 +266,21 @@ export default function AdminClientsPageDetailed() {
     setResolvingId(null);
   };
 
+  const handleTogglePlot = async (formId: string) => {
+    const target = assignedForms.find((f) => f.id === formId);
+    if (!target) return;
+    const { error } = await supabase.rpc("set_plotted_assignment", { p_assignment_id: formId });
+    if (error) {
+      showToast("Failed to update chart setting", "danger");
+      return;
+    }
+    const wasPlotted = target.is_plotted;
+    setAssignedForms((prev) => prev.map((f) => ({ ...f, is_plotted: !wasPlotted && f.id === formId })));
+    if (!wasPlotted && target.questionnaires?.id) {
+      setSelectedQuestionnaireId(target.questionnaires.id);
+    }
+  };
+
   const client = allUsers.find((u) => u.id === clientId);
 
   const [codename, setCodename] = useState(client?.admin_codename ?? "");
@@ -259,11 +311,14 @@ export default function AdminClientsPageDetailed() {
 
   const clientSessions = useAppSelector((state) => state.sessions.sessions);
 
+  // Prefer the plotted form for the progress chart, fall back to first with responses
   useEffect(() => {
-    if (!selectedQuestionnaireId && questionnaireOptions[0]) {
-      setSelectedQuestionnaireId(questionnaireOptions[0].id);
-    }
-  }, [questionnaireOptions, selectedQuestionnaireId]);
+    if (selectedQuestionnaireId) return;
+    const plottedId = assignedForms.find((f) => f.is_plotted)?.questionnaires?.id;
+    const preferredId =
+      plottedId && questionnaireOptions.some((q) => q.id === plottedId) ? plottedId : questionnaireOptions[0]?.id;
+    if (preferredId) setSelectedQuestionnaireId(preferredId);
+  }, [questionnaireOptions, assignedForms, selectedQuestionnaireId]);
 
   const selectedQuestionnaire = questionnaires.find((q) => q.id === selectedQuestionnaireId) ?? questionnaireOptions[0];
 
@@ -278,6 +333,24 @@ export default function AdminClientsPageDetailed() {
     ? dayjs(latestResponse.submitted_at ?? latestResponse.created_at).format("D MMM YYYY")
     : "—";
 
+  // Grouped form results for structured display (CORE-10 etc.)
+  const formResultGroups = useMemo(() => {
+    return assignedForms
+      .filter((f) => f.questionnaires !== null)
+      .map((f) => {
+        const q = f.questionnaires!;
+        const sortedQuestions = [...(q.questions ?? [])].sort((a, b) => a.order_index - b.order_index);
+        const formResponses = clientResponses
+          .filter((r) => r.questionnaire_id === q.id)
+          .sort(
+            (a, b) =>
+              new Date(b.submitted_at ?? b.created_at).getTime() - new Date(a.submitted_at ?? a.created_at).getTime(),
+          );
+        return { questionnaire: q, questions: sortedQuestions, responses: formResponses };
+      })
+      .filter((g) => g.responses.length > 0);
+  }, [assignedForms, clientResponses]);
+
   const handleExport = async () => {
     if (!client) return;
     setExporting(true);
@@ -288,6 +361,7 @@ export default function AdminClientsPageDetailed() {
       questionnaire: selectedQuestionnaire,
       sessions: clientSessions,
       accountSummary: accountSummaryPreview ?? undefined,
+      formResults: formResultGroups,
     });
     setExporting(false);
   };
@@ -509,29 +583,116 @@ export default function AdminClientsPageDetailed() {
             {assignedForms.length === 0 ? (
               <p className={styles.sessionEmpty}>No forms assigned to this client yet.</p>
             ) : (
-              assignedForms.map(({ id, assigned_at, questionnaires: q }) => (
-                <div key={id} className={styles.checkInRow}>
-                  <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
-                  {q?.form_type && (
-                    <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
-                      {String(q.form_type).replace(/_/g, " ")}
+              assignedForms.map((form) => {
+                const q = form.questionnaires;
+                const hasScaleQs = q?.questions?.some((qn) => qn.type === "scale") ?? false;
+                const plotTitle = hasScaleQs
+                  ? form.is_plotted
+                    ? "Remove from progress chart"
+                    : "Use for progress chart"
+                  : "This form uses structured scoring — see Form Results below";
+                return (
+                  <div key={form.id} className={styles.checkInRow}>
+                    <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
+                    {q?.form_type && (
+                      <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
+                        {String(q.form_type).replace(/_/g, " ")}
+                      </span>
+                    )}
+                    {q?.frequency && (
+                      <span className={styles.checkInScoreNone} style={{ textTransform: "capitalize" }}>
+                        {q.frequency}
+                      </span>
+                    )}
+                    {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
+                    <button
+                      type="button"
+                      className={`${styles.plotToggle}${form.is_plotted ? ` ${styles.plotToggleActive}` : ""}`}
+                      onClick={() => handleTogglePlot(form.id)}
+                      disabled={!hasScaleQs}
+                      title={plotTitle}
+                    >
+                      {form.is_plotted ? "Charting" : "Chart"}
+                    </button>
+                    <span className={styles.checkInDate} style={{ marginLeft: "auto" }}>
+                      Assigned {dayjs(form.assigned_at).format("D MMM YYYY")}
                     </span>
-                  )}
-                  {q?.frequency && (
-                    <span className={styles.checkInScoreNone} style={{ textTransform: "capitalize" }}>
-                      {q.frequency}
-                    </span>
-                  )}
-                  {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
-                  <span className={styles.checkInDate} style={{ marginLeft: "auto" }}>
-                    Assigned {dayjs(assigned_at).format("D MMM YYYY")}
-                  </span>
-                </div>
-              ))
+                  </div>
+                );
+              })
             )}
           </Card>
         </HideableSection>
 
+        {/* Form results — structured view for outcome measures */}
+        {formResultGroups.length > 0 && (
+          <HideableSection id="client-form-results">
+            <Card className={[styles.section, styles.session].join(" ")}>
+              <div className={styles.sessionHeading}>
+                <h2 className={styles.sectionTitle}>Form Results</h2>
+              </div>
+              {formResultGroups.map(({ questionnaire: fq, questions, responses: formResponses }) => (
+                <div key={fq.id} className={styles.formResultGroup}>
+                  <div className={styles.formResultGroupHeader}>
+                    <h3 className={styles.formResultGroupTitle}>{fq.title}</h3>
+                    <span className={styles.formResultGroupMeta}>
+                      {formResponses.length} submission{formResponses.length !== 1 ? "s" : ""} · Last:{" "}
+                      {dayjs(formResponses[0].submitted_at ?? formResponses[0].created_at).format("D MMM YYYY")}
+                    </span>
+                  </div>
+
+                  <div className={styles.tableScroll}>
+                    <table className={styles.resultsTable}>
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          {questions.map((q, i) => (
+                            <th key={q.id} title={q.text}>
+                              Q{i + 1}
+                            </th>
+                          ))}
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {formResponses.map((r) => (
+                          <tr key={r.id}>
+                            <td>{dayjs(r.submitted_at ?? r.created_at).format("D MMM YY")}</td>
+                            {questions.map((q) => {
+                              const v = (r.scores as Record<string, number>)[q.id];
+                              return <td key={q.id}>{typeof v === "number" ? v : "–"}</td>;
+                            })}
+                            <td className={styles.totalCell}>{submissionTotal(questions, r)}</td>
+                          </tr>
+                        ))}
+                        <tr className={styles.avgRow}>
+                          <td>Avg</td>
+                          {questions.map((q) => (
+                            <td key={q.id}>{questionAvg(q.id, formResponses)}</td>
+                          ))}
+                          <td />
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {questions.length > 0 && (
+                    <div className={styles.legendList}>
+                      {questions.map((q, i) => (
+                        <span key={q.id} className={styles.legendItem}>
+                          <strong>Q{i + 1}</strong>
+                          {q.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </Card>
+          </HideableSection>
+        )}
+
+        {/* Sessions */}
         <Card className={[styles.section, styles.session].join(" ")}>
           <div className={styles.sessionHeading}>
             <h2 className={styles.sectionTitle}>Sessions</h2>
@@ -623,10 +784,8 @@ export default function AdminClientsPageDetailed() {
         </div>
       </div>
 
-      {/* Account summary modal */}
       {notesOpen && <SessionNotesModal user={client} onClose={() => setNotesOpen(false)} />}
 
-      {/* Per-session notes modal */}
       {selectedNoteSessionId && (
         <SessionNotesModal
           user={client}
@@ -635,7 +794,6 @@ export default function AdminClientsPageDetailed() {
         />
       )}
 
-      {/* Configure client modal */}
       {isConfigOpen && (
         <Modal
           title="Configure client"
@@ -664,7 +822,6 @@ export default function AdminClientsPageDetailed() {
         </Modal>
       )}
 
-      {/* PDF export picker */}
       {exportPickerOpen && (
         <Modal
           title="Export client PDF"
@@ -695,6 +852,7 @@ export default function AdminClientsPageDetailed() {
                 { key: "sessions", label: "Session history" },
                 { key: "checkIns", label: "Check-in scores" },
                 { key: "accountSummary", label: "Account summary" },
+                { key: "formResults", label: "Form results" },
               ] as { key: keyof ExportSections; label: string }[]
             ).map(({ key, label }) => (
               <label key={key} className={styles.exportPickerItem}>
