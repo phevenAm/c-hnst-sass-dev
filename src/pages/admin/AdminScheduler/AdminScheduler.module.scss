@@ -225,10 +225,18 @@
   line-height: 1.5;
 }
 
-.confirmNote {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin: 0;
+.notifyCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sp-3);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
 }
 
 .modalIntro {

@@ -1,4 +1,4 @@
-import { Questionnaire, Response, Session, UserProfile } from "../../../models/globalTypes";
+import type { Questionnaire, Response, Session, UserProfile } from "../../../models/globalTypes";
 
 export const generateAccessToken = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -37,6 +37,15 @@ type ExportSections = {
   sessions: boolean;
   checkIns: boolean;
   accountSummary: boolean;
+  formResults: boolean;
+};
+
+type FormQuestion = { id: string; text: string; order_index: number };
+
+export type FormResultGroup = {
+  questionnaire: { id: string; title: string };
+  questions: FormQuestion[];
+  responses: Response[];
 };
 
 const BRAND = [31, 73, 64] as const;
@@ -54,6 +63,7 @@ export const exportClientPDF = async ({
   questionnaire,
   sessions = [],
   accountSummary,
+  formResults = [],
 }: {
   user: UserProfile;
   sections: ExportSections;
@@ -61,8 +71,10 @@ export const exportClientPDF = async ({
   questionnaire?: Questionnaire;
   sessions?: Session[];
   accountSummary?: string;
+  formResults?: FormResultGroup[];
 }) => {
   const jsPDF = (await import("jspdf")).default;
+  const { default: autoTable } = await import("jspdf-autotable");
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   // ── Header band ──────────────────────────────────────────────
@@ -205,6 +217,99 @@ export const exportClientPDF = async ({
     const lines = doc.splitTextToSize(accountSummary, CONTENT_W);
     doc.text(lines, MARGIN, y);
     y += lines.length * 5 + 6;
+  }
+
+  // ── Form results ─────────────────────────────────────────────
+  if (sections.formResults && formResults.length > 0) {
+    sectionHeading("Form Results");
+
+    for (const group of formResults) {
+      const sortedQuestions = [...group.questions].sort((a, b) => a.order_index - b.order_index);
+
+      // Sub-title for each form
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...TEXT_DARK);
+      doc.text(group.questionnaire.title, MARGIN, y);
+      y += 6;
+
+      // Build table head: Date | Q1 | Q2 … | Total
+      const head = [["Date", ...sortedQuestions.map((_, i) => `Q${i + 1}`), "Total"]];
+
+      // Build rows: one per response (newest first)
+      const sortedResponses = [...group.responses].sort(
+        (a, b) =>
+          new Date(b.submitted_at ?? b.created_at).getTime() - new Date(a.submitted_at ?? a.created_at).getTime(),
+      );
+
+      const body = sortedResponses.map((r) => {
+        const scores = r.scores as Record<string, number>;
+        const vals = sortedQuestions.map((q) => {
+          const v = scores[q.id];
+          return typeof v === "number" ? String(v) : "–";
+        });
+        const total = sortedQuestions.reduce((s, q) => {
+          const v = scores[q.id];
+          return s + (typeof v === "number" && Number.isFinite(v) ? v : 0);
+        }, 0);
+        const date = new Date(r.submitted_at ?? r.created_at).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "2-digit",
+        });
+        return [date, ...vals, String(total)];
+      });
+
+      // Averages row
+      const avgRow = [
+        "Avg",
+        ...sortedQuestions.map((q) => {
+          const vals = group.responses
+            .map((r) => (r.scores as Record<string, number>)[q.id])
+            .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+          return vals.length ? (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1) : "–";
+        }),
+        "",
+      ];
+      body.push(avgRow);
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: y,
+        margin: { left: MARGIN, right: MARGIN },
+        styles: { fontSize: 7.5, cellPadding: 2 },
+        headStyles: {
+          fillColor: BRAND as [number, number, number],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        bodyStyles: { textColor: TEXT_DARK as [number, number, number] },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.row.index === body.length - 1) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = BG_MUTED as [number, number, number];
+          }
+          if (data.section === "body" && data.column.index === head[0].length - 1 && data.row.index < body.length - 1) {
+            data.cell.styles.fontStyle = "bold";
+          }
+        },
+      });
+
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+
+      // Question legend
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...TEXT_MUTED);
+      for (const [i, q] of sortedQuestions.entries()) {
+        const legendLine = `Q${i + 1}: ${q.text}`;
+        const wrapped = doc.splitTextToSize(legendLine, CONTENT_W);
+        doc.text(wrapped, MARGIN, y);
+        y += wrapped.length * 4;
+      }
+      y += 8;
+    }
   }
 
   // ── Footer ───────────────────────────────────────────────────

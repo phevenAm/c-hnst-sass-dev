@@ -50,6 +50,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
   );
   const [sendConfirmation, setSendConfirmation] = useState(true);
   const [sendReminders, setSendReminders] = useState(true);
+  const [sendRescheduleNotification, setSendRescheduleNotification] = useState(true);
   const [error, setError] = useState("");
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
@@ -221,9 +222,11 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
           status: "rescheduled",
         }),
       ).unwrap();
-      supabase.functions.invoke("notify-session-rescheduled", {
-        body: { session_id: sess.id, previous_date: sess.scheduled_at },
-      });
+      if (sendRescheduleNotification) {
+        supabase.functions.invoke("notify-session-rescheduled", {
+          body: { session_id: sess.id, previous_date: sess.scheduled_at },
+        });
+      }
       onClose();
       setIsSaving(false);
       showToast("Session updated successfully.", "success");
@@ -487,6 +490,23 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
                 />
                 <label htmlFor="send-reminders" className={styles.checkboxLabel}>
                   Send automatic reminder emails
+                </label>
+              </div>
+            </fieldset>
+          )}
+
+          {session && (
+            <fieldset className={styles.fieldGroup}>
+              <legend className={styles.label}>Email notifications</legend>
+              <div className={styles.checkboxGroup}>
+                <input
+                  id="send-reschedule-notification"
+                  type="checkbox"
+                  checked={sendRescheduleNotification}
+                  onChange={(e) => setSendRescheduleNotification(e.target.checked)}
+                />
+                <label htmlFor="send-reschedule-notification" className={styles.checkboxLabel}>
+                  Notify client of change by email
                 </label>
               </div>
             </fieldset>

@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
           { label: "Page", value: page ? escapeHtml(page) : "—" },
         ]),
       cta: appUrl ? { label: "Open superadmin", url: `${appUrl}/superadmin` } : undefined,
-      footerNote: "You're receiving this because you're a WithMe platform owner.",
+      footerNote: "You're receiving this because you're a Clarity platform owner.",
     });
 
     const resendKey = Deno.env.get("RESEND_API_KEY")!;

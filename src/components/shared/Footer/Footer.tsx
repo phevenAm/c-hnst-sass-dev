@@ -19,7 +19,7 @@ export default function Footer() {
   return (
     <footer className={styles.footer}>
       <span>
-        <em>Abide:</em> WithMe
+        <em>Clarity:</em> Counselling Practice Management
       </span>
 
       {isAdmin && (

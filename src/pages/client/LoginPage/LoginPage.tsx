@@ -14,6 +14,7 @@ import styles from "./LoginPage.module.scss";
 
 function ResetPasswordForm() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -49,7 +50,7 @@ function ResetPasswordForm() {
           Your password has been changed. If note encryption is set up, use your 4-word encryption code to re-link
           access to your notes next time you open them.
         </p>
-        <button type="button" className={styles.submitBtn} onClick={() => navigate("/admin")}>
+        <button type="button" className={styles.submitBtn} onClick={() => navigate(isAdmin ? "/admin" : "/dashboard")}>
           Go to dashboard
         </button>
       </div>
@@ -111,7 +112,9 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
     setSubmitting(true);
     setError(null);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      // ?type=recovery lets LoginPage detect the mode synchronously on mount,
+      // preventing the navigation guard from redirecting before PASSWORD_RECOVERY fires.
+      redirectTo: `${window.location.origin}/login?type=recovery`,
     });
     setSubmitting(false);
     if (err) setError(err.message);

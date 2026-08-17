@@ -99,6 +99,15 @@ const sessionsSlice = createSlice({
     clearResponseError: (state) => {
       state.error = null;
     },
+    upsertSession: (state, action: { payload: Session }) => {
+      const idx = state.sessions.findIndex((s) => s.id === action.payload.id);
+      if (idx !== -1) {
+        state.sessions[idx] = action.payload;
+      } else {
+        state.sessions.push(action.payload);
+        state.sessions.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -171,7 +180,7 @@ const sessionsSlice = createSlice({
   },
 });
 
-export const { clearResponseError } = sessionsSlice.actions;
+export const { clearResponseError, upsertSession } = sessionsSlice.actions;
 export default sessionsSlice.reducer;
 
 // Returns a map of session id → creation-order number (1-based, stable across renders)

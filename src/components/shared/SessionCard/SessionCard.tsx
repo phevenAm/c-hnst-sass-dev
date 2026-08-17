@@ -33,6 +33,8 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [isMarkAsPaidOpen, setIsMarkAsPaidOpen] = useState(false);
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [openEditSession, setOpenEditSession] = useState(false);
   const [events, setEvents] = useState<SessionEvent[]>([]);
@@ -64,6 +66,16 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
   const handleSaveCode = () => {
     dispatch(updateSession({ id: session.id, reference_code: codeText.trim() || null }));
     setEditingCode(false);
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (isDemo) return;
+    setIsMarkingPaid(true);
+    dispatch(updateSession({ id: session.id, paid: true }));
+    supabase.functions.invoke("notify-client-payment-claimed", { body: { session_id: session.id } });
+    showToast("Payment noted — your counsellor has been notified.", "success");
+    setIsMarkingPaid(false);
+    setIsMarkAsPaidOpen(false);
   };
 
   const handleSaveNotes = () => {
@@ -340,14 +352,15 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
 
         {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && !isWithin48Hours && (
           <div className={styles.actions_Icons}>
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={isDemo || session.paid}
-              onClick={() => setIsPayModalOpen(true)}
-            >
-              Pay
-            </Button>
+            {!session.paid ? (
+              <SplitButton
+                size="sm"
+                variant="primary"
+                primaryLabel="Pay"
+                primaryAction={() => !isDemo && setIsPayModalOpen(true)}
+                options={[{ label: "Mark as paid", onClick: () => !isDemo && setIsMarkAsPaidOpen(true) }]}
+              />
+            ) : null}
             <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsRescheduleModalOpen(true)}>
               Reschedule
             </Button>
@@ -379,6 +392,32 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
       {isDeleteModalOpen && <DeleteSessionModal id={session.id} onClose={() => setIsDeleteModalOpen(false)} />}
       {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
       {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
+      {isMarkAsPaidOpen && (
+        <Modal
+          title="Mark as paid"
+          size="sm"
+          onClose={() => setIsMarkAsPaidOpen(false)}
+          actions={
+            <>
+              <Button variant="ghost" onClick={() => setIsMarkAsPaidOpen(false)} disabled={isMarkingPaid}>
+                Cancel
+              </Button>
+              <Button onClick={handleMarkAsPaid} disabled={isMarkingPaid}>
+                {isMarkingPaid ? "Saving…" : "Confirm payment"}
+              </Button>
+            </>
+          }
+        >
+          <p style={{ fontSize: "0.9rem", lineHeight: 1.6, marginBottom: "var(--sp-3)" }}>
+            Use this if you've already sent payment by bank transfer or another method and want to let your counsellor
+            know.
+          </p>
+          <p style={{ fontSize: "0.9rem", lineHeight: 1.6 }}>
+            Your counsellor will receive a notification to check their bank account. They will confirm receipt and mark
+            the session as paid on their end.
+          </p>
+        </Modal>
+      )}
       {isRescheduleModalOpen && (
         <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
       )}

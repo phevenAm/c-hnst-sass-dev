@@ -32,6 +32,7 @@ import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
+import StubSessionCard from "../AdminStubDetailPage/StubSessionCard";
 import AvailabilityEditor from "./AvailabilityEditor";
 import PrivateEventModal from "./PrivateEventModal";
 
@@ -120,6 +121,8 @@ const AdminScheduler = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   // Session-totals period filter.
   const [period, setPeriod] = useState<SchedulerPeriod>("all");
+  // Whether to email the client when confirming a drag-and-drop reschedule.
+  const [notifyOnDrop, setNotifyOnDrop] = useState(true);
 
   // Dashboard "Manage availability" quick action links here with ?availability=1
   // so the editor opens straight away. Clear the param once consumed.
@@ -203,13 +206,40 @@ const AdminScheduler = () => {
   const privateEvents = useAppSelector((s) => s.adminPrivateEvents.events);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
 
-  // ----- overview: sessions scoped to the selected client (or all)
+  // Derive whether the current filter refers to an offline client (stub) or a
+  // real client. Values are either "all", a real user UUID, or "stub:<stubId>".
+  const selectedStubId = selectedClientId.startsWith("stub:") ? selectedClientId.slice(5) : null;
+  const isStubSelected = selectedStubId !== null;
+  const isRealClientSelected = !isStubSelected && selectedClientId !== "all";
+
+  // ----- overview: sessions scoped to the selected client (or all).
+  // Stub clients have no rows in the sessions table so their filter returns [].
   const filteredSessions = useMemo(
-    () => (selectedClientId === "all" ? sessions : sessions.filter((s) => s.client_id === selectedClientId)),
-    [sessions, selectedClientId],
+    () =>
+      isStubSelected
+        ? []
+        : selectedClientId === "all"
+          ? sessions
+          : sessions.filter((s) => s.client_id === selectedClientId),
+    [sessions, selectedClientId, isStubSelected],
   );
 
-  // ----- events. The session layer honours the client filter so the calendar
+  // ----- stub sessions scoped to the client filter.
+  // Hidden entirely when a real client is selected; narrowed to one stub when
+  // a stub is selected; otherwise all unlinked stubs show (default "all").
+  const filteredStubSessions = useMemo(
+    () =>
+      allStubSessions.filter((s) => {
+        const stub = allStubs.find((st) => st.id === s.stub_id);
+        if (!stub || stub.linked_user_id) return false;
+        if (isRealClientSelected) return false;
+        if (isStubSelected) return s.stub_id === selectedStubId;
+        return true;
+      }),
+    [allStubSessions, allStubs, isRealClientSelected, isStubSelected, selectedStubId],
+  );
+
+  // ----- events. Both session layers honour the client filter so the calendar
   // matches the overview + history below it; availability windows are
   // practice-wide and always shown.
   const events = useMemo<SchedulerEvent[]>(
@@ -217,16 +247,9 @@ const AdminScheduler = () => {
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
       ...sessionEvents(filteredSessions, users, useCodenames),
-      ...stubSessionEvents(
-        allStubSessions.filter((s) => {
-          const stub = allStubs.find((st) => st.id === s.stub_id);
-          return stub && !stub.linked_user_id;
-        }),
-        allStubs,
-        useCodenames,
-      ),
+      ...stubSessionEvents(filteredStubSessions, allStubs, useCodenames),
     ],
-    [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, allStubSessions, allStubs],
+    [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, filteredStubSessions, allStubs],
   );
 
   // Aggregate counts + payment totals in a single pass. Semantics match the
@@ -276,6 +299,19 @@ const AdminScheduler = () => {
         .slice(0, 10),
     [filteredSessions],
   );
+
+  const recentStubSessions = useMemo(
+    () =>
+      [...filteredStubSessions]
+        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
+        .slice(0, 10),
+    [filteredStubSessions],
+  );
+
+  const handleStubSessionUpdated = (updated: StubSession) =>
+    setAllStubSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+
+  const handleStubSessionDeleted = (id: string) => setAllStubSessions((prev) => prev.filter((s) => s.id !== id));
 
   // ----- session totals: hours + remote vs in-person split for the selected
   // period (default all time). Scoped to the client filter, cancelled excluded.
@@ -360,9 +396,28 @@ const AdminScheduler = () => {
 
   const handleEventDrop = ({ event, start }: EventInteractionArgs<SchedulerEvent>) => {
     const r = event.resource;
-    if (r.type !== "session") return;
+    if (r.type !== "session" && r.type !== "stub-session") return;
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
+      return;
+    }
+
+    if (r.type === "stub-session") {
+      const proposedStart = new Date(start as Date);
+      supabase
+        .from("stub_sessions")
+        .update({ scheduled_at: proposedStart.toISOString() })
+        .eq("id", r.stubSession.id)
+        .then(({ error }) => {
+          if (error) {
+            showToast("Failed to reschedule session.", "danger");
+          } else {
+            setAllStubSessions((prev) =>
+              prev.map((s) => (s.id === r.stubSession.id ? { ...s, scheduled_at: proposedStart.toISOString() } : s)),
+            );
+            showToast("Session rescheduled.");
+          }
+        });
       return;
     }
 
@@ -393,12 +448,15 @@ const AdminScheduler = () => {
     if (!pendingDrop) return;
     const { session, start, prevDate } = pendingDrop;
     dispatch(updateSession({ id: session.id, scheduled_at: start.toISOString() })).then(() => {
-      supabase.functions.invoke("notify-session-rescheduled", {
-        body: { session_id: session.id, previous_date: prevDate },
-      });
+      if (notifyOnDrop) {
+        supabase.functions.invoke("notify-session-rescheduled", {
+          body: { session_id: session.id, previous_date: prevDate },
+        });
+      }
       showToast("Session rescheduled.", "success");
     });
     setPendingDrop(null);
+    setNotifyOnDrop(true);
   };
 
   const editingClientName = useMemo(() => {
@@ -454,6 +512,19 @@ const AdminScheduler = () => {
                     {clientDisplayName(c, useCodenames)}
                   </option>
                 ))}
+                {allStubs.filter((s) => !s.linked_user_id).length > 0 && (
+                  <optgroup label="Offline clients">
+                    {allStubs
+                      .filter((s) => !s.linked_user_id)
+                      .map((s) => (
+                        <option key={s.id} value={`stub:${s.id}`}>
+                          {useCodenames
+                            ? s.codename || `${s.first_name} ${s.last_name}`
+                            : `${s.first_name} ${s.last_name}`}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
               </select>
             </label>
           }
@@ -547,7 +618,26 @@ const AdminScheduler = () => {
             </span>
           }
         >
-          {recentSessions.length > 0 ? (
+          {isStubSelected ? (
+            recentStubSessions.length > 0 ? (
+              <div className={styles.historyList}>
+                {recentStubSessions.map((session, idx) => (
+                  <StubSessionCard
+                    key={session.id}
+                    session={session}
+                    sessionNumber={recentStubSessions.length - idx}
+                    stubId={selectedStubId!}
+                    adminId={userProfile!.id}
+                    isDemo={isDemo}
+                    onUpdated={handleStubSessionUpdated}
+                    onDeleted={handleStubSessionDeleted}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={styles.empty}>No sessions yet.</p>
+            )
+          ) : recentSessions.length > 0 ? (
             <div className={styles.historyList}>
               {recentSessions.map((session) => (
                 <SessionCard key={session.id} session={session} isAdmin isDemo={isDemo} />
@@ -563,10 +653,20 @@ const AdminScheduler = () => {
         <Modal
           title="Confirm reschedule"
           size="sm"
-          onClose={() => setPendingDrop(null)}
+          onClose={() => {
+            setPendingDrop(null);
+            setNotifyOnDrop(true);
+          }}
           actions={
             <>
-              <Button variant="ghost" size="sm" onClick={() => setPendingDrop(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPendingDrop(null);
+                  setNotifyOnDrop(true);
+                }}
+              >
                 Cancel
               </Button>
               <Button size="sm" onClick={handleConfirmDrop}>
@@ -580,7 +680,10 @@ const AdminScheduler = () => {
             <strong>{dayjs(pendingDrop.prevDate).format("D MMM [at] h:mma")}</strong> to{" "}
             <strong>{dayjs(pendingDrop.start).format("D MMM [at] h:mma")}</strong>?
           </p>
-          <p className={styles.confirmNote}>The client will be notified of the change.</p>
+          <label className={styles.notifyCheckbox}>
+            <input type="checkbox" checked={notifyOnDrop} onChange={(e) => setNotifyOnDrop(e.target.checked)} />
+            Notify client by email
+          </label>
         </Modal>
       )}
 

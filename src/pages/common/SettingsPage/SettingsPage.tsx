@@ -105,6 +105,14 @@ const SettingsPage = () => {
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
   const [savingAutoCancel, setSavingAutoCancel] = useState(false);
+  const [consentEnabled, setConsentEnabled] = useState(false);
+  const [consentTitle, setConsentTitle] = useState("Before you continue");
+  const [consentBody, setConsentBody] = useState("");
+  const [consentPdfUrl, setConsentPdfUrl] = useState("");
+  const [consentCounsellorCta, setConsentCounsellorCta] = useState(
+    "If you have any questions, speak to your counsellor.",
+  );
+  const [savingConsent, setSavingConsent] = useState(false);
   const [sidebarBtnPos, setSidebarBtnPos] = useState<"top" | "middle" | "bottom">(
     () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
   );
@@ -201,6 +209,11 @@ const SettingsPage = () => {
         setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
         setUseCodenames(data.use_client_codenames ?? false);
         setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
+        setConsentEnabled(data.consent_enabled ?? false);
+        setConsentTitle(data.consent_title ?? "Before you continue");
+        setConsentBody(data.consent_body ?? "");
+        setConsentPdfUrl(data.consent_pdf_url ?? "");
+        setConsentCounsellorCta(data.consent_counsellor_cta ?? "If you have any questions, speak to your counsellor.");
       });
   }, [isAdmin, userProfile?.id, encStatus, decryptPII]);
 
@@ -311,6 +324,23 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingAutoCancel(false);
     showToast("Auto-cancel settings saved.");
+  };
+
+  const handleSaveConsent = async () => {
+    if (!userProfile?.id) return;
+    setSavingConsent(true);
+    await supabase
+      .from("practice_settings")
+      .update({
+        consent_enabled: consentEnabled,
+        consent_title: consentTitle || "Before you continue",
+        consent_body: consentBody,
+        consent_pdf_url: consentPdfUrl || null,
+        consent_counsellor_cta: consentCounsellorCta || null,
+      })
+      .eq("admin_id", userProfile.id);
+    setSavingConsent(false);
+    showToast("Consent settings saved.");
   };
 
   const handleManageSubscription = async () => {
@@ -615,6 +645,97 @@ const SettingsPage = () => {
                   disabled={savingAutoCancel}
                 >
                   {savingAutoCancel ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Client consent */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Client consent</h2>
+                <p>
+                  When enabled, new clients must read and agree to your terms before they can access the app. Existing
+                  clients who signed up before this was turned on are not affected.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Require consent before app access</strong>
+                    <span>
+                      {consentEnabled
+                        ? "On — new clients will see this screen before they can continue."
+                        : "Off — clients can access the app immediately after signing up."}
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={consentEnabled}
+                      onChange={(e) => setConsentEnabled(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+
+                <div className={styles.field} style={{ marginTop: "var(--sp-5)" }}>
+                  <label htmlFor="consentTitle">Heading</label>
+                  <input
+                    id="consentTitle"
+                    value={consentTitle}
+                    onChange={(e) => setConsentTitle(e.target.value)}
+                    placeholder="Before you continue"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="consentBody">Agreement text</label>
+                  <textarea
+                    id="consentBody"
+                    className={styles.textarea}
+                    rows={6}
+                    value={consentBody}
+                    onChange={(e) => setConsentBody(e.target.value)}
+                    placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="consentPdfUrl">
+                    PDF link <small>(optional — clients can read this document in-app)</small>
+                  </label>
+                  <input
+                    id="consentPdfUrl"
+                    type="url"
+                    value={consentPdfUrl}
+                    onChange={(e) => setConsentPdfUrl(e.target.value)}
+                    placeholder="https://…"
+                  />
+                  <p className={styles.toggleHint}>
+                    Paste a link to a PDF hosted anywhere (e.g. Google Drive, Dropbox). Clients will see it embedded
+                    in-app alongside your agreement text.
+                  </p>
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="consentCta">Footer message</label>
+                  <input
+                    id="consentCta"
+                    value={consentCounsellorCta}
+                    onChange={(e) => setConsentCounsellorCta(e.target.value)}
+                    placeholder="If you have any questions, speak to your counsellor."
+                  />
+                  <p className={styles.toggleHint}>Shown below the agree button as a soft prompt.</p>
+                </div>
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveConsent}
+                  disabled={savingConsent}
+                >
+                  {savingConsent ? "Saving…" : "Save consent settings"}
                 </Button>
               </div>
             </Card>

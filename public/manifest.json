@@ -1,6 +1,6 @@
 {
-  "name": "Abide: WithMe",
-  "short_name": "WithMe",
+  "name": "Clarity: Counselling Practice Management",
+  "short_name": "Clarity",
   "description": "A counselling client portal for tracking personal growth and wellbeing.",
   "start_url": "/",
   "display": "standalone",

@@ -25,6 +25,7 @@ import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import CreateStubModal from "../AdminClientsPage/modals/CreateStubModal/CreateStubModal";
 import AddStubSessionModal from "./AddStubSessionModal";
 import InviteStubModal from "./InviteStubModal";
+import StubSessionCard from "./StubSessionCard";
 
 import styles from "./AdminStubDetailPage.module.scss";
 
@@ -42,20 +43,6 @@ type AssignedForm = {
     title: string;
     form_type: string;
   } | null;
-};
-
-const STATUS_LABELS: Record<StubSession["status"], string> = {
-  scheduled: "Scheduled",
-  attended: "Attended",
-  no_show: "No show",
-  cancelled: "Cancelled",
-};
-
-const STATUS_STYLES: Record<StubSession["status"], string> = {
-  scheduled: styles.statusScheduled,
-  attended: styles.statusAttended,
-  no_show: styles.statusNoShow,
-  cancelled: styles.statusCancelled,
 };
 
 function formatCurrency(amount: number, currency: string) {
@@ -85,8 +72,6 @@ export default function AdminStubDetailPage() {
   const [loading, setLoading] = useState(!stubFromRedux);
 
   const [addSessionOpen, setAddSessionOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<StubSession | null>(null);
-  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   const [noteContent, setNoteContent] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -203,20 +188,14 @@ export default function AdminStubDetailPage() {
     });
   };
 
-  const handleDeleteSession = async (id: string) => {
-    if (isDemo) {
-      showToast("Demo mode — changes are not saved.", "warning");
-      return;
-    }
-    setDeletingSessionId(id);
-    const { error } = await supabase.from("stub_sessions").delete().eq("id", id);
-    if (error) {
-      showToast("Failed to delete session.", "danger");
-    } else {
-      setSessions((prev) => prev.filter((s) => s.id !== id));
-    }
-    setDeletingSessionId(null);
-  };
+  // Chronological session numbers (oldest = #1). Sessions are stored
+  // newest-first so we reverse-index here.
+  const sessionNumberMap = useMemo(() => {
+    const chronological = [...sessions].sort(
+      (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
+    );
+    return new Map(chronological.map((s, i) => [s.id, i + 1]));
+  }, [sessions]);
 
   const handleAddNote = async () => {
     if (!stubId || !userProfile || !noteContent.trim()) return;
@@ -323,9 +302,8 @@ export default function AdminStubDetailPage() {
       showToast("Failed to link client.", "danger");
     } else {
       dispatch(updateClientStub({ id: stubId, linked_user_id: selectedLinkUserId }));
-      setLinkOpen(false);
-      setSelectedLinkUserId("");
       showToast("Client linked. Notes transferred.");
+      navigate(`/admin/clients/${selectedLinkUserId}`);
     }
     setLinking(false);
   };
@@ -459,46 +437,16 @@ export default function AdminStubDetailPage() {
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((s) => (
-                <div
+                <StubSessionCard
                   key={s.id}
-                  className={[styles.sessionRow, s.status === "cancelled" ? styles.sessionRowCancelled : ""]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <p className={styles.sessionDate}>{dayjs(s.scheduled_at).format("D MMM YYYY, h:mma")}</p>
-                  <div className={styles.sessionMeta}>
-                    <span className={`${styles.statusBadge} ${STATUS_STYLES[s.status]}`}>
-                      {STATUS_LABELS[s.status]}
-                    </span>
-                    <span
-                      className={
-                        s.amount_paid != null && s.amount_paid > 0 ? styles.paymentPillPaid : styles.paymentPillUnpaid
-                      }
-                    >
-                      {s.amount_paid != null && s.amount_paid > 0
-                        ? formatCurrency(s.amount_paid, s.currency)
-                        : "Unpaid"}
-                    </span>
-                    {s.duration_minutes && <span className={styles.sessionDuration}>{s.duration_minutes} min</span>}
-                    {s.code && <span className={styles.sessionCode}>{s.code}</span>}
-                    {s.location && <span className={styles.sessionDuration}>{s.location}</span>}
-                    {s.notes && <span className={styles.sessionNotes}>{s.notes}</span>}
-                  </div>
-                  <div className={styles.sessionActions}>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingSession(s)}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSession(s.id)}
-                      disabled={deletingSessionId === s.id}
-                      aria-label="Delete session"
-                    >
-                      {deletingSessionId === s.id ? "…" : "Delete"}
-                    </Button>
-                  </div>
-                </div>
+                  session={s}
+                  sessionNumber={sessionNumberMap.get(s.id) ?? 1}
+                  stubId={stubId!}
+                  adminId={userProfile?.id ?? ""}
+                  isDemo={isDemo}
+                  onUpdated={(updated) => handleSessionSaved([updated])}
+                  onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
+                />
               ))}
             </div>
           )}
@@ -630,20 +578,6 @@ export default function AdminStubDetailPage() {
           onSaved={(saved) => {
             handleSessionSaved(saved);
             setAddSessionOpen(false);
-          }}
-        />
-      )}
-
-      {/* Edit session modal */}
-      {editingSession && userProfile && (
-        <AddStubSessionModal
-          stubId={stubId!}
-          adminId={userProfile.id}
-          existing={editingSession}
-          onClose={() => setEditingSession(null)}
-          onSaved={(saved) => {
-            handleSessionSaved(saved);
-            setEditingSession(null);
           }}
         />
       )}

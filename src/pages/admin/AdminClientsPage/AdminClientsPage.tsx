@@ -11,6 +11,7 @@ import type { ClientStub, Questionnaire, Response, UserProfile } from "@models/g
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { deleteClientStub, fetchClientStubs, selectAllStubs } from "@store/slices/clientStubsSlice";
+import { fetchAllAssignments, selectPlottedAssignmentByUser } from "@store/slices/questionnaireAssignmentsSlice";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
@@ -44,6 +45,7 @@ const getQuestionnaireForResponse = (response: Response | undefined, questionnai
 function ClientRow({ user }: { user: UserProfile }) {
   const allResponses = useAppSelector(selectResponsesByUser(user.id));
   const questionnaires = useAppSelector(selectAllQuestionnaires);
+  const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(user.id));
   const { practiceSettings } = useAuth();
   const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
 
@@ -100,6 +102,9 @@ function ClientRow({ user }: { user: UserProfile }) {
         <div className={styles.clientMeta}>
           <p className={styles.clientName}>{displayName}</p>
           <p className={styles.clientEmail}>{user.email}</p>
+          {plottedAssignment?.questionnaires?.title && (
+            <p className={styles.clientPlotted}>Charting: {plottedAssignment.questionnaires.title}</p>
+          )}
         </div>
 
         <div className={styles.statBlock}>
@@ -350,6 +355,11 @@ export default function AdminClientsPage() {
     (state: RootState) => state.clientStubs.status,
     () => fetchClientStubs(),
     "Failed to fetch offline clients:",
+  );
+  useFetchOnIdle(
+    (state: RootState) => state.assignments.status,
+    () => fetchAllAssignments(),
+    "Failed to fetch assignments:",
   );
 
   const [searchParams, setSearchParams] = useSearchParams();
