@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
+import ConsentModal from "../components/Consent/ConsentModal";
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
 import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
@@ -13,6 +14,7 @@ import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOver
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
+import { supabase } from "../lib/supabase";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
@@ -76,7 +78,7 @@ function AppLayout() {
 
 function AdminLayout() {
   const topRef = useFocusOnNavigate();
-  const location = useLocation();
+  const { pathname } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );
@@ -84,7 +86,7 @@ function AdminLayout() {
 
   useEffect(() => {
     setMobileSidebarOpen(false);
-  }, [location.pathname]);
+  }, [pathname]);
 
   const toggleSidebar = () => {
     if (window.innerWidth < 768) {
@@ -166,6 +168,29 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+type ConsentSettings = {
+  consent_title: string;
+  consent_body: string;
+  consent_pdf_url: string | null;
+  consent_counsellor_cta: string;
+};
+
+function ConsentGate() {
+  const { userProfile, isAdmin, isDemo, loading } = useAuth();
+  const [settings, setSettings] = useState<ConsentSettings | null>(null);
+
+  useEffect(() => {
+    if (loading || isAdmin || isDemo || !userProfile || userProfile.has_consented) return;
+    supabase.rpc("get_my_admin_consent_settings").then(({ data }) => {
+      const row = data?.[0];
+      if (row?.consent_enabled) setSettings(row);
+    });
+  }, [loading, isAdmin, isDemo, userProfile]);
+
+  if (!settings) return null;
+  return <ConsentModal settings={settings} onComplete={() => setSettings(null)} />;
+}
+
 function OnboardingGate() {
   const { userProfile, isDemo, isAuthenticated, loading } = useAuth();
   const [show, setShow] = useState(false);
@@ -183,6 +208,7 @@ export default function AppRoutes() {
     <ThemeWrapper>
       <BrowserRouter>
         <WalkthroughProvider>
+          <ConsentGate />
           <OnboardingGate />
           <WalkthroughOverlay />
           <Routes>
@@ -221,7 +247,7 @@ export default function AppRoutes() {
               }
             >
               <Route path="/dashboard" element={<ClientDashboard />} />
-              <Route path="/forms" element={<CheckInPage />} />
+              <Route path="/check-in" element={<CheckInPage />} />
               <Route path="/my-sessions" element={<ClientSchedule />} />
               <Route path="/resources" element={<ResourcesPage />} />
             </Route>

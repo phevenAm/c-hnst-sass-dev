@@ -11,13 +11,13 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CpdIcon,
-  FormsIcon,
-  HelpIcon,
   HistoryIcon,
   HomeIcon,
+  IdeasIcon,
   LayersIcon,
   LeafLogoMark,
   MoneyIcon,
+  PollsIcon,
   SupervisionLogoMark,
   UsersIcon,
 } from "../Icons/Icons";
@@ -34,9 +34,9 @@ const NAV: NavItem[] = [
   { to: "/admin", label: "Dashboard", Icon: HomeIcon, exact: true },
   { to: "/admin/scheduler", label: "Schedule", Icon: CalendarIcon, exact: false },
   { to: "/admin/clients", label: "Clients", Icon: UsersIcon, exact: false },
+  { to: "/admin/forms", label: "Forms", Icon: PollsIcon, exact: false },
   { to: "/admin/payments", label: "Payments", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
-  { to: "/admin/forms", label: "Forms", Icon: FormsIcon, exact: false },
   {
     label: "Logs",
     Icon: LayersIcon,
@@ -256,12 +256,12 @@ export default function AdminSidebar({
               type="button"
               className={styles.bottomLink}
               onClick={() => setFeedbackOpen(true)}
-              title={collapsed ? "Report an issue" : undefined}
+              title={collapsed ? "Give feedback" : undefined}
             >
               <span className={styles.icon}>
-                <HelpIcon />
+                <IdeasIcon />
               </span>
-              <span className={styles.label}>Report an issue</span>
+              <span className={styles.label}>Give feedback</span>
             </button>
           )}
 

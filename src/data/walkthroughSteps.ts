@@ -23,7 +23,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "dashboard-welcome",
         order: 1,
         title: "Welcome to your Dashboard",
-        body: "This is your home screen. The greeting updates based on the time of day. Below it you'll find everything your therapist has set up for you — sessions, check-in forms, your progress chart, and curated resources.",
+        body: "This is your home screen. The greeting updates based on the time of day. Below it you'll find everything your counsellor has set up for you — sessions, check-in forms, your progress chart, and curated resources.",
         target: "#client-dash-header",
       },
       {
@@ -44,20 +44,20 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "dashboard-checkins",
         order: 4,
         title: "Check-Ins Ready to Complete",
-        body: "Any forms your therapist has assigned that are due appear here. Click 'Start' next to a form to open it. Once you submit, the card disappears until it's due again based on its frequency.",
+        body: "Any forms your counsellor has assigned that are due appear here. Click 'Start' next to a form to open it. Once you submit, the card disappears until it's due again based on its frequency.",
         target: "#client-checkins",
       },
     ],
   },
 
-  "/forms": {
+  "/check-in": {
     pageTitle: "Check-In Forms",
     steps: [
       {
         id: "forms-intro",
         order: 1,
         title: "Your Check-In Forms",
-        body: "Your therapist assigns forms to help track how you're feeling between sessions. This page shows all forms currently assigned to you — complete them at your own pace.",
+        body: "Your counsellor assigns forms to help track how you're feeling between sessions. This page shows all forms currently assigned to you — complete them at your own pace.",
         target: "#forms-header",
       },
       {
@@ -77,14 +77,14 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "sessions-overview",
         order: 1,
         title: "Your Session History",
-        body: "Every session your therapist has booked with you appears here — upcoming, completed, and cancelled. Your next upcoming session is always shown at the top for quick reference.",
+        body: "Every session your counsellor has booked with you appears here — upcoming, completed, and cancelled. Your next upcoming session is always shown at the top for quick reference.",
         target: "#sessions-header",
       },
       {
         id: "sessions-view",
         order: 2,
         title: "List or Calendar View",
-        body: "Use these buttons to switch between a calendar view (see your sessions laid out on a weekly calendar) and a list view (past and upcoming sessions sorted by date). The calendar also shows your therapist's available slots.",
+        body: "Use these buttons to switch between a calendar view (see your sessions laid out on a weekly calendar) and a list view (past and upcoming sessions sorted by date). The calendar also shows your counsellor's available slots.",
         target: "#sessions-view-toggle",
       },
     ],
@@ -96,8 +96,8 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
       {
         id: "resources-client-intro",
         order: 1,
-        title: "Resources Your Therapist Has Shared",
-        body: "This page shows everything your therapist has chosen to share with you — articles, worksheets, videos, and links. New resources appear here automatically as your therapist adds them.",
+        title: "Resources Your counsellor Has Shared",
+        body: "This page shows everything your counsellor has chosen to share with you — articles, worksheets, videos, and links. New resources appear here automatically as your counsellor adds them.",
         target: "#resources-header",
       },
       {
