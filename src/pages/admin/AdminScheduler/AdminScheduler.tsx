@@ -32,6 +32,7 @@ import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
+import StubSessionCard from "../AdminStubDetailPage/StubSessionCard";
 import AvailabilityEditor from "./AvailabilityEditor";
 import PrivateEventModal from "./PrivateEventModal";
 
@@ -298,6 +299,19 @@ const AdminScheduler = () => {
         .slice(0, 10),
     [filteredSessions],
   );
+
+  const recentStubSessions = useMemo(
+    () =>
+      [...filteredStubSessions]
+        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
+        .slice(0, 10),
+    [filteredStubSessions],
+  );
+
+  const handleStubSessionUpdated = (updated: StubSession) =>
+    setAllStubSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+
+  const handleStubSessionDeleted = (id: string) => setAllStubSessions((prev) => prev.filter((s) => s.id !== id));
 
   // ----- session totals: hours + remote vs in-person split for the selected
   // period (default all time). Scoped to the client filter, cancelled excluded.
@@ -600,15 +614,30 @@ const AdminScheduler = () => {
           storageKey="scheduler:history"
           headerRight={
             <span className={styles.historyMeta}>
-              {isStubSelected
-                ? "Session history unavailable for offline clients"
-                : selectedClientId === "all"
-                  ? "Recent across all clients"
-                  : "Recent for this client"}
+              {selectedClientId === "all" ? "Recent across all clients" : "Recent for this client"}
             </span>
           }
         >
-          {recentSessions.length > 0 ? (
+          {isStubSelected ? (
+            recentStubSessions.length > 0 ? (
+              <div className={styles.historyList}>
+                {recentStubSessions.map((session, idx) => (
+                  <StubSessionCard
+                    key={session.id}
+                    session={session}
+                    sessionNumber={recentStubSessions.length - idx}
+                    stubId={selectedStubId!}
+                    adminId={userProfile!.id}
+                    isDemo={isDemo}
+                    onUpdated={handleStubSessionUpdated}
+                    onDeleted={handleStubSessionDeleted}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={styles.empty}>No sessions yet.</p>
+            )
+          ) : recentSessions.length > 0 ? (
             <div className={styles.historyList}>
               {recentSessions.map((session) => (
                 <SessionCard key={session.id} session={session} isAdmin isDemo={isDemo} />

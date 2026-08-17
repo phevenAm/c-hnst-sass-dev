@@ -180,8 +180,8 @@
   background: #ffffff !important;
 
   .dark & {
-    background: #ffffff !important;
-    color: #2d2520 !important;
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
   }
   color: var(--text-primary);
   font-family: var(--font-sans);
