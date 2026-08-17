@@ -76,7 +76,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     if (!ok) {
       setGateError("Could not unlock — check your encryption code and try again.");
     } else {
-      setShowInlineRecovery(false);
+      setGateMode("password");
       setRecoveryCode("");
       setRecoveryNewPassword("");
     }
@@ -139,6 +139,30 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
 
       setNotes(decrypted);
       setLoading(false);
+
+      // Silently re-encrypt any notes written before encryption was set up.
+      const legacy = decrypted.filter((n) => !n.is_encrypted);
+      if (legacy.length > 0) {
+        const reencrypted = await Promise.all(
+          legacy.map(async (n) => {
+            try {
+              const { iv, ciphertext } = await encryptNote(n.content);
+              await supabase
+                .from("session_notes")
+                .update({ content: ciphertext, is_encrypted: true, note_iv: iv })
+                .eq("id", n.id);
+              return n.id;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        const done = new Set(reencrypted.filter(Boolean));
+        if (done.size > 0) {
+          setNotes((prev) => prev.map((n) => (done.has(n.id) ? { ...n, is_encrypted: true } : n)));
+          showToast(`${done.size} note${done.size > 1 ? "s" : ""} encrypted.`);
+        }
+      }
     };
 
     fetchNotes();
@@ -352,15 +376,22 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
         {notes.map((note) => (
           <li key={note.id} className={styles.noteItem}>
             <div className={styles.noteHeader}>
-              <span className={styles.noteDate}>
-                {new Date(note.created_at).toLocaleString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              <div className={styles.noteMeta}>
+                <span className={styles.noteDate}>
+                  {new Date(note.created_at).toLocaleString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                {note.is_encrypted ? (
+                  <span className={styles.noteLockBadge}>🔒 encrypted</span>
+                ) : (
+                  <span className={styles.notePlainBadge}>⚠ unencrypted</span>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -381,6 +412,8 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
   return (
     <Modal title={modalTitle} onClose={onClose} size="md">
       {error && <p className={styles.modalError}>{error}</p>}
+
+      <div className={styles.encStatusBar}>🔒 End-to-end encrypted — notes are decrypted locally in your browser</div>
 
       <div className={styles.notesAddForm}>
         <textarea

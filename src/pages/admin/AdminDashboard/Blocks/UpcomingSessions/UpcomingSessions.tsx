@@ -5,7 +5,6 @@ import dayjs from "dayjs";
 
 import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
-import Card from "@components/shared/Card/Card";
 
 import { clientDisplayName, pickColor } from "@/Helpers/Helpers";
 import type { Session, UserProfile } from "@/models/globalTypes";
@@ -55,7 +54,7 @@ export default function UpcomingSessions({
   };
 
   return (
-    <Card className={styles.pad}>
+    <div className={styles.pad}>
       {upcoming.length === 0 ? (
         <p className={styles.empty}>No upcoming sessions booked.</p>
       ) : (
@@ -84,6 +83,6 @@ export default function UpcomingSessions({
           ))}
         </ul>
       )}
-    </Card>
+    </div>
   );
 }

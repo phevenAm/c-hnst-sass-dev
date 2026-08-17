@@ -165,110 +165,126 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <CollapsibleSection
-          title="Upcoming sessions"
-          storageKey="dash:upcoming"
-          headerRight={
-            <Link to="/admin/scheduler" className={styles.sectionLink}>
-              Open schedule
-            </Link>
-          }
-        >
-          <UpcomingSessions
-            sessions={allSessions}
-            clients={allClients}
-            useCodenames={practiceSettings?.use_client_codenames ?? false}
-            limit={2}
-          />
-        </CollapsibleSection>
+        {/* ── Primary two-column grid: Upcoming + Recent ── */}
+        <div className={styles.primaryGrid}>
+          <Card className={styles.sectionCard}>
+            <CollapsibleSection
+              title="Upcoming sessions"
+              storageKey="dash:upcoming"
+              headerRight={
+                <Link to="/admin/scheduler" className={styles.sectionLink}>
+                  Open schedule
+                </Link>
+              }
+            >
+              <UpcomingSessions
+                sessions={allSessions}
+                clients={allClients}
+                useCodenames={practiceSettings?.use_client_codenames ?? false}
+                limit={5}
+              />
+            </CollapsibleSection>
+          </Card>
+
+          <Card className={styles.sectionCard}>
+            <CollapsibleSection
+              title="Recent clients"
+              storageKey="dash:recent"
+              headerRight={
+                <Link to="/admin/clients" className={styles.sectionLink}>
+                  View all →
+                </Link>
+              }
+            >
+              {recentViews.length === 0 ? (
+                <p className={styles.empty}>No recently viewed clients yet.</p>
+              ) : (
+                <div className={styles.recentList}>
+                  {recentViews.map((v) => {
+                    const name = getViewName(v);
+                    return (
+                      <Link
+                        key={`${v.client_type}-${v.client_ref}`}
+                        to={getViewHref(v)}
+                        className={styles.recentRowLink}
+                      >
+                        <div className={styles.recentRow}>
+                          <Avatar name={name} color={pickColor(v.client_ref)} size={32} />
+                          <div className={styles.recentInfo}>
+                            <p className={styles.recentName}>{name}</p>
+                            <p className={styles.recentMeta}>{timeAgo(v.viewed_at)}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </CollapsibleSection>
+          </Card>
+        </div>
 
         {/* ── Outstanding payments ── */}
-        <CollapsibleSection
-          title={`Outstanding payments${unpaidSessions.length > 0 ? ` (${unpaidSessions.length})` : ""}`}
-          storageKey="dash:invoices"
-          headerRight={
-            unpaidSessions.length > 0 ? (
-              <Link to="/admin/payments" className={styles.sectionLink}>
-                View all →
-              </Link>
-            ) : undefined
-          }
-        >
-          {unpaidSessions.length === 0 ? (
-            <p className={styles.empty}>No outstanding payments — all clear.</p>
-          ) : (
-            <div className={styles.invoiceList}>
-              {unpaidSessions.map((s) => {
-                const daysOverdue = dayjs().diff(dayjs(s.scheduled_at), "day");
-                return (
-                  <Link key={s.id} to="/admin/payments" className={styles.invoiceRowLink}>
-                    <div className={styles.invoiceRow}>
-                      <div className={styles.invoiceInfo}>
-                        <span className={styles.invoiceClient}>{getClientName(s.client_id)}</span>
-                        <span className={styles.invoiceOverdue}>{daysOverdue}d overdue</span>
+        <Card className={styles.sectionCard}>
+          <CollapsibleSection
+            title={`Outstanding payments${unpaidSessions.length > 0 ? ` (${unpaidSessions.length})` : ""}`}
+            storageKey="dash:invoices"
+            headerRight={
+              unpaidSessions.length > 0 ? (
+                <Link to="/admin/payments" className={styles.sectionLink}>
+                  View all →
+                </Link>
+              ) : undefined
+            }
+          >
+            {unpaidSessions.length === 0 ? (
+              <p className={styles.empty}>No outstanding payments — all clear.</p>
+            ) : (
+              <div className={styles.invoiceList}>
+                {unpaidSessions.map((s) => {
+                  const daysOverdue = dayjs().diff(dayjs(s.scheduled_at), "day");
+                  return (
+                    <Link key={s.id} to="/admin/payments" className={styles.invoiceRowLink}>
+                      <div className={styles.invoiceRow}>
+                        <div className={styles.invoiceInfo}>
+                          <span className={styles.invoiceClient}>{getClientName(s.client_id)}</span>
+                          <span className={styles.invoiceOverdue}>{daysOverdue}d overdue</span>
+                        </div>
+                        <span className={styles.invoiceAmount}>
+                          {s.price_pence ? `£${(s.price_pence / 100).toFixed(2)}` : "—"}
+                        </span>
                       </div>
-                      <span className={styles.invoiceAmount}>
-                        {s.price_pence ? `£${(s.price_pence / 100).toFixed(2)}` : "—"}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </CollapsibleSection>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </CollapsibleSection>
+        </Card>
 
-        {/* ── Recent clients ── */}
-        <CollapsibleSection
-          title="Recent clients"
-          storageKey="dash:recent"
-          headerRight={
-            <Link to="/admin/clients" className={styles.sectionLink}>
-              View all →
-            </Link>
-          }
-        >
-          {recentViews.length === 0 ? (
-            <p className={styles.empty}>No recently viewed clients yet.</p>
-          ) : (
-            <div className={styles.recentGrid}>
-              {recentViews.map((v) => {
-                const name = getViewName(v);
-                return (
-                  <Link key={`${v.client_type}-${v.client_ref}`} to={getViewHref(v)} className={styles.recentCardLink}>
-                    <div className={styles.recentCard}>
-                      <Avatar name={name} color={pickColor(v.client_ref)} size={36} />
-                      <div className={styles.recentInfo}>
-                        <p className={styles.recentName}>{name}</p>
-                        <p className={styles.recentMeta}>{timeAgo(v.viewed_at)}</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+        <Card className={styles.sectionCard}>
+          <CollapsibleSection title="Practice trends" storageKey="dash:trends">
+            <div className={styles.chartsGrid}>
+              <HideableSection id="dashboard-revenue">
+                <TrendChart
+                  title="Revenue (last 6 months)"
+                  data={revenueData}
+                  type="bar"
+                  color="#4a665b"
+                  valueFormatter={(v) => `£${v.toFixed(2)}`}
+                />
+              </HideableSection>
+              <TrendChart title="Sessions per week" data={sessionVolumeData} type="bar" color="#5f8073" />
             </div>
-          )}
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Practice trends" storageKey="dash:trends">
-          <div className={styles.chartsGrid}>
-            <HideableSection id="dashboard-revenue">
-              <TrendChart
-                title="Revenue (last 6 months)"
-                data={revenueData}
-                type="bar"
-                color="#4a665b"
-                valueFormatter={(v) => `£${v.toFixed(2)}`}
-              />
-            </HideableSection>
-            <TrendChart title="Sessions per week" data={sessionVolumeData} type="bar" color="#5f8073" />
-          </div>
-        </CollapsibleSection>
+          </CollapsibleSection>
+        </Card>
 
         <HideableSection id="dashboard-todos">
-          <CollapsibleSection title="To-dos" storageKey="dash:todos">
-            <TodoListCard embedded />
-          </CollapsibleSection>
+          <Card className={styles.sectionCard}>
+            <CollapsibleSection title="To-dos" storageKey="dash:todos">
+              <TodoListCard embedded />
+            </CollapsibleSection>
+          </Card>
         </HideableSection>
       </div>
     </div>
