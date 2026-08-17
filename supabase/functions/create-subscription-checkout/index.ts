@@ -160,12 +160,10 @@ Deno.serve(async (req) => {
 
       console.log("Created Stripe customer:", billingCustomerId);
 
+      // Upsert so the row is created if the DB trigger missed it
       const { error: updateError } = await supabase
         .from("practice_settings")
-        .update({
-          billing_customer_id: billingCustomerId,
-        })
-        .eq("admin_id", user.id);
+        .upsert({ admin_id: user.id, billing_customer_id: billingCustomerId }, { onConflict: "admin_id" });
 
       if (updateError) {
         console.error("Failed to save Stripe customer ID:", updateError);

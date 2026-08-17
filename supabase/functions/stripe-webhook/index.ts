@@ -45,15 +45,17 @@ Deno.serve(async (req) => {
       const billing = cs.metadata?.billing ?? "monthly";
       const referralCode = cs.metadata?.referral_code ?? null;
 
-      await supabase
-        .from("practice_settings")
-        .update({
+      // Upsert so activation works even if the DB trigger didn't create the row
+      await supabase.from("practice_settings").upsert(
+        {
+          admin_id: cs.metadata.admin_id,
           subscription_status: "active",
           subscription_plan: plan,
           billing_period: billing,
           ...(referralCode ? { referred_by_code: referralCode } : {}),
-        })
-        .eq("admin_id", cs.metadata.admin_id);
+        },
+        { onConflict: "admin_id" },
+      );
 
       // Apply 2-month balance credit to the referrer
       if (referralCode) {

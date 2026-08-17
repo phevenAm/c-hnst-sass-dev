@@ -178,7 +178,7 @@ export default function SubscribePage() {
   const { Icon, title, description, points } = SLIDES[current];
 
   return (
-    <main>
+    <main className={styles.page}>
       <div className={styles.container}>
         <div className={styles.logoWrap}>
           <div className={styles.logoMark}>

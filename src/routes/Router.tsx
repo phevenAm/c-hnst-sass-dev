@@ -14,6 +14,7 @@ import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOver
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
+import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import { supabase } from "../lib/supabase";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
@@ -79,6 +80,7 @@ function AppLayout() {
 function AdminLayout() {
   const topRef = useFocusOnNavigate();
   const { pathname } = useLocation();
+  useSessionsRealtime();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );
