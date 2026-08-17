@@ -177,12 +177,13 @@
   padding: $sp-3 $sp-4;
   border: 1.5px solid var(--border);
   border-radius: var(--r-md);
-  background: #ffffff !important;
+  background: var(--bg-muted) !important;
 
   .dark & {
     background: var(--bg-card) !important;
     color: var(--text-primary) !important;
   }
+
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 0.9rem;
