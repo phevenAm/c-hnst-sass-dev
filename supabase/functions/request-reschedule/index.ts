@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         detailsTable(tableRows) +
         noteBox("Log in and open the client page to reschedule their session. No action is taken automatically."),
       cta: { label: "View client page", url: `${appUrl}/admin/clients/${user.id}` },
-      footerNote: "This email was sent because a client submitted a reschedule request through the Clarity.",
+      footerNote: "This email was sent because a client submitted a reschedule request through Clarity.",
     });
 
     await sendEmail({

@@ -1123,6 +1123,7 @@ export type Database = {
           imported_from_stub_id: string | null
           is_supervision: boolean
           location: string | null
+          manual_payment_status: string
           metadata: Json | null
           notes: string | null
           paid: boolean
@@ -1146,6 +1147,7 @@ export type Database = {
           imported_from_stub_id?: string | null
           is_supervision?: boolean
           location?: string | null
+          manual_payment_status?: string
           metadata?: Json | null
           notes?: string | null
           paid?: boolean
@@ -1169,6 +1171,7 @@ export type Database = {
           imported_from_stub_id?: string | null
           is_supervision?: boolean
           location?: string | null
+          manual_payment_status?: string
           metadata?: Json | null
           notes?: string | null
           paid?: boolean
@@ -1480,8 +1483,16 @@ export type Database = {
         Args: { q_id: string }
         Returns: boolean
       }
+      request_manual_payment: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
       reset_form_to_default: {
         Args: { p_questionnaire_id: string }
+        Returns: undefined
+      }
+      respond_manual_payment: {
+        Args: { p_approved: boolean; p_session_id: string }
         Returns: undefined
       }
       set_plotted_assignment: {

@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
             { label: "Session", value: sessionDescription },
           ]),
         cta: { label: "View client page", url: `${appUrl}/admin/clients/${clientId}` },
-        footerNote: "This email was sent because a client completed a payment through the Clarity.",
+        footerNote: "This email was sent because a client completed a payment through Clarity.",
       });
 
       if (adminId) {

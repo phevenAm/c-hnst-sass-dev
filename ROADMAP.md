@@ -351,7 +351,7 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | d2957ba6 | stub invite takes you to admin signup; token lost | 4.2 | Open |
 | b8fba132 | after inviting shadow client, they get sent back to signup | 2.3 | Open |
 | 83ebe124 | offline client not assigned to admin; no pre-existing sessions | 2.1/2.3 | Open |
-| a350a3ca | admin gets no email when shadow client joins | 2.3 | Open |
+| a350a3ca | admin gets no email when shadow client joins | 2.3 | Fixed 2026-08-13 (migration 20260813000004 — RLS for client to read own linked stub) |
 | fac84c8f | newly created account from offline can't see assigned sessions | 2.3 | Open |
 | f75e57e4 | offline client UX same as online (paid, attended, etc.) | 2.1 | Open |
 | c6fa915f | auto-cancellation should use Unpaid session cutoff setting | 2.7 | Fixed 2026-08-17 (migration 20260817000001) |
@@ -377,12 +377,12 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | 5772217a | todo date input field leaks | 6.8 | Open |
 | dc9ffd57 | activity log doesn't track much | 7.3 | Fixed 2026-08-17 (DB triggers on 9 tables, migration 20260817000002) |
 | 3a45855e | supervision calendar form broken | 7.9 | Open |
-| ef827447 | image compression edge function does nothing | 6.12 | Open |
+| ef827447 | image compression edge function does nothing | 6.12 | N/A — compression is client-side in UploadAndDisplayImage.tsx (400px cap, 80% JPEG) |
 | c5aa4475 | app getting slow; consider code splitting | 7.1 | Open |
 | 1d69c6eb | change app name to Clarity | 8.1 | Fixed 2026-08-17 (index.html, manifest, Footer, email templates) |
 | 22c2d953 | add reload button in top bar | 6.10 | Open |
 | 8c1c00e0 | use different/consistent loading spinner | 6.9 | Open |
-| ba1e94b1 | manual payment: client marks paid, admin verifies | 2.6 | Open |
+| ba1e94b1 | manual payment: client marks paid, admin verifies | 2.6 | DB done 2026-08-17 (manual_payment_status column + request/respond RPCs, migration 20260817000008) — UI still needed |
 | b6ea0fb8 | CSV import: multiple sessions per client with pairing | 3.2 | Open |
 | 4e2cf27b | signup flow for connected offline clients broken | 2.3 | Open |
 | cd023206 | todo button oversized on mobile | 6.8 | Open |
@@ -437,3 +437,8 @@ Update todo text to `[fixed] -- Original title` in the DB after each fix is veri
 | Phase 7.3 — audit logging triggers on 9 tables | Fixed 2026-08-17 |
 | Phase 5.4 DB — journal_entries + resource_favourites tables | Fixed 2026-08-17 |
 | Phase 8.1 — Rebrand to Clarity (HTML, manifest, Footer, all email templates) | Fixed 2026-08-17 |
+| Phase 2.6 DB — manual_payment_status column + request/respond_manual_payment RPCs | Done 2026-08-17 |
+| Phase 2.7 — auto-cancel non-payment email (notify-auto-cancelled edge function) | Done 2026-08-17 — ⚠️ add INTERNAL_AUTO_CANCEL_SECRET=ac-nl-cancel-e71a3b8c to Supabase Edge Function secrets |
+| Phase 2.8 DB — is_within_availability + get_availability_for_date helper RPCs | Done 2026-08-17 |
+| Phase 7.8 — verify_jwt audit: handle-unsubscribe was missing config.toml verify_jwt=false | Fixed 2026-08-17 |
+| Email grammar — "through the Clarity" → "through Clarity" in 8 edge functions | Fixed 2026-08-17 |

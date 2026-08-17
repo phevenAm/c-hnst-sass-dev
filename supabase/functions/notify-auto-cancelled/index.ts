@@ -3,14 +3,15 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
 
 const EMAIL_TYPE = "session_cancelled";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const INTERNAL_SECRET = Deno.env.get("INTERNAL_AUTO_CANCEL_SECRET") ?? "";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { status: 200 });
+
+  const providedSecret = req.headers.get("x-internal-secret") ?? "";
+  if (!INTERNAL_SECRET || providedSecret !== INTERNAL_SECRET) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   try {
     const resendKey = Deno.env.get("RESEND_API_KEY")!;
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
 
     const { session_id } = await req.json();
     if (!session_id) {
-      return new Response(JSON.stringify({ error: "Missing session_id" }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Missing session_id" }), { status: 400 });
     }
 
     const { data: session } = await supabase
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!session) {
-      return new Response(JSON.stringify({ error: "Session not found" }), { status: 404, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Session not found" }), { status: 404 });
     }
 
     const [{ data: clientProfile }, { data: authResult }] = await Promise.all([
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
 
     const clientEmail = authResult?.user?.email;
     if (!clientEmail) {
-      return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422 });
     }
 
     const dateStr = formatDate(session.scheduled_at);
@@ -61,30 +62,12 @@ Deno.serve(async (req) => {
       counsellorName = ps?.counsellor_name ?? undefined;
 
       if ((ps?.disabled_email_types ?? []).includes(EMAIL_TYPE)) {
-        await logEmail(supabase, {
-          adminId: clientProfile.admin_id,
-          clientId: session.client_id,
-          sessionId: session_id,
-          emailType: EMAIL_TYPE,
-          recipientEmail: clientEmail,
-          subject,
-          status: "skipped",
-        });
-        return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ ok: true, skipped: true }));
       }
     }
 
     if ((clientProfile?.email_prefs_disabled ?? []).includes(EMAIL_TYPE)) {
-      await logEmail(supabase, {
-        adminId: clientProfile?.admin_id,
-        clientId: session.client_id,
-        sessionId: session_id,
-        emailType: EMAIL_TYPE,
-        recipientEmail: clientEmail,
-        subject,
-        status: "skipped",
-      });
-      return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ ok: true, skipped: true }));
     }
 
     const firstName = clientProfile?.first_name ?? "there";
@@ -96,14 +79,16 @@ Deno.serve(async (req) => {
       label: "Session Cancelled",
       title: `Hi ${firstName}, your session has been cancelled`,
       body:
-        para("The following session has been cancelled:") +
+        para(
+          "Your upcoming session has been automatically cancelled because payment was not received before the deadline.",
+        ) +
         detailsTable([
           { label: "Date & time", value: dateStr, bold: true },
           { label: "Duration", value: `${session.duration_minutes} minutes` },
           { label: "Location", value: session.location !== "in_person" ? "Online" : "In person" },
         ]) +
         noteBox("If you believe this is an error or would like to rebook, please contact your therapist directly."),
-      footerNote: "You received this email because a session was cancelled through Clarity.",
+      footerNote: "You received this email because a session was automatically cancelled through Clarity.",
       unsubscribeUrl,
       counsellorName,
     });
@@ -139,14 +124,12 @@ Deno.serve(async (req) => {
       supabase.from("notifications").insert({
         user_id: session.client_id,
         type: "session_cancelled",
-        message: `Your session on ${dateStr} has been cancelled.`,
+        message: `Your session on ${dateStr} was automatically cancelled due to non-payment.`,
       }),
     ]);
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ ok: true }));
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 });
