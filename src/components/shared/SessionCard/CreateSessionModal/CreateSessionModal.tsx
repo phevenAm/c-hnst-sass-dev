@@ -17,14 +17,25 @@ import { createSession, updateSession } from "@/store/slices/sessionsSlice";
 
 import styles from "./CreateSessionModal.module.scss";
 
+export type StubSavePayload = {
+  dates: string[];
+  duration_minutes: number;
+  price_pence: number;
+  paid: boolean;
+  address: string;
+  notes: string;
+  reference_code: string;
+};
+
 type CreateSessionModalTypes = {
   clientId?: string;
   clientName?: string;
   onClose: () => void;
   session?: Session | null;
+  onSave?: (payload: StubSavePayload) => Promise<void>;
 };
 
-const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: CreateSessionModalTypes) => {
+const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onSave }: CreateSessionModalTypes) => {
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
@@ -101,6 +112,24 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
       for (let i = 1; i <= recurringWeeks; i++) {
         dates.push(scheduledAt.add(i, "week"));
       }
+    }
+
+    if (onSave) {
+      try {
+        await onSave({
+          dates: dates.map((d) => d.toISOString()),
+          duration_minutes: sessionDuration,
+          price_pence: pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0,
+          paid: isPrepaid,
+          address: sessionAddress,
+          notes: notes.trim(),
+          reference_code: referenceCode.trim(),
+        });
+      } catch (err: any) {
+        setError(err?.message || "Failed to save session.");
+      }
+      setIsSaving(false);
+      return;
     }
 
     // Overlap check — block double booking before any inserts.
@@ -186,6 +215,25 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
     if (!authUser || !scheduledAt) return;
     setError("");
     setIsSaving(true);
+
+    if (onSave) {
+      try {
+        await onSave({
+          dates: [scheduledAt.toISOString()],
+          duration_minutes: sessionDuration,
+          price_pence: pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0,
+          paid: isPrepaid,
+          address: sessionAddress,
+          notes: notes.trim(),
+          reference_code: referenceCode.trim(),
+        });
+        onClose();
+      } catch (err: any) {
+        setError(err?.message || "Failed to update session.");
+      }
+      setIsSaving(false);
+      return;
+    }
 
     // Overlap check — exclude the session being edited.
     const updStart = scheduledAt.toDate();
@@ -467,7 +515,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
             </>
           )}
 
-          {!session && (
+          {!onSave && !session && (
             <fieldset className={styles.fieldGroup}>
               <legend className={styles.label}>Email notifications</legend>
               <div className={styles.checkboxGroup}>
@@ -495,7 +543,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null }: C
             </fieldset>
           )}
 
-          {session && (
+          {!onSave && session && (
             <fieldset className={styles.fieldGroup}>
               <legend className={styles.label}>Email notifications</legend>
               <div className={styles.checkboxGroup}>

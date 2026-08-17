@@ -3,15 +3,13 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button";
-import Modal from "@components/shared/Modal/Modal";
+import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 // Reuse the exact same CSS module as SessionCard so stubs look identical.
 import styles from "@components/shared/SessionCard/SessionCard.module.scss";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import { supabase } from "@lib/supabase";
 import type { StubSession } from "@models/globalTypes";
-
-import AddStubSessionModal from "./AddStubSessionModal";
 
 interface Props {
   session: StubSession;
@@ -53,8 +51,6 @@ export default function StubSessionCard({
   const [notesText, setNotesText] = useState(session.notes ?? "");
   const [editingCode, setEditingCode] = useState(false);
   const [codeText, setCodeText] = useState(session.code ?? "");
-  const [payOpen, setPayOpen] = useState(false);
-  const [payAmount, setPayAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Keep draft text in sync with incoming prop changes (e.g. realtime updates)
@@ -70,48 +66,21 @@ export default function StubSessionCard({
   const isCancelled = session.status === "cancelled";
   const isAttended = session.status === "attended";
   const isNoShow = session.status === "no_show";
-  const isPaid = session.amount_paid != null && session.amount_paid > 0;
+  const isPaid = session.paid;
   const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
 
   const handleTogglePaid = async () => {
     if (demoGuard()) return;
-    if (isPaid) {
-      setSaving(true);
-      const { data, error } = await supabase
-        .from("stub_sessions")
-        .update({ amount_paid: null })
-        .eq("id", session.id)
-        .select()
-        .single();
-      setSaving(false);
-      if (error) showToast("Failed to update.", "danger");
-      else onUpdated(data as StubSession);
-    } else {
-      setPayOpen(true);
-    }
-  };
-
-  const handleConfirmPay = async () => {
-    if (demoGuard()) return;
-    const amount = parseFloat(payAmount);
-    if (!amount || amount <= 0) {
-      showToast("Enter a valid amount.", "danger");
-      return;
-    }
     setSaving(true);
     const { data, error } = await supabase
       .from("stub_sessions")
-      .update({ amount_paid: amount })
+      .update({ paid: !isPaid })
       .eq("id", session.id)
       .select()
       .single();
     setSaving(false);
-    if (error) showToast("Failed to record payment.", "danger");
-    else {
-      onUpdated(data as StubSession);
-      setPayOpen(false);
-      setPayAmount("");
-    }
+    if (error) showToast("Failed to update.", "danger");
+    else onUpdated(data as StubSession);
   };
 
   const demoGuard = () => {
@@ -399,80 +368,49 @@ export default function StubSessionCard({
       </div>
 
       {editOpen && (
-        <AddStubSessionModal
-          stubId={stubId}
-          adminId={adminId}
-          existing={session}
+        <CreateSessionModal
+          clientName=""
+          session={
+            {
+              ...session,
+              client_id: null,
+              location: session.location?.startsWith("http") ? "remote" : "in_person",
+              address: session.location ?? "",
+              reference_code: session.code,
+              price_pence: session.price_pence ?? 0,
+              status: "scheduled" as const,
+              created_by: adminId,
+              attended: null,
+              paid_at: null,
+              imported_from_stub_id: null,
+              manual_payment_status: "none",
+              metadata: null,
+              send_reminders: false,
+              stripe_payment_intent_id: null,
+              is_supervision: false,
+              supervision_cost_pence: null,
+            } as any
+          }
           onClose={() => setEditOpen(false)}
-          onSaved={([updated]) => {
-            onUpdated(updated);
-            setEditOpen(false);
+          onSave={async (values) => {
+            const { data, error } = await supabase
+              .from("stub_sessions")
+              .update({
+                scheduled_at: values.dates[0],
+                duration_minutes: values.duration_minutes,
+                price_pence: values.price_pence,
+                paid: values.paid,
+                location: values.address || null,
+                notes: values.notes || null,
+                code: values.reference_code || null,
+              })
+              .eq("id", session.id)
+              .select()
+              .single();
+            if (error) throw new Error("Failed to update session.");
+            onUpdated(data as StubSession);
           }}
         />
-      )}
-
-      {payOpen && (
-        <Modal
-          title="Record payment"
-          size="sm"
-          onClose={() => {
-            setPayOpen(false);
-            setPayAmount("");
-          }}
-          actions={
-            <>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setPayOpen(false);
-                  setPayAmount("");
-                }}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleConfirmPay} disabled={saving || !payAmount}>
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            </>
-          }
-        >
-          <label
-            style={{
-              fontSize: "0.82rem",
-              fontWeight: 500,
-              color: "var(--text-secondary)",
-              display: "block",
-              marginBottom: "var(--sp-2)",
-            }}
-          >
-            Amount paid ({currencySymbol(session.currency)})
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="85.00"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleConfirmPay();
-            }}
-            autoFocus
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "10px 14px",
-              border: "1.5px solid var(--border)",
-              borderRadius: "var(--r-md)",
-              background: "var(--bg-card)",
-              color: "var(--text-primary)",
-              fontSize: "0.9rem",
-              fontFamily: "var(--font-sans)",
-              outline: "none",
-            }}
-          />
-        </Modal>
       )}
     </div>
   );
