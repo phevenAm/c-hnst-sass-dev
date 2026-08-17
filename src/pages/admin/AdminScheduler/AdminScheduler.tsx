@@ -380,9 +380,28 @@ const AdminScheduler = () => {
 
   const handleEventDrop = ({ event, start }: EventInteractionArgs<SchedulerEvent>) => {
     const r = event.resource;
-    if (r.type !== "session") return;
+    if (r.type !== "session" && r.type !== "stub-session") return;
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
+      return;
+    }
+
+    if (r.type === "stub-session") {
+      const proposedStart = new Date(start as Date);
+      supabase
+        .from("stub_sessions")
+        .update({ scheduled_at: proposedStart.toISOString() })
+        .eq("id", r.stubSession.id)
+        .then(({ error }) => {
+          if (error) {
+            showToast("Failed to reschedule session.", "danger");
+          } else {
+            setAllStubSessions((prev) =>
+              prev.map((s) => (s.id === r.stubSession.id ? { ...s, scheduled_at: proposedStart.toISOString() } : s)),
+            );
+            showToast("Session rescheduled.");
+          }
+        });
       return;
     }
 
