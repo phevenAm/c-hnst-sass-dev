@@ -18,7 +18,11 @@ const initialState: ToDoState = {
 export const fetchAllTodos = createAsyncThunk<Todo[], void, { rejectValue: string }>(
   "todos/fetchAllTodos",
   async (_, { rejectWithValue }) => {
-    const { data, error } = await supabase.from("admin_todos").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("admin_todos")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (error) return rejectWithValue(error.message || "Failed to fetch todo list, please reload and try again");
 

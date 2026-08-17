@@ -98,6 +98,11 @@ export default function AdminStubDetailPage() {
   }, [stubFromRedux]);
 
   useEffect(() => {
+    if (!stubId) return;
+    supabase.rpc("record_client_view", { p_type: "stub", p_ref: stubId });
+  }, [stubId]);
+
+  useEffect(() => {
     if (stubFromRedux || !stubId) return;
     supabase
       .from("client_stubs")
