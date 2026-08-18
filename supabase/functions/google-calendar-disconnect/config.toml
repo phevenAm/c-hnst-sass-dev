@@ -1,0 +1,2 @@
+[functions.google-calendar-disconnect]
+verify_jwt = true

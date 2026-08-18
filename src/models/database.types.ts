@@ -8,6 +8,50 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_google_calendar: {
+        Row: {
+          access_token: string | null;
+          access_token_expires_at: string | null;
+          admin_id: string;
+          calendar_id: string;
+          created_at: string;
+          google_email: string | null;
+          refresh_token: string;
+          sync_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          access_token?: string | null;
+          access_token_expires_at?: string | null;
+          admin_id: string;
+          calendar_id?: string;
+          created_at?: string;
+          google_email?: string | null;
+          refresh_token: string;
+          sync_enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          access_token?: string | null;
+          access_token_expires_at?: string | null;
+          admin_id?: string;
+          calendar_id?: string;
+          created_at?: string;
+          google_email?: string | null;
+          refresh_token?: string;
+          sync_enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_google_calendar_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_private_events: {
         Row: {
           admin_id: string;
@@ -298,6 +342,33 @@ export type Database = {
           title?: string | null;
           updated_at?: string;
           venue?: string | null;
+        };
+        Relationships: [];
+      };
+      demo_requests: {
+        Row: {
+          created_at: string;
+          for_value: string;
+          id: string;
+          kind: string;
+          last_used_at: string | null;
+          used_count: number;
+        };
+        Insert: {
+          created_at?: string;
+          for_value: string;
+          id?: string;
+          kind?: string;
+          last_used_at?: string | null;
+          used_count?: number;
+        };
+        Update: {
+          created_at?: string;
+          for_value?: string;
+          id?: string;
+          kind?: string;
+          last_used_at?: string | null;
+          used_count?: number;
         };
         Relationships: [];
       };
@@ -1137,6 +1208,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           duration_minutes: number;
+          google_event_id: string | null;
           id: string;
           imported_from_stub_id: string | null;
           is_supervision: boolean;
@@ -1161,6 +1233,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           duration_minutes?: number;
+          google_event_id?: string | null;
           id?: string;
           imported_from_stub_id?: string | null;
           is_supervision?: boolean;
@@ -1185,6 +1258,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           duration_minutes?: number;
+          google_event_id?: string | null;
           id?: string;
           imported_from_stub_id?: string | null;
           is_supervision?: boolean;
@@ -1460,6 +1534,7 @@ export type Database = {
     };
     Functions: {
       auto_cancel_unpaid_sessions: { Args: never; Returns: undefined };
+      check_demo_access: { Args: { p_for: string }; Returns: boolean };
       check_no_duplicate_submission: {
         Args: { p_questionnaire_id: string; p_user_id: string };
         Returns: boolean;
@@ -1479,6 +1554,14 @@ export type Database = {
           end_time: string;
           source: string;
           start_time: string;
+        }[];
+      };
+      get_google_calendar_status: {
+        Args: never;
+        Returns: {
+          connected: boolean;
+          google_email: string;
+          sync_enabled: boolean;
         }[];
       };
       get_my_admin_consent_settings: {
@@ -1539,6 +1622,10 @@ export type Database = {
       };
       respond_manual_payment: {
         Args: { p_approved: boolean; p_session_id: string };
+        Returns: undefined;
+      };
+      set_google_calendar_sync_enabled: {
+        Args: { p_enabled: boolean };
         Returns: undefined;
       };
       set_plotted_assignment: {

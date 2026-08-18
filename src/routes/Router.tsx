@@ -34,6 +34,8 @@ import ClientSchedule from "../pages/client/ClientSchedule//ClientSchedule";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import ResourcesPage from "../pages/client/ResourcesPage/ResourcesPage";
 import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/CounsellorSignupPage";
+import DemoPage from "../pages/common/DemoPage/DemoPage";
+import GoogleCalendarCallbackPage from "../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage";
 import SettingsPage from "../pages/common/SettingsPage/SettingsPage";
 import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
 import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
@@ -215,6 +217,7 @@ export default function AppRoutes() {
           <WalkthroughOverlay />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/register" element={<CounsellorSignupPage />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -239,6 +242,7 @@ export default function AppRoutes() {
             >
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
+              <Route path="/settings/google-callback" element={<GoogleCalendarCallbackPage />} />
             </Route>
 
             <Route
