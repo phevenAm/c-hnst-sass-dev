@@ -5,6 +5,12 @@
 .header {
   margin-bottom: $sp-8;
 
+  width: auto;
+  background: var(--bg-muted);
+  width: fit-content;
+  padding: $sp-4;
+  border-radius: var(--r-lg);
+
   h1 {
     font-weight: 500;
     color: var(--text-primary);

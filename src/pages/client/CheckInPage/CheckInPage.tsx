@@ -235,7 +235,7 @@ export default function CheckInPage() {
     <div className="page">
       <div className="inner">
         <div className={styles.header} id="forms-header">
-          <h1>Forms</h1>
+          <h1>Check-in</h1>
         </div>
 
         <div className={styles.tabs} id="forms-tabs" role="tablist">

@@ -223,6 +223,10 @@ h6 {
   font-weight: 600;
 }
 
+h1 {
+  font-size: 1.86rem !important;
+}
+
 // ── iOS input zoom prevention + input backgrounds ──────────
 input,
 select,
@@ -289,8 +293,11 @@ $admin-sidebar-collapsed-w: 60px;
   flex: 1;
   overflow-y: auto;
   padding: $sp-8 $sp-6;
+  padding-top: 50px !important;
 
   @include until-md {
+    padding-top: 30px !important;
+
     padding: $sp-5 $sp-3;
   }
 

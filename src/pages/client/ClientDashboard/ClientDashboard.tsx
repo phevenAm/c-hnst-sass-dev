@@ -214,7 +214,7 @@ export default function ClientDashboard() {
                           <p className={styles.checkInFreq}>{q.frequency}</p>
                         </div>
 
-                        <Link to="/forms" style={{ textDecoration: "none" }}>
+                        <Link to="/check-in" style={{ textDecoration: "none" }}>
                           <Button size="sm" variant="secondary">
                             Start
                           </Button>
