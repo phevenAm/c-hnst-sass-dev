@@ -67,15 +67,20 @@ const buildTagLookup = (questions: Question[]): Map<string, TagRef> => {
 
 // For each response, averages scale scores across all questions that share the same tag.
 // Returns an array of chart data points: [{ label, index, [tagId]: avg, ... }]
+//
+// Responses come from every questionnaire assigned to the client (see
+// ClientDashboard's chartResponses), not just the one this chart is meant
+// to track — e.g. a CORE-10 submission has no tagged questions at all. A
+// response that touches none of this chart's tags is skipped entirely
+// rather than injected as an empty point: an empty point still claims an
+// x-axis slot (duplicate-looking dates) and — for a response that happens
+// to touch exactly one tag — renders as a single stranded dot with no line
+// connecting to it.
 export const buildTagChartData = (responses: Response[], questions: Question[]): Record<string, string | number>[] => {
   const tagByQuestion = buildTagLookup(questions);
+  const points: Record<string, string | number>[] = [];
 
-  return responses.map((response, index) => {
-    const point: Record<string, string | number> = {
-      label: formatDate(getResponseDate(response)),
-      index: index + 1,
-    };
-
+  for (const response of responses) {
     const accum = new Map<string, { total: number; count: number }>();
     const scores = response.scores as Record<string, number | string>;
 
@@ -88,12 +93,19 @@ export const buildTagChartData = (responses: Response[], questions: Question[]):
       accum.set(tag.id, { total: prev.total + score, count: prev.count + 1 });
     }
 
+    if (accum.size === 0) continue;
+
+    const point: Record<string, string | number> = {
+      label: formatDate(getResponseDate(response)),
+      index: points.length + 1,
+    };
     for (const [tagId, { total, count }] of accum.entries()) {
       point[tagId] = Math.round((total / count) * 10) / 10;
     }
+    points.push(point);
+  }
 
-    return point;
-  });
+  return points;
 };
 
 type TooltipEntry = { name: string; value: number; color: string };

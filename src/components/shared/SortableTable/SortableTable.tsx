@@ -2,6 +2,12 @@ import { useMemo, useState } from "react";
 
 import styles from "./SortableTable.module.scss";
 
+function paginationSummary(loading: boolean, page: number, pageSize: number, totalCount: number): string {
+  if (loading) return "Loading…";
+  if (totalCount === 0) return "No results";
+  return `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalCount)} of ${totalCount}`;
+}
+
 export type SortableColumn<T> = {
   key: string;
   label: string;
@@ -24,6 +30,15 @@ interface SortableTableProps<T> {
   defaultSortKey?: string;
   defaultSortDir?: "asc" | "desc";
   toolbar?: React.ReactNode;
+  /** Server-driven pagination: when provided, `rows` is treated as already
+   *  being the current page (fetched by the caller) rather than the full
+   *  dataset — sort/search stay local-only for whatever's on screen unless
+   *  the caller wires them up itself. */
+  page?: number;
+  totalCount?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  loading?: boolean;
 }
 
 export default function SortableTable<T>({
@@ -38,6 +53,11 @@ export default function SortableTable<T>({
   defaultSortKey,
   defaultSortDir = "desc",
   toolbar,
+  page,
+  totalCount,
+  pageSize,
+  onPageChange,
+  loading,
 }: SortableTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(defaultSortKey ?? null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir);
@@ -139,6 +159,35 @@ export default function SortableTable<T>({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {page != null && totalCount != null && pageSize != null && onPageChange && (
+        <div className={styles.pagination}>
+          <span className={styles.paginationSummary}>
+            {paginationSummary(loading ?? false, page, pageSize, totalCount)}
+          </span>
+          <div className={styles.paginationControls}>
+            <button
+              type="button"
+              className={styles.pageBtn}
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1 || loading}
+            >
+              ← Prev
+            </button>
+            <span className={styles.paginationPage}>
+              Page {page} of {Math.max(1, Math.ceil(totalCount / pageSize))}
+            </span>
+            <button
+              type="button"
+              className={styles.pageBtn}
+              onClick={() => onPageChange(page + 1)}
+              disabled={page * pageSize >= totalCount || loading}
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>
