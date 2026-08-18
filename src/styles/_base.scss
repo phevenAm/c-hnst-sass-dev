@@ -43,6 +43,14 @@ h3 {
     line-height: 1.3;
 }
 
+// Single source of truth for page-title size — previously every page set
+// its own h1 font-size independently (1.4rem–2rem, or nothing at all,
+// which falls back to the browser's UA default and varies with DOM
+// nesting depth), so h1s looked inconsistent from page to page.
+h1 {
+    font-size: 1.9rem;
+}
+
 h4,
 h5,
 h6 {
