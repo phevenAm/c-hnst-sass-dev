@@ -275,6 +275,21 @@
   gap: $sp-3;
 }
 
+.sessionHighlighted {
+  border-radius: var(--r-lg);
+  animation: sessionHighlightPulse 2.5s ease-out;
+}
+
+@keyframes sessionHighlightPulse {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
 .sessionPagination {
   display: flex;
   align-items: center;

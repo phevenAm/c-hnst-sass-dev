@@ -17,7 +17,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       <section>
         <h2>1. Introduction</h2>
         <p>
-          These Terms &amp; Conditions ("Terms") govern your use of WithMe ("the Platform"), operated by WithMe ("we",
+          These Terms &amp; Conditions ("Terms") govern your use of Clarity ("the Platform"), operated by Clarity ("we",
           "us", "our"). By registering an account or subscribing to the Platform, you agree to be bound by these Terms.
         </p>
       </section>
@@ -25,7 +25,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       <section>
         <h2>2. Service description</h2>
         <p>
-          WithMe is a practice management platform for independent counsellors and therapists. It provides tools for
+          Clarity is a practice management platform for independent counsellors and therapists. It provides tools for
           managing clients, scheduling sessions, sending surveys, and accepting payments. The Platform is provided on a
           subscription basis.
         </p>
@@ -40,7 +40,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
         </p>
         <p>
           Client payments processed through Stripe Connect are made directly between your clients and your connected
-          Stripe account. WithMe does not take a cut of client payments.
+          Stripe account. Clarity does not take a cut of client payments.
         </p>
       </section>
 
@@ -61,7 +61,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       <section>
         <h2>5. Acceptable use</h2>
         <p>
-          You must not use the Platform for any unlawful purpose or in a way that could harm WithMe or any third party.
+          You must not use the Platform for any unlawful purpose or in a way that could harm Clarity or any third party.
           You are responsible for maintaining the confidentiality of your login credentials and for all activity under
           your account.
         </p>
@@ -78,7 +78,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       <section>
         <h2>7. Limitation of liability</h2>
         <p>
-          The Platform is provided "as is". To the fullest extent permitted by law, WithMe excludes all liability for
+          The Platform is provided "as is". To the fullest extent permitted by law, Clarity excludes all liability for
           indirect, consequential, or incidental loss arising from use of the Platform. Our total liability in any
           12-month period shall not exceed the subscription fees paid by you in that period.
         </p>
@@ -93,7 +93,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       </section>
 
       <p className={styles.contact}>
-        Questions? Contact us at <a href="mailto:hello@withme.app">hello@withme.app</a>
+        Questions? Contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
       </p>
 
       <div className={styles.modalAction}>{action}</div>

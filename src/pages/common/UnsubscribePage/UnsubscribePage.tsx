@@ -50,7 +50,7 @@ export default function UnsubscribePage() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <p className={styles.brand}>WithMe</p>
+        <p className={styles.brand}>Clarity</p>
 
         {state === "loading" && (
           <>
@@ -66,7 +66,7 @@ export default function UnsubscribePage() {
             </div>
             <h1 className={styles.heading}>You&rsquo;ve been unsubscribed</h1>
             <p className={styles.body}>
-              You will no longer receive <strong>{typeLabel}</strong> from WithMe.
+              You will no longer receive <strong>{typeLabel}</strong> from Clarity.
             </p>
             <p className={styles.note}>
               Other types of notification emails will continue unless you unsubscribe from those separately.

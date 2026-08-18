@@ -195,14 +195,14 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "clients-directory",
         order: 1,
         title: "Your Client Directory",
-        body: "All your clients — real accounts and offline shadow records — are listed here. Click any row to open their full profile with sessions, notes, forms, and payments.",
+        body: "All your clients — real accounts and offline records — are listed here. Click any row to open their full profile with sessions, notes, forms, and payments.",
         target: "#clients-header",
       },
       {
         id: "clients-shadow",
         order: 2,
-        title: "Shadow (Offline) Clients",
-        body: "Shadow clients are private placeholder records for people you see who haven't created an account yet. You can log sessions, write notes, and track payments for them exactly like a real client account.",
+        title: "Offline Clients",
+        body: "Offline clients are private placeholder records for people you see who haven't created an account yet. You can log sessions, write notes, and track payments for them exactly like a real client account.",
       },
       {
         id: "clients-tokens",
@@ -240,12 +240,12 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
   },
 
   "/admin/clients/stub/": {
-    pageTitle: "Shadow Client",
+    pageTitle: "Offline Clients",
     steps: [
       {
         id: "stub-overview",
         order: 1,
-        title: "Shadow Client Record",
+        title: "Offline Client Record",
         body: "This is a private offline record for a client who isn't on the platform yet. You can create sessions, write encrypted notes, and record payments — all the same as a real client account.",
         target: "#main-content h1",
       },
@@ -253,7 +253,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "stub-invite",
         order: 2,
         title: "Inviting Them to Join",
-        body: "When your client is ready, click 'Invite' to generate a personal sign-up link. Once they register with it, their shadow record links to their new account and all history carries over automatically.",
+        body: "When your client is ready, click 'Invite' to generate a personal sign-up link. Once they register with it, their offline record links to their new account and all history carries over automatically.",
       },
     ],
   },

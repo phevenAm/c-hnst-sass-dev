@@ -14,12 +14,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
-import type { StubSession } from "@/models/globalTypes";
+import type { Database } from "@/models/database.types";
+import type { Session, StubSession } from "@/models/globalTypes";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
 import { revenueByMonth } from "@/pages/admin/AdminDashboard/dashboardUtils";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
-import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
+import { fetchAllSessions, updateSession, upsertSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import AddPaymentModal from "./AddPaymentModal/AddPaymentModal";
 
@@ -51,26 +52,83 @@ type PaymentRow = {
   viewPath: string | null;
 };
 
+type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
+
+const LEDGER_PAGE_SIZE = 25;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+
+function statusPillLabel(filter: StatusFilter, unpaidCount: number): string {
+  if (filter === "all") return "All";
+  if (filter === "paid") return "Paid";
+  return `Outstanding${unpaidCount > 0 ? ` (${unpaidCount})` : ""}`;
+}
+
+function ledgerRowName(row: LedgerRow, useCodenames: boolean): string {
+  if (row.stub_id) {
+    if (useCodenames && row.stub_codename) return row.stub_codename;
+    return `${row.stub_first_name ?? ""} ${row.stub_last_name ?? ""}`.trim() || "Unknown offline client";
+  }
+  if (row.client_id) {
+    if (useCodenames && row.admin_codename) return row.admin_codename;
+    return (
+      row.display_name || `${row.client_first_name ?? ""} ${row.client_last_name ?? ""}`.trim() || "Unnamed client"
+    );
+  }
+  return "—";
+}
+
+function ledgerRowViewPath(row: LedgerRow): string | null {
+  if (row.source === "session" && row.client_id) return `/admin/clients/${row.client_id}?session=${row.id}`;
+  if (row.source === "stub-session" && row.stub_id) return `/admin/clients/stub/${row.stub_id}?session=${row.id}`;
+  if (row.client_id) return `/admin/clients/${row.client_id}`;
+  if (row.stub_id) return `/admin/clients/stub/${row.stub_id}`;
+  return null;
+}
+
+function toPaymentRow(row: LedgerRow, useCodenames: boolean): PaymentRow {
+  return {
+    id: row.id ?? "",
+    clientId: row.client_id,
+    stubId: row.stub_id,
+    clientName: ledgerRowName(row, useCodenames),
+    date: row.date ?? "",
+    amountPence: row.amount_pence ?? 0,
+    isPaid: row.is_paid ?? false,
+    source: (row.source as PaymentRow["source"]) ?? "manual",
+    description: row.description,
+    viewPath: ledgerRowViewPath(row),
+  };
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const AdminPaymentsPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isDemo, practiceSettings, userProfile } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
   const [selectedClientId, setSelectedClientId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
-  const [manualPayments, setManualPayments] = useState<ManualPayment[]>([]);
   const [stubSessions, setStubSessions] = useState<StubSession[]>([]);
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
   const [markAmount, setMarkAmount] = useState("");
+
+  // Ledger table — server-paginated (see payment_ledger_rows), separate from
+  // the unpaginated `sessions`/`stubSessions` used below for Summary stats,
+  // which genuinely need the full set to aggregate correctly.
+  const [ledgerRows, setLedgerRows] = useState<PaymentRow[]>([]);
+  const [ledgerTotal, setLedgerTotal] = useState(0);
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [unpaidLedgerCount, setUnpaidLedgerCount] = useState(0);
+  const [ledgerSearchInput, setLedgerSearchInput] = useState("");
+  const [ledgerSearch, setLedgerSearch] = useState("");
 
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
   useFetchOnIdle((s: RootState) => s.userDirectory.status, fetchAllUsers, "Failed to load users");
@@ -81,24 +139,89 @@ const AdminPaymentsPage = () => {
   const allStubs = useAppSelector(selectAllStubs);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
 
-  const loadManualPayments = useCallback(async () => {
-    if (!userProfile?.id) return;
-    const { data } = await supabase
-      .from("payments")
-      .select("id, client_id, stub_id, amount_pence, description, paid_at")
-      .order("paid_at", { ascending: false });
-    if (data) setManualPayments(data as ManualPayment[]);
-  }, [userProfile?.id]);
-
   const loadStubSessions = useCallback(async () => {
     const { data } = await supabase.from("stub_sessions").select("*").order("scheduled_at", { ascending: false });
     if (data) setStubSessions(data as StubSession[]);
   }, []);
 
   useEffect(() => {
-    loadManualPayments();
     loadStubSessions();
-  }, [loadManualPayments, loadStubSessions]);
+  }, [loadStubSessions]);
+
+  // Debounce the search box before it drives a server query
+  useEffect(() => {
+    const t = setTimeout(() => setLedgerSearch(ledgerSearchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [ledgerSearchInput]);
+
+  // Any filter change invalidates the current page
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deps intentionally listed to retrigger the reset, not referenced in the body
+  useEffect(() => {
+    setLedgerPage(1);
+  }, [selectedClientId, statusFilter, ledgerSearch]);
+
+  const buildLedgerQuery = useCallback(() => {
+    let query = supabase.from("payment_ledger_rows").select("*", { count: "exact" });
+
+    if (selectedClientId !== "all") {
+      const isStub = allStubs.some((s) => s.id === selectedClientId);
+      query = isStub ? query.eq("stub_id", selectedClientId) : query.eq("client_id", selectedClientId);
+    }
+    if (statusFilter === "paid") query = query.eq("is_paid", true);
+    if (statusFilter === "unpaid") query = query.eq("is_paid", false);
+    if (ledgerSearch) {
+      const q = `%${ledgerSearch}%`;
+      query = query.or(
+        [
+          `display_name.ilike.${q}`,
+          `client_first_name.ilike.${q}`,
+          `client_last_name.ilike.${q}`,
+          `admin_codename.ilike.${q}`,
+          `stub_first_name.ilike.${q}`,
+          `stub_last_name.ilike.${q}`,
+          `stub_codename.ilike.${q}`,
+          `description.ilike.${q}`,
+        ].join(","),
+      );
+    }
+    return query;
+  }, [selectedClientId, statusFilter, ledgerSearch, allStubs]);
+
+  const loadLedgerPage = useCallback(async () => {
+    setLedgerLoading(true);
+    const from = (ledgerPage - 1) * LEDGER_PAGE_SIZE;
+    const to = from + LEDGER_PAGE_SIZE - 1;
+    const { data, count, error } = await buildLedgerQuery().order("date", { ascending: false }).range(from, to);
+
+    if (!error) {
+      setLedgerRows((data ?? []).map((row) => toPaymentRow(row, useCodenames)));
+      setLedgerTotal(count ?? 0);
+    }
+    setLedgerLoading(false);
+  }, [buildLedgerQuery, ledgerPage, useCodenames]);
+
+  useEffect(() => {
+    loadLedgerPage();
+  }, [loadLedgerPage]);
+
+  // Lightweight count-only query for the "Outstanding (N)" filter pill —
+  // scoped to the client filter but not the status filter or search, since
+  // it needs to reflect the unpaid total regardless of which pill is active.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let query = supabase.from("payment_ledger_rows").select("*", { count: "exact", head: true }).eq("is_paid", false);
+      if (selectedClientId !== "all") {
+        const isStub = allStubs.some((s) => s.id === selectedClientId);
+        query = isStub ? query.eq("stub_id", selectedClientId) : query.eq("client_id", selectedClientId);
+      }
+      const { count } = await query;
+      if (!cancelled) setUnpaidLedgerCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClientId, allStubs]);
 
   // ── Name resolution ───────────────────────────────────────────────────────
 
@@ -167,72 +290,17 @@ const AdminPaymentsPage = () => {
 
   const revenueData = useMemo(() => revenueByMonth(scopedSessions, 6), [scopedSessions]);
 
+  // Not scoped to selectedClientId — this is an actionable inbox, so a client
+  // filter shouldn't hide something the admin still needs to respond to.
+  const pendingManualPayments = useMemo(
+    () => sessions.filter((s) => s.manual_payment_status === "pending"),
+    [sessions],
+  );
+
   const paymentSlices: DonutSlice[] = [
     { name: "Paid", value: stats.paidCount, color: "#2d7264" },
     { name: "Unpaid", value: stats.unpaidCount, color: "#c98a2b" },
   ];
-
-  // ── Unified rows ──────────────────────────────────────────────────────────
-
-  const allRows = useMemo<PaymentRow[]>(() => {
-    const sessionRows: PaymentRow[] = scopedSessions
-      .filter((s) => s.status !== "cancelled")
-      .map((s) => ({
-        id: s.id,
-        clientId: s.client_id,
-        stubId: null,
-        clientName: clientNameById(s.client_id, null),
-        date: s.scheduled_at,
-        amountPence: s.price_pence ?? 0,
-        isPaid: s.paid,
-        source: "session",
-        description: null,
-        viewPath: s.client_id ? `/admin/clients/${s.client_id}` : null,
-      }));
-
-    const scopedManual =
-      selectedClientId === "all"
-        ? manualPayments
-        : manualPayments.filter((p) => p.client_id === selectedClientId || p.stub_id === selectedClientId);
-
-    const manualRows: PaymentRow[] = scopedManual.map((p) => ({
-      id: p.id,
-      clientId: p.client_id,
-      stubId: p.stub_id,
-      clientName: clientNameById(p.client_id, p.stub_id),
-      date: p.paid_at,
-      amountPence: p.amount_pence,
-      isPaid: true,
-      source: "manual",
-      description: p.description,
-      viewPath: p.client_id ? `/admin/clients/${p.client_id}` : p.stub_id ? `/admin/clients/stub/${p.stub_id}` : null,
-    }));
-
-    const stubSessionRows: PaymentRow[] = scopedStubSessions
-      .filter((s) => s.status !== "cancelled")
-      .map((s) => ({
-        id: s.id,
-        clientId: null,
-        stubId: s.stub_id,
-        clientName: clientNameById(null, s.stub_id),
-        date: s.scheduled_at,
-        amountPence: Math.round((s.amount_paid ?? 0) * 100),
-        isPaid: s.amount_paid != null && s.amount_paid > 0,
-        source: "stub-session" as const,
-        description: s.notes ?? null,
-        viewPath: `/admin/clients/stub/${s.stub_id}`,
-      }));
-
-    return [...sessionRows, ...stubSessionRows, ...manualRows];
-  }, [scopedSessions, scopedStubSessions, manualPayments, clientNameById]);
-
-  const filteredRows = useMemo(() => {
-    if (statusFilter === "paid") return allRows.filter((r) => r.isPaid);
-    if (statusFilter === "unpaid") return allRows.filter((r) => !r.isPaid);
-    return allRows;
-  }, [allRows, statusFilter]);
-
-  const unpaidCount = allRows.filter((r) => !r.isPaid).length;
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
@@ -243,6 +311,7 @@ const AdminPaymentsPage = () => {
       return;
     }
     await dispatch(updateSession({ id: sessionId, paid: true })).unwrap();
+    await loadLedgerPage();
     showToast("Session marked as paid.");
   };
 
@@ -263,9 +332,35 @@ const AdminPaymentsPage = () => {
       return;
     }
     setStubSessions((prev) => prev.map((s) => (s.id === markStubPaid.id ? { ...s, amount_paid: amount } : s)));
+    await loadLedgerPage();
     showToast("Payment recorded.");
     setMarkStubPaid(null);
     setMarkAmount("");
+  };
+
+  const handleRespondManualPayment = async (session: Session, approved: boolean) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    const { error } = await supabase.rpc("respond_manual_payment", {
+      p_session_id: session.id,
+      p_approved: approved,
+    });
+    if (error) {
+      showToast("Failed to update payment.", "error");
+      return;
+    }
+    dispatch(
+      upsertSession({
+        ...session,
+        manual_payment_status: approved ? "approved" : "declined",
+        paid: approved ? true : session.paid,
+        paid_at: approved ? new Date().toISOString() : session.paid_at,
+      }),
+    );
+    await loadLedgerPage();
+    showToast(approved ? "Payment confirmed." : "Payment declined.");
   };
 
   const handleDeleteManual = async (e: React.MouseEvent, id: string) => {
@@ -275,7 +370,7 @@ const AdminPaymentsPage = () => {
       return;
     }
     await supabase.from("payments").delete().eq("id", id);
-    setManualPayments((prev) => prev.filter((p) => p.id !== id));
+    await loadLedgerPage();
     showToast("Payment removed.");
   };
 
@@ -285,22 +380,16 @@ const AdminPaymentsPage = () => {
     {
       key: "client",
       label: "Client",
-      sortable: true,
-      sortValue: (r) => r.clientName,
       render: (r) => <span className={styles.clientCell}>{r.clientName}</span>,
     },
     {
       key: "date",
       label: "Date",
-      sortable: true,
-      sortValue: (r) => new Date(r.date).getTime(),
       render: (r) => <span className={styles.dateCell}>{dayjs(r.date).format("D MMM YYYY")}</span>,
     },
     {
       key: "amount",
       label: "Amount",
-      sortable: true,
-      sortValue: (r) => r.amountPence,
       render: (r) => <span className={styles.amountCell}>{r.amountPence > 0 ? money(r.amountPence) : "—"}</span>,
     },
     {
@@ -413,6 +502,36 @@ const AdminPaymentsPage = () => {
           </div>
         </div>
 
+        {/* ── Pending bank transfers ── */}
+        {pendingManualPayments.length > 0 && (
+          <Card className={styles.pendingCard}>
+            <h2 className={styles.pendingHeading}>
+              Pending bank transfers <span className={styles.pendingCount}>{pendingManualPayments.length}</span>
+            </h2>
+            <p className={styles.pendingSub}>Clients have marked these sessions as paid by bank transfer.</p>
+            <ul className={styles.pendingList}>
+              {pendingManualPayments.map((s) => (
+                <li key={s.id} className={styles.pendingRow}>
+                  <div className={styles.pendingInfo}>
+                    <span className={styles.pendingClient}>{clientNameById(s.client_id, null)}</span>
+                    <span className={styles.pendingMeta}>
+                      {dayjs(s.scheduled_at).format("D MMM YYYY")} · {money(s.price_pence ?? 0)}
+                    </span>
+                  </div>
+                  <div className={styles.pendingActions}>
+                    <Button size="sm" variant="ghost" onClick={() => handleRespondManualPayment(s, false)}>
+                      Decline
+                    </Button>
+                    <Button size="sm" onClick={() => handleRespondManualPayment(s, true)}>
+                      Confirm paid
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
         {/* ── Summary ── */}
         <CollapsibleSection title="Summary" storageKey="payments:summary">
           <div className={styles.statsGrid}>
@@ -449,30 +568,36 @@ const AdminPaymentsPage = () => {
         <Card className={styles.tableCard}>
           <SortableTable<PaymentRow>
             columns={columns}
-            rows={filteredRows}
+            rows={ledgerRows}
             rowKey={(r) => `${r.source}-${r.id}`}
-            searchable
-            searchValue={(r) => `${r.clientName} ${r.description ?? ""}`}
-            searchPlaceholder="Search by client or description…"
-            defaultSortKey="date"
-            defaultSortDir="desc"
             emptyText="No payments to show."
+            page={ledgerPage}
+            totalCount={ledgerTotal}
+            pageSize={LEDGER_PAGE_SIZE}
+            onPageChange={setLedgerPage}
+            loading={ledgerLoading}
             toolbar={
-              <div className={styles.statusFilters}>
-                {(["all", "paid", "unpaid"] as StatusFilter[]).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    className={`${styles.filterPill} ${statusFilter === f ? styles.filterPillActive : ""}`}
-                    onClick={() => setStatusFilter(f)}
-                  >
-                    {f === "all"
-                      ? "All"
-                      : f === "paid"
-                        ? "Paid"
-                        : `Outstanding${unpaidCount > 0 ? ` (${unpaidCount})` : ""}`}
-                  </button>
-                ))}
+              <div className={styles.tableToolbar}>
+                <div className={styles.statusFilters}>
+                  {(["all", "paid", "unpaid"] as StatusFilter[]).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      className={`${styles.filterPill} ${statusFilter === f ? styles.filterPillActive : ""}`}
+                      onClick={() => setStatusFilter(f)}
+                    >
+                      {statusPillLabel(f, unpaidLedgerCount)}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="search"
+                  className={styles.tableSearchInput}
+                  placeholder="Search by client or description…"
+                  value={ledgerSearchInput}
+                  onChange={(e) => setLedgerSearchInput(e.target.value)}
+                  aria-label="Search payments"
+                />
               </div>
             }
           />
@@ -485,8 +610,8 @@ const AdminPaymentsPage = () => {
           stubs={allStubs}
           useCodenames={useCodenames}
           onClose={() => setAddPaymentOpen(false)}
-          onSaved={(payment) => {
-            setManualPayments((prev) => [payment, ...prev]);
+          onSaved={() => {
+            loadLedgerPage();
             setAddPaymentOpen(false);
           }}
         />

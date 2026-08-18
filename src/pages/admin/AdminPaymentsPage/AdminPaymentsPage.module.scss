@@ -56,6 +56,84 @@
   }
 }
 
+// ── Pending bank transfers ────────────────────────────────────────────────────
+
+.pendingCard {
+  margin-bottom: var(--sp-6);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.pendingHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.pendingCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-full);
+  background: var(--warning);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pendingSub {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: var(--sp-1) 0 var(--sp-4);
+}
+
+.pendingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pendingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  flex-wrap: wrap;
+}
+
+.pendingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pendingClient {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pendingMeta {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.pendingActions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
 // ── Summary section ───────────────────────────────────────────────────────────
 
 .statsGrid {
@@ -105,7 +183,31 @@
   overflow: hidden;
 }
 
-// Status filter pills — passed as toolbar slot into SortableTable
+// Status filter pills + search — passed as toolbar slot into SortableTable
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.tableSearchInput {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  min-width: 220px;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
 .statusFilters {
   display: flex;
   gap: var(--sp-2);

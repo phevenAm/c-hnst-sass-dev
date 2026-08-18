@@ -65,25 +65,25 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
 const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   {
     title: "1. Introduction",
-    body: "These Terms & Conditions govern your use of WithMe, operated by WithMe. By registering an account or subscribing, you agree to be bound by these Terms.",
+    body: "These Terms & Conditions govern your use of Clarity, operated by Clarity. By registering an account or subscribing, you agree to be bound by these Terms.",
   },
   {
     title: "2. Service description",
-    body: "WithMe is a practice management platform for independent counsellors and therapists — managing clients, sessions, surveys, and payments. Provided on a monthly subscription basis.",
+    body: "Clarity is a practice management platform for independent counsellors and therapists — managing clients, sessions, surveys, and payments. Provided on a monthly subscription basis.",
   },
   {
     title: "3. Subscription & payment",
-    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — WithMe takes no cut.",
+    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — Clarity takes no cut.",
   },
   {
     title: "4. Data & privacy",
-    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. WithMe acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
+    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. Clarity acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
   },
   {
     title: "5. Clinical records",
     body: (
       <>
-        WithMe covers scheduling, payments, client check-ins, and resources. It is not designed to store confidential
+        Clarity covers scheduling, payments, client check-ins, and resources. It is not designed to store confidential
         clinical session notes — these must be kept in a separate, encrypted system with access controls, linked to
         clients by an identifier rather than name, and retained for a minimum of three years after the therapeutic
         relationship ends, in line with BACP record-keeping guidance (Jan 2024) and UK GDPR. You remain solely
@@ -97,7 +97,7 @@ const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   },
   {
     title: "7. Limitation of liability",
-    body: "The Platform is provided 'as is'. WithMe excludes all liability for indirect or consequential loss. Total liability in any 12-month period shall not exceed subscription fees paid in that period.",
+    body: "The Platform is provided 'as is'. Clarity excludes all liability for indirect or consequential loss. Total liability in any 12-month period shall not exceed subscription fees paid in that period.",
   },
   {
     title: "8. Governing law",
@@ -338,7 +338,7 @@ export default function SubscribePage() {
               <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
 
               <div className={styles.purposeBox}>
-                <strong>WithMe is a practice management tool</strong> for independent counsellors and therapists. It
+                <strong>Clarity is a practice management tool</strong> for independent counsellors and therapists. It
                 helps you manage clients, schedule sessions, send surveys, and process payments. It is{" "}
                 <strong>not a clinical record system</strong> — confidential session notes must be stored separately in
                 a secure, encrypted solution that meets your professional obligations.
