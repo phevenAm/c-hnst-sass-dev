@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import dayjs from "dayjs";
 
@@ -24,6 +24,11 @@ interface SessionCardDetailedProps {
   isAdmin?: boolean;
 }
 
+function historyToggleLabel(loading: boolean, open: boolean): string {
+  if (loading) return "Loading…";
+  return open ? "Hide history" : "History";
+}
+
 function formatSessionDate(session: Session): string {
   const scheduled = dayjs(session.scheduled_at);
   if (scheduled.isSame(dayjs(), "day")) return `Today at ${scheduled.format("h:mma")}`;
@@ -39,23 +44,31 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
   const [openEditSession, setOpenEditSession] = useState(false);
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState(session.notes ?? "");
 
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
 
-  useEffect(() => {
-    if (!isAdmin) return;
-    supabase
-      .from("session_events")
-      .select("*")
-      .eq("session_id", session.id)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (data) setEvents(data as SessionEvent[]);
-      });
-  }, [session.id, isAdmin]);
+  // Fetched on first expand rather than on mount — every SessionCardDetailed
+  // on a page (e.g. a client's session list) was firing its own session_events
+  // query up front, even though the history is opened rarely.
+  const toggleHistory = async () => {
+    if (!showHistory && !historyLoaded) {
+      setLoadingHistory(true);
+      const { data } = await supabase
+        .from("session_events")
+        .select("*")
+        .eq("session_id", session.id)
+        .order("created_at", { ascending: true });
+      if (data) setEvents(data as SessionEvent[]);
+      setHistoryLoaded(true);
+      setLoadingHistory(false);
+    }
+    setShowHistory((v) => !v);
+  };
 
   const {
     toggleNoShowOrPayment,
@@ -281,10 +294,10 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
       )}
 
       {/* ── History ───────────────────────────────────── */}
-      {events.length > 0 && (
+      {isAdmin && (
         <div className={styles.history}>
-          <button type="button" className={styles.historyToggle} onClick={() => setShowHistory((v) => !v)}>
-            {showHistory ? "Hide history" : `History (${events.length})`}
+          <button type="button" className={styles.historyToggle} onClick={toggleHistory} disabled={loadingHistory}>
+            {historyToggleLabel(loadingHistory, showHistory)}
           </button>
           {showHistory && (
             <ul className={styles.historyList}>
