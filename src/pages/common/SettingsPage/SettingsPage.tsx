@@ -595,23 +595,25 @@ const SettingsPage = () => {
                       />
                     </div>
                   ))}
-                  <div className={styles.field}>
-                    <label>Logo</label>
-                    {logoUrl ? (
-                      <>
-                        <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
-                        <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
-                          Remove logo
-                        </Button>
-                      </>
-                    ) : (
-                      <UploadAndDisplayImage
-                        userId={userProfile?.id ?? ""}
-                        bucket="logos"
-                        onUpload={(url) => setLogoUrl(url)}
-                      />
-                    )}
-                  </div>
+                  <WIP>
+                    <div className={styles.field}>
+                      <label>Logo</label>
+                      {logoUrl ? (
+                        <>
+                          <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
+                          <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
+                            Remove logo
+                          </Button>
+                        </>
+                      ) : (
+                        <UploadAndDisplayImage
+                          userId={userProfile?.id ?? ""}
+                          bucket="logos"
+                          onUpload={(url) => setLogoUrl(url)}
+                        />
+                      )}
+                    </div>
+                  </WIP>
                 </form>
               </section>
               <div className={styles.actions}>
