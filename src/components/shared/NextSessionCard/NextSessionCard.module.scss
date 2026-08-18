@@ -67,3 +67,23 @@
         width: 100%;
     }
 }
+
+.fullActions {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+
+    @include until-lg {
+        display: none;
+    }
+}
+
+.compactActions {
+    display: none;
+    align-items: center;
+    gap: $sp-2;
+
+    @include until-lg {
+        display: flex;
+    }
+}

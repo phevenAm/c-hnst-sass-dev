@@ -105,6 +105,9 @@ const SettingsPage = () => {
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
   const [savingAutoCancel, setSavingAutoCancel] = useState(false);
+  const [rescheduleCutoffEnabled, setRescheduleCutoffEnabled] = useState(true);
+  const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState(48);
+  const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
   const [consentEnabled, setConsentEnabled] = useState(false);
   const [consentTitle, setConsentTitle] = useState("Before you continue");
   const [consentBody, setConsentBody] = useState("");
@@ -209,6 +212,8 @@ const SettingsPage = () => {
         setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
         setUseCodenames(data.use_client_codenames ?? false);
         setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
+        setRescheduleCutoffEnabled(data.reschedule_cutoff_hours != null);
+        setRescheduleCutoffHours(data.reschedule_cutoff_hours ?? 48);
         setConsentEnabled(data.consent_enabled ?? false);
         setConsentTitle(data.consent_title ?? "Before you continue");
         setConsentBody(data.consent_body ?? "");
@@ -324,6 +329,19 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingAutoCancel(false);
     showToast("Auto-cancel settings saved.");
+  };
+
+  const handleSaveRescheduleCutoff = async () => {
+    if (!userProfile?.id) return;
+    setSavingRescheduleCutoff(true);
+    await supabase
+      .from("practice_settings")
+      .update({
+        reschedule_cutoff_hours: rescheduleCutoffEnabled ? rescheduleCutoffHours : null,
+      })
+      .eq("admin_id", userProfile.id);
+    setSavingRescheduleCutoff(false);
+    showToast("Reschedule cutoff saved.");
   };
 
   const handleSaveConsent = async () => {
@@ -645,6 +663,67 @@ const SettingsPage = () => {
                   disabled={savingAutoCancel}
                 >
                   {savingAutoCancel ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Reschedule cutoff */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Reschedule &amp; cancellation cutoff</h2>
+                <p>
+                  Controls how close to a session clients can still pay, reschedule, or cancel it themselves through
+                  their portal. Doesn't affect what you can do from the admin side.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Enforce a cutoff</strong>
+                    <span>
+                      {rescheduleCutoffEnabled
+                        ? "On — clients are blocked from changing a session within the window below."
+                        : "Off — clients can pay, reschedule, or cancel right up until the session starts."}
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${rescheduleCutoffEnabled ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={rescheduleCutoffEnabled}
+                      onChange={(e) => setRescheduleCutoffEnabled(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                {rescheduleCutoffEnabled && (
+                  <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+                    <label htmlFor="rescheduleCutoffHours">Cutoff window</label>
+                    <select
+                      id="rescheduleCutoffHours"
+                      value={rescheduleCutoffHours}
+                      onChange={(e) => setRescheduleCutoffHours(Number(e.target.value))}
+                      className={styles.select}
+                    >
+                      <option value={12}>12 hours</option>
+                      <option value={24}>1 day</option>
+                      <option value={48}>2 days</option>
+                      <option value={72}>3 days</option>
+                      <option value={168}>1 week</option>
+                    </select>
+                    <p className={styles.toggleHint}>
+                      How long before a session starts clients lose the ability to pay, reschedule, or cancel it.
+                    </p>
+                  </div>
+                )}
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveRescheduleCutoff}
+                  disabled={savingRescheduleCutoff}
+                >
+                  {savingRescheduleCutoff ? "Saving…" : "Save"}
                 </Button>
               </div>
             </Card>

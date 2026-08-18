@@ -22,6 +22,9 @@ type AuthContextType = {
   authUser: AuthUser | null;
   userProfile: UserProfile | null;
   practiceSettings: PracticeSettings | null;
+  /** Hours before a session that clients are blocked from self-service pay/reschedule/cancel.
+   *  null = restriction disabled. undefined = not loaded yet. */
+  rescheduleCutoffHours: number | null | undefined;
   displayName: string | null;
   loading: boolean;
   isFinishingSignup: boolean;
@@ -53,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [practiceSettings, setPracticeSettings] = useState<PracticeSettings | null>(null);
+  const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState<number | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [isFinishingSignup, setIsFinishingSignup] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,16 +93,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // 406 on zero rows. maybeSingle returns null cleanly.
           const { data: settings } = await supabase
             .from("practice_settings")
-            .select("subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames")
+            .select(
+              "subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames, reschedule_cutoff_hours",
+            )
             .eq("admin_id", currentAuthUser.id)
             .maybeSingle();
           setPracticeSettings(settings ?? null);
+          setRescheduleCutoffHours(settings?.reschedule_cutoff_hours ?? null);
         } else {
           setPracticeSettings(null);
+          // Clients can't SELECT practice_settings directly (RLS scopes it to
+          // the owning admin), so this one field is exposed via RPC instead.
+          const { data: cutoff } = await supabase.rpc("get_my_reschedule_cutoff_hours");
+          setRescheduleCutoffHours(cutoff ?? null);
         }
       } else {
         setUserProfile(null);
         setPracticeSettings(null);
+        setRescheduleCutoffHours(undefined);
       }
     }
 
@@ -283,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authUser,
       userProfile,
       practiceSettings,
+      rescheduleCutoffHours,
       displayName,
       error,
       loading,
@@ -301,6 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authUser,
       userProfile,
       practiceSettings,
+      rescheduleCutoffHours,
       displayName,
       error,
       loading,

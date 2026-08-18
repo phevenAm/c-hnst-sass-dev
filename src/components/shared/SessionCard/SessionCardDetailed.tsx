@@ -57,8 +57,14 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
       });
   }, [session.id, isAdmin]);
 
-  const { toggleNoShowOrPayment, markAttended, markNoShow, formatEventLabel, isWithin48Hours } =
-    useSessionCard(session);
+  const {
+    toggleNoShowOrPayment,
+    markAttended,
+    markNoShow,
+    formatEventLabel,
+    isWithinRescheduleCutoff,
+    rescheduleCutoffMessage,
+  } = useSessionCard(session);
 
   const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
   const isCompleted = isPast && session.attended === true && session.paid === true;
@@ -234,8 +240,8 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
             variant="primary"
             disabled={isDemo || session.paid}
             onClick={() => {
-              if (isWithin48Hours) {
-                showToast("Sessions cannot be cancelled or rescheduled within 48 hours of the appointment", "warning");
+              if (isWithinRescheduleCutoff) {
+                showToast(rescheduleCutoffMessage, "warning");
                 return;
               }
               setIsPayModalOpen(true);
@@ -248,8 +254,8 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
             variant="secondary"
             disabled={isDemo}
             onClick={() => {
-              if (isWithin48Hours) {
-                showToast("Sessions cannot be cancelled or rescheduled within 48 hours of the appointment", "warning");
+              if (isWithinRescheduleCutoff) {
+                showToast(rescheduleCutoffMessage, "warning");
                 return;
               }
               setIsRescheduleModalOpen(true);
@@ -262,8 +268,8 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
             variant="ghost-danger"
             disabled={isDemo}
             onClick={() => {
-              if (isWithin48Hours) {
-                showToast("Sessions cannot be cancelled or rescheduled within 48 hours of the appointment", "warning");
+              if (isWithinRescheduleCutoff) {
+                showToast(rescheduleCutoffMessage, "warning");
                 return;
               }
               setIsCancelModalOpen(true);

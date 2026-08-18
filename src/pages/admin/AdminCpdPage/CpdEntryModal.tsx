@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import dayjs from "dayjs";
 
@@ -25,7 +25,7 @@ const ACTIVITY_TYPES: { value: CpdActivityType; label: string }[] = [
   { value: "reading", label: "Reading" },
   { value: "conference", label: "Conference" },
   { value: "peer_consultation", label: "Peer Consultation" },
-  { value: "personal_therapy", label: "Personal Therapy" },
+  // { value: "personal_therapy", label: "Personal Therapy" },
   { value: "other", label: "Other" },
 ];
 
@@ -39,6 +39,7 @@ const MODES = [
 export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onClose, onSaved }: Props) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
+  const mouseDownTarget = useRef<EventTarget | null>(null);
 
   const [activityType, setActivityType] = useState<CpdActivityType>(initial?.activity_type ?? "training");
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().split("T")[0]);
@@ -118,7 +119,17 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
   };
 
   return (
-    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — modal has an explicit close button
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss — modal has an explicit close button
+    <div
+      className={styles.overlay}
+      onMouseDown={(e) => {
+        mouseDownTarget.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTarget.current === e.currentTarget) onClose();
+      }}
+    >
       <div
         className={styles.modal}
         role="dialog"
