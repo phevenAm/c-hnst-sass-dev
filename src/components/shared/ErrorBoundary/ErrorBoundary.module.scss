@@ -1,0 +1,42 @@
+@use '../../../styles/spacing' as *;
+
+.page {
+  min-height: 100vh;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $sp-6;
+}
+
+.card {
+  max-width: 440px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: $sp-8;
+  box-shadow: var(--shadow-lg);
+}
+
+.heading {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 $sp-3;
+}
+
+.body {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 $sp-6;
+}
+
+.actions {
+  display: flex;
+  gap: $sp-3;
+  justify-content: center;
+  flex-wrap: wrap;
+}

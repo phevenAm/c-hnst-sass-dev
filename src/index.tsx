@@ -4,6 +4,7 @@ import { registerSW } from "virtual:pwa-register";
 import "./index.scss";
 
 import App from "./App";
+import ErrorBoundary from "./components/shared/ErrorBoundary/ErrorBoundary";
 
 registerSW({ immediate: true });
 
@@ -19,7 +20,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   // <React.StrictMode>
   <>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </>,
   // </React.StrictMode>
 );
