@@ -5,7 +5,7 @@ import { type WalkthroughPage, type WalkthroughStep, walkthroughSteps } from "..
 
 const LS_DISMISSED_KEY = "walkthrough_dismissed_routes";
 const LS_GLOBAL_KEY = "walkthrough_globally_dismissed";
-const PROMPT_DELAY_MS = 1500;
+const PROMPT_DELAY_MS = 4000;
 const DECLINE_MESSAGE_MS = 3000;
 
 interface WalkthroughContextValue {

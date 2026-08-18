@@ -83,7 +83,7 @@ export const exportClientPDF = async ({
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text("WithMe", MARGIN, 18);
+  doc.text("Clarity", MARGIN, 18);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.text("Client Report", MARGIN, 28);
@@ -315,7 +315,7 @@ export const exportClientPDF = async ({
   // ── Footer ───────────────────────────────────────────────────
   doc.setFontSize(8);
   doc.setTextColor(190, 190, 190);
-  doc.text("Confidential — WithMe Client Report", MARGIN, 285);
+  doc.text("Confidential — Clarity Client Report", MARGIN, 285);
 
   doc.save(`${user.first_name}_${user.last_name}_report.pdf`);
 };

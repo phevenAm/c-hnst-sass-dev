@@ -51,7 +51,7 @@ const BANK_FIELDS = [
   { key: "bank_account_name", label: "Account name", placeholder: "e.g. Sarah Smith Therapy" },
   { key: "bank_sort_code", label: "Sort code", placeholder: "e.g. 20-00-00" },
   { key: "bank_account_number", label: "Account number", placeholder: "e.g. 12345678" },
-  { key: "bank_payment_reference", label: "Payment reference", placeholder: "e.g. WithMe — use your name as ref" },
+  { key: "bank_payment_reference", label: "Payment reference", placeholder: "e.g. Clarity — use your name as ref" },
 ] as const;
 
 type BankField = (typeof BANK_FIELDS)[number]["key"];
