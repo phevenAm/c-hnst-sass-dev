@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -56,6 +56,9 @@ function formatCurrency(amount: number, currency: string) {
 export default function AdminStubDetailPage() {
   const { stubId } = useParams<{ stubId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightSessionId = searchParams.get("session");
+  const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
   const dispatch = useAppDispatch();
   const { userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
@@ -139,6 +142,23 @@ export default function AdminStubDetailPage() {
   };
 
   useRealtimeTable("stub_sessions", stubId ? `stub_id=eq.${stubId}` : undefined, loadSessions);
+
+  // Deep link from Payments "View": ?session=<id> — scroll to it and flash a highlight.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: searchParams/setSearchParams deliberately excluded — this effect mutates searchParams, including it as a dep would re-fire on its own write
+  useEffect(() => {
+    if (!highlightSessionId) return;
+    const el = document.getElementById(`stub-session-${highlightSessionId}`);
+    if (!el) return;
+
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedSessionId(highlightSessionId);
+
+    searchParams.delete("session");
+    setSearchParams(searchParams, { replace: true });
+
+    const timer = setTimeout(() => setHighlightedSessionId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [highlightSessionId, sessions]);
 
   useEffect(() => {
     if (!stubId) return;
@@ -442,16 +462,21 @@ export default function AdminStubDetailPage() {
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((s) => (
-                <StubSessionCard
+                <div
                   key={s.id}
-                  session={s}
-                  sessionNumber={sessionNumberMap.get(s.id) ?? 1}
-                  stubId={stubId!}
-                  adminId={userProfile?.id ?? ""}
-                  isDemo={isDemo}
-                  onUpdated={(updated) => handleSessionSaved([updated])}
-                  onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
-                />
+                  id={`stub-session-${s.id}`}
+                  className={highlightedSessionId === s.id ? styles.sessionHighlighted : undefined}
+                >
+                  <StubSessionCard
+                    session={s}
+                    sessionNumber={sessionNumberMap.get(s.id) ?? 1}
+                    stubId={stubId!}
+                    adminId={userProfile?.id ?? ""}
+                    isDemo={isDemo}
+                    onUpdated={(updated) => handleSessionSaved([updated])}
+                    onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
+                  />
+                </div>
               ))}
             </div>
           )}

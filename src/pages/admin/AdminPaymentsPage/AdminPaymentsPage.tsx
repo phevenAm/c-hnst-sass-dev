@@ -194,7 +194,7 @@ const AdminPaymentsPage = () => {
         isPaid: s.paid,
         source: "session",
         description: null,
-        viewPath: s.client_id ? `/admin/clients/${s.client_id}` : null,
+        viewPath: s.client_id ? `/admin/clients/${s.client_id}?session=${s.id}` : null,
       }));
 
     const scopedManual =
@@ -227,7 +227,7 @@ const AdminPaymentsPage = () => {
         isPaid: s.amount_paid != null && s.amount_paid > 0,
         source: "stub-session" as const,
         description: s.notes ?? null,
-        viewPath: `/admin/clients/stub/${s.stub_id}`,
+        viewPath: `/admin/clients/stub/${s.stub_id}?session=${s.id}`,
       }));
 
     return [...sessionRows, ...stubSessionRows, ...manualRows];

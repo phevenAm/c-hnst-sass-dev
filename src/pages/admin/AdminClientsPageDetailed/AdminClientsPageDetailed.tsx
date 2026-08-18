@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: <explanation> */
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -96,6 +96,10 @@ function submissionTotal(questions: AssignedQuestion[], response: Response): num
 export default function AdminClientsPageDetailed() {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightSessionId = searchParams.get("session");
+  const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
+  const handledHighlightRef = useRef<string | null>(null);
   const dispatch = useAppDispatch();
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
@@ -399,6 +403,48 @@ export default function AdminClientsPageDetailed() {
     const endIndex = startIndex + pageSize;
     return array.slice(startIndex, endIndex);
   };
+
+  // Deep link from Payments "View": ?session=<id> — put the right session
+  // on screen regardless of which tab/search/page it'd otherwise be hiding
+  // behind, then scroll to it and flash a highlight.
+  useEffect(() => {
+    if (!highlightSessionId || handledHighlightRef.current === highlightSessionId) return;
+    const target = clientSessions.find((s) => s.id === highlightSessionId);
+    if (!target) return;
+    const isUpcoming = new Date(target.scheduled_at) >= new Date();
+    setSessopmsDateTab(isUpcoming ? "upcoming" : "past");
+    setSearchTerm("");
+    handledHighlightRef.current = highlightSessionId;
+  }, [highlightSessionId, clientSessions]);
+
+  const targetSessionPage = useMemo(() => {
+    if (!highlightSessionId) return null;
+    const idx = searchResults.findIndex((s) => s.id === highlightSessionId);
+    return idx === -1 ? null : Math.floor(idx / maxPageSize) + 1;
+  }, [highlightSessionId, searchResults]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionPageNumber deliberately excluded — this only sets it, including it would loop
+  useEffect(() => {
+    if (targetSessionPage != null && sessionPageNumber !== targetSessionPage) {
+      setSessionPageNumber(targetSessionPage);
+    }
+  }, [targetSessionPage]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: searchParams/setSearchParams deliberately excluded — this effect mutates searchParams, including it as a dep would re-fire on its own write
+  useEffect(() => {
+    if (!highlightSessionId || targetSessionPage == null || sessionPageNumber !== targetSessionPage) return;
+    const el = document.getElementById(`session-${highlightSessionId}`);
+    if (!el) return;
+
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedSessionId(highlightSessionId);
+
+    searchParams.delete("session");
+    setSearchParams(searchParams, { replace: true });
+
+    const timer = setTimeout(() => setHighlightedSessionId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [targetSessionPage, sessionPageNumber, highlightSessionId]);
 
   const maxPageSize = 4;
 
@@ -727,14 +773,19 @@ export default function AdminClientsPageDetailed() {
                 <p className={styles.sessionEmpty}>No sessions yet.</p>
               ) : (
                 paginateSessions(searchResults, sessionPageNumber ?? 1, maxPageSize).map((s) => (
-                  <SessionCard
+                  <div
                     key={s.id}
-                    session={s}
-                    isDemo={isDemo}
-                    isAdmin
-                    clientLabel={displayedClientName}
-                    onNotesClick={(id) => setSelectedNoteSessionId(id)}
-                  />
+                    id={`session-${s.id}`}
+                    className={highlightedSessionId === s.id ? styles.sessionHighlighted : undefined}
+                  >
+                    <SessionCard
+                      session={s}
+                      isDemo={isDemo}
+                      isAdmin
+                      clientLabel={displayedClientName}
+                      onNotesClick={(id) => setSelectedNoteSessionId(id)}
+                    />
+                  </div>
                 ))
               ))}
 
