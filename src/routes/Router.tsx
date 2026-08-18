@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import ConsentModal from "../components/Consent/ConsentModal";
@@ -16,35 +16,47 @@ import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import { supabase } from "../lib/supabase";
+// Left un-lazy on purpose, as an exercise — convert these two the same way as
+// everything below (`lazy(() => import("path/to/Page"))`) once the pattern
+// below makes sense. Nothing else needs to change: React.lazy + the single
+// <Suspense> around <Routes> already covers any route added here.
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
-import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
-import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
-import AdminClientsPageDetailed from "../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed";
-import AdminCpdPage from "../pages/admin/AdminCpdPage/AdminCpdPage";
-import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
-import AdminPaymentsPage from "../pages/admin/AdminPaymentsPage/AdminPaymentsPage";
-import AdminQuestionnairesPage from "../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage";
-import AdminResourcesPage from "../pages/admin/AdminResourcesPage/AdminResourcesPage";
-import AdminScheduler from "../pages/admin/AdminScheduler/AdminScheduler";
-import AdminStubDetailPage from "../pages/admin/AdminStubDetailPage/AdminStubDetailPage";
 import AdminSupervisionPage from "../pages/admin/AdminSupervisionPage/AdminSupervisionPage";
-import CheckInPage from "../pages/client/CheckInPage/CheckInPage";
-import ClientDashboard from "../pages/client/ClientDashboard/ClientDashboard";
-import ClientSchedule from "../pages/client/ClientSchedule//ClientSchedule";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
-import ResourcesPage from "../pages/client/ResourcesPage/ResourcesPage";
-import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/CounsellorSignupPage";
-import DemoPage from "../pages/common/DemoPage/DemoPage";
-import GoogleCalendarCallbackPage from "../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage";
-import SettingsPage from "../pages/common/SettingsPage/SettingsPage";
-import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
-import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
-import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
-import TermsPage from "../pages/common/TermsPage/TermsPage";
-import UnsubscribePage from "../pages/common/UnsubscribePage/UnsubscribePage";
-import SuperAdminPage from "../pages/superadmin/SuperAdminPage/SuperAdminPage";
+import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
 import { selectThemeMode } from "../store/slices/themeSlice";
+
+// Everything else route-level is lazy: each import() becomes its own chunk that
+// only downloads when a user actually navigates there, instead of all being
+// bundled into the one multi-MB file every visitor pays for on first load
+// (that's what the "chunks larger than 500kB" build warning was about).
+const AdminClientScheduler = lazy(() => import("../pages/admin/AdminClientScheduler/AdminClientScheduler"));
+const AdminClientsPage = lazy(() => import("../pages/admin/AdminClientsPage/AdminClientsPage"));
+const AdminClientsPageDetailed = lazy(() => import("../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed"));
+const AdminCpdPage = lazy(() => import("../pages/admin/AdminCpdPage/AdminCpdPage"));
+const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard/AdminDashboard"));
+const AdminPaymentsPage = lazy(() => import("../pages/admin/AdminPaymentsPage/AdminPaymentsPage"));
+const AdminQuestionnairesPage = lazy(() => import("../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage"));
+const AdminResourcesPage = lazy(() => import("../pages/admin/AdminResourcesPage/AdminResourcesPage"));
+const AdminScheduler = lazy(() => import("../pages/admin/AdminScheduler/AdminScheduler"));
+const AdminStubDetailPage = lazy(() => import("../pages/admin/AdminStubDetailPage/AdminStubDetailPage"));
+const CheckInPage = lazy(() => import("../pages/client/CheckInPage/CheckInPage"));
+const ClientDashboard = lazy(() => import("../pages/client/ClientDashboard/ClientDashboard"));
+const ClientSchedule = lazy(() => import("../pages/client/ClientSchedule//ClientSchedule"));
+const ResourcesPage = lazy(() => import("../pages/client/ResourcesPage/ResourcesPage"));
+const CounsellorSignupPage = lazy(() => import("../pages/common/CounsellorSignupPage/CounsellorSignupPage"));
+const DemoPage = lazy(() => import("../pages/common/DemoPage/DemoPage"));
+const GoogleCalendarCallbackPage = lazy(
+  () => import("../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage"),
+);
+const SettingsPage = lazy(() => import("../pages/common/SettingsPage/SettingsPage"));
+const SignUpPage = lazy(() => import("../pages/common/SignUpPage/SignUpPage"));
+const StripeCallbackPage = lazy(() => import("../pages/common/StripeCallbackPage/StripeCallbackPage"));
+const SubscribePage = lazy(() => import("../pages/common/SubscribePage/SubscribePage"));
+const TermsPage = lazy(() => import("../pages/common/TermsPage/TermsPage"));
+const UnsubscribePage = lazy(() => import("../pages/common/UnsubscribePage/UnsubscribePage"));
+const SuperAdminPage = lazy(() => import("../pages/superadmin/SuperAdminPage/SuperAdminPage"));
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
   const mode = useAppSelector(selectThemeMode);
@@ -215,88 +227,89 @@ export default function AppRoutes() {
           <ConsentGate />
           <OnboardingGate />
           <WalkthroughOverlay />
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/demo" element={<DemoPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/register" element={<CounsellorSignupPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/unsubscribe" element={<UnsubscribePage />} />
+          <Suspense fallback={<Spinner />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/demo" element={<DemoPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/register" element={<CounsellorSignupPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
-            {/* Standalone — no navbar, own minimal header */}
-            <Route
-              path="/subscribe"
-              element={
-                <ProtectedRoute>
-                  <SubscribePage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Standalone — no navbar, own minimal header */}
+              <Route
+                path="/subscribe"
+                element={
+                  <ProtectedRoute>
+                    <SubscribePage />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              element={
-                <ProtectedRoute>
-                  <RoleAwareLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
-              <Route path="/settings/google-callback" element={<GoogleCalendarCallbackPage />} />
-            </Route>
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <RoleAwareLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
+                <Route path="/settings/google-callback" element={<GoogleCalendarCallbackPage />} />
+              </Route>
 
-            <Route
-              element={
-                <ProtectedRoute requiredRole="client">
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<ClientDashboard />} />
-              <Route path="/check-in" element={<CheckInPage />} />
-              <Route path="/my-sessions" element={<ClientSchedule />} />
-              <Route path="/resources" element={<ResourcesPage />} />
-            </Route>
+              <Route
+                element={
+                  <ProtectedRoute requiredRole="client">
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/dashboard" element={<ClientDashboard />} />
+                <Route path="/check-in" element={<CheckInPage />} />
+                <Route path="/my-sessions" element={<ClientSchedule />} />
+                <Route path="/resources" element={<ResourcesPage />} />
+              </Route>
 
-            <Route
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <SubscriptionGate>
-                    <AdminLayout />
-                  </SubscriptionGate>
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/clients" element={<AdminClientsPage />} />
-              <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
-              <Route path="/admin/clients/stub/:stubId" element={<AdminStubDetailPage />} />
-              <Route path="/admin/forms" element={<AdminQuestionnairesPage />} />
-              <Route path="/admin/resources" element={<AdminResourcesPage />} />
-              <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
-              <Route path="/admin/scheduler" element={<AdminScheduler />} />
-              <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
-              <Route path="/admin/payments" element={<AdminPaymentsPage />} />
-              <Route path="/admin/cpd" element={<AdminCpdPage />} />
-              <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
-              {/* //! make admin/schedule/userSchedule route */}
-            </Route>
+              <Route
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <SubscriptionGate>
+                      <AdminLayout />
+                    </SubscriptionGate>
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/clients" element={<AdminClientsPage />} />
+                <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
+                <Route path="/admin/clients/stub/:stubId" element={<AdminStubDetailPage />} />
+                <Route path="/admin/forms" element={<AdminQuestionnairesPage />} />
+                <Route path="/admin/resources" element={<AdminResourcesPage />} />
+                <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+                <Route path="/admin/scheduler" element={<AdminScheduler />} />
+                <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
+                <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+                <Route path="/admin/cpd" element={<AdminCpdPage />} />
+                <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
+                {/* //! make admin/schedule/userSchedule route */}
+              </Route>
 
-            <Route
-              path="/superadmin"
-              element={
-                <ProtectedRoute>
-                  <SuperAdminGate>
-                    <SuperAdminPage />
-                  </SuperAdminGate>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/superadmin"
+                element={
+                  <ProtectedRoute>
+                    <SuperAdminGate>
+                      <SuperAdminPage />
+                    </SuperAdminGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route path="/" element={<RootRedirect />} />
-            <Route path="*" element={<div>CAUGHT: {window.location.pathname}</div>} />
-            {/* // ! create action page not do page. todo} */}
-          </Routes>
+              <Route path="/" element={<RootRedirect />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
         </WalkthroughProvider>
       </BrowserRouter>
     </ThemeWrapper>
