@@ -183,7 +183,31 @@
   overflow: hidden;
 }
 
-// Status filter pills — passed as toolbar slot into SortableTable
+// Status filter pills + search — passed as toolbar slot into SortableTable
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.tableSearchInput {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  min-width: 220px;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
 .statusFilters {
   display: flex;
   gap: var(--sp-2);
