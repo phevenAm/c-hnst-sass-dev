@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { KEYWORDS } from "@constants/constants";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 import { isPageStatusLoading, pickColor } from "@Helpers/Helpers";
 import { hardRefresh } from "@Hooks/useVersionCheck";
@@ -8,6 +9,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
+import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
 import { useEncryption } from "@context/EncryptionContext";
 import { useInterfacePrefs } from "@context/InterfacePrefsContext";
@@ -100,6 +102,15 @@ const SettingsPage = () => {
   const [piiLocked, setPiiLocked] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [billingCustomerId, setBillingCustomerId] = useState<string | null>(null);
+
+  const [googleStatus, setGoogleStatus] = useState<{
+    connected: boolean;
+    google_email: string | null;
+    sync_enabled: boolean;
+  } | null>(null);
+  const [savingGoogleSync, setSavingGoogleSync] = useState(false);
+  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
@@ -204,6 +215,7 @@ const SettingsPage = () => {
         setLogoUrl(data.logo_url ?? "");
         setBankDetails(bankData);
         setStripeConnected(data.stripe_connect_onboarded ?? false);
+        setBillingCustomerId(data.billing_customer_id ?? null);
         setReminderHours(data.reminder_hours_before ?? 120);
         setReminderSubject(data.reminder_email_subject ?? "");
         setReminderBody(data.reminder_email_body ?? "");
@@ -221,6 +233,14 @@ const SettingsPage = () => {
         setConsentCounsellorCta(data.consent_counsellor_cta ?? "If you have any questions, speak to your counsellor.");
       });
   }, [isAdmin, userProfile?.id, encStatus, decryptPII]);
+
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    supabase.rpc("get_google_calendar_status").then(({ data }) => {
+      const row = data?.[0];
+      if (row) setGoogleStatus(row);
+    });
+  }, [isAdmin, userProfile?.id]);
 
   const toggleKeyword = (kw: string) =>
     setKeywords((prev) => (prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]));
@@ -365,13 +385,58 @@ const SettingsPage = () => {
     setLoadingPortal(true);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-billing-portal-session");
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) {
+        // supabase-js only gives a generic "non-2xx status code" message by default —
+        // the real reason is in the response body.
+        let message = fnError.message;
+        if (fnError instanceof FunctionsHttpError) {
+          const body = await fnError.context.json().catch(() => null);
+          if (body?.error) message = body.error;
+        }
+        throw new Error(message);
+      }
       if (!data?.url) throw new Error("No portal URL returned");
       window.location.href = data.url;
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Something went wrong", "error");
       setLoadingPortal(false);
     }
+  };
+
+  const handleConnectGoogleCalendar = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
+    const redirect = `${window.location.origin}/settings/google-callback`;
+    const scope = "https://www.googleapis.com/auth/calendar.events";
+    window.location.href =
+      `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}` +
+      `&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
+  };
+
+  const handleToggleGoogleSync = async () => {
+    if (!googleStatus) return;
+    const nextEnabled = !googleStatus.sync_enabled;
+    setSavingGoogleSync(true);
+    const { error: rpcError } = await supabase.rpc("set_google_calendar_sync_enabled", { p_enabled: nextEnabled });
+    if (rpcError) {
+      showToast(rpcError.message, "error");
+    } else {
+      setGoogleStatus({ ...googleStatus, sync_enabled: nextEnabled });
+      showToast(nextEnabled ? "Google Calendar sync resumed." : "Google Calendar sync paused.");
+    }
+    setSavingGoogleSync(false);
+  };
+
+  const handleDisconnectGoogleCalendar = async () => {
+    setDisconnectingGoogle(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("google-calendar-disconnect");
+      if (fnError) throw new Error(fnError.message);
+      setGoogleStatus({ connected: false, google_email: null, sync_enabled: false });
+      showToast("Google Calendar disconnected.");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to disconnect Google Calendar", "error");
+    }
+    setDisconnectingGoogle(false);
   };
 
   if (loading || !userProfile)
@@ -530,23 +595,25 @@ const SettingsPage = () => {
                       />
                     </div>
                   ))}
-                  <div className={styles.field}>
-                    <label>Logo</label>
-                    {logoUrl ? (
-                      <>
-                        <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
-                        <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
-                          Remove logo
-                        </Button>
-                      </>
-                    ) : (
-                      <UploadAndDisplayImage
-                        userId={userProfile?.id ?? ""}
-                        bucket="logos"
-                        onUpload={(url) => setLogoUrl(url)}
-                      />
-                    )}
-                  </div>
+                  <WIP>
+                    <div className={styles.field}>
+                      <label>Logo</label>
+                      {logoUrl ? (
+                        <>
+                          <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
+                          <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
+                            Remove logo
+                          </Button>
+                        </>
+                      ) : (
+                        <UploadAndDisplayImage
+                          userId={userProfile?.id ?? ""}
+                          bucket="logos"
+                          onUpload={(url) => setLogoUrl(url)}
+                        />
+                      )}
+                    </div>
+                  </WIP>
                 </form>
               </section>
               <div className={styles.actions}>
@@ -601,6 +668,72 @@ const SettingsPage = () => {
                   >
                     Connect Stripe account
                   </Button>
+                )}
+              </section>
+            </Card>
+
+            {/* Calendar sync */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Calendar sync</h2>
+                <p>Choose how your sessions show up in your own calendar.</p>
+
+                <div style={{ display: "grid", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
+                  <div>
+                    <strong>Built-in (.ics download)</strong>
+                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Download a calendar file for any session and import it manually. Works with any calendar app —
+                      nothing is connected automatically, so changes made in-app won't update a file you've already
+                      imported.
+                    </p>
+                  </div>
+                  <div>
+                    <strong>Google Calendar (auto-sync)</strong>
+                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Connect your Google account once — every session you book, reschedule, or cancel is pushed to your
+                      Google Calendar automatically. One-way only: changes made directly in Google don't come back into
+                      Clarity.
+                    </p>
+                  </div>
+                </div>
+
+                {googleStatus?.connected ? (
+                  <>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Sync to Google Calendar</strong>
+                        <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
+                      </span>
+                      <span
+                        className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={googleStatus.sync_enabled}
+                          disabled={savingGoogleSync}
+                          onChange={handleToggleGoogleSync}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
+                      <Button
+                        variant="ghost-danger"
+                        size="sm"
+                        onClick={handleDisconnectGoogleCalendar}
+                        disabled={disconnectingGoogle}
+                      >
+                        {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <WIP>
+                    <Button variant="primary" onClick={handleConnectGoogleCalendar}>
+                      Connect Google Calendar
+                    </Button>
+                  </WIP>
                 )}
               </section>
             </Card>
@@ -842,19 +975,23 @@ const SettingsPage = () => {
                     </strong>
                   </p>
                   <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                    Manage your plan, update your payment method, or cancel through the Stripe billing portal.
+                    {billingCustomerId
+                      ? "Manage your plan, update your payment method, or cancel through the Stripe billing portal."
+                      : "This account isn't linked to a Stripe subscription — there's nothing to manage here."}
                   </p>
                 </section>
-                <div className={styles.actions}>
-                  <Button
-                    variant="primary"
-                    className={styles.saveButton}
-                    onClick={handleManageSubscription}
-                    disabled={loadingPortal}
-                  >
-                    {loadingPortal ? "Opening…" : "Manage subscription"}
-                  </Button>
-                </div>
+                {billingCustomerId && (
+                  <div className={styles.actions}>
+                    <Button
+                      variant="primary"
+                      className={styles.saveButton}
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                    >
+                      {loadingPortal ? "Opening…" : "Manage subscription"}
+                    </Button>
+                  </div>
+                )}
               </Card>
             )}
           </>
