@@ -14,12 +14,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
-import type { StubSession } from "@/models/globalTypes";
+import type { Session, StubSession } from "@/models/globalTypes";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
 import { revenueByMonth } from "@/pages/admin/AdminDashboard/dashboardUtils";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
-import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
+import { fetchAllSessions, updateSession, upsertSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import AddPaymentModal from "./AddPaymentModal/AddPaymentModal";
 
@@ -167,6 +167,13 @@ const AdminPaymentsPage = () => {
 
   const revenueData = useMemo(() => revenueByMonth(scopedSessions, 6), [scopedSessions]);
 
+  // Not scoped to selectedClientId — this is an actionable inbox, so a client
+  // filter shouldn't hide something the admin still needs to respond to.
+  const pendingManualPayments = useMemo(
+    () => sessions.filter((s) => s.manual_payment_status === "pending"),
+    [sessions],
+  );
+
   const paymentSlices: DonutSlice[] = [
     { name: "Paid", value: stats.paidCount, color: "#2d7264" },
     { name: "Unpaid", value: stats.unpaidCount, color: "#c98a2b" },
@@ -187,7 +194,7 @@ const AdminPaymentsPage = () => {
         isPaid: s.paid,
         source: "session",
         description: null,
-        viewPath: s.client_id ? `/admin/clients/${s.client_id}` : null,
+        viewPath: s.client_id ? `/admin/clients/${s.client_id}?session=${s.id}` : null,
       }));
 
     const scopedManual =
@@ -220,7 +227,7 @@ const AdminPaymentsPage = () => {
         isPaid: s.amount_paid != null && s.amount_paid > 0,
         source: "stub-session" as const,
         description: s.notes ?? null,
-        viewPath: `/admin/clients/stub/${s.stub_id}`,
+        viewPath: `/admin/clients/stub/${s.stub_id}?session=${s.id}`,
       }));
 
     return [...sessionRows, ...stubSessionRows, ...manualRows];
@@ -266,6 +273,30 @@ const AdminPaymentsPage = () => {
     showToast("Payment recorded.");
     setMarkStubPaid(null);
     setMarkAmount("");
+  };
+
+  const handleRespondManualPayment = async (session: Session, approved: boolean) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    const { error } = await supabase.rpc("respond_manual_payment", {
+      p_session_id: session.id,
+      p_approved: approved,
+    });
+    if (error) {
+      showToast("Failed to update payment.", "error");
+      return;
+    }
+    dispatch(
+      upsertSession({
+        ...session,
+        manual_payment_status: approved ? "approved" : "declined",
+        paid: approved ? true : session.paid,
+        paid_at: approved ? new Date().toISOString() : session.paid_at,
+      }),
+    );
+    showToast(approved ? "Payment confirmed." : "Payment declined.");
   };
 
   const handleDeleteManual = async (e: React.MouseEvent, id: string) => {
@@ -412,6 +443,36 @@ const AdminPaymentsPage = () => {
             </Button>
           </div>
         </div>
+
+        {/* ── Pending bank transfers ── */}
+        {pendingManualPayments.length > 0 && (
+          <Card className={styles.pendingCard}>
+            <h2 className={styles.pendingHeading}>
+              Pending bank transfers <span className={styles.pendingCount}>{pendingManualPayments.length}</span>
+            </h2>
+            <p className={styles.pendingSub}>Clients have marked these sessions as paid by bank transfer.</p>
+            <ul className={styles.pendingList}>
+              {pendingManualPayments.map((s) => (
+                <li key={s.id} className={styles.pendingRow}>
+                  <div className={styles.pendingInfo}>
+                    <span className={styles.pendingClient}>{clientNameById(s.client_id, null)}</span>
+                    <span className={styles.pendingMeta}>
+                      {dayjs(s.scheduled_at).format("D MMM YYYY")} · {money(s.price_pence ?? 0)}
+                    </span>
+                  </div>
+                  <div className={styles.pendingActions}>
+                    <Button size="sm" variant="ghost" onClick={() => handleRespondManualPayment(s, false)}>
+                      Decline
+                    </Button>
+                    <Button size="sm" onClick={() => handleRespondManualPayment(s, true)}>
+                      Confirm paid
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* ── Summary ── */}
         <CollapsibleSection title="Summary" storageKey="payments:summary">

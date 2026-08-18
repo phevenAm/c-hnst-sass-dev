@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
@@ -67,14 +68,14 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   const { showToast } = useToast();
-  const { isWithin48Hours } = useSessionCard(session);
+  const { isWithinRescheduleCutoff, rescheduleCutoffMessage } = useSessionCard(session);
   const { isDemo } = useAuth();
 
   const isOnline = session.location !== "in_person";
 
   const guardAction = (fn: () => void) => {
-    if (isWithin48Hours) {
-      showToast("Sessions cannot be changed within 48 hours of the appointment", "warning");
+    if (isWithinRescheduleCutoff) {
+      showToast(rescheduleCutoffMessage, "warning");
       return;
     }
     fn();
@@ -129,35 +130,65 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
             </>
           ) : (
             <>
-              <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
-                Add to calendar
-              </Button>
-              {!session.paid && (
+              {/* Desktop — every action gets its own button */}
+              <div className={styles.fullActions}>
+                <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
+                  Add to calendar
+                </Button>
+                {!session.paid && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={isDemo}
+                    onClick={() => guardAction(() => setIsPayModalOpen(true))}
+                  >
+                    Pay
+                  </Button>
+                )}
                 <Button
                   size="sm"
-                  variant="primary"
+                  variant="secondary"
                   disabled={isDemo}
-                  onClick={() => guardAction(() => setIsPayModalOpen(true))}
+                  onClick={() => guardAction(() => setIsRescheduleModalOpen(true))}
                 >
-                  Pay
+                  Reschedule
                 </Button>
-              )}
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={isDemo}
-                onClick={() => guardAction(() => setIsRescheduleModalOpen(true))}
-              >
-                Reschedule
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                disabled={isDemo}
-                onClick={() => guardAction(() => setIsCancelModalOpen(true))}
-              >
-                Cancel
-              </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={isDemo}
+                  onClick={() => guardAction(() => setIsCancelModalOpen(true))}
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              {/* Mobile / tablet — collapse Pay/Reschedule/Cancel into one split button */}
+              <div className={styles.compactActions}>
+                <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
+                  Add to calendar
+                </Button>
+                <SplitButton
+                  size="sm"
+                  variant={session.paid ? "secondary" : "primary"}
+                  primaryLabel={session.paid ? "Reschedule" : "Pay"}
+                  primaryAction={() =>
+                    !isDemo &&
+                    guardAction(() => (session.paid ? setIsRescheduleModalOpen(true) : setIsPayModalOpen(true)))
+                  }
+                  options={
+                    session.paid
+                      ? [{ label: "Cancel", onClick: () => !isDemo && guardAction(() => setIsCancelModalOpen(true)) }]
+                      : [
+                          {
+                            label: "Reschedule",
+                            onClick: () => !isDemo && guardAction(() => setIsRescheduleModalOpen(true)),
+                          },
+                          { label: "Cancel", onClick: () => !isDemo && guardAction(() => setIsCancelModalOpen(true)) },
+                        ]
+                  }
+                />
+              </div>
             </>
           )}
         </div>

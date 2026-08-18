@@ -103,7 +103,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
     getCardClass,
     getStatusClass,
     formatEventLabel,
-    isWithin48Hours,
+    isWithinRescheduleCutoff,
   } = useSessionCard(session);
 
   const isCancelled = session.status === "cancelled";
@@ -350,7 +350,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
           </>
         )}
 
-        {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && !isWithin48Hours && (
+        {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && !isWithinRescheduleCutoff && (
           <div className={styles.actions_Icons}>
             {!session.paid ? (
               <SplitButton

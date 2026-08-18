@@ -334,7 +334,6 @@ export default function AdminClientsPage() {
   const [search, setSearch] = useState("");
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
-  const responsesStatus = useAppSelector((state: RootState) => state.responses.status);
 
   useFetchOnIdle(
     (state: RootState) => state.userDirectory.status,
@@ -370,7 +369,7 @@ export default function AdminClientsPage() {
     }
   }, [searchParams, setSearchParams]);
 
-  const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus);
+  const guard = isPageStatusLoading(usersStatus, questionnairesStatus);
   if (guard) return guard;
 
   const allClients = allUsers.filter((user) => user.role !== "admin" && !user.deleted_at);

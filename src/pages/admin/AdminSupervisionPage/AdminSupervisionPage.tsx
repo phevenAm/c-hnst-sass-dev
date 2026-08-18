@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import dayjs from "dayjs";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -126,6 +126,7 @@ function SupervisionModal({
 }) {
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
+  const mouseDownTarget = useRef<EventTarget | null>(null);
   const [form, setForm] = useState<FormState>(() =>
     initial
       ? {
@@ -189,7 +190,17 @@ function SupervisionModal({
   };
 
   return (
-    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — modal has an explicit close button
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss — modal has an explicit close button
+    <div
+      className={styles.overlay}
+      onMouseDown={(e) => {
+        mouseDownTarget.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTarget.current === e.currentTarget) onClose();
+      }}
+    >
       <div className={styles.modal} role="dialog" aria-modal="true">
         <div className={styles.modalHeader}>
           <h2>{initial ? "Edit supervision" : "Add supervision session"}</h2>
@@ -382,7 +393,7 @@ export default function AdminSupervisionPage() {
       supabase
         .from("sessions")
         .select("id, scheduled_at, duration_minutes, supervision_cost_pence, notes")
-        .eq("admin_id", userProfile.id)
+        .eq("created_by", userProfile.id)
         .eq("is_supervision", true)
         .order("scheduled_at", { ascending: false }),
       supabase

@@ -6,6 +6,7 @@ import Modal from "@components/shared/Modal/Modal";
 import ToggleButtonTabs from "@components/shared/ToggleButtonTabs/ToggleButtonTabs";
 
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import type { Session } from "@/models/globalTypes";
 
@@ -60,11 +61,27 @@ function CopyRow({ label, value, mono, large }: { label: string; value: string; 
 
 const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   const { isDemo } = useAuth();
+  const { showToast } = useToast();
   const [tab, setTab] = useState<"bank" | "card">("bank");
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState("");
+  const [manualPaymentStatus, setManualPaymentStatus] = useState(session.manual_payment_status ?? "none");
+  const [markingAsPaid, setMarkingAsPaid] = useState(false);
+
+  const handleRequestManualPayment = async () => {
+    if (isDemo) return;
+    setMarkingAsPaid(true);
+    const { error: rpcError } = await supabase.rpc("request_manual_payment", { p_session_id: session.id });
+    setMarkingAsPaid(false);
+    if (rpcError) {
+      showToast("Couldn't mark this as paid — please try again.", "error");
+      return;
+    }
+    setManualPaymentStatus("pending");
+    showToast("Marked as paid. Your therapist will confirm shortly.");
+  };
 
   const pricePounds = (session.price_pence / 100).toFixed(2);
   // const cardTotalPounds = ((session.price_pence * 1.02) / 100).toFixed(2);
@@ -89,6 +106,16 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   }, [session.created_by]);
 
   const hasBankDetails = !!(bankDetails?.bank_account_number && bankDetails?.bank_sort_code);
+
+  function bankTransferNote(): string {
+    if (manualPaymentStatus === "pending") {
+      return "Marked as paid — waiting for your therapist to confirm the transfer arrived.";
+    }
+    if (manualPaymentStatus === "declined") {
+      return "Your therapist couldn't verify this transfer. Please double-check the details and try again, or contact them directly.";
+    }
+    return "Once you've sent the transfer, mark it as paid below so your therapist knows to check for it. Please use your full name in the reference if one isn't shown above.";
+  }
 
   const handleStripePayment = async () => {
     if (isDemo) return;
@@ -159,15 +186,17 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
                 )}
               </dl>
 
-              <p className={styles.note}>
-                Once you've sent the transfer your therapist will mark the session as paid. Please use your full name in
-                the reference if one isn't shown above.
-              </p>
+              <p className={styles.note}>{bankTransferNote()}</p>
 
               <div className={styles.actions}>
                 <Button variant="ghost" onClick={onClose}>
                   Close
                 </Button>
+                {manualPaymentStatus !== "pending" && (
+                  <Button onClick={handleRequestManualPayment} disabled={markingAsPaid || isDemo}>
+                    {markingAsPaid ? "Marking as paid…" : "Mark as paid"}
+                  </Button>
+                )}
               </div>
             </div>
           )}

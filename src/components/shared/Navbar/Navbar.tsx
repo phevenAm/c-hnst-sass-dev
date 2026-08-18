@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { pickColor } from "@Helpers/Helpers";
 
 import { useAuth } from "../../../context/AuthContext";
+import { useEncryption } from "../../../context/EncryptionContext";
 import { supabase } from "../../../lib/supabase.js";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
@@ -29,6 +30,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const { isAdmin, signOut, userProfile, displayName } = useAuth();
+  const { status: encStatus } = useEncryption();
 
   useEffect(() => {
     supabase
@@ -127,6 +129,29 @@ export default function Navbar() {
           </button>
 
           <NotificationBell />
+
+          {isAdmin && (encStatus === "unlocked" || encStatus === "locked") && (
+            <div
+              className={`${styles.encPill} ${encStatus === "unlocked" ? styles.encUnlocked : styles.encLocked}`}
+              title={
+                encStatus === "unlocked"
+                  ? "Notes are encrypted and unlocked"
+                  : "Notes are encrypted but locked — open a client's session notes to unlock"
+              }
+              aria-label={encStatus === "unlocked" ? "Encryption: unlocked" : "Encryption: locked"}
+              role="status"
+            >
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="2.5" y="7.5" width="11" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
+                {encStatus === "unlocked" ? (
+                  <path d="M5 7.5V5A3 3 0 0110.5 3.33" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                ) : (
+                  <path d="M5 7.5V5a3 3 0 016 0v2.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                )}
+              </svg>
+              <span>{encStatus === "unlocked" ? "Encrypted" : "Locked"}</span>
+            </div>
+          )}
 
           <div className={styles.userSection}>
             {userProfile && (

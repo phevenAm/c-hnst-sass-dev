@@ -10,6 +10,7 @@ import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
 import CpdEntryModal from "./CpdEntryModal";
+import CpdExportModal from "./CpdExportModal";
 
 import styles from "./AdminCpdPage.module.scss";
 
@@ -74,6 +75,7 @@ export default function AdminCpdPage() {
   const [logs, setLogs] = useState<CpdLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [editing, setEditing] = useState<CpdLog | null>(null);
   const [target, setTarget] = useState(30);
   const [filterType, setFilterType] = useState<string>("all");
@@ -160,7 +162,7 @@ export default function AdminCpdPage() {
     showToast("Target updated.");
   };
 
-  const exportCsv = () => {
+  const exportCsv = (logsToExport: CpdLog[]) => {
     const headers = [
       "Date",
       "Type",
@@ -173,7 +175,7 @@ export default function AdminCpdPage() {
       "Duration",
       "Notes",
     ];
-    const rows = visibleLogs.map((l) => [
+    const rows = logsToExport.map((l) => [
       l.date,
       ACTIVITY_LABELS[l.activity_type],
       l.session_number ?? "",
@@ -195,19 +197,19 @@ export default function AdminCpdPage() {
     URL.revokeObjectURL(url);
   };
 
-  const exportPdf = () => {
+  const exportPdf = (logsToExport: CpdLog[]) => {
     const doc = new jsPDF();
     const name = userProfile?.display_name ?? "Counsellor";
     doc.setFontSize(16);
     doc.text("CPD Log", 14, 18);
     doc.setFontSize(10);
     doc.text(`${name} · ${currentYear}`, 14, 26);
-    doc.text(`Total hours: ${totalHours(visibleLogs).toFixed(1)} / ${target}`, 14, 32);
+    doc.text(`Total hours: ${totalHours(logsToExport).toFixed(1)} / ${target}`, 14, 32);
 
     autoTable(doc, {
       startY: 38,
       head: [["Date", "Type", "Title / Issues", "Supervisor / Provider", "Duration"]],
-      body: visibleLogs.map((l) => [
+      body: logsToExport.map((l) => [
         l.date,
         ACTIVITY_LABELS[l.activity_type],
         l.activity_type === "supervision" ? (l.issues_raised ?? "") : (l.title ?? ""),
@@ -264,10 +266,7 @@ export default function AdminCpdPage() {
               setEditing(null);
               setModalOpen(true);
             }}
-            options={[
-              { label: "Export CSV", onClick: exportCsv },
-              { label: "Export PDF", onClick: exportPdf },
-            ]}
+            options={[{ label: "Export…", onClick: () => setExportModalOpen(true) }]}
           />
         </div>
 
@@ -393,6 +392,21 @@ export default function AdminCpdPage() {
           onSaved={() => {
             setModalOpen(false);
             void fetchLogs();
+          }}
+        />
+      )}
+
+      {exportModalOpen && (
+        <CpdExportModal
+          logs={logs}
+          onClose={() => setExportModalOpen(false)}
+          onExportCsv={(filtered) => {
+            exportCsv(filtered);
+            setExportModalOpen(false);
+          }}
+          onExportPdf={(filtered) => {
+            exportPdf(filtered);
+            setExportModalOpen(false);
           }}
         />
       )}

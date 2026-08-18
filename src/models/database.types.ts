@@ -220,6 +220,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      client_views: {
+        Row: {
+          admin_id: string;
+          client_ref: string;
+          client_type: string;
+          viewed_at: string;
+        };
+        Insert: {
+          admin_id: string;
+          client_ref: string;
+          client_type: string;
+          viewed_at?: string;
+        };
+        Update: {
+          admin_id?: string;
+          client_ref?: string;
+          client_type?: string;
+          viewed_at?: string;
+        };
+        Relationships: [];
+      };
       cpd_logs: {
         Row: {
           activity_type: Database["public"]["Enums"]["cpd_activity_type"];
@@ -577,6 +598,7 @@ export type Database = {
           reminder_email_heading: string | null;
           reminder_email_subject: string | null;
           reminder_hours_before: number;
+          reschedule_cutoff_hours: number | null;
           saved_locations: Json;
           stripe_connect_account_id: string | null;
           stripe_connect_onboarded: boolean;
@@ -626,6 +648,7 @@ export type Database = {
           reminder_email_heading?: string | null;
           reminder_email_subject?: string | null;
           reminder_hours_before?: number;
+          reschedule_cutoff_hours?: number | null;
           saved_locations?: Json;
           stripe_connect_account_id?: string | null;
           stripe_connect_onboarded?: boolean;
@@ -675,6 +698,7 @@ export type Database = {
           reminder_email_heading?: string | null;
           reminder_email_subject?: string | null;
           reminder_hours_before?: number;
+          reschedule_cutoff_hours?: number | null;
           saved_locations?: Json;
           stripe_connect_account_id?: string | null;
           stripe_connect_onboarded?: boolean;
@@ -938,7 +962,7 @@ export type Database = {
           videoUrl: string | null;
         };
         Insert: {
-          admin_id: string;
+          admin_id?: string;
           category?: string | null;
           content?: string | null;
           content_format?: string | null;
@@ -1199,6 +1223,8 @@ export type Database = {
           id: string;
           location: string | null;
           notes: string | null;
+          paid: boolean;
+          price_pence: number | null;
           scheduled_at: string;
           status: string;
           stub_id: string;
@@ -1213,6 +1239,8 @@ export type Database = {
           id?: string;
           location?: string | null;
           notes?: string | null;
+          paid?: boolean;
+          price_pence?: number | null;
           scheduled_at: string;
           status?: string;
           stub_id: string;
@@ -1227,6 +1255,8 @@ export type Database = {
           id?: string;
           location?: string | null;
           notes?: string | null;
+          paid?: boolean;
+          price_pence?: number | null;
           scheduled_at?: string;
           status?: string;
           stub_id?: string;
@@ -1302,24 +1332,6 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
-      };
-      system_config: {
-        Row: {
-          key: string;
-          updated_at: string;
-          value: string;
-        };
-        Insert: {
-          key: string;
-          updated_at?: string;
-          value: string;
-        };
-        Update: {
-          key?: string;
-          updated_at?: string;
-          value?: string;
-        };
-        Relationships: [];
       };
       tags: {
         Row: {
@@ -1442,6 +1454,14 @@ export type Database = {
         Args: { target_user_id: string };
         Returns: undefined;
       };
+      get_availability_for_date: {
+        Args: { p_admin_id: string; p_date: string };
+        Returns: {
+          end_time: string;
+          source: string;
+          start_time: string;
+        }[];
+      };
       get_my_admin_consent_settings: {
         Args: never;
         Returns: {
@@ -1453,6 +1473,7 @@ export type Database = {
         }[];
       };
       get_my_is_demo: { Args: never; Returns: boolean };
+      get_my_reschedule_cutoff_hours: { Args: never; Returns: number };
       get_my_role: { Args: never; Returns: string };
       get_practice_busy_slots: {
         Args: { exclude_session_id?: string };
@@ -1463,6 +1484,14 @@ export type Database = {
       };
       is_admin: { Args: never; Returns: boolean };
       is_superadmin: { Args: never; Returns: boolean };
+      is_within_availability: {
+        Args: {
+          p_admin_id: string;
+          p_duration_minutes?: number;
+          p_scheduled_at: string;
+        };
+        Returns: boolean;
+      };
       merge_stub_into_client: {
         Args: { p_admin_id: string; p_real_user_id: string; p_stub_id: string };
         Returns: undefined;
@@ -1476,6 +1505,10 @@ export type Database = {
       questionnaire_is_system_default: {
         Args: { q_id: string };
         Returns: boolean;
+      };
+      record_client_view: {
+        Args: { p_ref: string; p_type: string };
+        Returns: undefined;
       };
       request_manual_payment: {
         Args: { p_session_id: string };

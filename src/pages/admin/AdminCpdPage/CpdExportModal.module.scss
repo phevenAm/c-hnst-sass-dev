@@ -1,0 +1,78 @@
+@use "../../../styles/spacing" as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-5;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.selectAllBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $sp-2 $sp-4;
+}
+
+.categoryOption {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+
+  input {
+    cursor: pointer;
+  }
+}
+
+.dateRow {
+  display: flex;
+  gap: $sp-3;
+
+  > * {
+    flex: 1;
+  }
+}
+
+.count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-2;
+}

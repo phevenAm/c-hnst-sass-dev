@@ -2,6 +2,7 @@ import { type MouseEvent } from "react";
 
 import dayjs from "dayjs";
 
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import { Session, SessionEvent } from "@/models/globalTypes";
@@ -10,9 +11,18 @@ import { updateSession } from "@/store/slices/sessionsSlice";
 
 import styles from "./SessionCard.module.scss";
 
+function formatCutoffHours(hours: number): string {
+  if (hours % 24 === 0) {
+    const days = hours / 24;
+    return `${days} day${days === 1 ? "" : "s"}`;
+  }
+  return `${hours} hour${hours === 1 ? "" : "s"}`;
+}
+
 const useSessionCard = (session: Session) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
+  const { rescheduleCutoffHours } = useAuth();
 
   const toggleNoShowOrPayment = (e: MouseEvent<HTMLButtonElement>) => {
     const actionType = e.currentTarget.getAttribute("data-action-type");
@@ -85,7 +95,12 @@ const useSessionCard = (session: Session) => {
         return ev.event_type;
     }
   }
-  const isWithin48Hours = dayjs(session.scheduled_at).isBefore(dayjs().add(48, "hour"));
+  // undefined (not loaded yet) falls back to the 48h default so buttons
+  // don't briefly unlock while the setting is still being fetched.
+  const cutoffHours = rescheduleCutoffHours === undefined ? 48 : rescheduleCutoffHours;
+  const isWithinRescheduleCutoff =
+    cutoffHours != null && dayjs(session.scheduled_at).isBefore(dayjs().add(cutoffHours, "hour"));
+  const rescheduleCutoffMessage = `Sessions cannot be changed within ${formatCutoffHours(cutoffHours ?? 48)} of the appointment`;
 
   const restoreSession = () => {
     dispatch(updateSession({ id: session.id, status: "scheduled" }));
@@ -98,9 +113,10 @@ const useSessionCard = (session: Session) => {
     markNoShow,
     restoreSession,
     getStatusClass,
+    isWithinRescheduleCutoff,
+    rescheduleCutoffMessage,
     getCardClass,
     formatEventLabel,
-    isWithin48Hours,
   };
 };
 
