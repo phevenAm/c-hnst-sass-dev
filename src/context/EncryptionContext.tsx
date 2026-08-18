@@ -103,28 +103,37 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === "SIGNED_OUT") {
-        sessionStorage.removeItem(SESSION_KEY);
-        dataKeyRef.current = null;
+      try {
+        if (event === "SIGNED_OUT") {
+          sessionStorage.removeItem(SESSION_KEY);
+          dataKeyRef.current = null;
+          setStatus("checking");
+        } else if (event === "SIGNED_IN") {
+          const sessionKey = await loadKeyFromSession();
+          if (sessionKey) {
+            dataKeyRef.current = sessionKey;
+            setStatus("unlocked");
+          } else {
+            const settings = await fetchSettings();
+            setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
+          }
+        } else if (event === "INITIAL_SESSION") {
+          const sessionKey = await loadKeyFromSession();
+          if (sessionKey) {
+            dataKeyRef.current = sessionKey;
+            setStatus("unlocked");
+          } else {
+            const settings = await fetchSettings();
+            setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
+          }
+        }
+      } catch (err) {
+        // Multiple tabs open can cause supabase-js's cross-tab auth lock to
+        // get stolen from this one (AbortError) — without this catch, status
+        // was left stuck at "checking" forever since the rejection was never
+        // handled.
+        console.error("Encryption status update failed:", err);
         setStatus("checking");
-      } else if (event === "SIGNED_IN") {
-        const sessionKey = await loadKeyFromSession();
-        if (sessionKey) {
-          dataKeyRef.current = sessionKey;
-          setStatus("unlocked");
-        } else {
-          const settings = await fetchSettings();
-          setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
-        }
-      } else if (event === "INITIAL_SESSION") {
-        const sessionKey = await loadKeyFromSession();
-        if (sessionKey) {
-          dataKeyRef.current = sessionKey;
-          setStatus("unlocked");
-        } else {
-          const settings = await fetchSettings();
-          setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
-        }
       }
     });
     return () => subscription.unsubscribe();

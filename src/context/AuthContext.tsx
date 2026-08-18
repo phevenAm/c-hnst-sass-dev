@@ -122,9 +122,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let initialised = false;
 
     const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      await handleSession(data.session);
-      initialised = true;
+      try {
+        const { data } = await supabase.auth.getSession();
+        await handleSession(data.session);
+      } catch (err) {
+        // Multiple tabs/windows open can cause supabase-js's cross-tab auth
+        // lock to get "stolen" from this one (AbortError, after its 5s
+        // recovery timeout) — without this catch, the rejection was never
+        // handled and `loading` stayed true forever, leaving the app stuck
+        // on the spinner.
+        console.error("Auth init failed:", err);
+        setLoading(false);
+      } finally {
+        initialised = true;
+      }
     };
 
     init();
@@ -133,7 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!initialised) return;
-      handleSession(session);
+      handleSession(session).catch((err) => {
+        console.error("Auth state change handling failed:", err);
+        setLoading(false);
+      });
     });
 
     return () => subscription.unsubscribe();
