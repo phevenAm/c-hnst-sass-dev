@@ -25,8 +25,10 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      // cancel-session also issues a Stripe refund when the session was paid
-      // by card and cancellation falls outside the practice's cutoff window.
+      // cancel-session flags a Stripe-paid session for a refund when the
+      // cancellation falls outside the practice's cutoff window — it never
+      // refunds automatically, it just creates a pending request for the
+      // admin to approve from Payments.
       const { data, error: fnError } = await supabase.functions.invoke("cancel-session", {
         body: { session_id: session.id },
       });
@@ -43,8 +45,8 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
         supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
       }
       let message = "Session cancelled.";
-      if (data?.refunded) {
-        message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
+      if (data?.refund_requested) {
+        message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refund pending admin approval.`;
       } else if (data?.refund_skipped_reason === "within_cutoff") {
         message = "Session cancelled — no refund (within the cancellation window).";
       }
