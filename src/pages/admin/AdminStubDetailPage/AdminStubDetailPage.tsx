@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import Modal from "@components/shared/Modal/Modal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
@@ -90,6 +91,7 @@ export default function AdminStubDetailPage() {
   const [selectedLinkUserId, setSelectedLinkUserId] = useState("");
   const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
 
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -348,6 +350,7 @@ export default function AdminStubDetailPage() {
       showToast("Client unlinked.");
     }
     setUnlinking(false);
+    setUnlinkConfirmOpen(false);
   };
 
   const handleDelete = async () => {
@@ -384,7 +387,9 @@ export default function AdminStubDetailPage() {
   const splitOptions = [
     { label: "Invite to platform", onClick: () => setInviteOpen(true) },
     { label: stub.linked_user_id ? "Relink client" : "Link to real client", onClick: () => setLinkOpen(true) },
-    ...(stub.linked_user_id ? [{ label: "Unlink", onClick: handleUnlink, disabled: unlinking }] : []),
+    ...(stub.linked_user_id
+      ? [{ label: "Unlink", onClick: () => setUnlinkConfirmOpen(true), disabled: unlinking }]
+      : []),
   ];
 
   return (
@@ -620,11 +625,33 @@ export default function AdminStubDetailPage() {
             }));
             const { data, error } = await supabase.from("stub_sessions").insert(rows).select();
             if (error) throw new Error("Failed to add session.");
-            handleSessionSaved(data as StubSession[]);
+            const saved = data as StubSession[];
+            handleSessionSaved(saved);
             showToast(rows.length > 1 ? `${rows.length} sessions added.` : "Session added.");
+            for (const s of saved) {
+              if (s.status === "scheduled") {
+                supabase.functions.invoke("notify-stub-session-booked", { body: { stub_session_id: s.id } });
+              }
+            }
             setAddSessionOpen(false);
           }}
         />
+      )}
+
+      {/* Unlink confirmation */}
+      {unlinkConfirmOpen && (
+        <ConfirmModal
+          title="Unlink this client?"
+          onClose={() => setUnlinkConfirmOpen(false)}
+          onConfirm={handleUnlink}
+          confirming={unlinking}
+          confirmLabel="Yes, unlink"
+        >
+          <p>
+            This disconnects the offline record from their real account. They'll keep their login, but their sessions
+            will no longer be tied to this profile.
+          </p>
+        </ConfirmModal>
       )}
 
       {/* Invite to platform modal */}

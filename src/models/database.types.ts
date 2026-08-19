@@ -943,6 +943,74 @@ export type Database = {
           },
         ];
       };
+      refund_requests: {
+        Row: {
+          admin_id: string;
+          amount_pence: number;
+          client_id: string | null;
+          created_at: string;
+          id: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          session_id: string;
+          status: string;
+          stripe_payment_intent_id: string;
+        };
+        Insert: {
+          admin_id: string;
+          amount_pence: number;
+          client_id?: string | null;
+          created_at?: string;
+          id?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          session_id: string;
+          status?: string;
+          stripe_payment_intent_id: string;
+        };
+        Update: {
+          admin_id?: string;
+          amount_pence?: number;
+          client_id?: string | null;
+          created_at?: string;
+          id?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          session_id?: string;
+          status?: string;
+          stripe_payment_intent_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "refund_requests_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "refund_requests_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "refund_requests_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "refund_requests_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reschedule_requests: {
         Row: {
           client_id: string;

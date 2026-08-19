@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
 import { Card, CollapsibleSection } from "@components/shared/index";
 import Modal from "@components/shared/Modal/Modal";
@@ -53,6 +54,14 @@ type PaymentRow = {
 };
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
+
+type RefundRequestRow = {
+  id: string;
+  client_id: string | null;
+  amount_pence: number;
+  created_at: string;
+  sessions: { scheduled_at: string } | null;
+};
 
 const LEDGER_PAGE_SIZE = 25;
 
@@ -118,6 +127,16 @@ const AdminPaymentsPage = () => {
   const [stubSessions, setStubSessions] = useState<StubSession[]>([]);
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
   const [markAmount, setMarkAmount] = useState("");
+  const [markNotify, setMarkNotify] = useState(true);
+  const [respondTarget, setRespondTarget] = useState<{ session: Session; approved: boolean } | null>(null);
+  const [respondNotify, setRespondNotify] = useState(true);
+  const [responding, setResponding] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [refundRequests, setRefundRequests] = useState<RefundRequestRow[]>([]);
+  const [respondRefundTarget, setRespondRefundTarget] = useState<{ id: string; approved: boolean } | null>(null);
+  const [respondRefundNotify, setRespondRefundNotify] = useState(true);
+  const [respondingRefund, setRespondingRefund] = useState(false);
 
   // Ledger table — server-paginated (see payment_ledger_rows), separate from
   // the unpaginated `sessions`/`stubSessions` used below for Summary stats,
@@ -147,6 +166,19 @@ const AdminPaymentsPage = () => {
   useEffect(() => {
     loadStubSessions();
   }, [loadStubSessions]);
+
+  const loadRefundRequests = useCallback(async () => {
+    const { data } = await supabase
+      .from("refund_requests")
+      .select("id, client_id, amount_pence, created_at, sessions(scheduled_at)")
+      .eq("status", "pending")
+      .order("created_at");
+    if (data) setRefundRequests(data as unknown as RefundRequestRow[]);
+  }, []);
+
+  useEffect(() => {
+    loadRefundRequests();
+  }, [loadRefundRequests]);
 
   // Debounce the search box before it drives a server query
   useEffect(() => {
@@ -333,20 +365,32 @@ const AdminPaymentsPage = () => {
     }
     setStubSessions((prev) => prev.map((s) => (s.id === markStubPaid.id ? { ...s, amount_paid: amount } : s)));
     await loadLedgerPage();
+    if (markNotify) {
+      supabase.functions.invoke("notify-stub-payment-recorded", { body: { stub_session_id: markStubPaid.id } });
+    }
     showToast("Payment recorded.");
     setMarkStubPaid(null);
     setMarkAmount("");
   };
 
-  const handleRespondManualPayment = async (session: Session, approved: boolean) => {
+  const openRespondConfirm = (session: Session, approved: boolean) => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
     }
+    setRespondNotify(true);
+    setRespondTarget({ session, approved });
+  };
+
+  const handleConfirmRespond = async () => {
+    if (!respondTarget) return;
+    const { session, approved } = respondTarget;
+    setResponding(true);
     const { error } = await supabase.rpc("respond_manual_payment", {
       p_session_id: session.id,
       p_approved: approved,
     });
+    setResponding(false);
     if (error) {
       showToast("Failed to update payment.", "error");
       return;
@@ -360,18 +404,59 @@ const AdminPaymentsPage = () => {
       }),
     );
     await loadLedgerPage();
+    if (respondNotify) {
+      supabase.functions.invoke(approved ? "send-payment-notification" : "notify-manual-payment-declined", {
+        body: { session_id: session.id },
+      });
+    }
     showToast(approved ? "Payment confirmed." : "Payment declined.");
+    setRespondTarget(null);
   };
 
-  const handleDeleteManual = async (e: React.MouseEvent, id: string) => {
+  const openRemoveConfirm = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
     }
-    await supabase.from("payments").delete().eq("id", id);
+    setRemoveTarget(id);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
+    await supabase.from("payments").delete().eq("id", removeTarget);
+    setRemoving(false);
     await loadLedgerPage();
     showToast("Payment removed.");
+    setRemoveTarget(null);
+  };
+
+  const openRefundConfirm = (id: string, approved: boolean) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    setRespondRefundNotify(true);
+    setRespondRefundTarget({ id, approved });
+  };
+
+  const handleConfirmRefundResponse = async () => {
+    if (!respondRefundTarget) return;
+    const { id, approved } = respondRefundTarget;
+    setRespondingRefund(true);
+    const { error: fnError } = await supabase.functions.invoke("respond-refund-request", {
+      body: { refund_request_id: id, approved, notify: respondRefundNotify },
+    });
+    setRespondingRefund(false);
+    if (fnError) {
+      showToast("Failed to update refund request.", "error");
+      return;
+    }
+    setRefundRequests((prev) => prev.filter((r) => r.id !== id));
+    await loadLedgerPage();
+    showToast(approved ? "Refund approved." : "Refund request declined.");
+    setRespondRefundTarget(null);
   };
 
   // ── Table columns ─────────────────────────────────────────────────────────
@@ -434,7 +519,7 @@ const AdminPaymentsPage = () => {
             </Button>
           )}
           {r.source === "manual" && (
-            <Button size="sm" variant="ghost" onClick={(e) => handleDeleteManual(e, r.id)}>
+            <Button size="sm" variant="ghost" onClick={(e) => openRemoveConfirm(e, r.id)}>
               Remove
             </Button>
           )}
@@ -502,6 +587,40 @@ const AdminPaymentsPage = () => {
           </div>
         </div>
 
+        {/* ── Pending refunds ── */}
+        {refundRequests.length > 0 && (
+          <Card className={styles.pendingCard}>
+            <h2 className={styles.pendingHeading}>
+              Pending refunds <span className={styles.pendingCount}>{refundRequests.length}</span>
+            </h2>
+            <p className={styles.pendingSub}>
+              These cancellations qualify for a refund under your cancellation cutoff. Nothing is refunded until you
+              approve it.
+            </p>
+            <ul className={styles.pendingList}>
+              {refundRequests.map((r) => (
+                <li key={r.id} className={styles.pendingRow}>
+                  <div className={styles.pendingInfo}>
+                    <span className={styles.pendingClient}>{clientNameById(r.client_id, null)}</span>
+                    <span className={styles.pendingMeta}>
+                      {r.sessions?.scheduled_at ? dayjs(r.sessions.scheduled_at).format("D MMM YYYY") : "—"} ·{" "}
+                      {money(r.amount_pence)}
+                    </span>
+                  </div>
+                  <div className={styles.pendingActions}>
+                    <Button size="sm" variant="ghost" onClick={() => openRefundConfirm(r.id, false)}>
+                      Decline
+                    </Button>
+                    <Button size="sm" onClick={() => openRefundConfirm(r.id, true)}>
+                      Approve refund
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
         {/* ── Pending bank transfers ── */}
         {pendingManualPayments.length > 0 && (
           <Card className={styles.pendingCard}>
@@ -519,10 +638,10 @@ const AdminPaymentsPage = () => {
                     </span>
                   </div>
                   <div className={styles.pendingActions}>
-                    <Button size="sm" variant="ghost" onClick={() => handleRespondManualPayment(s, false)}>
+                    <Button size="sm" variant="ghost" onClick={() => openRespondConfirm(s, false)}>
                       Decline
                     </Button>
-                    <Button size="sm" onClick={() => handleRespondManualPayment(s, true)}>
+                    <Button size="sm" onClick={() => openRespondConfirm(s, true)}>
                       Confirm paid
                     </Button>
                   </div>
@@ -656,8 +775,74 @@ const AdminPaymentsPage = () => {
                 outline: "none",
               }}
             />
+            <label
+              style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.85rem", cursor: "pointer" }}
+            >
+              <input type="checkbox" checked={markNotify} onChange={(e) => setMarkNotify(e.target.checked)} />
+              Email the client that their payment was recorded
+            </label>
           </div>
         </Modal>
+      )}
+
+      {respondTarget && (
+        <ConfirmModal
+          title={respondTarget.approved ? "Confirm this payment?" : "Decline this payment?"}
+          onClose={() => setRespondTarget(null)}
+          onConfirm={handleConfirmRespond}
+          confirming={responding}
+          danger={!respondTarget.approved}
+          confirmLabel={respondTarget.approved ? "Yes, confirm paid" : "Yes, decline"}
+          notifyOption={{
+            label: respondTarget.approved
+              ? "Email the client that their payment was confirmed"
+              : "Email the client that their payment couldn't be verified",
+            checked: respondNotify,
+            onChange: setRespondNotify,
+          }}
+        >
+          <p>
+            {respondTarget.approved
+              ? "This marks the session as paid."
+              : "The client will need to re-check the transfer details or contact you directly."}
+          </p>
+        </ConfirmModal>
+      )}
+
+      {removeTarget && (
+        <ConfirmModal
+          title="Remove this payment?"
+          onClose={() => setRemoveTarget(null)}
+          onConfirm={handleConfirmRemove}
+          confirming={removing}
+          confirmLabel="Yes, remove"
+        >
+          <p>This permanently deletes the payment record. This can't be undone.</p>
+        </ConfirmModal>
+      )}
+
+      {respondRefundTarget && (
+        <ConfirmModal
+          title={respondRefundTarget.approved ? "Approve this refund?" : "Decline this refund?"}
+          onClose={() => setRespondRefundTarget(null)}
+          onConfirm={handleConfirmRefundResponse}
+          confirming={respondingRefund}
+          danger={!respondRefundTarget.approved}
+          confirmLabel={respondRefundTarget.approved ? "Yes, approve refund" : "Yes, decline"}
+          notifyOption={{
+            label: respondRefundTarget.approved
+              ? "Email the client that their refund was approved"
+              : "Email the client that their refund request was declined",
+            checked: respondRefundNotify,
+            onChange: setRespondRefundNotify,
+          }}
+        >
+          <p>
+            {respondRefundTarget.approved
+              ? "This issues the Stripe refund now — it can't be undone from here."
+              : "No money moves. The client keeps their payment as-is."}
+          </p>
+        </ConfirmModal>
       )}
     </div>
   );

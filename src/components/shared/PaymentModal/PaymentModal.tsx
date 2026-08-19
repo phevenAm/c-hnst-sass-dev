@@ -80,6 +80,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
       return;
     }
     setManualPaymentStatus("pending");
+    supabase.functions.invoke("notify-client-payment-claimed", { body: { session_id: session.id } });
     showToast("Marked as paid. Your therapist will confirm shortly.");
   };
 

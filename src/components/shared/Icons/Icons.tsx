@@ -21,7 +21,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
 import Lottie from "lottie-react";
-
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import saplingSway from "../../../LOGO Asset/sapling-sway.json";
 import { useAppSelector } from "../../../store/hooks";
 import { selectThemeMode } from "../../../store/slices/themeSlice";
@@ -664,3 +664,4 @@ export const NotificationBellIcon = () => <NotificationsOutlinedIcon />;
 export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
 export const CpdIcon = () => <WebStoriesOutlinedIcon />;
 export const CreateSession = () => <InsertInvitationIcon />;
+export const AssignmentClipIcon = () => <AssignmentIcon />;

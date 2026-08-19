@@ -8,6 +8,7 @@ import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
@@ -111,6 +112,7 @@ const SettingsPage = () => {
   } | null>(null);
   const [savingGoogleSync, setSavingGoogleSync] = useState(false);
   const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
+  const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false);
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
@@ -433,6 +435,7 @@ const SettingsPage = () => {
       if (fnError) throw new Error(fnError.message);
       setGoogleStatus({ connected: false, google_email: null, sync_enabled: false });
       showToast("Google Calendar disconnected.");
+      setConfirmDisconnectGoogle(false);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Failed to disconnect Google Calendar", "error");
     }
@@ -721,7 +724,7 @@ const SettingsPage = () => {
                       <Button
                         variant="ghost-danger"
                         size="sm"
-                        onClick={handleDisconnectGoogleCalendar}
+                        onClick={() => setConfirmDisconnectGoogle(true)}
                         disabled={disconnectingGoogle}
                       >
                         {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
@@ -1394,6 +1397,17 @@ const SettingsPage = () => {
 
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
+      {confirmDisconnectGoogle && (
+        <ConfirmModal
+          title="Disconnect Google Calendar?"
+          onClose={() => setConfirmDisconnectGoogle(false)}
+          onConfirm={handleDisconnectGoogleCalendar}
+          confirming={disconnectingGoogle}
+          confirmLabel="Yes, disconnect"
+        >
+          <p>Future sessions will stop syncing to Google Calendar. Events already created there won't be removed.</p>
+        </ConfirmModal>
+      )}
     </div>
   );
 };

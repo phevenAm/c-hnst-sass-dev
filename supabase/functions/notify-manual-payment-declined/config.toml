@@ -1,0 +1,2 @@
+[functions.notify-manual-payment-declined]
+verify_jwt = true
