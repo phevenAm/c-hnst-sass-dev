@@ -5,6 +5,7 @@ import { useAuth } from "@context/AuthContext";
 
 import FeedbackModal from "../FeedbackModal/FeedbackModal";
 import {
+  AssignmentClipIcon,
   BookIcon,
   CalendarIcon,
   ChevronDownSmIcon,
@@ -17,7 +18,6 @@ import {
   LayersIcon,
   LeafLogoMark,
   MoneyIcon,
-  AssignmentClipIcon,
   SupervisionLogoMark,
   UsersIcon,
 } from "../Icons/Icons";

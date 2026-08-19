@@ -11,6 +11,7 @@ export { default as HideableSection } from "./HideableSection/HideableSection";
 export { default as IconButton } from "./IconButton/IconButton";
 export {
   ArticleIcon,
+  AssignmentClipIcon,
   BinIcon,
   BookIcon,
   CheckIcon,
@@ -22,7 +23,6 @@ export {
   CpdIcon,
   CreateSession,
   DarkmodeIcon,
-  AssignmentClipIcon,
   DocumentIcon,
   EditIcon,
   IdeasIcon,
