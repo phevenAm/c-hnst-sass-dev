@@ -7,7 +7,6 @@ import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Avatar from "@components/shared/Avatar/Avatar";
 import { BookIcon, CreateSession, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
-import UpdateBanner from "@components/shared/UpdateBanner/UpdateBanner";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -16,8 +15,7 @@ import { fetchAllUsers, selectClientUsers } from "@store/slices/userDirectorySli
 
 import { clientDisplayName, isPageStatusLoading, pickColor } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
-import type { ClientStub } from "@/models/globalTypes";
-import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
+import { fetchClientStubs } from "@/store/slices/clientStubsSlice";
 import TodoListCard from "../Blocks/TodoList/TodoListCard";
 import TrendChart from "./Blocks/TrendChart/TrendChart";
 import UpcomingSessions from "./Blocks/UpcomingSessions/UpcomingSessions";
@@ -27,11 +25,9 @@ import styles from "./AdminDashboard.module.scss";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ClientView = {
-  client_type: "user" | "stub";
-  client_ref: string;
-  viewed_at: string;
-};
+type PendingRequest =
+  | { kind: "reschedule"; id: string; client_id: string; requested_at: string; created_at: string }
+  | { kind: "cancellation"; id: string; client_id: string; created_at: string };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -51,7 +47,6 @@ function timeAgo(iso: string): string {
 export default function AdminDashboard() {
   const { userProfile, practiceSettings } = useAuth();
   const allClients = useAppSelector(selectClientUsers);
-  const allStubs = useAppSelector(selectAllStubs);
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
@@ -59,7 +54,7 @@ export default function AdminDashboard() {
   const sessionsStatus = useAppSelector((state: RootState) => state.sessions.status);
   const dispatch = useAppDispatch();
 
-  const [recentViews, setRecentViews] = useState<ClientView[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
 
   useFetchOnIdle(
     (state: RootState) => state.userDirectory.status,
@@ -82,14 +77,17 @@ export default function AdminDashboard() {
   useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
 
   useEffect(() => {
-    supabase
-      .from("client_views")
-      .select("client_type, client_ref, viewed_at")
-      .order("viewed_at", { ascending: false })
-      .limit(4)
-      .then(({ data }) => {
-        if (data) setRecentViews(data as ClientView[]);
-      });
+    Promise.all([
+      supabase.from("reschedule_requests").select("id, client_id, requested_at, created_at").eq("status", "pending"),
+      supabase.from("cancellation_requests").select("id, client_id, created_at").eq("status", "pending"),
+    ]).then(([reschedule, cancellation]) => {
+      const combined: PendingRequest[] = [
+        ...(reschedule.data ?? []).map((r) => ({ kind: "reschedule" as const, ...r })),
+        ...(cancellation.data ?? []).map((c) => ({ kind: "cancellation" as const, ...c })),
+      ];
+      combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setPendingRequests(combined.slice(0, 4));
+    });
   }, []);
 
   const revenueData = useMemo(() => revenueByMonth(allSessions, 6), [allSessions]);
@@ -113,22 +111,8 @@ export default function AdminDashboard() {
     return c ? clientDisplayName(c, useCodenames) : "Unknown";
   };
 
-  const getViewName = (v: ClientView): string => {
-    if (v.client_type === "user") {
-      const c = allClients.find((x) => x.id === v.client_ref);
-      return c ? clientDisplayName(c, useCodenames) : "Unknown client";
-    }
-    const s = allStubs.find((x) => x.id === v.client_ref);
-    if (!s) return "Unknown client";
-    return useCodenames ? s.codename || `${s.first_name} ${s.last_name}` : `${s.first_name} ${s.last_name}`;
-  };
-
-  const getViewHref = (v: ClientView): string =>
-    v.client_type === "user" ? `/admin/clients/${v.client_ref}` : `/admin/clients/stub/${v.client_ref}`;
-
   return (
     <div className="page">
-      <UpdateBanner />
       <div className="inner">
         <div className={styles.header} id="dash-header">
           <div>
@@ -188,31 +172,39 @@ export default function AdminDashboard() {
 
           <Card className={styles.sectionCard}>
             <CollapsibleSection
-              title="Recent clients"
-              storageKey="dash:recent"
+              title={`Needs attention${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ""}`}
+              storageKey="dash:attention"
               headerRight={
-                <Link to="/admin/clients" className={styles.sectionLink}>
-                  View all →
-                </Link>
+                pendingRequests.length > 0 ? (
+                  <Link to="/admin/clients" className={styles.sectionLink}>
+                    View all →
+                  </Link>
+                ) : undefined
               }
             >
-              {recentViews.length === 0 ? (
-                <p className={styles.empty}>No recently viewed clients yet.</p>
+              {pendingRequests.length === 0 ? (
+                <p className={styles.empty}>Nothing needs your attention right now.</p>
               ) : (
                 <div className={styles.recentList}>
-                  {recentViews.map((v) => {
-                    const name = getViewName(v);
+                  {pendingRequests.map((r) => {
+                    const name = getClientName(r.client_id);
+                    const label =
+                      r.kind === "reschedule"
+                        ? `Wants to reschedule to ${dayjs(r.requested_at).format("D MMM [at] h:mma")}`
+                        : "Requested to cancel their session";
                     return (
                       <Link
-                        key={`${v.client_type}-${v.client_ref}`}
-                        to={getViewHref(v)}
+                        key={`${r.kind}-${r.id}`}
+                        to={`/admin/clients/${r.client_id}`}
                         className={styles.recentRowLink}
                       >
                         <div className={styles.recentRow}>
-                          <Avatar name={name} color={pickColor(v.client_ref)} size={32} />
+                          <Avatar name={name} color={pickColor(r.client_id)} size={32} />
                           <div className={styles.recentInfo}>
                             <p className={styles.recentName}>{name}</p>
-                            <p className={styles.recentMeta}>{timeAgo(v.viewed_at)}</p>
+                            <p className={styles.recentMeta}>
+                              {label} · {timeAgo(r.created_at)}
+                            </p>
                           </div>
                         </div>
                       </Link>

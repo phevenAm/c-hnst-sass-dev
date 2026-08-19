@@ -7,6 +7,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
+import UpdateBanner from "./components/shared/UpdateBanner/UpdateBanner";
 import { AuthProvider } from "./context/AuthContext";
 import { EncryptionProvider } from "./context/EncryptionContext";
 import { InterfacePrefsProvider } from "./context/InterfacePrefsContext";
@@ -58,6 +59,7 @@ export default function App() {
             <EncryptionProvider>
               <InterfacePrefsProvider>
                 <ToastProvider>
+                  <UpdateBanner />
                   <AppRoutes />
                 </ToastProvider>
               </InterfacePrefsProvider>
