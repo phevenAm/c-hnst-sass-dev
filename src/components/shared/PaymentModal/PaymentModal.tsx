@@ -8,7 +8,7 @@ import ToggleButtonTabs from "@components/shared/ToggleButtonTabs/ToggleButtonTa
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
-import type { Session } from "@/models/globalTypes";
+import type { Session, SessionBlockMeta } from "@/models/globalTypes";
 
 import styles from "./PaymentModal.module.scss";
 
@@ -69,6 +69,11 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   const [error, setError] = useState("");
   const [manualPaymentStatus, setManualPaymentStatus] = useState(session.manual_payment_status ?? "none");
   const [markingAsPaid, setMarkingAsPaid] = useState(false);
+  const [blockTotalPence, setBlockTotalPence] = useState<number | null>(null);
+  const [blockSessionCount, setBlockSessionCount] = useState(0);
+
+  const meta = session.metadata as SessionBlockMeta | null;
+  const isBlock = !!meta?.block_id;
 
   const handleRequestManualPayment = async () => {
     if (isDemo) return;
@@ -84,27 +89,47 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
     showToast("Marked as paid. Your therapist will confirm shortly.");
   };
 
-  const pricePounds = (session.price_pence / 100).toFixed(2);
-  // const cardTotalPounds = ((session.price_pence * 1.02) / 100).toFixed(2);
+  // For a block session, the client pays the block total in one go (matches
+  // the Stripe checkout + manual-payment RPCs, which both settle the whole
+  // block together) — not this one session's price.
+  const totalPricePence = isBlock && blockTotalPence !== null ? blockTotalPence : session.price_pence;
+  const pricePounds = (totalPricePence / 100).toFixed(2);
+  // const cardTotalPounds = ((totalPricePence * 1.02) / 100).toFixed(2);
   const cardTotalPounds = pricePounds;
 
   useEffect(() => {
-    if (!session.created_by) {
-      setTab("card");
-      setLoadingDetails(false);
-      return;
-    }
-    supabase
-      .from("practice_settings")
-      .select("bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference")
-      .eq("admin_id", session.created_by)
-      .single()
-      .then(({ data }) => {
-        setBankDetails(data as BankDetails | null);
-        if (!data?.bank_account_number) setTab("card");
-        setLoadingDetails(false);
-      });
-  }, [session.created_by]);
+    const bankDetailsPromise = session.created_by
+      ? supabase
+          .from("practice_settings")
+          .select("bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference")
+          .eq("admin_id", session.created_by)
+          .single()
+          .then(({ data }) => {
+            setBankDetails(data as BankDetails | null);
+            if (!data?.bank_account_number) setTab("card");
+          })
+      : Promise.resolve(setTab("card"));
+
+    const blockId = meta?.block_id;
+    const blockTotalPromise =
+      blockId && session.client_id
+        ? supabase
+            .from("sessions")
+            .select("price_pence")
+            .eq("client_id", session.client_id)
+            .filter("metadata->>block_id", "eq", blockId)
+            .then(({ data }) => {
+              const rows = data ?? [];
+              setBlockTotalPence(rows.reduce((sum, row) => sum + (row.price_pence ?? 0), 0));
+              setBlockSessionCount(rows.length);
+            })
+        : Promise.resolve();
+
+    Promise.all([bankDetailsPromise, blockTotalPromise]).then(() => setLoadingDetails(false));
+    // meta is derived from session.metadata on every render, not a stable
+    // dependency — key on the block_id value itself instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.created_by, session.client_id, meta?.block_id]);
 
   const hasBankDetails = !!(bankDetails?.bank_account_number && bankDetails?.bank_sort_code);
 
@@ -115,7 +140,8 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
     if (manualPaymentStatus === "declined") {
       return "Your therapist couldn't verify this transfer. Please double-check the details and try again, or contact them directly.";
     }
-    return "Once you've sent the transfer, mark it as paid below so your therapist knows to check for it. Please use your full name in the reference if one isn't shown above.";
+    const blockSuffix = isBlock ? ` This covers all ${blockSessionCount} sessions in your block.` : "";
+    return `Once you've sent the transfer, mark it as paid below so your therapist knows to check for it. Please use your full name in the reference if one isn't shown above.${blockSuffix}`;
   }
 
   const handleStripePayment = async () => {
@@ -147,7 +173,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   };
 
   return (
-    <Modal title="Pay for session" onClose={onClose} size="sm">
+    <Modal title={isBlock ? "Pay for session block" : "Pay for session"} onClose={onClose} size="sm">
       {loadingDetails ? (
         <p className={styles.loading}>Loading payment options…</p>
       ) : (
@@ -166,7 +192,9 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
           {tab === "bank" && hasBankDetails && bankDetails && (
             <div className={styles.panel}>
               <p className={styles.intro}>
-                Transfer the fee directly to the bank account below. Click any value to copy it.
+                {isBlock
+                  ? `Transfer the total for all ${blockSessionCount} sessions in your block to the bank account below. Click any value to copy it.`
+                  : "Transfer the fee directly to the bank account below. Click any value to copy it."}
               </p>
 
               <dl className={styles.details}>
@@ -181,7 +209,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
                 )}
                 <CopyRow label="Sort code" value={formatSortCode(bankDetails.bank_sort_code!)} mono />
                 <CopyRow label="Account number" value={bankDetails.bank_account_number!} mono />
-                <CopyRow label="Amount" value={`£${pricePounds}`} mono />
+                <CopyRow label={isBlock ? "Amount (full block)" : "Amount"} value={`£${pricePounds}`} mono />
                 {bankDetails.bank_payment_reference && (
                   <CopyRow label="Reference" value={bankDetails.bank_payment_reference} mono />
                 )}
@@ -204,7 +232,11 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
 
           {tab === "card" && (
             <div className={styles.panel}>
-              <p className={styles.intro}>Pay securely by card through Stripe.</p>
+              <p className={styles.intro}>
+                {isBlock
+                  ? `Pay securely by card through Stripe — this covers all ${blockSessionCount} sessions in your block.`
+                  : "Pay securely by card through Stripe."}
+              </p>
 
               <div className={styles.cardAmount}>
                 <span className={styles.cardAmountValue}>£{cardTotalPounds}</span>
