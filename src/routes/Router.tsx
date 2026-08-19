@@ -5,6 +5,7 @@ import ConsentModal from "../components/Consent/ConsentModal";
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
 import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
+import AuthLoadingState from "../components/shared/AuthLoadingState/AuthLoadingState";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Navbar from "../components/shared/Navbar/Navbar";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
@@ -68,7 +69,7 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 
 function RootRedirect() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return <Spinner />;
+  if (loading) return <AuthLoadingState />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
@@ -149,7 +150,7 @@ function RoleAwareLayout() {
 
 function SuperAdminGate({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useAuth();
-  if (loading) return <Spinner />;
+  if (loading) return <AuthLoadingState />;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
