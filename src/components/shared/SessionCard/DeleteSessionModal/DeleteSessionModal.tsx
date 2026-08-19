@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { FunctionsHttpError } from "@supabase/supabase-js";
+
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { useAuth } from "@context/AuthContext";
 
@@ -23,11 +25,32 @@ const DeleteSessionModal = ({ id, onClose }: DeleteModalProps) => {
   const handleDelete = async () => {
     setDeleting(true);
     try {
+      // Route through cancel-session first so a Stripe-paid session still gets
+      // refunded (per the practice's cutoff window) before the row disappears —
+      // deleting shouldn't let someone dodge the same refund policy cancelling does.
+      const { data, error: fnError } = await supabase.functions.invoke("cancel-session", {
+        body: { session_id: id },
+      });
+      if (fnError) {
+        let message = fnError.message;
+        if (fnError instanceof FunctionsHttpError) {
+          const body = await fnError.context.json().catch(() => null);
+          if (body?.error) message = body.error;
+        }
+        throw new Error(message);
+      }
+
       await dispatch(deleteSession(id)).unwrap();
       if (notifyClient) {
         supabase.functions.invoke("notify-session-cancelled", { body: { session_id: id } });
       }
-      showToast("Session deleted", "success");
+      let message = "Session deleted.";
+      if (data?.refunded) {
+        message = `Session deleted — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
+      } else if (data?.refund_skipped_reason === "within_cutoff") {
+        message = "Session deleted — no refund (within the cancellation window).";
+      }
+      showToast(message, "success");
       onClose();
     } catch (error) {
       showToast(error.message as string, "danger");

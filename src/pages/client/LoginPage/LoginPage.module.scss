@@ -232,6 +232,12 @@
 // ── Demo accounts ──────────────────────────────────────────
 .demoSection {
   margin-top: $sp-4;
+  // Clears the absolutely-positioned photo credit pill anchored to the
+  // bottom of ImageBlurBlock — without this, the credit sits right where
+  // this section's text does on short/mobile viewports and the two overlap.
+  margin-bottom: calc(var(--sp-4) * 3);
+  position: relative;
+  z-index: 1;
 }
 
 .demoDivider {

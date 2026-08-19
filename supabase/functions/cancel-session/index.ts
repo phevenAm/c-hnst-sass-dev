@@ -7,8 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -53,24 +51,39 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    // Issue refund if the session was paid via Stripe
+    // Issue refund if the session was paid via Stripe and cancellation falls
+    // outside the practice's configured cutoff window (Settings → Practice →
+    // Reschedule & cancellation cutoff). No cutoff configured (null) means no
+    // time restriction — always eligible. Inside the cutoff — no refund.
     let refundIssuedPence: number | null = null;
+    let refundSkippedReason: "not_stripe_payment" | "within_cutoff" | null = null;
+
     if (session.paid && session.stripe_payment_intent_id) {
-      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-        apiVersion: "2024-06-20",
-      });
+      const { data: practiceSettings } = await supabase
+        .from("practice_settings")
+        .select("reschedule_cutoff_hours")
+        .eq("admin_id", session.created_by)
+        .maybeSingle();
 
+      const cutoffHours = practiceSettings?.reschedule_cutoff_hours ?? null;
       const msUntilSession = new Date(session.scheduled_at).getTime() - Date.now();
+      const outsideCutoff = cutoffHours === null || msUntilSession > cutoffHours * 60 * 60 * 1000;
 
-      if (msUntilSession > FORTY_EIGHT_HOURS_MS) {
-        // Outside 48 hours — full refund for this session
+      if (outsideCutoff) {
+        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+          apiVersion: "2024-06-20",
+        });
         await stripe.refunds.create({
           payment_intent: session.stripe_payment_intent_id,
           amount: session.price_pence,
         });
         refundIssuedPence = session.price_pence;
+      } else {
+        refundSkippedReason = "within_cutoff";
       }
-      // Inside 48 hours — no refund (add partial refund logic here once policy is confirmed)
+    } else if (session.paid) {
+      // Paid but not via Stripe (bank transfer/manual) — nothing to refund automatically.
+      refundSkippedReason = "not_stripe_payment";
     }
 
     await supabase.from("sessions").update({ status: "cancelled" }).eq("id", session_id);
@@ -80,6 +93,7 @@ Deno.serve(async (req) => {
         ok: true,
         refunded: refundIssuedPence !== null,
         refund_amount_pence: refundIssuedPence,
+        refund_skipped_reason: refundSkippedReason,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

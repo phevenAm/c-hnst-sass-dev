@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import dayjs from "dayjs";
 
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
@@ -8,7 +9,7 @@ import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
-import { updateSession } from "@/store/slices/sessionsSlice";
+import { upsertSession } from "@/store/slices/sessionsSlice";
 
 type CancelSessionModalProps = {
   session: Session;
@@ -24,11 +25,30 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      await dispatch(updateSession({ id: session.id, status: "cancelled" })).unwrap();
+      // cancel-session also issues a Stripe refund when the session was paid
+      // by card and cancellation falls outside the practice's cutoff window.
+      const { data, error: fnError } = await supabase.functions.invoke("cancel-session", {
+        body: { session_id: session.id },
+      });
+      if (fnError) {
+        let message = fnError.message;
+        if (fnError instanceof FunctionsHttpError) {
+          const body = await fnError.context.json().catch(() => null);
+          if (body?.error) message = body.error;
+        }
+        throw new Error(message);
+      }
+      dispatch(upsertSession({ ...session, status: "cancelled" }));
       if (notifyClient) {
         supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
       }
-      showToast("Session cancelled.", "success");
+      let message = "Session cancelled.";
+      if (data?.refunded) {
+        message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
+      } else if (data?.refund_skipped_reason === "within_cutoff") {
+        message = "Session cancelled — no refund (within the cancellation window).";
+      }
+      showToast(message, "success");
       onClose();
     } catch (error: any) {
       showToast(error?.message ?? "Failed to cancel session.", "danger");
