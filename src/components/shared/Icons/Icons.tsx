@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import AssignmentIcon from "@mui/icons-material/Assignment";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CreateOutlinedIcon from "@mui/icons-material/CreateOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
@@ -665,4 +665,4 @@ export const NotificationBellIcon = () => <NotificationsOutlinedIcon />;
 export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
 export const CpdIcon = () => <WebStoriesOutlinedIcon />;
 export const CreateSession = () => <InsertInvitationIcon />;
-export const AssignmentClipIcon = () => <AssignmentIcon />;
+export const AssignmentClipIcon = () => <AssignmentOutlinedIcon />;
