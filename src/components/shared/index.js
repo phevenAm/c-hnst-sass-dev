@@ -22,6 +22,7 @@ export {
   CpdIcon,
   CreateSession,
   DarkmodeIcon,
+  AssignmentClipIcon,
   DocumentIcon,
   EditIcon,
   IdeasIcon,
