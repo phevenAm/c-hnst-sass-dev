@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
@@ -19,18 +20,25 @@ type CancelSessionModalProps = {
 const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
+  const { isAdmin, rescheduleCutoffHours } = useAuth();
   const [notifyClient, setNotifyClient] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+
+  // Only meaningful for admins cancelling a Stripe-paid session — the client
+  // can't decide their own refund. Default follows the practice's cutoff
+  // window as a suggestion, but the admin can override either way (e.g. no
+  // refund for a paid no-show, or a goodwill refund inside the window).
+  const canRefund = isAdmin && session.paid && !!session.stripe_payment_intent_id;
+  const cutoffHours = rescheduleCutoffHours ?? null;
+  const msUntilSession = new Date(session.scheduled_at).getTime() - Date.now();
+  const outsideCutoff = cutoffHours === null || msUntilSession > cutoffHours * 60 * 60 * 1000;
+  const [issueRefund, setIssueRefund] = useState(outsideCutoff);
 
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      // cancel-session flags a Stripe-paid session for a refund when the
-      // cancellation falls outside the practice's cutoff window — it never
-      // refunds automatically, it just creates a pending request for the
-      // admin to approve from Payments.
       const { data, error: fnError } = await supabase.functions.invoke("cancel-session", {
-        body: { session_id: session.id },
+        body: { session_id: session.id, issue_refund: canRefund ? issueRefund : undefined },
       });
       if (fnError) {
         let message = fnError.message;
@@ -45,7 +53,9 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
         supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
       }
       let message = "Session cancelled.";
-      if (data?.refund_requested) {
+      if (data?.refund_issued) {
+        message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
+      } else if (data?.refund_requested) {
         message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refund pending admin approval.`;
       } else if (data?.refund_skipped_reason === "within_cutoff") {
         message = "Session cancelled — no refund (within the cancellation window).";
@@ -74,6 +84,21 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
       }}
     >
       <p>Cancel your session on {dayjs(session.scheduled_at).format("dddd D MMM [at] h:mma")}?</p>
+      {canRefund && (
+        <label
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            alignItems: "center",
+            marginTop: "1rem",
+            fontSize: "0.85rem",
+            cursor: "pointer",
+          }}
+        >
+          <input type="checkbox" checked={issueRefund} onChange={(e) => setIssueRefund(e.target.checked)} />
+          Refund the £{(session.price_pence / 100).toFixed(2)} payment
+        </label>
+      )}
     </ConfirmModal>
   );
 };

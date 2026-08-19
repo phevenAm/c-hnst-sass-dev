@@ -312,7 +312,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
         </div>
       )}
 
-      {isDeleteModalOpen && <DeleteSessionModal id={session.id} onClose={() => setIsDeleteModalOpen(false)} />}
+      {isDeleteModalOpen && <DeleteSessionModal session={session} onClose={() => setIsDeleteModalOpen(false)} />}
       {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
       {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
       {isRescheduleModalOpen && (

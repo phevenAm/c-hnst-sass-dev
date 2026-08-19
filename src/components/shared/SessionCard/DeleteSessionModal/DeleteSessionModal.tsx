@@ -7,31 +7,38 @@ import { useAuth } from "@context/AuthContext";
 
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
+import type { Session } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { deleteSession } from "@/store/slices/sessionsSlice";
 
 type DeleteModalProps = {
-  id: string;
+  session: Session;
   onClose: () => void;
 };
 
-const DeleteSessionModal = ({ id, onClose }: DeleteModalProps) => {
+const DeleteSessionModal = ({ session, onClose }: DeleteModalProps) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
-  const { isDemo } = useAuth();
+  const { isDemo, isAdmin, rescheduleCutoffHours } = useAuth();
   const [notifyClient, setNotifyClient] = useState(true);
   const [deleting, setDeleting] = useState(false);
+
+  // Same reasoning as CancelSessionModal — only admins get asked, and only
+  // when there's actually a Stripe payment to refund.
+  const canRefund = isAdmin && session.paid && !!session.stripe_payment_intent_id;
+  const cutoffHours = rescheduleCutoffHours ?? null;
+  const msUntilSession = new Date(session.scheduled_at).getTime() - Date.now();
+  const outsideCutoff = cutoffHours === null || msUntilSession > cutoffHours * 60 * 60 * 1000;
+  const [issueRefund, setIssueRefund] = useState(outsideCutoff);
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      // Route through cancel-session first so a Stripe-paid session still gets
-      // flagged for a refund (per the practice's cutoff window) before the row
-      // disappears — deleting shouldn't let someone dodge the same refund
-      // policy cancelling does. Never refunds automatically — this only
-      // creates a pending request for the admin to approve from Payments.
+      // Route through cancel-session first so a Stripe-paid session still goes
+      // through the same refund decision as Cancel does, before the row
+      // disappears — deleting shouldn't let someone dodge that.
       const { data, error: fnError } = await supabase.functions.invoke("cancel-session", {
-        body: { session_id: id },
+        body: { session_id: session.id, issue_refund: canRefund ? issueRefund : undefined },
       });
       if (fnError) {
         let message = fnError.message;
@@ -42,12 +49,14 @@ const DeleteSessionModal = ({ id, onClose }: DeleteModalProps) => {
         throw new Error(message);
       }
 
-      await dispatch(deleteSession(id)).unwrap();
+      await dispatch(deleteSession(session.id)).unwrap();
       if (notifyClient) {
-        supabase.functions.invoke("notify-session-cancelled", { body: { session_id: id } });
+        supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
       }
       let message = "Session deleted.";
-      if (data?.refund_requested) {
+      if (data?.refund_issued) {
+        message = `Session deleted — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
+      } else if (data?.refund_requested) {
         message = `Session deleted — £${(data.refund_amount_pence / 100).toFixed(2)} refund pending admin approval.`;
       } else if (data?.refund_skipped_reason === "within_cutoff") {
         message = "Session deleted — no refund (within the cancellation window).";
@@ -76,6 +85,21 @@ const DeleteSessionModal = ({ id, onClose }: DeleteModalProps) => {
       }}
     >
       <p>This action cannot be undone.</p>
+      {canRefund && (
+        <label
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            alignItems: "center",
+            marginTop: "1rem",
+            fontSize: "0.85rem",
+            cursor: "pointer",
+          }}
+        >
+          <input type="checkbox" checked={issueRefund} onChange={(e) => setIssueRefund(e.target.checked)} />
+          Refund the £{(session.price_pence / 100).toFixed(2)} payment
+        </label>
+      )}
     </ConfirmModal>
   );
 };

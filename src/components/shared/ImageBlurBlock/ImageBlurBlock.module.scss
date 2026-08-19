@@ -62,22 +62,30 @@
   pointer-events: none;
 }
 
+// Icon-only credit link — just enough to satisfy attribution without
+// competing with page content for space. Full text is available via the
+// title/aria-label on hover or for screen readers.
 .photoCredit {
   position: absolute;
-  left: 50%;
-  bottom: var(--sp-4);
-  transform: translateX(-50%);
+  right: var(--sp-3);
+  bottom: var(--sp-3);
   z-index: 1;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 0.75rem;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
   pointer-events: auto;
+  transition: background var(--transition-base), color var(--transition-base);
 
-  a {
-    color: rgba(255, 255, 255, 0.96);
-    text-decoration: underline;
+  &:hover,
+  &:focus-visible {
+    background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 1);
   }
 }
 

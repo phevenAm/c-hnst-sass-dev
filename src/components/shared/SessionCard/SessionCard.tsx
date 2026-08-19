@@ -402,7 +402,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
         </div>
       )}
 
-      {isDeleteModalOpen && <DeleteSessionModal id={session.id} onClose={() => setIsDeleteModalOpen(false)} />}
+      {isDeleteModalOpen && <DeleteSessionModal session={session} onClose={() => setIsDeleteModalOpen(false)} />}
       {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
       {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
       {isMarkAsPaidOpen && (

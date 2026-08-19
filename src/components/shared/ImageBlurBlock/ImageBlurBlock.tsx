@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+
 import styles from "./ImageBlurBlock.module.scss";
 
 type ImageBlurBlockProps = {
@@ -35,13 +37,16 @@ export default function ImageBlurBlock({ imageUrl, photographer, sourceLabel, cr
             backgroundImage: `linear-gradient(rgba(1, 15, 15, 0.24), rgba(1, 15, 15, 0.24)), url('${imageUrl}')`,
           }}
         />
-        <p className={styles.photoCredit}>
-          Photo by{" "}
-          <a href={creditUrl} target="_blank" rel="noreferrer noopener">
-            {photographer}
-          </a>{" "}
-          on {sourceLabel}
-        </p>
+        <a
+          href={creditUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={styles.photoCredit}
+          title={`Photo by ${photographer} on ${sourceLabel}`}
+          aria-label={`Photo credit: ${photographer} on ${sourceLabel}`}
+        >
+          <InfoOutlinedIcon fontSize="inherit" />
+        </a>
       </div>
     </div>
   );

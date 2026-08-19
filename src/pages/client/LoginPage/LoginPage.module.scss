@@ -13,6 +13,18 @@
   overflow-y: auto;
 }
 
+// Centering (align-items: center) crowds the logo against the top edge once
+// content is taller than the viewport — common on mobile / short windows
+// once the demo section is in the mix. Anchor to the top with real breathing
+// room instead of letting it get squeezed by the centering math.
+@media (max-width: 800px), (max-height: 700px) {
+  .page {
+    align-items: flex-start;
+    padding-top: $sp-8;
+    padding-bottom: $sp-8;
+  }
+}
+
 // Subtle background shapes — teal tints
 .blob {
   position: absolute;
@@ -232,10 +244,7 @@
 // ── Demo accounts ──────────────────────────────────────────
 .demoSection {
   margin-top: $sp-4;
-  // Clears the absolutely-positioned photo credit pill anchored to the
-  // bottom of ImageBlurBlock — without this, the credit sits right where
-  // this section's text does on short/mobile viewports and the two overlap.
-  margin-bottom: calc(var(--sp-4) * 3);
+  margin-bottom: $sp-4;
   position: relative;
   z-index: 1;
 }

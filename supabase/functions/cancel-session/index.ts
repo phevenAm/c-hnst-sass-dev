@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import Stripe from "npm:stripe";
 import { detailsTable, emailTemplate, formatDate, para, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
@@ -28,7 +29,12 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { session_id } = await req.json();
+    // issue_refund is only meaningful when the caller is the admin — it's the
+    // explicit, in-the-moment choice made in the cancel dialog (e.g. "no,
+    // this client was a no-show despite paying, don't refund them" even
+    // though the cutoff window would otherwise suggest one). It's never
+    // inferred automatically.
+    const { session_id, issue_refund } = await req.json();
     if (!session_id) {
       return new Response(JSON.stringify({ error: "Missing session_id" }), { status: 400, headers: corsHeaders });
     }
@@ -51,17 +57,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    // Refunds are never automatic — this only decides whether the cancellation
-    // *qualifies* for one (Stripe-paid, cancelled outside the practice's
-    // configured cutoff window — Settings → Practice → Reschedule &
-    // cancellation cutoff; no cutoff configured means no time restriction, so
-    // always eligible). If it qualifies, a pending refund_requests row is
-    // created and the admin is notified — they have to explicitly approve
-    // before any money moves, via respond-refund-request.
-    let refundRequested = false;
-    let refundSkippedReason: "not_stripe_payment" | "within_cutoff" | null = null;
+    const canRefund = session.paid && !!session.stripe_payment_intent_id;
 
-    if (session.paid && session.stripe_payment_intent_id) {
+    let refundIssued = false;
+    let refundRequested = false;
+    let refundSkippedReason: "not_stripe_payment" | "within_cutoff" | "admin_declined" | null = null;
+
+    if (canRefund && isAdmin) {
+      // Admin is cancelling right now and explicitly said yes/no in the
+      // dialog — that decision IS the approval, so issue it immediately
+      // rather than routing through the refund_requests queue (which exists
+      // for the case where nobody's there to decide in the moment).
+      if (issue_refund) {
+        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
+        await stripe.refunds.create({
+          payment_intent: session.stripe_payment_intent_id,
+          amount: session.price_pence,
+        });
+        await supabase.from("sessions").update({ paid: false }).eq("id", session_id);
+        refundIssued = true;
+      } else {
+        refundSkippedReason = "admin_declined";
+      }
+    } else if (canRefund) {
+      // Client cancelling their own session — they can't approve their own
+      // refund. If it's outside the practice's cutoff window it qualifies,
+      // so queue it for the admin to review and approve later (never
+      // automatic). Inside the cutoff — doesn't qualify, no request made.
       const { data: practiceSettings } = await supabase
         .from("practice_settings")
         .select("reschedule_cutoff_hours, counsellor_name")
@@ -137,8 +159,9 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
+        refund_issued: refundIssued,
         refund_requested: refundRequested,
-        refund_amount_pence: refundRequested ? session.price_pence : null,
+        refund_amount_pence: refundIssued || refundRequested ? session.price_pence : null,
         refund_skipped_reason: refundSkippedReason,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
