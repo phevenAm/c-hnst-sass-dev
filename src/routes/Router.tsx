@@ -68,7 +68,7 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 
 function RootRedirect() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <Spinner />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
