@@ -1,5 +1,24 @@
 @use "../../../styles/spacing" as *;
 
+// Only applied when the calendar view is showing (see ClientSchedule.tsx) —
+// caps this page to exactly the height #main-content has available, so the
+// calendar's own internal scroll is the only scrollbar instead of stacking
+// with the page's. min-height: 0 overrides flex's default min-height: auto,
+// which would otherwise stop this from ever shrinking below its content size.
+.calendarPage {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+
+    :global(.inner) {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+}
+
 .heading {
     margin-bottom: $sp-4;
 }
@@ -25,6 +44,26 @@
 .calendarCard {
     padding: $sp-4;
     margin-top: $sp-4;
+}
+
+// Only present when .calendarPage is active (see the :global(.inner) rule
+// above) — lets this specific card claim the remaining vertical space
+// instead of sizing to a fixed vh guess. The calendar inside it fills this
+// via height: 100% (see the height prop passed to SchedulerCalendar).
+.calendarCardFill {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+
+    // react-big-calendar's own root div, and SchedulerCalendar's wrapper
+    // around it, both need to participate in the same fill chain.
+    :global(.portal-calendar) {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
 }
 
 // ── Next session strip (empty state only — the populated card lives in
