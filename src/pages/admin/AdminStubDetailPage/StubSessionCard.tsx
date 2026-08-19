@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 // Reuse the exact same CSS module as SessionCard so stubs look identical.
 import styles from "@components/shared/SessionCard/SessionCard.module.scss";
@@ -52,6 +53,9 @@ export default function StubSessionCard({
   const [editingCode, setEditingCode] = useState(false);
   const [codeText, setCodeText] = useState(session.code ?? "");
   const [saving, setSaving] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
+  const [notifyClient, setNotifyClient] = useState(true);
+  const [confirming, setConfirming] = useState(false);
 
   // Keep draft text in sync with incoming prop changes (e.g. realtime updates)
   // while the user is NOT actively editing.
@@ -103,6 +107,38 @@ export default function StubSessionCard({
     else onUpdated(data as StubSession);
   };
 
+  const handleConfirmCancel = async () => {
+    setConfirming(true);
+    const { data, error } = await supabase
+      .from("stub_sessions")
+      .update({ status: "cancelled" })
+      .eq("id", session.id)
+      .select()
+      .single();
+    setConfirming(false);
+    if (error) {
+      showToast("Failed to update session.", "danger");
+      return;
+    }
+    onUpdated(data as StubSession);
+    if (notifyClient) {
+      supabase.functions.invoke("notify-stub-session-cancelled", { body: { stub_session_id: session.id } });
+    }
+    setConfirmAction(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirming(true);
+    const { error } = await supabase.from("stub_sessions").delete().eq("id", session.id);
+    setConfirming(false);
+    if (error) {
+      showToast("Failed to delete session.", "danger");
+      return;
+    }
+    onDeleted(session.id);
+    setConfirmAction(null);
+  };
+
   const saveNotes = async () => {
     if (demoGuard()) {
       setEditingNotes(false);
@@ -135,13 +171,6 @@ export default function StubSessionCard({
     if (error) showToast("Failed to save code.", "danger");
     else onUpdated(data as StubSession);
     setEditingCode(false);
-  };
-
-  const handleDelete = async () => {
-    if (demoGuard()) return;
-    const { error } = await supabase.from("stub_sessions").delete().eq("id", session.id);
-    if (error) showToast("Failed to delete session.", "danger");
-    else onDeleted(session.id);
   };
 
   // Map stub status → card background class
@@ -298,7 +327,7 @@ export default function StubSessionCard({
               <Button size="sm" variant="secondary" onClick={() => updateStatus("scheduled")}>
                 Restore
               </Button>
-              <Button size="sm" variant="ghost-danger" onClick={handleDelete}>
+              <Button size="sm" variant="ghost-danger" onClick={() => !demoGuard() && setConfirmAction("delete")}>
                 Delete
               </Button>
             </div>
@@ -308,7 +337,7 @@ export default function StubSessionCard({
                 size="sm"
                 primaryLabel="Restore"
                 primaryAction={() => updateStatus("scheduled")}
-                options={[{ label: "Delete", onClick: handleDelete }]}
+                options={[{ label: "Delete", onClick: () => !demoGuard() && setConfirmAction("delete") }]}
               />
             </div>
           </div>
@@ -342,10 +371,10 @@ export default function StubSessionCard({
                     Reschedule
                   </Button>
                 )}
-                <Button size="sm" variant="ghost-danger" onClick={() => updateStatus("cancelled")}>
+                <Button size="sm" variant="ghost-danger" onClick={() => !demoGuard() && setConfirmAction("cancel")}>
                   Cancel
                 </Button>
-                <Button size="sm" variant="ghost-danger" onClick={handleDelete}>
+                <Button size="sm" variant="ghost-danger" onClick={() => !demoGuard() && setConfirmAction("delete")}>
                   Delete
                 </Button>
               </div>
@@ -357,8 +386,8 @@ export default function StubSessionCard({
                   primaryAction={handleTogglePaid}
                   options={[
                     ...(!isPast ? [{ label: "Reschedule", onClick: () => setEditOpen(true) }] : []),
-                    { label: "Cancel", onClick: () => updateStatus("cancelled") },
-                    { label: "Delete", onClick: handleDelete },
+                    { label: "Cancel", onClick: () => !demoGuard() && setConfirmAction("cancel") },
+                    { label: "Delete", onClick: () => !demoGuard() && setConfirmAction("delete") },
                   ]}
                 />
               </div>
@@ -411,6 +440,37 @@ export default function StubSessionCard({
             onUpdated(data as StubSession);
           }}
         />
+      )}
+
+      {confirmAction === "cancel" && (
+        <ConfirmModal
+          title="Cancel this session?"
+          onClose={() => setConfirmAction(null)}
+          onConfirm={handleConfirmCancel}
+          confirming={confirming}
+          confirmLabel="Yes, cancel it"
+          cancelLabel="Keep it"
+          notifyOption={{
+            label: "Email the client that this session was cancelled",
+            checked: notifyClient,
+            onChange: setNotifyClient,
+          }}
+        >
+          <p>Cancel this session on {dayjs(session.scheduled_at).format("dddd D MMM [at] h:mma")}?</p>
+        </ConfirmModal>
+      )}
+
+      {confirmAction === "delete" && (
+        <ConfirmModal
+          title="Delete this session?"
+          onClose={() => setConfirmAction(null)}
+          onConfirm={handleConfirmDelete}
+          confirming={confirming}
+          confirmLabel="Yes, delete"
+          cancelLabel="No, cancel"
+        >
+          <p>This action cannot be undone.</p>
+        </ConfirmModal>
       )}
     </div>
   );

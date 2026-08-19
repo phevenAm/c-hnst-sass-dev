@@ -1,7 +1,8 @@
+import { useState } from "react";
+
 import dayjs from "dayjs";
 
-import Button from "@components/shared/Button/Button";
-import Modal from "@components/shared/Modal/Modal";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
@@ -17,36 +18,41 @@ type CancelSessionModalProps = {
 const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
+  const [notifyClient, setNotifyClient] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   const handleCancel = async () => {
+    setCancelling(true);
     try {
       await dispatch(updateSession({ id: session.id, status: "cancelled" })).unwrap();
-      supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
+      if (notifyClient) {
+        supabase.functions.invoke("notify-session-cancelled", { body: { session_id: session.id } });
+      }
       showToast("Session cancelled.", "success");
       onClose();
     } catch (error: any) {
       showToast(error?.message ?? "Failed to cancel session.", "danger");
+    } finally {
+      setCancelling(false);
     }
   };
 
   return (
-    <Modal
+    <ConfirmModal
       title="Cancel session?"
       onClose={onClose}
-      size="sm"
-      actions={
-        <div style={{ display: "flex", gap: "0.75rem" }}>
-          <Button variant="danger" onClick={handleCancel}>
-            Yes, cancel it
-          </Button>
-          <Button variant="ghost" onClick={onClose}>
-            Keep it
-          </Button>
-        </div>
-      }
+      onConfirm={handleCancel}
+      confirming={cancelling}
+      confirmLabel="Yes, cancel it"
+      cancelLabel="Keep it"
+      notifyOption={{
+        label: "Email the client that this session was cancelled",
+        checked: notifyClient,
+        onChange: setNotifyClient,
+      }}
     >
       <p>Cancel your session on {dayjs(session.scheduled_at).format("dddd D MMM [at] h:mma")}?</p>
-    </Modal>
+    </ConfirmModal>
   );
 };
 

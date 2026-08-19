@@ -1,12 +1,12 @@
-import Button from "@components/shared/Button";
-import Modal from "@components/shared/Modal/Modal";
+import { useState } from "react";
+
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { useAuth } from "@context/AuthContext";
 
 import { useToast } from "@/context/ToastContext";
+import { supabase } from "@/lib/supabase.js";
 import { useAppDispatch } from "@/store/hooks";
 import { deleteSession } from "@/store/slices/sessionsSlice";
-
-import styles from "./DeleteSessionModal.module.scss";
 
 type DeleteModalProps = {
   id: string;
@@ -17,32 +17,41 @@ const DeleteSessionModal = ({ id, onClose }: DeleteModalProps) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
   const { isDemo } = useAuth();
+  const [notifyClient, setNotifyClient] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    setDeleting(true);
     try {
       await dispatch(deleteSession(id)).unwrap();
+      if (notifyClient) {
+        supabase.functions.invoke("notify-session-cancelled", { body: { session_id: id } });
+      }
       showToast("Session deleted", "success");
       onClose();
     } catch (error) {
       showToast(error.message as string, "danger");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const actionsObj = (
-    <div className={styles.modalActions}>
-      <Button variant="danger" onClick={() => handleDelete(id)}>
-        Yes, delete
-      </Button>
-      <Button variant="ghost" onClick={onClose} disabled={isDemo}>
-        No, cancel
-      </Button>
-    </div>
-  );
-
   return (
-    <Modal actions={actionsObj} size={"sm"} onClose={onClose} title="Delete session?">
-      <p>This action cannot be undone</p>
-    </Modal>
+    <ConfirmModal
+      title="Delete session?"
+      onClose={onClose}
+      onConfirm={handleDelete}
+      confirming={deleting || isDemo}
+      confirmLabel="Yes, delete"
+      cancelLabel="No, cancel"
+      notifyOption={{
+        label: "Email the client that this session was removed",
+        checked: notifyClient,
+        onChange: setNotifyClient,
+      }}
+    >
+      <p>This action cannot be undone.</p>
+    </ConfirmModal>
   );
 };
 
