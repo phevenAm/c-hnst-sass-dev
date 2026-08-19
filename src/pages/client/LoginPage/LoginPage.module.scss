@@ -2,7 +2,7 @@
 @use '../../../styles/spacing' as *;
 
 .page {
-  height: 100%;
+  min-height: 100vh;
   background: var(--bg-base);
   display: flex;
   align-items: center;
