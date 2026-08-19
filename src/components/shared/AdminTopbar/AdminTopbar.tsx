@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 import { pickColor } from "@Helpers/Helpers";
 import { useAuth } from "@context/AuthContext";
+import { useToast } from "@context/ToastContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 
@@ -15,12 +16,14 @@ export default function AdminTopbar() {
   const dispatch = useAppDispatch();
   const themeMode = useAppSelector(selectThemeMode);
   const { signOut, userProfile, displayName } = useAuth();
+  const { showToast } = useToast();
 
   const handleLogout = async () => {
     try {
       await signOut();
     } catch (error) {
       console.error("Error signing out:", error);
+      showToast("Couldn't sign out — check your connection and try again.", "danger");
     }
   };
 

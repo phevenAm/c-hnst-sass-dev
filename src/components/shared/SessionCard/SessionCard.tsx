@@ -14,6 +14,7 @@ import { Session, SessionBlockMeta, SessionEvent } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectSessionNumberMap, updateSession } from "@/store/slices/sessionsSlice";
 import CancelSessionModal from "./CancelSessionModal/CancelSessionModal";
+import ClientCancelModal from "./ClientCancelModal/ClientCancelModal";
 import ClientRescheduleModal from "./ClientRescheduleModal/ClientRescheduleModal";
 import CreateSessionModal from "./CreateSessionModal/CreateSessionModal";
 import DeleteSessionModal from "./DeleteSessionModal/DeleteSessionModal";
@@ -374,12 +375,13 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                 options={[{ label: "Mark as paid", onClick: () => !isDemo && setIsMarkAsPaidOpen(true) }]}
               />
             ) : null}
-            <Button size="sm" variant="secondary" disabled={isDemo} onClick={() => setIsRescheduleModalOpen(true)}>
-              Reschedule
-            </Button>
-            <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
-              Cancel
-            </Button>
+            <SplitButton
+              size="sm"
+              variant="secondary"
+              primaryLabel="Reschedule"
+              primaryAction={() => !isDemo && setIsRescheduleModalOpen(true)}
+              options={[{ label: "Cancel", onClick: () => !isDemo && setIsCancelModalOpen(true) }]}
+            />
           </div>
         )}
       </div>
@@ -403,7 +405,12 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
       )}
 
       {isDeleteModalOpen && <DeleteSessionModal session={session} onClose={() => setIsDeleteModalOpen(false)} />}
-      {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
+      {isCancelModalOpen &&
+        (isAdmin ? (
+          <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />
+        ) : (
+          <ClientCancelModal session={session} onClose={() => setIsCancelModalOpen(false)} />
+        ))}
       {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
       {isMarkAsPaidOpen && (
         <Modal

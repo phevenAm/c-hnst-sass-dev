@@ -5,6 +5,7 @@ import { pickColor } from "@Helpers/Helpers";
 
 import { useAuth } from "../../../context/AuthContext";
 import { useEncryption } from "../../../context/EncryptionContext";
+import { useToast } from "../../../context/ToastContext";
 import { supabase } from "../../../lib/supabase.js";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
@@ -31,6 +32,7 @@ export default function Navbar() {
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const { isAdmin, signOut, userProfile, displayName } = useAuth();
   const { status: encStatus } = useEncryption();
+  const { showToast } = useToast();
 
   useEffect(() => {
     supabase
@@ -46,6 +48,7 @@ export default function Navbar() {
       await signOut();
     } catch (error) {
       console.error("Error signing out:", error);
+      showToast("Couldn't sign out — check your connection and try again.", "danger");
     }
   };
 

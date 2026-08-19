@@ -33,6 +33,11 @@ type AuthContextType = {
   isAdmin: boolean;
   isDemo: boolean;
   isSuperAdmin: boolean;
+  /** Set when the profile row failed to load after auth succeeded — distinct from
+   *  `loading`, which only covers the initial session check. ProtectedRoute uses
+   *  this to show a retry screen instead of spinning forever. */
+  profileError: string | null;
+  retryProfile: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, meta?: Record<string, unknown>, accessToken?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -41,6 +46,17 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function fetchProfile(authUser: AuthUser): Promise<UserProfile | null> {
+  const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).single();
+
+  if (error) {
+    console.error("fetchProfile error:", error.message);
+    return null;
+  }
+
+  return data;
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -60,19 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isFinishingSignup, setIsFinishingSignup] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const prevUserIdRef = useRef<string | null>(null);
-
-  const fetchProfile = async (authUser: AuthUser): Promise<UserProfile | null> => {
-    const { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).single();
-
-    if (error) {
-      console.error("fetchProfile error:", error.message);
-      return null;
-    }
-
-    return data;
-  };
 
   const handleSession = async (session: Session | null) => {
     const currentAuthUser = session?.user ?? null;
@@ -86,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentAuthUser) {
         const profileData = await fetchProfile(currentAuthUser);
         setUserProfile(profileData);
+        setProfileError(profileData ? null : "Couldn't load your profile.");
 
         if (profileData?.role === "admin") {
           // maybeSingle (not single): a demo admin — or any admin without a
@@ -109,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setUserProfile(null);
+        setProfileError(null);
         setPracticeSettings(null);
         setRescheduleCutoffHours(undefined);
       }
@@ -290,6 +298,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPracticeSettings(data ?? null);
   }, [authUser, userProfile?.role]);
 
+  const retryProfile = useCallback(() => {
+    if (!authUser) return;
+    fetchProfile(authUser).then((profileData) => {
+      setUserProfile(profileData);
+      setProfileError(profileData ? null : "Couldn't load your profile.");
+    });
+  }, [authUser]);
+
   const signOut = useCallback(async () => {
     setError(null);
 
@@ -297,9 +313,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       console.error("signOut error:", error.message);
-    } else {
-      store.dispatch(resetStore());
+      throw error;
     }
+    store.dispatch(resetStore());
   }, []);
 
   const displayName = userProfile?.display_name ?? userProfile?.first_name ?? null;
@@ -318,6 +334,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: userProfile?.role === "admin",
       isDemo: userProfile?.is_demo ?? false,
       isSuperAdmin: (userProfile as Record<string, unknown>)?.is_superadmin === true,
+      profileError,
+      retryProfile,
       signIn,
       signUp,
       signOut,
@@ -333,6 +351,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       error,
       loading,
       isFinishingSignup,
+      profileError,
+      retryProfile,
       signIn,
       signUp,
       signOut,

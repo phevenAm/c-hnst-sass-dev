@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: <explanation> */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
@@ -14,9 +14,10 @@ import {
   SplitButton,
   ToggleButtonTabs,
 } from "@components/shared/index";
+import CancelSessionModal from "@components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
-import type { RescheduleRequest, Response, Session, UserProfile } from "@models/globalTypes";
+import type { CancellationRequest, RescheduleRequest, Response, Session, UserProfile } from "@models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
@@ -119,6 +120,9 @@ export default function AdminClientsPageDetailed() {
   const counsellorName = useCounsellorName();
   const [rescheduleRequests, setRescheduleRequests] = useState<RescheduleRequest[]>([]);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [cancellationRequests, setCancellationRequests] = useState<CancellationRequest[]>([]);
+  const [cancelResolvingId, setCancelResolvingId] = useState<string | null>(null);
+  const [cancelModalSession, setCancelModalSession] = useState<Session | null>(null);
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -192,6 +196,22 @@ export default function AdminClientsPageDetailed() {
         if (data) setRescheduleRequests(data as RescheduleRequest[]);
       });
   }, [clientId]);
+
+  const loadCancellationRequests = useCallback(() => {
+    if (!clientId) return;
+    supabase
+      .from("cancellation_requests")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setCancellationRequests(data as CancellationRequest[]);
+      });
+  }, [clientId]);
+
+  useEffect(() => {
+    loadCancellationRequests();
+  }, [loadCancellationRequests]);
 
   useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
     dispatch(fetchSessionsByClientId(clientId!)),
@@ -273,6 +293,35 @@ export default function AdminClientsPageDetailed() {
     setRescheduleRequests((prev) => prev.map((r) => (r.id === req.id ? { ...r, status: "rejected" as const } : r)));
     showToast("Reschedule declined");
     setResolvingId(null);
+  };
+
+  const handleAcceptCancellation = (req: CancellationRequest) => {
+    const linkedSession = clientSessions.find((s) => s.id === req.session_id);
+    if (!linkedSession) {
+      showToast("Couldn't find that session", "danger");
+      return;
+    }
+    setCancelModalSession(linkedSession);
+  };
+
+  const handleDeclineCancellation = async (req: CancellationRequest) => {
+    setCancelResolvingId(req.id);
+    const { error } = await supabase.from("cancellation_requests").update({ status: "rejected" }).eq("id", req.id);
+
+    if (error) {
+      showToast("Failed to decline request", "danger");
+      setCancelResolvingId(null);
+      return;
+    }
+
+    await supabase.from("notifications").insert({
+      user_id: req.client_id,
+      type: "cancellation_declined",
+      message: `Your request to cancel your session wasn't accepted. Please contact ${counsellorName} if you still need to change it.`,
+    });
+    setCancellationRequests((prev) => prev.map((r) => (r.id === req.id ? { ...r, status: "rejected" as const } : r)));
+    showToast("Cancellation request declined");
+    setCancelResolvingId(null);
   };
 
   const handleTogglePlot = async (formId: string) => {
@@ -485,6 +534,7 @@ export default function AdminClientsPageDetailed() {
   };
 
   const pendingRequests = rescheduleRequests.filter((r) => r.status === "pending");
+  const pendingCancellations = cancellationRequests.filter((r) => r.status === "pending");
 
   return (
     <div className="page">
@@ -520,6 +570,45 @@ export default function AdminClientsPageDetailed() {
                       variant="ghost"
                       disabled={resolvingId === req.id}
                       onClick={() => handleDeclineReschedule(req)}
+                    >
+                      Decline
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {pendingCancellations.length > 0 && (
+          <div className={styles.pendingRequests}>
+            <p className={styles.pendingRequestsTitle}>
+              <span className={styles.pendingRequestsCount}>{pendingCancellations.length}</span>
+              Pending cancellation request{pendingCancellations.length > 1 ? "s" : ""}
+            </p>
+            {pendingCancellations.map((req) => {
+              const linkedSession = clientSessions.find((s) => s.id === req.session_id);
+              return (
+                <div key={req.id} className={styles.pendingRequest}>
+                  <div className={styles.pendingRequestDates}>
+                    <span className={styles.pendingFrom}>
+                      {linkedSession ? dayjs(linkedSession.scheduled_at).format("D MMM [at] h:mma") : "—"}
+                    </span>
+                  </div>
+                  {req.message && <p className={styles.pendingMessage}>"{req.message}"</p>}
+                  <div className={styles.pendingActions}>
+                    <Button
+                      size="sm"
+                      disabled={cancelResolvingId === req.id}
+                      onClick={() => handleAcceptCancellation(req)}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={cancelResolvingId === req.id}
+                      onClick={() => handleDeclineCancellation(req)}
                     >
                       Decline
                     </Button>
@@ -847,6 +936,17 @@ export default function AdminClientsPageDetailed() {
           user={client}
           sessionId={selectedNoteSessionId}
           onClose={() => setSelectedNoteSessionId(null)}
+        />
+      )}
+
+      {cancelModalSession && (
+        <CancelSessionModal
+          session={cancelModalSession}
+          onClose={() => {
+            setCancelModalSession(null);
+            loadCancellationRequests();
+            dispatch(fetchSessionsByClientId(clientId!));
+          }}
         />
       )}
 

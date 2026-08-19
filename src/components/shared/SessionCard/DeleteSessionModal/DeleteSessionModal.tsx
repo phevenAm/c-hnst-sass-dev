@@ -56,10 +56,6 @@ const DeleteSessionModal = ({ session, onClose }: DeleteModalProps) => {
       let message = "Session deleted.";
       if (data?.refund_issued) {
         message = `Session deleted — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
-      } else if (data?.refund_requested) {
-        message = `Session deleted — £${(data.refund_amount_pence / 100).toFixed(2)} refund pending admin approval.`;
-      } else if (data?.refund_skipped_reason === "within_cutoff") {
-        message = "Session deleted — no refund (within the cancellation window).";
       }
       showToast(message, "success");
       onClose();
