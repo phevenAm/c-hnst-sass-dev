@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
+import Button from "@components/shared/Button/Button";
 import { useAuth } from "@context/AuthContext";
 import { Role } from "@models/globalTypes";
 
@@ -12,7 +13,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, loading, isFinishingSignup, userProfile } = useAuth();
+  const { isAuthenticated, isAdmin, loading, isFinishingSignup, userProfile, profileError, retryProfile } = useAuth();
   const location = useLocation();
 
   // Wait for session check to finish
@@ -21,6 +22,21 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   // Not logged in → send to login
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // profileError means the fetch already finished and failed — that's not
+  // "still loading," it's a dead end. Without this, a failed profile fetch
+  // left userProfile null forever with nothing else ever retrying it, so the
+  // page below just spun indefinitely with no network activity at all.
+  if (!userProfile && profileError) {
+    return (
+      <div className="page">
+        <p>{profileError}</p>
+        <Button variant="secondary" onClick={retryProfile}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   // Wait for profile to load before making role decisions
