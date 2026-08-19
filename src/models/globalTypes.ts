@@ -195,6 +195,15 @@ export type RescheduleRequest = {
   created_at: string;
 };
 
+export type CancellationRequest = {
+  id: string;
+  session_id: string;
+  client_id: string;
+  message: string | null;
+  status: "pending" | "accepted" | "rejected";
+  created_at: string;
+};
+
 export type SessionEvent = {
   id: string;
   session_id: string;

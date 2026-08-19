@@ -12,7 +12,7 @@ import { formatSessionDate } from "@/Helpers/sessionDate";
 import type { Session } from "@/models/globalTypes";
 import CalendarExportModal from "../CalendarExportModal/CalendarExportModal";
 import PaymentModal from "../PaymentModal/PaymentModal";
-import CancelSessionModal from "../SessionCard/CancelSessionModal/CancelSessionModal";
+import ClientCancelModal from "../SessionCard/ClientCancelModal/ClientCancelModal";
 import ClientRescheduleModal from "../SessionCard/ClientRescheduleModal/ClientRescheduleModal";
 import useSessionCard from "../SessionCard/useSessionCard";
 
@@ -145,22 +145,15 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                     Pay
                   </Button>
                 )}
-                <Button
+                <SplitButton
                   size="sm"
                   variant="secondary"
-                  disabled={isDemo}
-                  onClick={() => guardAction(() => setIsRescheduleModalOpen(true))}
-                >
-                  Reschedule
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  disabled={isDemo}
-                  onClick={() => guardAction(() => setIsCancelModalOpen(true))}
-                >
-                  Cancel
-                </Button>
+                  primaryLabel="Reschedule"
+                  primaryAction={() => !isDemo && guardAction(() => setIsRescheduleModalOpen(true))}
+                  options={[
+                    { label: "Cancel", onClick: () => !isDemo && guardAction(() => setIsCancelModalOpen(true)) },
+                  ]}
+                />
               </div>
 
               {/* Mobile / tablet — collapse Pay/Reschedule/Cancel into one split button */}
@@ -202,7 +195,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
           {isRescheduleModalOpen && (
             <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
           )}
-          {isCancelModalOpen && <CancelSessionModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
+          {isCancelModalOpen && <ClientCancelModal session={session} onClose={() => setIsCancelModalOpen(false)} />}
         </>
       )}
     </>

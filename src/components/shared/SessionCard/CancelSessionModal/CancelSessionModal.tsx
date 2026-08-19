@@ -55,10 +55,6 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
       let message = "Session cancelled.";
       if (data?.refund_issued) {
         message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refunded.`;
-      } else if (data?.refund_requested) {
-        message = `Session cancelled — £${(data.refund_amount_pence / 100).toFixed(2)} refund pending admin approval.`;
-      } else if (data?.refund_skipped_reason === "within_cutoff") {
-        message = "Session cancelled — no refund (within the cancellation window).";
       }
       showToast(message, "success");
       onClose();
