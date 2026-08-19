@@ -17,10 +17,13 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy functions
+      - name: Deploy all functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          supabase functions deploy create-subscription-checkout --project-ref aqgzalgrjocqatskqosp --no-verify-jwt
-          supabase functions deploy stripe-webhook --project-ref aqgzalgrjocqatskqosp --no-verify-jwt
-          supabase functions deploy get-all-practices --project-ref aqgzalgrjocqatskqosp
+          for dir in supabase/functions/*/; do
+            fn=$(basename "$dir")
+            [ "$fn" = "_shared" ] && continue
+            echo "Deploying $fn"
+            supabase functions deploy "$fn" --project-ref mxyfdvfbdrusbjiozuzx
+          done

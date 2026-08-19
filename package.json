@@ -62,6 +62,8 @@
     "update-types": "npx --yes supabase gen types typescript --project-id mxyfdvfbdrusbjiozuzx --schema public > src/models/database.types.ts --debug",
     "axe": "playwright test --ui",
     "axe:run": "playwright test",
+    "test:e2e:stripe:seed": "node e2e/stripe/seed-fixtures.mjs",
+    "test:e2e:stripe": "playwright test e2e/stripe/stripe.spec.ts",
     "a11y": "node axe-scan.mjs",
     "prepare": "node scripts/install-hooks.js"
   }
