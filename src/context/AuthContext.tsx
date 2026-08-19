@@ -297,9 +297,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       console.error("signOut error:", error.message);
-    } else {
-      store.dispatch(resetStore());
+      throw error;
     }
+    store.dispatch(resetStore());
   }, []);
 
   const displayName = userProfile?.display_name ?? userProfile?.first_name ?? null;
