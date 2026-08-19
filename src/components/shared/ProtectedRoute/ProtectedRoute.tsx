@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
+import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
 import { useAuth } from "@context/AuthContext";
 import { Role } from "@models/globalTypes";
@@ -17,7 +18,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   const location = useLocation();
 
   // Wait for session check to finish
-  if (loading) return <Spinner />;
+  if (loading) return <AuthLoadingState />;
 
   // Not logged in → send to login
   if (!isAuthenticated) {
