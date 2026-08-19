@@ -39,6 +39,10 @@ import userDirectoryReducer from "@store/slices/userDirectorySlice";
 
 import AdminClientsPageDetailed from "./AdminClientsPageDetailed";
 
+vi.mock("@/context/EncryptionContext", () => ({
+  useEncryption: () => ({ status: "unlocked", decryptNote: vi.fn(async (ciphertext: string) => ciphertext) }),
+}));
+
 // ── Supabase mock ─────────────────────────────────────────────────────────────
 //
 // makeChain() returns an object that looks like a Supabase query builder.
@@ -57,18 +61,20 @@ import AdminClientsPageDetailed from "./AdminClientsPageDetailed";
 // mock factories, making the returned values available in time.
 
 const { makeChain, supabaseMock, mockShowToast } = vi.hoisted(() => {
-  const makeChain = (data: unknown[] | null = [], error: unknown = null) => {
+  const makeChain = (data: unknown[] | null = null, error: unknown = null) => {
     const result = Promise.resolve({ data, error });
     const chain: Record<string, unknown> & {
       then: (...args: unknown[]) => unknown;
     } = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       single: vi.fn(() => result),
+      maybeSingle: vi.fn(() => result),
       // then + catch make this a "thenable", so Promise.all and await both work
       then: (res: (...args: unknown[]) => unknown, rej?: (...args: unknown[]) => unknown) =>
         result.then(res as never, rej as never),
@@ -76,9 +82,15 @@ const { makeChain, supabaseMock, mockShowToast } = vi.hoisted(() => {
     };
     return chain;
   };
+  const channelStub = { on: vi.fn().mockReturnThis(), subscribe: vi.fn().mockReturnThis() };
   return {
     makeChain,
-    supabaseMock: { from: vi.fn(() => makeChain()) },
+    supabaseMock: {
+      from: vi.fn(() => makeChain()),
+      channel: vi.fn(() => channelStub),
+      removeChannel: vi.fn(),
+      rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
+    },
     mockShowToast: vi.fn(),
   };
 });
@@ -155,6 +167,7 @@ vi.mock("@components/shared/index", () => ({
     <div className={className}>{children}</div>
   ),
   ProgressChart: () => <div data-testid="progress-chart" />,
+  HideableSection: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   // Render a plain <input> and forward the string value to handleChange,
   // matching the real Search API (it calls handleChange(string), not an event).
   Search: ({
@@ -166,6 +179,29 @@ vi.mock("@components/shared/index", () => ({
     placeholder?: string;
     id?: string;
   }) => <input id={id} placeholder={placeholder} onChange={(e) => handleChange(e.target.value)} />,
+  // Render the primary action plus every option as flat, always-visible
+  // buttons (the real component hides options behind a dropdown toggle;
+  // that interaction is SplitButton's own concern, not this page's).
+  SplitButton: ({
+    primaryLabel,
+    primaryAction,
+    options,
+  }: {
+    primaryLabel: string;
+    primaryAction: () => void;
+    options: { label: string; onClick: () => void; disabled?: boolean }[];
+  }) => (
+    <div>
+      <button type="button" onClick={primaryAction}>
+        {primaryLabel}
+      </button>
+      {options.map(({ label, onClick, disabled }) => (
+        <button type="button" key={label} onClick={onClick} disabled={disabled}>
+          {label}
+        </button>
+      ))}
+    </div>
+  ),
   // Render two plain buttons so click events trigger the tab switch callbacks.
   ToggleButtonTabs: ({
     leftButtonTitle,
@@ -375,11 +411,12 @@ describe("AdminClientsPageDetailed", () => {
   // ── Profile hero ─────────────────────────────────────────────────────────────
 
   describe("profile hero (client found)", () => {
-    it("renders the client's full name", () => {
+    it("renders the client's display name", () => {
       renderPage();
-      // Target the h1 specifically — the Avatar stub also renders "Jane Smith"
-      // so getByText would find two elements. getByRole scopes to the heading.
-      expect(screen.getByRole("heading", { level: 1, name: /jane smith/i })).toBeInTheDocument();
+      // clientDisplayName() prefers display_name over first/last, and the
+      // fixture sets one ("Jane S") — target the h1 specifically since the
+      // Avatar stub also renders it, so getByText would find two elements.
+      expect(screen.getByRole("heading", { level: 1, name: /jane s/i })).toBeInTheDocument();
     });
 
     it("renders the client's email address", () => {
@@ -517,21 +554,32 @@ describe("AdminClientsPageDetailed", () => {
   // ── Pending reschedule requests ───────────────────────────────────────────────
 
   describe("pending reschedule requests banner", () => {
+    // Scope the mock to the reschedule_requests table — a blanket
+    // mockImplementation would also feed this fixture to
+    // questionnaire_assignments, which AdminClientsPageDetailed reads into
+    // assignedForms and crashes on (it expects { questionnaires, ... } shape).
+    function mockRescheduleRequests(requests: unknown[]) {
+      supabaseMock.from.mockImplementation((table: string) =>
+        table === "reschedule_requests" ? makeChain(requests) : makeChain(null),
+      );
+    }
+
     it("is not rendered when supabase returns no requests", () => {
       renderPage();
       expect(screen.queryByText("Pending reschedule requests")).not.toBeInTheDocument();
     });
 
     it("appears when supabase returns a pending request", async () => {
-      supabaseMock.from.mockImplementation(() => makeChain([mockPendingRequest]));
+      mockRescheduleRequests([mockPendingRequest]);
       renderPage();
       await waitFor(() => {
-        expect(screen.getByText("Pending reschedule requests")).toBeInTheDocument();
+        // Singular for exactly one request — "Pending reschedule request{s}" pluralizes on count.
+        expect(screen.getByText(/pending reschedule request/i)).toBeInTheDocument();
       });
     });
 
     it("shows the client's message in quotes", async () => {
-      supabaseMock.from.mockImplementation(() => makeChain([mockPendingRequest]));
+      mockRescheduleRequests([mockPendingRequest]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText(`"${mockPendingRequest.message}"`)).toBeInTheDocument();
@@ -539,7 +587,7 @@ describe("AdminClientsPageDetailed", () => {
     });
 
     it("shows Accept and Decline buttons for each pending request", async () => {
-      supabaseMock.from.mockImplementation(() => makeChain([mockPendingRequest]));
+      mockRescheduleRequests([mockPendingRequest]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByRole("button", { name: /^accept$/i })).toBeInTheDocument();
@@ -548,7 +596,7 @@ describe("AdminClientsPageDetailed", () => {
     });
 
     it("does not render the banner when requests are accepted or rejected", async () => {
-      supabaseMock.from.mockImplementation(() => makeChain([{ ...mockPendingRequest, status: "accepted" }]));
+      mockRescheduleRequests([{ ...mockPendingRequest, status: "accepted" }]);
       renderPage();
       // Give async state update a chance to resolve
       await waitFor(() => {
@@ -558,7 +606,7 @@ describe("AdminClientsPageDetailed", () => {
 
     describe("Accept button", () => {
       beforeEach(() => {
-        supabaseMock.from.mockImplementation(() => makeChain([mockPendingRequest]));
+        mockRescheduleRequests([mockPendingRequest]);
       });
 
       it("calls supabase to update the linked session's scheduled_at", async () => {
@@ -615,7 +663,7 @@ describe("AdminClientsPageDetailed", () => {
 
     describe("Decline button", () => {
       beforeEach(() => {
-        supabaseMock.from.mockImplementation(() => makeChain([mockPendingRequest]));
+        mockRescheduleRequests([mockPendingRequest]);
       });
 
       it("calls supabase to update the request status to rejected", async () => {
@@ -672,15 +720,15 @@ describe("AdminClientsPageDetailed", () => {
   // ── Modals ─────────────────────────────────────────────────────────────────
 
   describe("Notes modal", () => {
-    it("opens when the Notes button is clicked", async () => {
+    it("opens when the Account Summary button is clicked", async () => {
       renderPage();
-      fireEvent.click(screen.getByRole("button", { name: /^notes$/i }));
+      fireEvent.click(screen.getByRole("button", { name: /account summary/i }));
       expect(await screen.findByTestId("notes-modal")).toBeInTheDocument();
     });
 
     it("closes when its onClose is triggered", async () => {
       renderPage();
-      fireEvent.click(screen.getByRole("button", { name: /^notes$/i }));
+      fireEvent.click(screen.getByRole("button", { name: /account summary/i }));
       await screen.findByTestId("notes-modal");
       fireEvent.click(screen.getByRole("button", { name: /close notes/i }));
       await waitFor(() => {
@@ -728,9 +776,21 @@ describe("AdminClientsPageDetailed", () => {
   // ── Export PDF button ─────────────────────────────────────────────────────────
 
   describe("Export PDF button", () => {
-    it("is disabled when the client has no responses", () => {
+    // Export now covers client details/sessions/check-ins/etc, not just
+    // check-in responses, so the trigger opens a section picker instead of
+    // being gated on response count — only the picker's own confirm button
+    // is conditionally disabled, based on which sections are ticked.
+    it("opens the export picker when clicked, even with no responses", async () => {
       renderPage();
-      expect(screen.getByRole("button", { name: /export pdf/i })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: /^export pdf$/i }));
+      expect(await screen.findByText("Export client PDF")).toBeInTheDocument();
+    });
+
+    it("picker's confirm button starts enabled since client details/sessions/check-ins are ticked by default", async () => {
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: /^export pdf$/i }));
+      await screen.findByText("Export client PDF");
+      expect(screen.getAllByRole("button", { name: /^export pdf$/i }).at(-1)).not.toBeDisabled();
     });
 
     it("is enabled when the client has at least one response for a known questionnaire", () => {
