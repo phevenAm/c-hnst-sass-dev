@@ -30,7 +30,14 @@ export function useVersionCheck() {
 
     check();
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    // Installed PWAs don't reliably fire visibilitychange the way browser
+    // tabs do (a standalone window can stay "visible" for a whole session),
+    // so poll as a fallback rather than relying on focus events alone.
+    const interval = setInterval(check, 5 * 60 * 1000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(interval);
+    };
   }, []);
 
   return isOutdated;

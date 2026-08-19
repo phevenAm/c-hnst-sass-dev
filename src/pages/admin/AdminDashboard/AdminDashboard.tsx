@@ -7,7 +7,6 @@ import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Avatar from "@components/shared/Avatar/Avatar";
 import { BookIcon, CreateSession, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
-import UpdateBanner from "@components/shared/UpdateBanner/UpdateBanner";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -128,7 +127,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <UpdateBanner />
       <div className="inner">
         <div className={styles.header} id="dash-header">
           <div>

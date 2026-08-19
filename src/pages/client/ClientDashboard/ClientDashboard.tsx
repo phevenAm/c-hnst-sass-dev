@@ -6,7 +6,6 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
 import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
-import UpdateBanner from "@components/shared/UpdateBanner/UpdateBanner";
 import { useAuth } from "@context/AuthContext";
 import type { Response } from "@models/globalTypes";
 import { useGetQuotesByTagQuery } from "@services/inspirationalQuotesApi";
@@ -155,7 +154,6 @@ export default function ClientDashboard() {
 
   return (
     <div className="page">
-      <UpdateBanner />
       <div className="inner">
         <div className={styles.header} id="client-dash-header">
           <h1>
