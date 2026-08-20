@@ -47,10 +47,12 @@ import styles from "./AdminScheduler.module.scss";
 //     + availability_overrides for the visible week
 //   • booked sessions (per-client colour) — from the sessions table
 //
-// Clicking a session opens CreateSessionModal in edit mode, which is
-// the existing admin reschedule flow (updates scheduled_at, fires the
-// notify-session-rescheduled edge function). Admins can move a session
-// to ANY date/time — they aren't restricted to the availability windows.
+// Clicking a session opens a details modal (SessionCard) — its own
+// "Reschedule" button opens CreateSessionModal in edit mode from there
+// (updates scheduled_at, fires the notify-session-rescheduled edge
+// function). Admins can move a session to ANY date/time — they aren't
+// restricted to the availability windows. Dragging a session directly
+// on the grid is the other, faster path to the same reschedule.
 //
 // The overview section adds donut charts (shared DonutChart) + a few key
 // number cards, all recomputed from the sessions scoped by the client filter.
@@ -102,7 +104,11 @@ const AdminScheduler = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>(Views.WORK_WEEK);
-  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  // Clicking a session on the calendar opens this detail card (SessionCard,
+  // same as everywhere else it's used) rather than jumping straight to the
+  // edit form — SessionCard's own "Reschedule" button opens CreateSessionModal
+  // itself from there when the admin actually wants to edit it.
+  const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [allStubSessions, setAllStubSessions] = useState<StubSession[]>([]);
   const [newSessionWithoutId, setNewSessionWithoutId] = useState(false);
   const [newSessionClientId, setNewSessionClientId] = useState<string | null>(null);
@@ -390,9 +396,9 @@ const AdminScheduler = () => {
 
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
-    if (r.type === "buffer" || r.type === "cancelled-session" || r.type === "cancelled-stub-session") return;
-    if (r.type === "session") {
-      setEditingSession(r.session);
+    if (r.type === "buffer" || r.type === "cancelled-stub-session") return;
+    if (r.type === "session" || r.type === "cancelled-session") {
+      setViewingSession(r.session);
     } else if (r.type === "stub-session") {
       navigate(`/admin/clients/stub/${r.stub.id}`);
     } else if (r.type === "private") {
@@ -468,12 +474,6 @@ const AdminScheduler = () => {
     setPendingDrop(null);
     setNotifyOnDrop(true);
   };
-
-  const editingClientName = useMemo(() => {
-    if (!editingSession) return "";
-    const u = users.find((x) => x.id === editingSession.client_id);
-    return u ? clientDisplayName(u, useCodenames) : "";
-  }, [editingSession, users, useCodenames]);
 
   // Session-history header — names who "this client" actually is instead of
   // leaving it generic, so switching the filter visibly changes the label.
@@ -709,13 +709,10 @@ const AdminScheduler = () => {
         </Modal>
       )}
 
-      {editingSession && (
-        <CreateSessionModal
-          session={editingSession}
-          clientId={editingSession.client_id ?? ""}
-          clientName={editingClientName}
-          onClose={() => setEditingSession(null)}
-        />
+      {viewingSession && (
+        <Modal title="Session details" onClose={() => setViewingSession(null)} size="md">
+          <SessionCard session={viewingSession} isAdmin isDemo={isDemo} />
+        </Modal>
       )}
 
       {newSessionWithoutId && !newSessionClientId && (
