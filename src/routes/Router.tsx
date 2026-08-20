@@ -14,6 +14,7 @@ import Spinner from "../components/shared/Spinner/Spinner";
 import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
+import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import { supabase } from "../lib/supabase";
@@ -67,6 +68,7 @@ function RootRedirect() {
 function AppLayout() {
   const topRef = useFocusOnNavigate();
   useSessionsRealtime();
+  useAssignmentsRealtime();
 
   return (
     <>
