@@ -125,6 +125,7 @@ const SettingsPage = () => {
   const [consentTitle, setConsentTitle] = useState("Before you continue");
   const [consentBody, setConsentBody] = useState("");
   const [consentPdfUrl, setConsentPdfUrl] = useState("");
+  const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
   const [consentCounsellorCta, setConsentCounsellorCta] = useState(
     "If you have any questions, speak to your counsellor.",
   );
@@ -366,8 +367,22 @@ const SettingsPage = () => {
     showToast("Reschedule cutoff saved.");
   };
 
+  const isPdfUrl = (url: string) => {
+    try {
+      return new URL(url).pathname.toLowerCase().endsWith(".pdf");
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveConsent = async () => {
     if (!userProfile?.id) return;
+    if (consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
+      setConsentPdfUrlError("This must be a direct link to a .pdf file.");
+      showToast("PDF link must point directly to a .pdf file.", "danger");
+      return;
+    }
+    setConsentPdfUrlError("");
     setSavingConsent(true);
     await supabase
       .from("practice_settings")
@@ -916,18 +931,24 @@ const SettingsPage = () => {
 
                 <div className={styles.field}>
                   <label htmlFor="consentPdfUrl">
-                    PDF link <small>(optional — clients can read this document in-app)</small>
+                    PDF link <small>(optional — must end in .pdf — clients can read this document in-app)</small>
                   </label>
                   <input
                     id="consentPdfUrl"
                     type="url"
                     value={consentPdfUrl}
-                    onChange={(e) => setConsentPdfUrl(e.target.value)}
-                    placeholder="https://…"
+                    onChange={(e) => {
+                      setConsentPdfUrl(e.target.value);
+                      if (consentPdfUrlError) setConsentPdfUrlError("");
+                    }}
+                    placeholder="https://example.com/document.pdf"
+                    aria-invalid={!!consentPdfUrlError}
                   />
+                  {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
                   <p className={styles.toggleHint}>
-                    Paste a link to a PDF hosted anywhere (e.g. Google Drive, Dropbox). Clients will see it embedded
-                    in-app alongside your agreement text.
+                    Must be a direct link ending in .pdf (a Dropbox share link works if it points at the file itself; a
+                    Google Drive "view" link will not). Clients will see it embedded in-app alongside your agreement
+                    text.
                   </p>
                 </div>
 

@@ -4,9 +4,27 @@
 type UpdateFn = (reloadPage?: boolean) => Promise<void>;
 
 let updateSW: UpdateFn | null = null;
+let registration: ServiceWorkerRegistration | null = null;
 
 export function setUpdateSW(fn: UpdateFn) {
   updateSW = fn;
+}
+
+export function setSwRegistration(reg: ServiceWorkerRegistration) {
+  registration = reg;
+}
+
+// Browsers only auto-check a service worker for updates on navigation to a
+// page in its scope — a PWA left open as a single long-lived tab may never
+// trigger that, so registerSW()'s "waiting" worker can still be null even
+// after a new version has deployed. Clicking "Update now" against a
+// registration with nothing waiting just no-ops: no error, no reload, the
+// banner reappears next check — which reads as the button "doing nothing"
+// or "persisting". Forcing a check here, right before the button is even
+// shown (see useVersionCheck), gives the new worker time to install so
+// there's actually something for updateSW() to activate.
+export function checkForServiceWorkerUpdate() {
+  registration?.update().catch(() => {});
 }
 
 // Tells the waiting service worker (installed via registerType: "prompt")
