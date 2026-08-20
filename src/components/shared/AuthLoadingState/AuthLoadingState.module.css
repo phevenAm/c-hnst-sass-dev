@@ -29,3 +29,11 @@
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+.detail {
+  max-width: 320px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--text-muted);
+  opacity: 0.8;
+}

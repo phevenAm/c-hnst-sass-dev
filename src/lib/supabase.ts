@@ -28,6 +28,11 @@ type RequestLogEntry = {
   outcome: "ok" | "slow" | "timeout" | "error";
 };
 
+type PendingEntry = { url: string; method: string; startedAt: number };
+
+const pending = new Map<number, PendingEntry>();
+let pendingId = 0;
+
 function readLog(): RequestLogEntry[] {
   try {
     return JSON.parse(sessionStorage.getItem(LOG_STORAGE_KEY) ?? "[]");
@@ -45,13 +50,27 @@ function appendLog(entry: RequestLogEntry) {
   }
 }
 
-// Intermittent request timing, visible from the console any time after the
-// fact via window.__supabaseRequestLog() — you don't need DevTools open (or
-// recording) at the exact moment something hangs. Survives until the tab
-// closes (sessionStorage), so it's still there even if the page had to be
-// reloaded to recover from a stuck spinner.
+// Requests still in flight right now, with how long each has been waiting —
+// unlike readLog() (which only records a request once it settles), this
+// shows what's actually hanging *while* it's hanging.
+function readPending(): Array<PendingEntry & { elapsedMs: number }> {
+  const now = Date.now();
+  return Array.from(pending.values()).map((entry) => ({ ...entry, elapsedMs: now - entry.startedAt }));
+}
+
+type DebugWindow = {
+  __supabaseRequestLog: () => RequestLogEntry[];
+  __supabasePendingRequests: () => Array<PendingEntry & { elapsedMs: number }>;
+};
+
+// Both visible from the console any time after the fact (or, for pending
+// requests, during the hang itself) — you don't need DevTools open or
+// recording at the exact moment something goes wrong. The settled log
+// survives until the tab closes (sessionStorage), so it's still there even
+// if the page had to be reloaded to recover from a stuck spinner.
 if (typeof window !== "undefined") {
-  (window as unknown as { __supabaseRequestLog: () => RequestLogEntry[] }).__supabaseRequestLog = readLog;
+  (window as unknown as DebugWindow).__supabaseRequestLog = readLog;
+  (window as unknown as DebugWindow).__supabasePendingRequests = readPending;
 }
 
 function requestUrl(input: RequestInfo | URL): string {
@@ -64,6 +83,8 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise
   const url = requestUrl(input);
   const method = init?.method ?? "GET";
   const startedAt = Date.now();
+  const id = ++pendingId;
+  pending.set(id, { url, method, startedAt });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -91,7 +112,10 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise
       console.error(`[supabase] request ${outcome} after ${durationMs}ms: ${method} ${url}`, err);
       throw err;
     })
-    .finally(() => clearTimeout(timeout));
+    .finally(() => {
+      clearTimeout(timeout);
+      pending.delete(id);
+    });
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
