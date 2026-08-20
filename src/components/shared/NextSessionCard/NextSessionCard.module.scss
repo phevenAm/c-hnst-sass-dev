@@ -12,6 +12,20 @@
     flex-wrap: wrap;
     background: var(--bg-card);
     box-shadow: var(--shadow-md);
+
+    // Card.module.scss sets `height: 100%` unconditionally. Inside
+    // ClientSchedule's md+ flex-column layout (.calendarPage .inner), that
+    // resolves this card's flex-basis to the full remaining page height
+    // instead of its own content height, leaving a huge empty box around
+    // this strip's actual content. Only .calendarCardFill should grow to
+    // fill the remaining space. The doubled selector beats Card's
+    // single-class specificity regardless of CSS Modules' file load order
+    // (can't target Card's hashed class from another module to override it
+    // more directly).
+    &.nextStrip {
+        height: auto;
+        flex: 0 0 auto;
+    }
 }
 
 .stripLeft {

@@ -187,6 +187,19 @@
     box-shadow: var(--shadow-xs);
   }
 
+  // A booked session (and its buffer strip) is the definitive, real thing —
+  // it should always render full width, not share a lane with whatever
+  // availability window/blocked slot happens to sit underneath it. RBC's
+  // default overlap layout otherwise squeezes the session down (e.g. to 85%
+  // width) to make room for that window, leaving unexplained blank space
+  // beside it — the window's own tint/border already distinguishes it
+  // without needing a separate column. Cancelled sessions get the same
+  // treatment since they're still "real", just no longer active.
+  .rbc-event:not(.cal-window):not(.cal-blocked):not(.cal-private) {
+    width: 100% !important;
+    left: 0% !important;
+  }
+
   // RBC prints its own time range at the top of each event in time views;
   // our custom chip already shows the time, so hide the duplicate.
   .rbc-event-label {

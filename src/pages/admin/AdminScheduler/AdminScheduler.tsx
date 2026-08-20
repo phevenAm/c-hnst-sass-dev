@@ -47,10 +47,12 @@ import styles from "./AdminScheduler.module.scss";
 //     + availability_overrides for the visible week
 //   • booked sessions (per-client colour) — from the sessions table
 //
-// Clicking a session opens CreateSessionModal in edit mode, which is
-// the existing admin reschedule flow (updates scheduled_at, fires the
-// notify-session-rescheduled edge function). Admins can move a session
-// to ANY date/time — they aren't restricted to the availability windows.
+// Clicking a session opens a details modal (SessionCard) — its own
+// "Reschedule" button opens CreateSessionModal in edit mode from there
+// (updates scheduled_at, fires the notify-session-rescheduled edge
+// function). Admins can move a session to ANY date/time — they aren't
+// restricted to the availability windows. Dragging a session directly
+// on the grid is the other, faster path to the same reschedule.
 //
 // The overview section adds donut charts (shared DonutChart) + a few key
 // number cards, all recomputed from the sessions scoped by the client filter.
@@ -102,7 +104,11 @@ const AdminScheduler = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>(Views.WORK_WEEK);
-  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  // Clicking a session on the calendar opens this detail card (SessionCard,
+  // same as everywhere else it's used) rather than jumping straight to the
+  // edit form — SessionCard's own "Reschedule" button opens CreateSessionModal
+  // itself from there when the admin actually wants to edit it.
+  const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [allStubSessions, setAllStubSessions] = useState<StubSession[]>([]);
   const [newSessionWithoutId, setNewSessionWithoutId] = useState(false);
   const [newSessionClientId, setNewSessionClientId] = useState<string | null>(null);
@@ -155,11 +161,21 @@ const AdminScheduler = () => {
     }
   }, [searchParams, setSearchParams]);
   // RBC's DnD addon triggers a DOM reflow on dragstart that causes the browser
-  // to scroll to the top. Save and restore scroll position around every drag.
+  // to scroll — repeatedly, for as long as the drag lasts, not just once.
+  // Snapping back on dragend alone (the old fix) left the page visibly
+  // scrolling to the top for the whole duration of every drag and only
+  // correcting at the very end. Lock scroll position for the drag's entire
+  // duration instead: cancel every scroll event back to where the drag
+  // started, then release the lock on dragend.
   useEffect(() => {
     const onDragStart = () => {
       const y = window.scrollY;
+      const lockScroll = () => {
+        if (window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
+      };
+      window.addEventListener("scroll", lockScroll);
       const onDragEnd = () => {
+        window.removeEventListener("scroll", lockScroll);
         window.scrollTo({ top: y, behavior: "instant" });
         window.removeEventListener("dragend", onDragEnd);
       };
@@ -380,9 +396,9 @@ const AdminScheduler = () => {
 
   const handleSelectEvent = (event: SchedulerEvent) => {
     const r = event.resource;
-    if (r.type === "buffer" || r.type === "cancelled-session" || r.type === "cancelled-stub-session") return;
-    if (r.type === "session") {
-      setEditingSession(r.session);
+    if (r.type === "buffer" || r.type === "cancelled-stub-session") return;
+    if (r.type === "session" || r.type === "cancelled-session") {
+      setViewingSession(r.session);
     } else if (r.type === "stub-session") {
       navigate(`/admin/clients/stub/${r.stub.id}`);
     } else if (r.type === "private") {
@@ -459,11 +475,21 @@ const AdminScheduler = () => {
     setNotifyOnDrop(true);
   };
 
-  const editingClientName = useMemo(() => {
-    if (!editingSession) return "";
-    const u = users.find((x) => x.id === editingSession.client_id);
-    return u ? clientDisplayName(u, useCodenames) : "";
-  }, [editingSession, users, useCodenames]);
+  // Session-history header — names who "this client" actually is instead of
+  // leaving it generic, so switching the filter visibly changes the label.
+  const selectedClientLabel = useMemo(() => {
+    if (selectedClientId === "all") return "Recent across all clients";
+    if (isStubSelected) {
+      const stub = allStubs.find((s) => s.id === selectedStubId);
+      if (!stub) return "Recent for this client";
+      const name = useCodenames
+        ? stub.codename || `${stub.first_name} ${stub.last_name}`
+        : `${stub.first_name} ${stub.last_name}`;
+      return `Recent for ${name}`;
+    }
+    const client = clients.find((c) => c.id === selectedClientId);
+    return client ? `Recent for ${clientDisplayName(client, useCodenames)}` : "Recent for this client";
+  }, [selectedClientId, isStubSelected, selectedStubId, allStubs, clients, useCodenames]);
 
   const guard = isPageStatusLoading(sessionsStatus);
   if (guard) return guard;
@@ -612,11 +638,7 @@ const AdminScheduler = () => {
         <CollapsibleSection
           title="Session history"
           storageKey="scheduler:history"
-          headerRight={
-            <span className={styles.historyMeta}>
-              {selectedClientId === "all" ? "Recent across all clients" : "Recent for this client"}
-            </span>
-          }
+          headerRight={<span className={styles.historyMeta}>{selectedClientLabel}</span>}
         >
           {isStubSelected ? (
             recentStubSessions.length > 0 ? (
@@ -687,13 +709,10 @@ const AdminScheduler = () => {
         </Modal>
       )}
 
-      {editingSession && (
-        <CreateSessionModal
-          session={editingSession}
-          clientId={editingSession.client_id ?? ""}
-          clientName={editingClientName}
-          onClose={() => setEditingSession(null)}
-        />
+      {viewingSession && (
+        <Modal title="Session details" onClose={() => setViewingSession(null)} size="md">
+          <SessionCard session={viewingSession} isAdmin isDemo={isDemo} />
+        </Modal>
       )}
 
       {newSessionWithoutId && !newSessionClientId && (

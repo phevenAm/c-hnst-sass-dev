@@ -8,16 +8,19 @@ import { RootState } from "@/store";
 
 import { Card, NextSessionCard, SessionCard, ToggleButtonTabs } from "@/components/shared";
 import Button from "@/components/shared/Button/Button";
+import Modal from "@/components/shared/Modal/Modal";
 import SchedulerCalendar from "@/components/shared/SchedulerCalendar/SchedulerCalendar";
 import {
   availabilityEvents,
   bookableWindowsForDate,
   clientSessionEvents,
+  type SchedulerEvent,
 } from "@/components/shared/SchedulerCalendar/schedulerUtils";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useToast } from "@/context/ToastContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
+import type { Session } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
@@ -33,6 +36,7 @@ const ClientSchedule = () => {
   const [showCalendar, setShowCalendar] = useState(true);
   const [calDate, setCalDate] = useState<Date>(new Date());
   const [calView, setCalView] = useState<View>(Views.WORK_WEEK);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
@@ -108,6 +112,16 @@ const ClientSchedule = () => {
     [rules, overrides, mySessions],
   );
 
+  // Clicking a session chip on the calendar opens the same detail/action card
+  // used in list view — availability windows and the buffer strip aren't
+  // clickable, there's nothing for a client to do with those.
+  const handleSelectEvent = useCallback((event: SchedulerEvent) => {
+    const r = event.resource;
+    if (r.type === "session" || r.type === "cancelled-session") {
+      setSelectedSession(r.session);
+    }
+  }, []);
+
   const guard = isPageStatusLoading(sessionStatus);
   if (guard) return guard;
 
@@ -143,13 +157,15 @@ const ClientSchedule = () => {
             Data comes from allSessions (already fetched) — filter by attended field.
             Keep it encouraging, not clinical. Admin aggregate view lives in AdminScheduler. */}
 
-        {upcomingSessions[0] ? (
-          <NextSessionCard session={upcomingSessions[0]} />
-        ) : (
-          <Card className={styles.nextStrip}>
-            <p className={styles.noUpcoming}>No upcoming sessions booked</p>
-          </Card>
-        )}
+        <div className={styles.nextSlot}>
+          {upcomingSessions[0] ? (
+            <NextSessionCard session={upcomingSessions[0]} />
+          ) : (
+            <Card className={styles.nextStrip}>
+              <p className={styles.noUpcoming}>No upcoming sessions booked</p>
+            </Card>
+          )}
+        </div>
 
         {showCalendar ? (
           <Card className={`${styles.calendarCard} ${styles.calendarCardFill}`}>
@@ -159,6 +175,7 @@ const ClientSchedule = () => {
               view={calView}
               onNavigate={setCalDate}
               onView={setCalView}
+              onSelectEvent={handleSelectEvent}
               slotPropGetter={slotPropGetter}
               height="100%"
             />
@@ -180,6 +197,12 @@ const ClientSchedule = () => {
           </Card>
         )}
       </div>
+
+      {selectedSession && (
+        <Modal title="Session details" onClose={() => setSelectedSession(null)} size="md">
+          <SessionCard session={selectedSession} isAdmin={isAdmin} isDemo={isDemo} />
+        </Modal>
+      )}
     </div>
   );
 };

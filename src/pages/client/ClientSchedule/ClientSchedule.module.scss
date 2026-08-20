@@ -19,11 +19,20 @@
         height: 100%;
         min-height: 0;
 
+        // .inner's margin: 0 auto (from the shared container-inner mixin) is meant
+        // for normal block layout, where width: auto fills the available space up
+        // to max-width before centering. As a flex item here, auto cross-axis
+        // margins mean something different — they override stretch and shrink the
+        // item to its content width instead, which is why this page's content
+        // used to hug a ~580px column with huge empty gutters on a wide screen.
+        // An explicit width: 100% keeps it a definite size so margin: auto goes
+        // back to plain centering once max-width clamps it.
         :global(.inner) {
             display: flex;
             flex-direction: column;
             flex: 1;
             min-height: 0;
+            width: 100%;
         }
     }
 }
@@ -88,6 +97,22 @@
     }
 }
 
+// ── Next session slot ──────────────────────────────────────
+// Card's own base style is height: 100% (fine on grid layouts, where it
+// matches sibling card heights — see Card.module.scss). From md up on this
+// page, .inner has a definite height (see .calendarPage above), so without
+// this override the next-session card stretches to fill nearly all of it,
+// crushing the actual calendar below down to a sliver. Pin it to its
+// content height instead; this wraps both NextSessionCard's Card and the
+// empty-state Card below.
+.nextSlot {
+    flex: 0 0 auto;
+
+    :global(.card) {
+        height: auto;
+    }
+}
+
 // ── Next session strip (empty state only — the populated card lives in
 //    NextSessionCard.module.scss) ─────────────────────────────────────
 .nextStrip {
@@ -100,6 +125,14 @@
     flex-wrap: wrap;
     background: var(--bg-card);
     box-shadow: var(--shadow-md);
+
+    // Same fix as NextSessionCard.module.scss's .nextStrip — see its comment.
+    // This is the empty-state ("Nothing booked yet") substitute card, which
+    // hits the exact same Card height:100% / flex-column collision.
+    &.nextStrip {
+        height: auto;
+        flex: 0 0 auto;
+    }
 }
 
 .noUpcoming {

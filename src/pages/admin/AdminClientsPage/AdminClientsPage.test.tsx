@@ -26,5 +26,7 @@ test("renders AdminClientsPage component", () => {
     </Provider>,
   );
 
-  expect(screen.getByRole("heading", { name: /clients/i })).toBeInTheDocument();
+  // level: 1 — the empty-state ("No clients yet") also renders a heading
+  // matching /clients/i, so an unscoped query is ambiguous.
+  expect(screen.getByRole("heading", { name: /clients/i, level: 1 })).toBeInTheDocument();
 });
