@@ -206,19 +206,53 @@ export default function AdminCpdPage() {
     doc.text(`${name} · ${currentYear}`, 14, 26);
     doc.text(`Total hours: ${totalHours(logsToExport).toFixed(1)} / ${target}`, 14, 32);
 
+    // Per-type breakdown, so the target line above isn't the only detail on offer.
+    const byType = (Object.keys(ACTIVITY_LABELS) as CpdActivityType[])
+      .map((type) => ({ type, hours: totalHours(logsToExport.filter((l) => l.activity_type === type)) }))
+      .filter((t) => t.hours > 0);
+    doc.setFontSize(9);
+    doc.text(byType.map((t) => `${ACTIVITY_LABELS[t.type]}: ${t.hours.toFixed(1)}h`).join("   ·   "), 14, 38);
+
     autoTable(doc, {
-      startY: 38,
-      head: [["Date", "Type", "Title / Issues", "Supervisor / Provider", "Duration", "Action"]],
+      startY: 44,
+      head: [["Date", "Type", "Session #", "Title / Issues", "Supervisor / Provider", "Mode", "Venue", "Duration"]],
       body: logsToExport.map((l) => [
         l.date,
-        ACTIVITY_LABELS[l.activity_type],
+        activityLabel(l),
+        l.session_number ?? "",
         l.activity_type === "supervision" ? (l.issues_raised ?? "") : (l.title ?? ""),
         l.activity_type === "supervision" ? (l.supervisor_name ?? "") : (l.provider ?? ""),
+        l.mode ?? "",
+        l.venue ?? "",
         minutesToHours(l.duration_minutes),
       ]),
-      styles: { fontSize: 9 },
+      styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [45, 114, 100] },
     });
+
+    // Notes/reflections don't fit the table — list them below, one block per entry that has one.
+    const withNotes = logsToExport.filter((l) => l.notes?.trim());
+    if (withNotes.length > 0) {
+      let y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes", 14, y);
+      y += 7;
+      for (const l of withNotes) {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${l.date} — ${activityLabel(l)}`, 14, y);
+        y += 5;
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(l.notes ?? "", 180);
+        doc.text(lines, 14, y);
+        y += lines.length * 5 + 6;
+      }
+    }
 
     doc.save(`cpd-log-${currentYear}.pdf`);
   };
@@ -332,7 +366,7 @@ export default function AdminCpdPage() {
                   <th>Title / Issues raised</th>
                   <th>Supervisor / Provider</th>
                   <th>Duration</th>
-                  <th />
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import dayjs from "dayjs";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import Button from "@components/shared/Button/Button";
@@ -524,6 +526,73 @@ export default function AdminSupervisionPage() {
 
   const nextSessionNumber = manual.length + calendar.length + 1;
 
+  const exportPdf = () => {
+    const doc = new jsPDF();
+    const name = userProfile?.display_name ?? "Counsellor";
+    doc.setFontSize(16);
+    doc.text("Supervision Log", 14, 18);
+    doc.setFontSize(10);
+    doc.text(`${name} · ${currentYear}`, 14, 26);
+    doc.text(
+      `Sessions: ${sessionCount}   ·   Hours: ${totalHours.toFixed(1)}${totalCost > 0 ? `   ·   Fees: £${(totalCost / 100).toFixed(2)}` : ""}`,
+      14,
+      32,
+    );
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["#", "Date", "Supervisor", "Session #", "Mode", "Venue", "Duration", "Fee", "Source"]],
+      body: thisYear.map((e, idx) => [
+        String(thisYear.length - idx),
+        e.date,
+        e.supervisorName ?? "—",
+        e.sessionNumber ?? "",
+        e.mode ?? "",
+        e.venue ?? "",
+        fmt(e.durationMinutes),
+        fmtCost(e.costPence, e.currency),
+        e.source === "calendar" ? "Calendar" : "Manual",
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [45, 114, 100] },
+    });
+
+    // Issues raised + reflections are the clinically useful part — list them
+    // below the table rather than cramming free text into a cell.
+    const withDetail = thisYear.filter((e) => e.issuesRaised?.trim() || e.notes?.trim());
+    if (withDetail.length > 0) {
+      let y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Issues Raised & Reflections", 14, y);
+      y += 7;
+      for (const e of withDetail) {
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${e.date} — ${e.supervisorName ?? "Supervision"}`, 14, y);
+        y += 5;
+        doc.setFont("helvetica", "normal");
+        if (e.issuesRaised?.trim()) {
+          const lines = doc.splitTextToSize(`Issues raised: ${e.issuesRaised}`, 180);
+          doc.text(lines, 14, y);
+          y += lines.length * 5 + 2;
+        }
+        if (e.notes?.trim()) {
+          const lines = doc.splitTextToSize(`Notes: ${e.notes}`, 180);
+          doc.text(lines, 14, y);
+          y += lines.length * 5 + 2;
+        }
+        y += 4;
+      }
+    }
+
+    doc.save(`supervision-log-${currentYear}.pdf`);
+  };
+
   if (loading) return null;
 
   return (
@@ -534,15 +603,15 @@ export default function AdminSupervisionPage() {
             <h1 className={styles.title}>Supervision</h1>
             <p className={styles.sub}>Track your professional supervision sessions</p>
           </div>
-          <Button
+          <SplitButton
             variant="primary"
-            onClick={() => {
+            primaryLabel="Add session"
+            primaryAction={() => {
               setEditing(null);
               setModalOpen(true);
             }}
-          >
-            Add session
-          </Button>
+            options={[{ label: "Export PDF…", onClick: exportPdf, disabled: thisYear.length === 0 }]}
+          />
         </div>
 
         {/* Stats */}
@@ -609,7 +678,7 @@ export default function AdminSupervisionPage() {
                   <th>Duration</th>
                   <th>Fee</th>
                   <th>Source</th>
-                  <th />
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>

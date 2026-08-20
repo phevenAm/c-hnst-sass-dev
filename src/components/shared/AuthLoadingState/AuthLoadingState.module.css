@@ -29,3 +29,19 @@
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+.resetButton {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.resetButton:hover {
+  background: var(--bg-muted);
+}
