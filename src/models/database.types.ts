@@ -667,6 +667,7 @@ export type Database = {
         Row: {
           address: string | null;
           admin_id: string;
+          allow_block_session_cancellation: boolean;
           auto_cancel_enabled: boolean;
           bank_account_name: string | null;
           bank_account_number: string | null;
@@ -717,6 +718,7 @@ export type Database = {
         Insert: {
           address?: string | null;
           admin_id: string;
+          allow_block_session_cancellation?: boolean;
           auto_cancel_enabled?: boolean;
           bank_account_name?: string | null;
           bank_account_number?: string | null;
@@ -767,6 +769,7 @@ export type Database = {
         Update: {
           address?: string | null;
           admin_id?: string;
+          allow_block_session_cancellation?: boolean;
           auto_cancel_enabled?: boolean;
           bank_account_name?: string | null;
           bank_account_number?: string | null;

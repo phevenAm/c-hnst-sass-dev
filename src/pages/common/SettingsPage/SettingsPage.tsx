@@ -121,10 +121,13 @@ const SettingsPage = () => {
   const [rescheduleCutoffEnabled, setRescheduleCutoffEnabled] = useState(true);
   const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState(48);
   const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
+  const [allowBlockSessionCancellation, setAllowBlockSessionCancellation] = useState(true);
+  const [savingBlockCancellation, setSavingBlockCancellation] = useState(false);
   const [consentEnabled, setConsentEnabled] = useState(false);
   const [consentTitle, setConsentTitle] = useState("Before you continue");
   const [consentBody, setConsentBody] = useState("");
   const [consentPdfUrl, setConsentPdfUrl] = useState("");
+  const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
   const [consentCounsellorCta, setConsentCounsellorCta] = useState(
     "If you have any questions, speak to your counsellor.",
   );
@@ -228,6 +231,7 @@ const SettingsPage = () => {
         setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
         setRescheduleCutoffEnabled(data.reschedule_cutoff_hours != null);
         setRescheduleCutoffHours(data.reschedule_cutoff_hours ?? 48);
+        setAllowBlockSessionCancellation(data.allow_block_session_cancellation ?? true);
         setConsentEnabled(data.consent_enabled ?? false);
         setConsentTitle(data.consent_title ?? "Before you continue");
         setConsentBody(data.consent_body ?? "");
@@ -366,8 +370,33 @@ const SettingsPage = () => {
     showToast("Reschedule cutoff saved.");
   };
 
+  const handleSaveBlockCancellation = async () => {
+    if (!userProfile?.id) return;
+    setSavingBlockCancellation(true);
+    await supabase
+      .from("practice_settings")
+      .update({ allow_block_session_cancellation: allowBlockSessionCancellation })
+      .eq("admin_id", userProfile.id);
+    setSavingBlockCancellation(false);
+    showToast("Block cancellation setting saved.");
+  };
+
+  const isPdfUrl = (url: string) => {
+    try {
+      return new URL(url).pathname.toLowerCase().endsWith(".pdf");
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveConsent = async () => {
     if (!userProfile?.id) return;
+    if (consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
+      setConsentPdfUrlError("This must be a direct link to a .pdf file.");
+      showToast("PDF link must point directly to a .pdf file.", "danger");
+      return;
+    }
+    setConsentPdfUrlError("");
     setSavingConsent(true);
     await supabase
       .from("practice_settings")
@@ -864,6 +893,50 @@ const SettingsPage = () => {
               </div>
             </Card>
 
+            {/* Block session cancellation */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Block booking cancellations</h2>
+                <p>
+                  Controls whether clients can request to cancel a single session that's part of a block booking.
+                  Doesn't affect blocks that are already fully paid — those can never be cancelled session-by-session,
+                  regardless of this setting.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Allow block session cancellation requests</strong>
+                    <span>
+                      {allowBlockSessionCancellation
+                        ? "On — clients can request to cancel individual sessions in a block, same as any other session."
+                        : "Off — clients see a message explaining they need to contact you instead."}
+                    </span>
+                  </span>
+                  <span
+                    className={`${styles.toggleSwitch} ${allowBlockSessionCancellation ? styles.toggleSwitchOn : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={allowBlockSessionCancellation}
+                      onChange={(e) => setAllowBlockSessionCancellation(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveBlockCancellation}
+                  disabled={savingBlockCancellation}
+                >
+                  {savingBlockCancellation ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+
             {/* Client consent */}
             <Card className={styles.card}>
               <section className={styles.businessSection}>
@@ -916,18 +989,24 @@ const SettingsPage = () => {
 
                 <div className={styles.field}>
                   <label htmlFor="consentPdfUrl">
-                    PDF link <small>(optional — clients can read this document in-app)</small>
+                    PDF link <small>(optional — must end in .pdf — clients can read this document in-app)</small>
                   </label>
                   <input
                     id="consentPdfUrl"
                     type="url"
                     value={consentPdfUrl}
-                    onChange={(e) => setConsentPdfUrl(e.target.value)}
-                    placeholder="https://…"
+                    onChange={(e) => {
+                      setConsentPdfUrl(e.target.value);
+                      if (consentPdfUrlError) setConsentPdfUrlError("");
+                    }}
+                    placeholder="https://example.com/document.pdf"
+                    aria-invalid={!!consentPdfUrlError}
                   />
+                  {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
                   <p className={styles.toggleHint}>
-                    Paste a link to a PDF hosted anywhere (e.g. Google Drive, Dropbox). Clients will see it embedded
-                    in-app alongside your agreement text.
+                    Must be a direct link ending in .pdf (a Dropbox share link works if it points at the file itself; a
+                    Google Drive "view" link will not). Clients will see it embedded in-app alongside your agreement
+                    text.
                   </p>
                 </div>
 

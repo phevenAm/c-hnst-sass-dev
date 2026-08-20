@@ -86,6 +86,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const prevUserIdRef = useRef<string | null>(null);
 
+  // Races any promise against the same outer backstop used for auth init —
+  // shared so a hang triggered mid-session (e.g. a TOKEN_REFRESHED event
+  // landing while supabase-js's internals are in a bad state) gets the same
+  // guaranteed recovery as a hang on page load, instead of only page load
+  // being covered.
+  const withTimeout = <T,>(promise: Promise<T>, label: string): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`${label} did not settle within ${AUTH_INIT_TIMEOUT_MS}ms`)),
+          AUTH_INIT_TIMEOUT_MS,
+        );
+      }),
+    ]);
+
   const handleSession = async (session: Session | null) => {
     const currentAuthUser = session?.user ?? null;
     const newUserId = currentAuthUser?.id ?? null;
@@ -137,14 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const timeout = new Promise<never>((_, reject) => {
-          setTimeout(
-            () => reject(new Error(`Auth init did not settle within ${AUTH_INIT_TIMEOUT_MS}ms`)),
-            AUTH_INIT_TIMEOUT_MS,
-          );
-        });
-        const { data } = await Promise.race([supabase.auth.getSession(), timeout]);
-        await handleSession(data.session);
+        const { data } = await withTimeout(supabase.auth.getSession(), "Auth init (getSession)");
+        await withTimeout(handleSession(data.session), "Auth init (handleSession)");
       } catch (err) {
         // Multiple tabs/windows open can cause supabase-js's cross-tab auth
         // lock to get "stolen" from this one (AbortError, after its 5s
@@ -171,8 +181,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!initialised) return;
-      handleSession(session).catch((err) => {
+      // Same backstop as init: a hang here (e.g. a TOKEN_REFRESHED event
+      // landing while supabase-js's cross-tab lock is in a bad state) used
+      // to have no recovery path at all — the app would sit in whatever
+      // half-updated state it was in indefinitely, the "clear localStorage
+      // and sign back in" symptom, but mid-session instead of on load.
+      withTimeout(handleSession(session), "Auth state change").catch((err) => {
         console.error("Auth state change handling failed:", err);
+        clearPersistedAuthSession();
         setLoading(false);
       });
     });

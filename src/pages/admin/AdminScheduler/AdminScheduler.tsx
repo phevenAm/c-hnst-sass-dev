@@ -439,7 +439,7 @@ const AdminScheduler = () => {
   const handleConfirmDrop = () => {
     if (!pendingDrop) return;
     const { session, start, prevDate } = pendingDrop;
-    dispatch(updateSession({ id: session.id, scheduled_at: start.toISOString() })).then(() => {
+    dispatch(updateSession({ id: session.id, scheduled_at: start.toISOString(), status: "rescheduled" })).then(() => {
       if (notifyOnDrop) {
         supabase.functions.invoke("notify-session-rescheduled", {
           body: { session_id: session.id, previous_date: prevDate },

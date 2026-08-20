@@ -88,13 +88,10 @@ Deno.serve(async (req) => {
 
     await sendEmail({ to: adminEmail, subject, html, resendKey, fromEmail });
 
-    // In-app notification for the admin
-    await supabase.from("notifications").insert({
-      user_id: adminId,
-      type: "client_payment_claimed",
-      message: `${clientName} has marked their session on ${dateStr} as paid — check your bank.`,
-      url: `${appUrl}/admin/clients`,
-    });
+    // The in-app notification is handled by the sessions_notify_admin_manual_payment
+    // DB trigger (fires off the same manual_payment_status change this claim
+    // causes), which deep-links to /admin/payments where the approve/decline
+    // action actually lives — this function only needs to send the email.
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

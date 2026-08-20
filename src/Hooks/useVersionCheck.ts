@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { applyServiceWorkerUpdate } from "@/lib/swUpdate";
+import { applyServiceWorkerUpdate, checkForServiceWorkerUpdate } from "@/lib/swUpdate";
 
 declare const __APP_VERSION__: string;
 
@@ -21,7 +21,12 @@ export function useVersionCheck() {
     fetch(`/version.json?t=${Date.now()}`)
       .then((r) => r.json())
       .then((data: { version: string }) => {
-        if (data.version !== __APP_VERSION__) setIsOutdated(true);
+        if (data.version !== __APP_VERSION__) {
+          setIsOutdated(true);
+          // Get the real service worker installing now, not just the banner —
+          // otherwise "Update now" has nothing waiting to activate yet.
+          checkForServiceWorkerUpdate();
+        }
       })
       .catch(() => {});
   }, []);

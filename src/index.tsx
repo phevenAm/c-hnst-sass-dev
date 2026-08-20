@@ -5,13 +5,20 @@ import "./index.scss";
 
 import App from "./App";
 import ErrorBoundary from "./components/shared/ErrorBoundary/ErrorBoundary";
-import { setUpdateSW } from "./lib/swUpdate";
+import { setSwRegistration, setUpdateSW } from "./lib/swUpdate";
 
 // registerType: "prompt" (vite.config.js) means a new service worker installs
 // but waits — it only takes over once applyServiceWorkerUpdate() calls this
 // returned function, instead of every open tab silently switching versions
 // mid-session the moment a deploy goes out.
-setUpdateSW(registerSW({ immediate: true }));
+setUpdateSW(
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, reg) {
+      if (reg) setSwRegistration(reg);
+    },
+  }),
+);
 
 // Supabase's cross-tab auth lock can forcibly "steal" the lock from a tab
 // that's mid-wait (e.g. one tab signs out while another is reloading) — the

@@ -53,14 +53,34 @@ Deno.serve(async (req) => {
     // Block payments cover the whole block up front — an individual session
     // within a paid block can't be refunded/cancelled on its own. The admin
     // can still cancel it manually if the whole block needs changing.
+    // Separately, an admin can turn off block-session cancellation requests
+    // entirely regardless of payment state (Settings -> Practice), so check
+    // that first since it's the stricter gate.
     const blockId = (targetSession.metadata as { block_id?: string } | null)?.block_id;
-    if (blockId && targetSession.paid) {
-      return new Response(
-        JSON.stringify({
-          error: "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
-        }),
-        { status: 400, headers: corsHeaders },
-      );
+    if (blockId) {
+      const { data: cancelSettings } = await supabase
+        .from("practice_settings")
+        .select("allow_block_session_cancellation")
+        .eq("admin_id", targetSession.created_by)
+        .maybeSingle();
+
+      if (cancelSettings?.allow_block_session_cancellation === false) {
+        return new Response(
+          JSON.stringify({
+            error: "Sessions that are part of a block can't be cancelled individually — contact your therapist.",
+          }),
+          { status: 400, headers: corsHeaders },
+        );
+      }
+
+      if (targetSession.paid) {
+        return new Response(
+          JSON.stringify({
+            error: "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
+          }),
+          { status: 400, headers: corsHeaders },
+        );
+      }
     }
 
     const { data: existing } = await supabase
