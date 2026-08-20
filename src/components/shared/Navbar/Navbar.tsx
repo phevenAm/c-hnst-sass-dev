@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { pickColor } from "@Helpers/Helpers";
 
@@ -27,10 +27,11 @@ import styles from "./Navbar.module.scss";
 export default function Navbar() {
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const themeMode = useAppSelector(selectThemeMode);
   const [menuOpen, setMenuOpen] = useState(false);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
-  const { isAdmin, signOut, userProfile, displayName } = useAuth();
+  const { isAdmin, isDemo, signIn, signOut, userProfile, displayName } = useAuth();
   const { status: encStatus } = useEncryption();
   const { showToast } = useToast();
 
@@ -49,6 +50,19 @@ export default function Navbar() {
     } catch (error) {
       console.error("Error signing out:", error);
       showToast("Couldn't sign out — check your connection and try again.", "danger");
+    }
+  };
+
+  const handleSwitchDemoRole = async () => {
+    try {
+      await signIn(
+        isAdmin ? "demo-client@honest.com" : "demo-admin@honest.com",
+        isAdmin ? "DemoClient2026" : "DemoAdmin2026",
+      );
+      navigate(isAdmin ? "/dashboard" : "/admin");
+    } catch (error) {
+      console.error("Error switching demo role:", error);
+      showToast("Couldn't switch demo accounts — try again in a moment.", "danger");
     }
   };
 
@@ -122,6 +136,12 @@ export default function Navbar() {
 
         {/* Right actions */}
         <div className={styles.actions}>
+          {isDemo && (
+            <button type="button" onClick={handleSwitchDemoRole} className={styles.iconBtn}>
+              View as {isAdmin ? "client" : "therapist"}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => dispatch(toggleTheme())}

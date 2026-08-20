@@ -234,13 +234,13 @@ export default function AdminClientsPageDetailed() {
         }
         if (!data.is_encrypted) {
           const text = data.content as string;
-          setAccountSummaryPreview(text.length > 120 ? text.slice(0, 120) + "…" : text);
+          setAccountSummaryPreview(text?.length > 120 ? text.slice(0, 120) + "…" : text);
           return;
         }
         if (data.note_iv && encStatus === "unlocked") {
           try {
             const plain = await decryptNote(data.content as string, data.note_iv as string);
-            setAccountSummaryPreview(plain.length > 120 ? plain.slice(0, 120) + "…" : plain);
+            setAccountSummaryPreview(plain?.length > 120 ? plain.slice(0, 120) + "…" : plain);
           } catch {
             setAccountSummaryPreview(null);
           }
