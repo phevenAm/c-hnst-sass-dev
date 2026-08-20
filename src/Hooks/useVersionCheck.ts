@@ -1,15 +1,30 @@
+import { useEffect, useState } from "react";
+
 import { applyServiceWorkerUpdate } from "@/lib/swUpdate";
+
+declare const __APP_VERSION__: string;
 
 export async function hardRefresh() {
   await applyServiceWorkerUpdate();
 }
 
-// Disabled 2026-08-20 at Stephen's request while chasing the mid-session
-// production slowdown — this polled /version.json every 5 min + on every
-// tab focus and drove UpdateBanner. Suspected (not confirmed) as a
-// contributing factor. UpdateBanner now never shows since isOutdated is
-// permanently false; hardRefresh()/applyServiceWorkerUpdate() are untouched
-// and still work if triggered another way.
+// Was polling /version.json every 5 min + on every tab focus, and was fully
+// disabled 2026-08-20 while chasing a mid-session production slowdown
+// (suspected, never confirmed, contributing factor). Restored as a single
+// check on mount only — one fetch when the app instance opens, no interval,
+// no focus listener — so UpdateBanner can still surface a real update
+// without repeat firing during a session.
 export function useVersionCheck() {
-  return false;
+  const [isOutdated, setIsOutdated] = useState(false);
+
+  useEffect(() => {
+    fetch(`/version.json?t=${Date.now()}`)
+      .then((r) => r.json())
+      .then((data: { version: string }) => {
+        if (data.version !== __APP_VERSION__) setIsOutdated(true);
+      })
+      .catch(() => {});
+  }, []);
+
+  return isOutdated;
 }

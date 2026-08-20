@@ -308,6 +308,12 @@ $admin-sidebar-collapsed-w: 60px;
 
 .page-content {
   flex: 1;
+  // Flex items default to min-height: auto, which floors them at their
+  // content's height and stops them from ever shrinking to fit #main-content
+  // (see #main-content above). Pages that just scroll never noticed; pages
+  // that size a child to height: 100% of this (e.g. ClientSchedule's
+  // calendar view) silently inherited an oversized, wrong ancestor height.
+  min-height: 0;
 }
 
 // ── Utilities ──────────────────────────────────────────────
