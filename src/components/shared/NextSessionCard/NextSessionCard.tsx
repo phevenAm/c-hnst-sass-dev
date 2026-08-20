@@ -165,9 +165,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                   variant="secondary"
                   primaryLabel="Reschedule"
                   primaryAction={() => !isDemo && guardAction(() => setIsRescheduleModalOpen(true))}
-                  options={[
-                    { label: "Cancel", onClick: () => !isDemo && handleCancelClick() },
-                  ]}
+                  options={[{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]}
                 />
               </div>
 
