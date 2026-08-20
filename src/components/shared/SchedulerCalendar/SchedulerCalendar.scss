@@ -43,10 +43,9 @@
   // Faint colour tint + coloured border (green = open, red = blocked).
   // Booked sessions are fully opaque so they read as the filled blocks.
   .cal-window {
-    background-color: color-mix(in srgb, var(--accent-dark) 30%, transparent) !important;
+    background-color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
     border: 1px solid color-mix(in srgb, var(--accent-dark) 75%, transparent) !important;
     color: var(--text-inverse) !important;
-    background-color: var(--accent) !important;
   }
 
   .cal-blocked {
@@ -194,7 +193,6 @@
   }
 
   .rbc-event {
-    // border-radius: var(--r-md);
     padding: 3px 6px;
     border: none;
     box-shadow: var(--shadow-xs);
@@ -222,6 +220,7 @@
   .rbc-event.rbc-selected {
     outline: 2px solid var(--border-focus);
     outline-offset: 1px;
+
   }
 
   .rbc-off-range-bg {

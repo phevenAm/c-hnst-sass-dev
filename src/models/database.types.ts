@@ -821,6 +821,7 @@ export type Database = {
           assigned_at: string | null;
           id: string;
           is_plotted: boolean;
+          prompt_again_at: string | null;
           questionnaire_id: string | null;
           stub_id: string | null;
           user_id: string | null;
@@ -829,6 +830,7 @@ export type Database = {
           assigned_at?: string | null;
           id?: string;
           is_plotted?: boolean;
+          prompt_again_at?: string | null;
           questionnaire_id?: string | null;
           stub_id?: string | null;
           user_id?: string | null;
@@ -837,6 +839,7 @@ export type Database = {
           assigned_at?: string | null;
           id?: string;
           is_plotted?: boolean;
+          prompt_again_at?: string | null;
           questionnaire_id?: string | null;
           stub_id?: string | null;
           user_id?: string | null;

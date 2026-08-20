@@ -292,13 +292,13 @@ $admin-sidebar-collapsed-w: 60px;
   flex-direction: column;
   flex: 1;
   overflow-y: auto;
-  padding: $sp-8 $sp-6;
+  padding: 0 $sp-6;
   padding-top: 50px !important;
 
   @include until-md {
     padding-top: 30px !important;
 
-    padding: $sp-5 $sp-3;
+    padding: 0 $sp-3;
   }
 
   .inner {
@@ -314,6 +314,24 @@ $admin-sidebar-collapsed-w: 60px;
   // that size a child to height: 100% of this (e.g. ClientSchedule's
   // calendar view) silently inherited an oversized, wrong ancestor height.
   min-height: 0;
+
+  // Bottom breathing room for scrolled content. NOT padding-bottom: verified
+  // in a real Chromium instance that padding-bottom on a flex item (this is
+  // one, via flex:1 above) gets dropped from #main-content's scrollHeight —
+  // scrolling to the programmatic max still lands flush with the last real
+  // element, padding invisible. A generated ::after box is a real element in
+  // the render tree, so it counts and actually reserves the space.
+  &::after {
+    content: "";
+    display: block;
+    height: $sp-8;
+  }
+
+  @include until-md {
+    &::after {
+      height: $sp-5;
+    }
+  }
 }
 
 // ── Utilities ──────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 
 import dayjs from "dayjs";
@@ -58,8 +59,44 @@ export default function SchedulerCalendar({
   slotPropGetter,
   height = "72vh",
 }: SchedulerCalendarProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // RBC's DnD addon only flags "now dragging" on the first mousemove after
+  // mousedown (via a React state update), which lags a tick behind the
+  // mousedown itself — long enough for the page's real scroll container
+  // (#main-content, see index.scss) to jump before that state change ever
+  // applies. Locking straight off the wrapper's mousedown/touchstart (no
+  // React round-trip) closes that gap; unlocking on window mouseup/touchend
+  // covers drops both inside and outside the calendar.
+  useEffect(() => {
+    const wrapperEl = wrapperRef.current;
+    if (!wrapperEl) return;
+
+    const lock = () => {
+      const scrollEl = document.getElementById("main-content");
+      if (scrollEl) scrollEl.style.overflowY = "hidden";
+    };
+    const unlock = () => {
+      const scrollEl = document.getElementById("main-content");
+      if (scrollEl) scrollEl.style.overflowY = "";
+    };
+
+    wrapperEl.addEventListener("mousedown", lock, { capture: true });
+    wrapperEl.addEventListener("touchstart", lock, { capture: true, passive: true });
+    window.addEventListener("mouseup", unlock);
+    window.addEventListener("touchend", unlock);
+
+    return () => {
+      wrapperEl.removeEventListener("mousedown", lock, { capture: true });
+      wrapperEl.removeEventListener("touchstart", lock, { capture: true });
+      window.removeEventListener("mouseup", unlock);
+      window.removeEventListener("touchend", unlock);
+      unlock();
+    };
+  }, []);
+
   return (
-    <div className="portal-calendar">
+    <div className="portal-calendar" ref={wrapperRef}>
       <DnDCalendar
         localizer={localizer}
         events={events}
