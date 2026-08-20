@@ -155,11 +155,21 @@ const AdminScheduler = () => {
     }
   }, [searchParams, setSearchParams]);
   // RBC's DnD addon triggers a DOM reflow on dragstart that causes the browser
-  // to scroll to the top. Save and restore scroll position around every drag.
+  // to scroll — repeatedly, for as long as the drag lasts, not just once.
+  // Snapping back on dragend alone (the old fix) left the page visibly
+  // scrolling to the top for the whole duration of every drag and only
+  // correcting at the very end. Lock scroll position for the drag's entire
+  // duration instead: cancel every scroll event back to where the drag
+  // started, then release the lock on dragend.
   useEffect(() => {
     const onDragStart = () => {
       const y = window.scrollY;
+      const lockScroll = () => {
+        if (window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
+      };
+      window.addEventListener("scroll", lockScroll);
       const onDragEnd = () => {
+        window.removeEventListener("scroll", lockScroll);
         window.scrollTo({ top: y, behavior: "instant" });
         window.removeEventListener("dragend", onDragEnd);
       };
@@ -465,6 +475,22 @@ const AdminScheduler = () => {
     return u ? clientDisplayName(u, useCodenames) : "";
   }, [editingSession, users, useCodenames]);
 
+  // Session-history header — names who "this client" actually is instead of
+  // leaving it generic, so switching the filter visibly changes the label.
+  const selectedClientLabel = useMemo(() => {
+    if (selectedClientId === "all") return "Recent across all clients";
+    if (isStubSelected) {
+      const stub = allStubs.find((s) => s.id === selectedStubId);
+      if (!stub) return "Recent for this client";
+      const name = useCodenames
+        ? stub.codename || `${stub.first_name} ${stub.last_name}`
+        : `${stub.first_name} ${stub.last_name}`;
+      return `Recent for ${name}`;
+    }
+    const client = clients.find((c) => c.id === selectedClientId);
+    return client ? `Recent for ${clientDisplayName(client, useCodenames)}` : "Recent for this client";
+  }, [selectedClientId, isStubSelected, selectedStubId, allStubs, clients, useCodenames]);
+
   const guard = isPageStatusLoading(sessionsStatus);
   if (guard) return guard;
 
@@ -612,11 +638,7 @@ const AdminScheduler = () => {
         <CollapsibleSection
           title="Session history"
           storageKey="scheduler:history"
-          headerRight={
-            <span className={styles.historyMeta}>
-              {selectedClientId === "all" ? "Recent across all clients" : "Recent for this client"}
-            </span>
-          }
+          headerRight={<span className={styles.historyMeta}>{selectedClientLabel}</span>}
         >
           {isStubSelected ? (
             recentStubSessions.length > 0 ? (

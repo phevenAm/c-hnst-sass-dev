@@ -15,10 +15,16 @@ const renderNavbar = () => renderWithProviders(<Navbar />, {});
 vi.mock("../../../context/AuthContext", () => ({
   useAuth: () => ({
     isAdmin: false,
+    isDemo: false,
+    signIn: vi.fn(),
     signOut: vi.fn(),
     userProfile: DummyProfile,
     displayName: "Dummy Username",
   }),
+}));
+
+vi.mock("@context/EncryptionContext", () => ({
+  useEncryption: () => ({ status: "disabled" }),
 }));
 
 describe("Navbar", () => {
