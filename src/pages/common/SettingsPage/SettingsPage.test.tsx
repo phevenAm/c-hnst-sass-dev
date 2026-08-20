@@ -46,6 +46,8 @@ vi.mock("@context/AuthContext", () => ({
 // otherwise a test that overrides loading/userProfile would leak into the next one.
 beforeEach(() => {
   mockUseAuth.mockImplementation(() => defaultAuthValue);
+  Object.assign(currentRow, initialRow);
+  setGoogleStatusRow(null);
 });
 
 vi.mock("@context/EncryptionContext", () => ({
@@ -74,7 +76,7 @@ vi.mock("@context/ToastContext", () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
-const { supabaseMock, updateSpy, initialRow } = vi.hoisted(() => {
+const { supabaseMock, updateSpy, initialRow, currentRow, invokeSpy, setGoogleStatusRow } = vi.hoisted(() => {
   const initialRow = {
     business_name: "",
     email: "",
@@ -103,14 +105,27 @@ const { supabaseMock, updateSpy, initialRow } = vi.hoisted(() => {
     consent_pdf_url: "",
     consent_counsellor_cta: "If you have any questions, speak to your counsellor.",
   };
+  // Mutable copy the mock reads from — tests can tweak fields (e.g.
+  // stripe_connect_onboarded) before rendering without touching the defaults.
+  const currentRow: typeof initialRow = { ...initialRow };
+  let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
   const updateSpy = vi.fn();
+  const invokeSpy = vi.fn((fnName: string) =>
+    Promise.resolve({ data: { url: `https://example.com/${fnName}` }, error: null }),
+  );
+  const rpcSpy = vi.fn((fnName: string) => {
+    if (fnName === "get_google_calendar_status") {
+      return Promise.resolve({ data: googleStatusRow ? [googleStatusRow] : [], error: null });
+    }
+    return Promise.resolve({ data: [], error: null });
+  });
   const supabaseMock = {
     from: vi.fn((table: string) => {
       if (table !== "practice_settings") throw new Error(`Unexpected table in test: ${table}`);
       return {
         select: () => ({
           eq: () => ({
-            single: () => Promise.resolve({ data: initialRow, error: null }),
+            single: () => Promise.resolve({ data: currentRow, error: null }),
           }),
         }),
         update: (payload: Record<string, unknown>) => {
@@ -119,9 +134,19 @@ const { supabaseMock, updateSpy, initialRow } = vi.hoisted(() => {
         },
       };
     }),
-    rpc: vi.fn(() => Promise.resolve({ data: [], error: null })),
+    rpc: rpcSpy,
+    functions: { invoke: invokeSpy },
   };
-  return { supabaseMock, updateSpy, initialRow };
+  return {
+    supabaseMock,
+    updateSpy,
+    initialRow,
+    currentRow,
+    invokeSpy,
+    setGoogleStatusRow: (row: typeof googleStatusRow) => {
+      googleStatusRow = row;
+    },
+  };
 });
 vi.mock("@/lib/supabase", () => ({ supabase: supabaseMock }));
 
@@ -138,6 +163,12 @@ async function openEmailsTab() {
   render(<SettingsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Emails" }));
   await screen.findByText("Manage emails");
+}
+
+async function openInterfaceTab() {
+  render(<SettingsPage />);
+  fireEvent.click(screen.getByRole("button", { name: "Interface" }));
+  await screen.findByText("Use codenames");
 }
 
 function getEmailRowToggle(templateLabel: string) {
@@ -254,5 +285,129 @@ describe("SettingsPage — client-facing emails", () => {
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ disabled_email_types: ["session_cancelled"] }));
     });
+  });
+
+  it("sends a test email for the reminder template", async () => {
+    await openEmailsTab();
+
+    fireEvent.click(screen.getByText("Session reminder"));
+    fireEvent.click(await screen.findByRole("button", { name: "Send test to me" }));
+
+    await waitFor(() => {
+      expect(invokeSpy).toHaveBeenCalledWith(
+        "send-test-email",
+        expect.objectContaining({ body: expect.objectContaining({ type: "reminder" }) }),
+      );
+    });
+  });
+});
+
+describe("SettingsPage — profile", () => {
+  it("updates the display name", async () => {
+    render(<SettingsPage />);
+
+    const nameInput = screen.getByLabelText(/display name/i);
+    fireEvent.change(nameInput, { target: { value: "New Name" } });
+    fireEvent.click(screen.getByRole("button", { name: "Update profile" }));
+
+    await waitFor(() => {
+      expect(defaultAuthValue.updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ display_name: "New Name" }),
+      );
+    });
+  });
+});
+
+describe("SettingsPage — business information", () => {
+  it("saves changed business details", async () => {
+    await openPracticeTab();
+
+    fireEvent.change(getFieldInput("Business name"), { target: { value: "Clarity Counselling" } });
+    fireEvent.click(
+      within(getCardByHeading("Business information")).getByRole("button", { name: "Save business info" }),
+    );
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ business_name: "Clarity Counselling" }));
+    });
+  });
+});
+
+describe("SettingsPage — Stripe Connect", () => {
+  it("shows a connect button when Stripe isn't linked yet", async () => {
+    await openPracticeTab();
+    expect(screen.getByRole("button", { name: "Connect Stripe account" })).toBeInTheDocument();
+  });
+
+  it("shows a connected message once Stripe is linked", async () => {
+    currentRow.stripe_connect_onboarded = true;
+    await openPracticeTab();
+    expect(screen.getByText("Stripe connected")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Stripe account" })).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsPage — Google Calendar sync", () => {
+  it("shows a connect button when no calendar is linked", async () => {
+    await openPracticeTab();
+    expect(screen.getByRole("button", { name: "Connect Google Calendar" })).toBeInTheDocument();
+  });
+
+  it("pauses sync for an already-connected calendar", async () => {
+    setGoogleStatusRow({ connected: true, google_email: "admin@example.com", sync_enabled: true });
+    await openPracticeTab();
+
+    const syncToggle = await screen.findByRole("checkbox", { name: /sync to google calendar/i });
+    fireEvent.click(syncToggle);
+
+    await waitFor(() => {
+      expect(supabaseMock.rpc).toHaveBeenCalledWith("set_google_calendar_sync_enabled", { p_enabled: false });
+    });
+  });
+
+  it("disconnects Google Calendar after confirming", async () => {
+    setGoogleStatusRow({ connected: true, google_email: "admin@example.com", sync_enabled: true });
+    await openPracticeTab();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Disconnect Google Calendar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, disconnect" }));
+
+    await waitFor(() => {
+      expect(invokeSpy).toHaveBeenCalledWith("google-calendar-disconnect");
+    });
+  });
+});
+
+describe("SettingsPage — subscription", () => {
+  it("opens the Stripe billing portal", async () => {
+    currentRow.billing_customer_id = "cus_123";
+    await openPracticeTab();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
+
+    await waitFor(() => {
+      expect(invokeSpy).toHaveBeenCalledWith("create-billing-portal-session");
+    });
+  });
+});
+
+describe("SettingsPage — interface preferences", () => {
+  it("saves the client codenames setting", async () => {
+    await openInterfaceTab();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /use codenames/i }));
+    fireEvent.click(within(getCardByHeading("Clients")).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ use_client_codenames: true }));
+    });
+  });
+
+  it("moves the sidebar expand button and persists the choice", async () => {
+    await openInterfaceTab();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bottom" }));
+
+    expect(localStorage.getItem("adminSidebarBtnPos")).toBe("bottom");
   });
 });
