@@ -121,6 +121,8 @@ const SettingsPage = () => {
   const [rescheduleCutoffEnabled, setRescheduleCutoffEnabled] = useState(true);
   const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState(48);
   const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
+  const [allowBlockSessionCancellation, setAllowBlockSessionCancellation] = useState(true);
+  const [savingBlockCancellation, setSavingBlockCancellation] = useState(false);
   const [consentEnabled, setConsentEnabled] = useState(false);
   const [consentTitle, setConsentTitle] = useState("Before you continue");
   const [consentBody, setConsentBody] = useState("");
@@ -229,6 +231,7 @@ const SettingsPage = () => {
         setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
         setRescheduleCutoffEnabled(data.reschedule_cutoff_hours != null);
         setRescheduleCutoffHours(data.reschedule_cutoff_hours ?? 48);
+        setAllowBlockSessionCancellation(data.allow_block_session_cancellation ?? true);
         setConsentEnabled(data.consent_enabled ?? false);
         setConsentTitle(data.consent_title ?? "Before you continue");
         setConsentBody(data.consent_body ?? "");
@@ -365,6 +368,17 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingRescheduleCutoff(false);
     showToast("Reschedule cutoff saved.");
+  };
+
+  const handleSaveBlockCancellation = async () => {
+    if (!userProfile?.id) return;
+    setSavingBlockCancellation(true);
+    await supabase
+      .from("practice_settings")
+      .update({ allow_block_session_cancellation: allowBlockSessionCancellation })
+      .eq("admin_id", userProfile.id);
+    setSavingBlockCancellation(false);
+    showToast("Block cancellation setting saved.");
   };
 
   const isPdfUrl = (url: string) => {
@@ -875,6 +889,50 @@ const SettingsPage = () => {
                   disabled={savingRescheduleCutoff}
                 >
                   {savingRescheduleCutoff ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Block session cancellation */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Block booking cancellations</h2>
+                <p>
+                  Controls whether clients can request to cancel a single session that's part of a block booking.
+                  Doesn't affect blocks that are already fully paid — those can never be cancelled session-by-session,
+                  regardless of this setting.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Allow block session cancellation requests</strong>
+                    <span>
+                      {allowBlockSessionCancellation
+                        ? "On — clients can request to cancel individual sessions in a block, same as any other session."
+                        : "Off — clients see a message explaining they need to contact you instead."}
+                    </span>
+                  </span>
+                  <span
+                    className={`${styles.toggleSwitch} ${allowBlockSessionCancellation ? styles.toggleSwitchOn : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={allowBlockSessionCancellation}
+                      onChange={(e) => setAllowBlockSessionCancellation(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveBlockCancellation}
+                  disabled={savingBlockCancellation}
+                >
+                  {savingBlockCancellation ? "Saving…" : "Save"}
                 </Button>
               </div>
             </Card>
