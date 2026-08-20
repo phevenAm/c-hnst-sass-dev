@@ -66,6 +66,7 @@ function RootRedirect() {
 
 function AppLayout() {
   const topRef = useFocusOnNavigate();
+  useSessionsRealtime();
 
   return (
     <>
