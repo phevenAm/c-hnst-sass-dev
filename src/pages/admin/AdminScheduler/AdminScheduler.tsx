@@ -160,23 +160,26 @@ const AdminScheduler = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
-  // RBC's DnD addon triggers a DOM reflow on dragstart that causes the browser
-  // to scroll — repeatedly, for as long as the drag lasts, not just once.
-  // Snapping back on dragend alone (the old fix) left the page visibly
-  // scrolling to the top for the whole duration of every drag and only
-  // correcting at the very end. Lock scroll position for the drag's entire
-  // duration instead: cancel every scroll event back to where the drag
-  // started, then release the lock on dragend.
+  // RBC's DnD addon triggers a DOM reflow on dragstart that causes a scroll —
+  // repeatedly, for as long as the drag lasts, not just once. The app's real
+  // scroll container is #main-content (`overflow-y: auto` — see index.scss),
+  // not the window (body/html are pinned to 100dvh and don't themselves
+  // scroll), so an earlier version of this fix that locked window.scrollY
+  // was watching the wrong element and did nothing. Lock #main-content's
+  // scrollTop for the drag's entire duration instead: cancel every scroll
+  // event back to where the drag started, then release the lock on dragend.
   useEffect(() => {
     const onDragStart = () => {
-      const y = window.scrollY;
+      const scrollEl = document.getElementById("main-content");
+      if (!scrollEl) return;
+      const y = scrollEl.scrollTop;
       const lockScroll = () => {
-        if (window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
+        if (scrollEl.scrollTop !== y) scrollEl.scrollTo({ top: y, behavior: "instant" });
       };
-      window.addEventListener("scroll", lockScroll);
+      scrollEl.addEventListener("scroll", lockScroll);
       const onDragEnd = () => {
-        window.removeEventListener("scroll", lockScroll);
-        window.scrollTo({ top: y, behavior: "instant" });
+        scrollEl.removeEventListener("scroll", lockScroll);
+        scrollEl.scrollTo({ top: y, behavior: "instant" });
         window.removeEventListener("dragend", onDragEnd);
       };
       window.addEventListener("dragend", onDragEnd);
