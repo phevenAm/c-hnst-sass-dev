@@ -701,6 +701,13 @@ export default function AdminClientsPageDetailed() {
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
               )}
+              {practiceSettings?.consent_enabled && (
+                <p className={client.has_consented ? styles.consentYes : styles.consentNo}>
+                  {client.has_consented
+                    ? `Consented${client.consented_at ? ` on ${dayjs(client.consented_at).format("DD/MM/YYYY")}` : ""}`
+                    : "Has not agreed to consent terms yet"}
+                </p>
+              )}
               {accountSummaryPreview && <p className={styles.accountSummary}>{accountSummaryPreview}</p>}
             </div>
           </div>

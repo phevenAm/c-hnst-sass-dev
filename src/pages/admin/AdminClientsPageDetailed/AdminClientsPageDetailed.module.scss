@@ -66,6 +66,18 @@
   margin: 0;
 }
 
+.consentYes {
+  color: var(--success);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.consentNo {
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
 .heroActions {
   display: flex;
   align-items: center;
