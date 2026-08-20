@@ -49,7 +49,7 @@
 
 // Legend swatches mirror the shared .cal-window / .cal-blocked ghost fills.
 .swatchWindow {
-  background-color: color-mix(in srgb, var(--accent-dark) 15%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
   border: 1px solid color-mix(in srgb, var(--accent-dark) 45%, transparent);
 }
 
@@ -320,6 +320,7 @@
   font-size: 0.9rem;
   margin: 0;
 }
+
 // ── Mobile (<640px) ──────────────────────────────────────────
 @media (max-width: 639px) {
   .chartsGrid {

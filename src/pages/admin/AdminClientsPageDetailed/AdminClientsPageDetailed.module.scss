@@ -478,6 +478,11 @@
   margin: 0 0 $sp-4;
 }
 
+.exportPickerHintInline {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .exportPickerList {
   display: flex;
   flex-direction: column;
@@ -504,6 +509,7 @@
 // ── Check-in history ─────────────────────────────────────────
 .checkInRow {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: $sp-4;
   padding: $sp-3 0;
@@ -512,6 +518,54 @@
 
   &:last-child {
     border-bottom: none;
+  }
+
+  // Actions drop to their own line below the name once the row can't fit
+  // both on one line — rather than an awkward wrap mid-cluster.
+  @include until-md {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $sp-2;
+  }
+}
+
+// Looser pairing than the action-button cluster, but still visually grouped
+// with the name — form type and cadence read as properties of the form.
+.checkInFormGroup {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  flex-wrap: wrap;
+}
+
+.checkInFormActions {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  flex-wrap: wrap;
+
+  @include until-md {
+    width: 100%;
+  }
+}
+
+// ── Assigned-forms type grouping ─────────────────────────────
+.formTypeGroup {
+  & + & {
+    margin-top: $sp-2;
+  }
+}
+
+.formTypeGroupLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: $sp-4 0 $sp-1;
+
+  .formTypeGroup:first-child & {
+    margin-top: $sp-2;
   }
 }
 

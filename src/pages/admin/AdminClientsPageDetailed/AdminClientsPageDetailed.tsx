@@ -36,6 +36,7 @@ import { supabase } from "@/lib/supabase.js";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 import DeleteClientModal from "../AdminClientsPage/modals/DeleteClientModal/DeleteClientModal";
 import SessionNotesModal from "../AdminClientsPage/modals/SessionNotesModal/SessionNotesModal";
+import type { ExportNote, ExportPayment } from "../utils/AdminClientsPageUtils";
 import { exportClientPDF, getScoreAverage } from "../utils/AdminClientsPageUtils";
 
 import styles from "./AdminClientsPageDetailed.module.scss";
@@ -48,6 +49,8 @@ type ExportSections = {
   checkIns: boolean;
   accountSummary: boolean;
   formResults: boolean;
+  payments: boolean;
+  sessionNotes: boolean;
 };
 
 type QuestionOption = { label: string; value: number };
@@ -75,6 +78,16 @@ type AssignedForm = {
 };
 
 // ─── Helpers ────────────────────────────────────────────────
+
+// Mirrors CheckInPage's FormTab grouping so "where did my other forms go"
+// never comes up — each assigned form always sits under its type, even when
+// a type currently has none (falls out naturally since empty groups render
+// nothing).
+const ASSIGNED_FORM_GROUPS: { key: string; label: string }[] = [
+  { key: "outcome_measure", label: "Outcome Measures" },
+  { key: "feedback", label: "Feedback" },
+  { key: "onboarding", label: "Onboarding" },
+];
 
 function questionAvg(questionId: string, responses: Response[]): string {
   const vals = responses
@@ -135,6 +148,8 @@ export default function AdminClientsPageDetailed() {
     checkIns: true,
     accountSummary: false,
     formResults: false,
+    payments: false,
+    sessionNotes: false,
   });
   const [selectedNoteSessionId, setSelectedNoteSessionId] = useState<string | null>(null);
   const [accountSummaryPreview, setAccountSummaryPreview] = useState<string | null>(null);
@@ -147,6 +162,8 @@ export default function AdminClientsPageDetailed() {
   const [sessionsDateTab, setSessopmsDateTab] = useState<"upcoming" | "past">("upcoming");
 
   const [assignedForms, setAssignedForms] = useState<AssignedForm[]>([]);
+  const [viewResultsForId, setViewResultsForId] = useState<string | null>(null);
+  const [promptingId, setPromptingId] = useState<string | null>(null);
 
   useFetchOnIdle(
     (state: RootState) => state.sessions.status,
@@ -339,6 +356,24 @@ export default function AdminClientsPageDetailed() {
     }
   };
 
+  // Non-recurring forms only ever show as "due" to the client once (see
+  // CheckInPage's availableAssignments filter) — this re-opens that window
+  // without deleting/reassigning, for forms meant to be filled in sporadically
+  // rather than on a fixed cadence.
+  const handlePromptAgain = async (formId: string) => {
+    setPromptingId(formId);
+    const { error } = await supabase
+      .from("questionnaire_assignments")
+      .update({ prompt_again_at: new Date().toISOString() })
+      .eq("id", formId);
+    setPromptingId(null);
+    if (error) {
+      showToast("Failed to prompt client", "danger");
+      return;
+    }
+    showToast("Client will be prompted to fill this in again");
+  };
+
   const client = allUsers.find((u) => u.id === clientId);
 
   const [codename, setCodename] = useState(client?.admin_codename ?? "");
@@ -410,8 +445,43 @@ export default function AdminClientsPageDetailed() {
   }, [assignedForms, clientResponses]);
 
   const handleExport = async () => {
-    if (!client) return;
+    if (!client || !clientId) return;
     setExporting(true);
+
+    let payments: ExportPayment[] = [];
+    if (exportSections.payments) {
+      const { data } = await supabase
+        .from("payments")
+        .select("paid_at, amount_pence, description")
+        .eq("client_id", clientId);
+      payments = data ?? [];
+    }
+
+    let notes: ExportNote[] = [];
+    if (exportSections.sessionNotes) {
+      if (encStatus !== "unlocked") {
+        showToast("Unlock encryption (open any session's notes) to include session notes in the export", "danger");
+      } else {
+        const { data } = await supabase
+          .from("session_notes")
+          .select("content, is_encrypted, note_iv, created_at, session_id")
+          .eq("user_id", clientId);
+        notes = await Promise.all(
+          (data ?? []).map(async (n) => {
+            const sessionDate = clientSessions.find((s) => s.id === n.session_id)?.scheduled_at ?? null;
+            if (n.is_encrypted && n.note_iv) {
+              try {
+                return { created_at: n.created_at, sessionDate, content: await decryptNote(n.content, n.note_iv) };
+              } catch {
+                return { created_at: n.created_at, sessionDate, content: "[Could not decrypt]" };
+              }
+            }
+            return { created_at: n.created_at, sessionDate, content: n.content };
+          }),
+        );
+      }
+    }
+
     await exportClientPDF({
       user: client,
       sections: exportSections,
@@ -420,6 +490,8 @@ export default function AdminClientsPageDetailed() {
       sessions: clientSessions,
       accountSummary: accountSummaryPreview ?? undefined,
       formResults: formResultGroups,
+      payments,
+      notes,
     });
     setExporting(false);
   };
@@ -672,28 +744,11 @@ export default function AdminClientsPageDetailed() {
           </div>
         </div>
 
-        {/* Progress chart */}
+        {/* Progress chart — auto-picks the plotted (or first available) form; see
+            the preference useEffect above. Which one shows is controlled from the
+            "Chart"/"Charting" toggle on each assigned form below, not here. */}
         <HideableSection id="client-progress-chart">
           <div className={styles.progressSection}>
-            <div className={styles.sectionHead}>
-              {questionnaireOptions.length > 1 && (
-                <div className={styles.progressControls}>
-                  <label htmlFor="q-select">Survey</label>
-                  <select
-                    id="q-select"
-                    value={selectedQuestionnaire?.id ?? ""}
-                    onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
-                  >
-                    {questionnaireOptions.map((q) => (
-                      <option key={q.id} value={q.id}>
-                        {q.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
             {selectedQuestionnaire ? (
               <ProgressChart
                 responses={selectedResponses}
@@ -723,40 +778,72 @@ export default function AdminClientsPageDetailed() {
             {assignedForms.length === 0 ? (
               <p className={styles.sessionEmpty}>No forms assigned to this client yet.</p>
             ) : (
-              assignedForms.map((form) => {
-                const q = form.questionnaires;
-                const hasScaleQs = q?.questions?.some((qn) => qn.type === "scale") ?? false;
-                const plotTitle = hasScaleQs
-                  ? form.is_plotted
-                    ? "Remove from progress chart"
-                    : "Use for progress chart"
-                  : "This form uses structured scoring — see Form Results below";
+              ASSIGNED_FORM_GROUPS.map(({ key, label }) => {
+                const forms = assignedForms.filter((f) => (f.questionnaires?.form_type ?? "outcome_measure") === key);
+                if (forms.length === 0) return null;
                 return (
-                  <div key={form.id} className={styles.checkInRow}>
-                    <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
-                    {q?.form_type && (
-                      <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
-                        {String(q.form_type).replace(/_/g, " ")}
-                      </span>
-                    )}
-                    {q?.frequency && (
-                      <span className={styles.checkInScoreNone} style={{ textTransform: "capitalize" }}>
-                        {q.frequency}
-                      </span>
-                    )}
-                    {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
-                    <button
-                      type="button"
-                      className={`${styles.plotToggle}${form.is_plotted ? ` ${styles.plotToggleActive}` : ""}`}
-                      onClick={() => handleTogglePlot(form.id)}
-                      disabled={!hasScaleQs}
-                      title={plotTitle}
-                    >
-                      {form.is_plotted ? "Charting" : "Chart"}
-                    </button>
-                    <span className={styles.checkInDate} style={{ marginLeft: "auto" }}>
-                      Assigned {dayjs(form.assigned_at).format("D MMM YYYY")}
-                    </span>
+                  <div key={key} className={styles.formTypeGroup}>
+                    <h3 className={styles.formTypeGroupLabel}>{label}</h3>
+                    {forms.map((form) => {
+                      const q = form.questionnaires;
+                      const hasScaleQs = q?.questions?.some((qn) => qn.type === "scale") ?? false;
+                      const hasResults = formResultGroups.some((g) => g.questionnaire.id === q?.id);
+                      const canPromptAgain = !q?.frequency && hasResults;
+                      return (
+                        <div key={form.id} className={styles.checkInRow}>
+                          <div className={styles.checkInFormGroup}>
+                            <span className={styles.checkInForm}>{q?.title ?? "Unknown form"}</span>
+                            {q?.form_type && (
+                              <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
+                                {String(q.form_type).replace(/_/g, " ")}
+                              </span>
+                            )}
+                            {q?.frequency && (
+                              <span className={styles.checkInScore} style={{ textTransform: "capitalize" }}>
+                                {q.frequency}
+                              </span>
+                            )}
+                            {q?.is_active === false && <span className={styles.checkInScoreNone}>Inactive</span>}
+                          </div>
+                          <div className={styles.checkInFormActions}>
+                            {q && (
+                              <button
+                                type="button"
+                                className={styles.plotToggle}
+                                onClick={() => setViewResultsForId(q.id)}
+                              >
+                                View details
+                              </button>
+                            )}
+                            {hasScaleQs && (
+                              <button
+                                type="button"
+                                className={`${styles.plotToggle}${form.is_plotted ? ` ${styles.plotToggleActive}` : ""}`}
+                                onClick={() => handleTogglePlot(form.id)}
+                                title={form.is_plotted ? "Remove from progress chart" : "Use for progress chart"}
+                              >
+                                {form.is_plotted ? "Charting" : "Chart"}
+                              </button>
+                            )}
+
+                            {canPromptAgain && (
+                              <button
+                                type="button"
+                                className={styles.plotToggle}
+                                onClick={() => handlePromptAgain(form.id)}
+                                disabled={promptingId === form.id}
+                                title="Ask the client to fill this in again"
+                              >
+                                {promptingId === form.id ? "Prompting…" : "Prompt again"}
+                              </button>
+                            )}
+                            <span className={styles.checkInDate}>
+                              Assigned {dayjs(form.assigned_at).format("D MMM YYYY")}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })
@@ -764,22 +851,30 @@ export default function AdminClientsPageDetailed() {
           </Card>
         </HideableSection>
 
-        {/* Form results — structured view for outcome measures */}
-        {formResultGroups.length > 0 && (
-          <HideableSection id="client-form-results">
-            <Card className={[styles.section, styles.session].join(" ")}>
-              <div className={styles.sessionHeading}>
-                <h2 className={styles.sectionTitle}>Form Results</h2>
-              </div>
-              {formResultGroups.map(({ questionnaire: fq, questions, responses: formResponses }) => (
-                <div key={fq.id} className={styles.formResultGroup}>
-                  <div className={styles.formResultGroupHeader}>
-                    <h3 className={styles.formResultGroupTitle}>{fq.title}</h3>
-                    <span className={styles.formResultGroupMeta}>
-                      {formResponses.length} submission{formResponses.length !== 1 ? "s" : ""} · Last:{" "}
-                      {dayjs(formResponses[0].submitted_at ?? formResponses[0].created_at).format("D MMM YYYY")}
-                    </span>
-                  </div>
+        {/* Form details — opened per-form from the "View details" button above */}
+        {viewResultsForId &&
+          (() => {
+            const group = formResultGroups.find((g) => g.questionnaire.id === viewResultsForId);
+            const assignment = assignedForms.find((f) => f.questionnaires?.id === viewResultsForId);
+            const fq = group?.questionnaire ?? assignment?.questionnaires;
+            if (!fq) return null;
+
+            if (!group) {
+              return (
+                <Modal title={fq.title} onClose={() => setViewResultsForId(null)} size="lg">
+                  <p className={styles.emptyState}>No responses yet.</p>
+                </Modal>
+              );
+            }
+
+            const { questions, responses: formResponses } = group;
+            return (
+              <Modal title={fq.title} onClose={() => setViewResultsForId(null)} size="lg">
+                <div className={styles.formResultGroup}>
+                  <span className={styles.formResultGroupMeta}>
+                    {formResponses.length} submission{formResponses.length !== 1 ? "s" : ""} · Last:{" "}
+                    {dayjs(formResponses[0].submitted_at ?? formResponses[0].created_at).format("D MMM YYYY")}
+                  </span>
 
                   <div className={styles.tableScroll}>
                     <table className={styles.resultsTable}>
@@ -827,10 +922,9 @@ export default function AdminClientsPageDetailed() {
                     </div>
                   )}
                 </div>
-              ))}
-            </Card>
-          </HideableSection>
-        )}
+              </Modal>
+            );
+          })()}
 
         {/* Sessions */}
         <Card className={[styles.section, styles.session].join(" ")}>
@@ -1009,15 +1103,28 @@ export default function AdminClientsPageDetailed() {
                 { key: "checkIns", label: "Check-in scores" },
                 { key: "accountSummary", label: "Account summary" },
                 { key: "formResults", label: "Form results" },
-              ] as { key: keyof ExportSections; label: string }[]
-            ).map(({ key, label }) => (
-              <label key={key} className={styles.exportPickerItem}>
+                { key: "payments", label: "Payments" },
+                {
+                  key: "sessionNotes",
+                  label: "Session notes",
+                  disabledHint: encStatus !== "unlocked" ? "unlock encryption first — open any session's notes" : null,
+                },
+              ] as { key: keyof ExportSections; label: string; disabledHint?: string | null }[]
+            ).map(({ key, label, disabledHint }) => (
+              <label
+                key={key}
+                className={styles.exportPickerItem}
+                title={disabledHint ?? undefined}
+                style={disabledHint ? { opacity: 0.5 } : undefined}
+              >
                 <input
                   type="checkbox"
                   checked={exportSections[key]}
+                  disabled={!!disabledHint}
                   onChange={(e) => setExportSections((prev) => ({ ...prev, [key]: e.target.checked }))}
                 />
                 {label}
+                {disabledHint && <span className={styles.exportPickerHintInline}> ({disabledHint})</span>}
               </label>
             ))}
           </div>

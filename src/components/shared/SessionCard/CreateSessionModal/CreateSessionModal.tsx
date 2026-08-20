@@ -471,7 +471,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
             />
           </div>
 
-          <div className={styles.checkboxGroup}>
+          {/* <div className={styles.checkboxGroup}>
             <input
               id="is-supervision"
               type="checkbox"
@@ -481,7 +481,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
             <label htmlFor="is-supervision" className={styles.checkboxLabel}>
               Add to supervision log
             </label>
-          </div>
+          </div> */}
 
           {isSupervision && (
             <>

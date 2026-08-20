@@ -49,22 +49,25 @@ export default function AuthLoadingState() {
     return () => clearInterval(interval);
   }, [showHint]);
 
+  // Kept for anyone digging in devtools, but not surfaced in the UI — raw
+  // endpoint/method/timing isn't something a non-technical user needs to see.
+  useEffect(() => {
+    if (pending.length > 0) {
+      console.error(
+        "Still waiting on:",
+        pending.map((p) => `${p.method} ${shortenUrl(p.url)} (${(p.elapsedMs / 1000).toFixed(1)}s)`),
+      );
+    }
+  }, [pending]);
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.spinner} />
       {showHint && (
-        <>
-          <p className={styles.hint}>
-            Taking longer than usual — this can happen if you have this app open in another tab. Try closing other tabs
-            of it.
-          </p>
-          {pending.length > 0 && (
-            <p className={styles.detail}>
-              Still waiting on:{" "}
-              {pending.map((p) => `${p.method} ${shortenUrl(p.url)} (${(p.elapsedMs / 1000).toFixed(1)}s)`).join(", ")}
-            </p>
-          )}
-        </>
+        <p className={styles.hint}>
+          Taking longer than usual — this can happen if you have this app open in another tab. Try closing other tabs of
+          it.
+        </p>
       )}
     </div>
   );

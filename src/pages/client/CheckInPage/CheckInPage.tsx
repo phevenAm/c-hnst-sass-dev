@@ -43,6 +43,7 @@ type AssignmentWithQuestionnaire = {
   questionnaire_id: string;
   user_id: string;
   assigned_at: string;
+  prompt_again_at?: string | null;
   questionnaires?: Questionnaire;
 };
 
@@ -156,7 +157,11 @@ export default function CheckInPage() {
     if (!q) return false;
     const latest = getLatestResponseForQuestionnaire(allUserResponses, q.id);
     if (activeTab === "outcome_measure") {
-      if (!q.frequency) return !latest; // one-time: show until answered once
+      if (!q.frequency) {
+        if (!latest) return true; // one-time: show until answered once
+        // admin re-opened it since the client's last response
+        return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(getResponseDate(latest));
+      }
       if (!latest) return true;
       return isQuestionnaireCheckInDue(getResponseDate(latest), q.frequency);
     }

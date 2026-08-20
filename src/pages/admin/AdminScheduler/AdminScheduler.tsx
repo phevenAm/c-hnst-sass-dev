@@ -160,28 +160,6 @@ const AdminScheduler = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
-  // RBC's DnD addon triggers a DOM reflow on dragstart that causes a scroll —
-  // repeatedly, for as long as the drag lasts, not just once. The app's real
-  // scroll container is #main-content (`overflow-y: auto` — see index.scss),
-  // not the window (body/html are pinned to 100dvh and don't themselves
-  // scroll). Rather than reacting to scroll events after the fact (which
-  // still let a visible flicker through), just make #main-content
-  // unscrollable for the drag's duration — nothing can move it at all.
-  useEffect(() => {
-    const onDragStart = () => {
-      const scrollEl = document.getElementById("main-content");
-      if (!scrollEl) return;
-      const prevOverflowY = scrollEl.style.overflowY;
-      scrollEl.style.overflowY = "hidden";
-      const onDragEnd = () => {
-        scrollEl.style.overflowY = prevOverflowY;
-        window.removeEventListener("dragend", onDragEnd);
-      };
-      window.addEventListener("dragend", onDragEnd);
-    };
-    window.addEventListener("dragstart", onDragStart, { capture: true });
-    return () => window.removeEventListener("dragstart", onDragStart, { capture: true });
-  }, []);
 
   // ----- data
   useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");

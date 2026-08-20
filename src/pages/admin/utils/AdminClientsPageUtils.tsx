@@ -38,6 +38,8 @@ type ExportSections = {
   checkIns: boolean;
   accountSummary: boolean;
   formResults: boolean;
+  payments: boolean;
+  sessionNotes: boolean;
 };
 
 type FormQuestion = { id: string; text: string; order_index: number };
@@ -46,6 +48,18 @@ export type FormResultGroup = {
   questionnaire: { id: string; title: string };
   questions: FormQuestion[];
   responses: Response[];
+};
+
+export type ExportPayment = {
+  paid_at: string;
+  amount_pence: number;
+  description: string | null;
+};
+
+export type ExportNote = {
+  created_at: string;
+  content: string;
+  sessionDate?: string | null;
 };
 
 const BRAND = [31, 73, 64] as const;
@@ -64,6 +78,8 @@ export const exportClientPDF = async ({
   sessions = [],
   accountSummary,
   formResults = [],
+  payments = [],
+  notes = [],
 }: {
   user: UserProfile;
   sections: ExportSections;
@@ -72,6 +88,8 @@ export const exportClientPDF = async ({
   sessions?: Session[];
   accountSummary?: string;
   formResults?: FormResultGroup[];
+  payments?: ExportPayment[];
+  notes?: ExportNote[];
 }) => {
   const jsPDF = (await import("jspdf")).default;
   const { default: autoTable } = await import("jspdf-autotable");
@@ -127,6 +145,18 @@ export const exportClientPDF = async ({
       doc.text(`Codename: ${user.admin_codename}`, MARGIN, y);
       y += 7;
     }
+    if (user.dob) {
+      doc.text(`Date of birth: ${new Date(user.dob).toLocaleDateString("en-GB")}`, MARGIN, y);
+      y += 7;
+    }
+    doc.text(
+      user.has_consented
+        ? `Consent: given${user.consented_at ? ` (${new Date(user.consented_at).toLocaleDateString("en-GB")})` : ""}`
+        : "Consent: not yet given",
+      MARGIN,
+      y,
+    );
+    y += 7;
     y += 6;
   }
 
@@ -169,6 +199,27 @@ export const exportClientPDF = async ({
       y += 6;
     }
     y += 6;
+
+    const sortedSessions = [...sessions].sort(
+      (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(),
+    );
+
+    autoTable(doc, {
+      head: [["Date", "Time", "Location", "Status", "Paid"]],
+      body: sortedSessions.map((s) => [
+        new Date(s.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" }),
+        new Date(s.scheduled_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+        s.location === "in_person" ? "In person" : "Online",
+        s.status.charAt(0).toUpperCase() + s.status.slice(1),
+        s.paid ? `£${(s.price_pence / 100).toFixed(0)}` : "—",
+      ]),
+      startY: y,
+      margin: { left: MARGIN, right: MARGIN },
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: BRAND as [number, number, number], textColor: [255, 255, 255], fontStyle: "bold" },
+      bodyStyles: { textColor: TEXT_DARK as [number, number, number] },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   }
 
   // ── Check-in scores ──────────────────────────────────────────
@@ -207,6 +258,63 @@ export const exportClientPDF = async ({
       y += 24;
     }
     y += 6;
+  }
+
+  // ── Payments ─────────────────────────────────────────────────
+  if (sections.payments && payments.length > 0) {
+    sectionHeading("Payments");
+
+    const sortedPayments = [...payments].sort((a, b) => new Date(b.paid_at).getTime() - new Date(a.paid_at).getTime());
+    const total = payments.reduce((sum, p) => sum + p.amount_pence, 0) / 100;
+
+    autoTable(doc, {
+      head: [["Date", "Description", "Amount"]],
+      body: sortedPayments.map((p) => [
+        new Date(p.paid_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" }),
+        p.description || "—",
+        `£${(p.amount_pence / 100).toFixed(2)}`,
+      ]),
+      startY: y,
+      margin: { left: MARGIN, right: MARGIN },
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: BRAND as [number, number, number], textColor: [255, 255, 255], fontStyle: "bold" },
+      bodyStyles: { textColor: TEXT_DARK as [number, number, number] },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(`Total: £${total.toFixed(2)}`, MARGIN, y);
+    y += 12;
+  }
+
+  // ── Session notes ────────────────────────────────────────────
+  if (sections.sessionNotes && notes.length > 0) {
+    sectionHeading("Session Notes");
+
+    const sortedNotes = [...notes].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    for (const note of sortedNotes) {
+      if (y > 260) {
+        doc.addPage();
+        y = MARGIN;
+      }
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...TEXT_DARK);
+      const label = note.sessionDate
+        ? `Session — ${new Date(note.sessionDate).toLocaleDateString("en-GB")}`
+        : "General note";
+      doc.text(`${label}  ·  ${new Date(note.created_at).toLocaleDateString("en-GB")}`, MARGIN, y);
+      y += 6;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...TEXT_DARK);
+      const lines = doc.splitTextToSize(note.content, CONTENT_W);
+      doc.text(lines, MARGIN, y);
+      y += lines.length * 5 + 8;
+    }
   }
 
   // ── Account summary ──────────────────────────────────────────

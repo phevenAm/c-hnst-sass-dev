@@ -208,7 +208,7 @@ export default function AdminCpdPage() {
 
     autoTable(doc, {
       startY: 38,
-      head: [["Date", "Type", "Title / Issues", "Supervisor / Provider", "Duration"]],
+      head: [["Date", "Type", "Title / Issues", "Supervisor / Provider", "Duration", "Action"]],
       body: logsToExport.map((l) => [
         l.date,
         ACTIVITY_LABELS[l.activity_type],
