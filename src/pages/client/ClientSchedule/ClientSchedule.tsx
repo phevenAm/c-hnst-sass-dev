@@ -123,7 +123,7 @@ const ClientSchedule = () => {
   }
 
   return (
-    <div className="page">
+    <div className={`page${showCalendar ? ` ${styles.calendarPage}` : ""}`}>
       <div className="inner">
         <div className={styles.headingRow} id="sessions-header">
           <h1 className={styles.heading}>My Sessions</h1>
@@ -152,7 +152,7 @@ const ClientSchedule = () => {
         )}
 
         {showCalendar ? (
-          <Card className={styles.calendarCard}>
+          <Card className={`${styles.calendarCard} ${styles.calendarCardFill}`}>
             <SchedulerCalendar
               events={calendarEvents}
               date={calDate}
@@ -160,7 +160,7 @@ const ClientSchedule = () => {
               onNavigate={setCalDate}
               onView={setCalView}
               slotPropGetter={slotPropGetter}
-              height="60vh"
+              height="100%"
             />
           </Card>
         ) : (

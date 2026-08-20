@@ -24,7 +24,15 @@ export default defineConfig({
     react(),
     versionJsonPlugin(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" (not "autoUpdate"): autoUpdate makes a newly-deployed
+      // service worker call skipWaiting()+clientsClaim() the moment it
+      // installs, silently taking over every open tab mid-session — the
+      // already-running app keeps executing but its network requests are
+      // now served by a worker built for a different bundle. "prompt"
+      // installs the new worker but leaves it waiting until updateSW() is
+      // called (wired in index.tsx via UpdateBanner's "Update now"), so the
+      // swap only happens deliberately, together with a reload.
+      registerType: "prompt",
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
