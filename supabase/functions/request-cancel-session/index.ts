@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     // Sessions use `created_by` as the admin FK (not admin_id).
     const { data: targetSession } = await supabase
       .from("sessions")
-      .select("client_id, created_by, scheduled_at, status")
+      .select("client_id, created_by, scheduled_at, status, paid, metadata")
       .eq("id", session_id)
       .single();
 
@@ -49,6 +49,18 @@ Deno.serve(async (req) => {
         status: 400,
         headers: corsHeaders,
       });
+    }
+    // Block payments cover the whole block up front — an individual session
+    // within a paid block can't be refunded/cancelled on its own. The admin
+    // can still cancel it manually if the whole block needs changing.
+    const blockId = (targetSession.metadata as { block_id?: string } | null)?.block_id;
+    if (blockId && targetSession.paid) {
+      return new Response(
+        JSON.stringify({
+          error: "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
+        }),
+        { status: 400, headers: corsHeaders },
+      );
     }
 
     const { data: existing } = await supabase

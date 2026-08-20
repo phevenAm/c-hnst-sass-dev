@@ -76,6 +76,23 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
     setEditingCode(false);
   };
 
+  // Block payments cover the whole block up front — an individual session
+  // within a paid block can't be cancelled on its own (request-cancel-session
+  // enforces this server-side too; this just skips the round trip so the
+  // client sees why immediately instead of opening a request modal that's
+  // just going to fail).
+  const handleClientCancelClick = () => {
+    const blockMeta = session.metadata as SessionBlockMeta | null;
+    if (blockMeta?.block_id && session.paid) {
+      showToast(
+        "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
+        "danger",
+      );
+      return;
+    }
+    setIsCancelModalOpen(true);
+  };
+
   const handleMarkAsPaid = async () => {
     if (isDemo) return;
     setIsMarkingPaid(true);
@@ -366,6 +383,9 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
 
         {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && !isWithinRescheduleCutoff && (
           <div className={styles.actions_Icons}>
+            <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>
+              Add to calendar
+            </Button>
             {!session.paid ? (
               <SplitButton
                 size="sm"
@@ -380,7 +400,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
               variant="secondary"
               primaryLabel="Reschedule"
               primaryAction={() => !isDemo && setIsRescheduleModalOpen(true)}
-              options={[{ label: "Cancel", onClick: () => !isDemo && setIsCancelModalOpen(true) }]}
+              options={[{ label: "Cancel", onClick: () => !isDemo && handleClientCancelClick() }]}
             />
           </div>
         )}

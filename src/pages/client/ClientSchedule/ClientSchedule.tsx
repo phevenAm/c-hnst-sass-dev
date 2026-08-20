@@ -168,18 +168,21 @@ const ClientSchedule = () => {
         </div>
 
         {showCalendar ? (
-          <Card className={`${styles.calendarCard} ${styles.calendarCardFill}`}>
-            <SchedulerCalendar
-              events={calendarEvents}
-              date={calDate}
-              view={calView}
-              onNavigate={setCalDate}
-              onView={setCalView}
-              onSelectEvent={handleSelectEvent}
-              slotPropGetter={slotPropGetter}
-              height="100%"
-            />
-          </Card>
+          <>
+            <p className={styles.calendarHint}>Click a session to view its details and manage it.</p>
+            <Card className={`${styles.calendarCard} ${styles.calendarCardFill}`}>
+              <SchedulerCalendar
+                events={calendarEvents}
+                date={calDate}
+                view={calView}
+                onNavigate={setCalDate}
+                onView={setCalView}
+                onSelectEvent={handleSelectEvent}
+                slotPropGetter={slotPropGetter}
+                height="100%"
+              />
+            </Card>
+          </>
         ) : (
           <Card className={styles.sessionsList}>
             <div className={styles.tabContainer}>

@@ -164,22 +164,17 @@ const AdminScheduler = () => {
   // repeatedly, for as long as the drag lasts, not just once. The app's real
   // scroll container is #main-content (`overflow-y: auto` — see index.scss),
   // not the window (body/html are pinned to 100dvh and don't themselves
-  // scroll), so an earlier version of this fix that locked window.scrollY
-  // was watching the wrong element and did nothing. Lock #main-content's
-  // scrollTop for the drag's entire duration instead: cancel every scroll
-  // event back to where the drag started, then release the lock on dragend.
+  // scroll). Rather than reacting to scroll events after the fact (which
+  // still let a visible flicker through), just make #main-content
+  // unscrollable for the drag's duration — nothing can move it at all.
   useEffect(() => {
     const onDragStart = () => {
       const scrollEl = document.getElementById("main-content");
       if (!scrollEl) return;
-      const y = scrollEl.scrollTop;
-      const lockScroll = () => {
-        if (scrollEl.scrollTop !== y) scrollEl.scrollTo({ top: y, behavior: "instant" });
-      };
-      scrollEl.addEventListener("scroll", lockScroll);
+      const prevOverflowY = scrollEl.style.overflowY;
+      scrollEl.style.overflowY = "hidden";
       const onDragEnd = () => {
-        scrollEl.removeEventListener("scroll", lockScroll);
-        scrollEl.scrollTo({ top: y, behavior: "instant" });
+        scrollEl.style.overflowY = prevOverflowY;
         window.removeEventListener("dragend", onDragEnd);
       };
       window.addEventListener("dragend", onDragEnd);
@@ -624,6 +619,7 @@ const AdminScheduler = () => {
               <span className={`${styles.swatch} ${styles.swatchPrivate}`} /> Private
             </span>
           </div>
+          <p className={styles.calendarHint}>Drag a session to reschedule it, or click one to view and edit it.</p>
 
           <Card className={styles.calendarCard}>
             <SchedulerCalendar

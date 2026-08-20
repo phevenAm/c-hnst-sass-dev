@@ -67,6 +67,12 @@
   border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent);
 }
 
+.calendarHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-3);
+}
+
 .calendarCard {
   padding: var(--sp-4);
 }
