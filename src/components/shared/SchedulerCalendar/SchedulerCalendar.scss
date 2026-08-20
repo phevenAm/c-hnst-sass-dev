@@ -5,6 +5,7 @@
 // live in one place.
 
 .portal-calendar {
+
   // ─── Event chip content ─────────────────────────────────
   .cal-chip {
     display: flex;
@@ -20,6 +21,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text)
   }
 
   .cal-chipMeta {
@@ -43,7 +45,8 @@
   .cal-window {
     background-color: color-mix(in srgb, var(--accent-dark) 30%, transparent) !important;
     border: 1px solid color-mix(in srgb, var(--accent-dark) 75%, transparent) !important;
-    color: var(--text-primary) !important;
+    color: var(--text-inverse) !important;
+    background-color: var(--accent) !important;
   }
 
   .cal-blocked {
@@ -54,13 +57,11 @@
 
   // 10-minute post-session buffer — diagonal hatch, non-interactive.
   .cal-buffer {
-    background: repeating-linear-gradient(
-      -45deg,
-      color-mix(in srgb, var(--text-muted) 14%, transparent),
-      color-mix(in srgb, var(--text-muted) 14%, transparent) 2px,
-      transparent 2px,
-      transparent 8px
-    ) !important;
+    background: repeating-linear-gradient(-45deg,
+        color-mix(in srgb, var(--text-muted) 14%, transparent),
+        color-mix(in srgb, var(--text-muted) 14%, transparent) 2px,
+        transparent 2px,
+        transparent 8px) !important;
     border: 1px dashed color-mix(in srgb, var(--text-muted) 35%, transparent) !important;
     color: transparent !important;
     pointer-events: none !important;
@@ -151,6 +152,17 @@
     border-color: var(--border) !important;
   }
 
+  // RBC's shipped, pre-built CSS (lib/css/react-big-calendar.css) still has
+  // `margin-right: 10px` on this element — even though that exact rule is
+  // commented out in the package's own .scss *source*, the compiled .css
+  // that actually loads at runtime doesn't match it and still ships the
+  // margin. It insets every day column's event area by 10px on the right,
+  // which reads as unexplained blank space beside every event. Can't fix
+  // this in node_modules (wiped on every reinstall) — override it here.
+  .rbc-events-container {
+    margin: 0 !important;
+  }
+
   .rbc-header {
     padding: var(--sp-2) 0;
     color: var(--text-secondary);
@@ -178,10 +190,11 @@
   .rbc-current-time-indicator {
     background: var(--accent);
     height: 2px;
+    color: var(--text-inverse) !important;
   }
 
   .rbc-event {
-    border-radius: var(--r-md);
+    // border-radius: var(--r-md);
     padding: 3px 6px;
     border: none;
     box-shadow: var(--shadow-xs);
@@ -221,6 +234,7 @@
 // We override every horizontal and vertical border to a very subtle teal tint
 // so the grid reads as intentional rather than a leftover white mesh.
 .dark .portal-calendar {
+
   // Outer container borders (vertical day separators, header borders)
   .rbc-time-view,
   .rbc-time-header,
@@ -230,8 +244,8 @@
   .rbc-day-slot,
   .rbc-time-gutter,
   .rbc-time-column,
-  .rbc-day-bg + .rbc-day-bg,
-  .rbc-time-content > * + * > * {
+  .rbc-day-bg+.rbc-day-bg,
+  .rbc-time-content>*+*>* {
     border-color: color-mix(in srgb, var(--accent-dark) 18%, transparent) !important;
   }
 
@@ -247,7 +261,7 @@
   }
 
   // Hide the half-hour sub-line for a cleaner grid — only show hour marks.
-  .rbc-timeslot-group .rbc-time-slot + .rbc-time-slot {
+  .rbc-timeslot-group .rbc-time-slot+.rbc-time-slot {
     border-top-color: transparent !important;
   }
 

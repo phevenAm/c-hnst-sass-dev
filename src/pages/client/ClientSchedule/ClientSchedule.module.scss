@@ -59,6 +59,12 @@
     gap: $sp-2;
 }
 
+.calendarHint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: $sp-4 0 0;
+}
+
 .calendarCard {
     padding: $sp-4;
     margin-top: $sp-4;

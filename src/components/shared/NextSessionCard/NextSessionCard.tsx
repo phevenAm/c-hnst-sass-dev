@@ -9,7 +9,7 @@ import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { formatSessionDate } from "@/Helpers/sessionDate";
-import type { Session } from "@/models/globalTypes";
+import type { Session, SessionBlockMeta } from "@/models/globalTypes";
 import CalendarExportModal from "../CalendarExportModal/CalendarExportModal";
 import PaymentModal from "../PaymentModal/PaymentModal";
 import ClientCancelModal from "../SessionCard/ClientCancelModal/ClientCancelModal";
@@ -81,6 +81,21 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
     fn();
   };
 
+  // Block payments cover the whole block up front — an individual session
+  // within a paid block can't be cancelled on its own (request-cancel-session
+  // enforces this server-side too; this just skips the round trip).
+  const handleCancelClick = () => {
+    const blockMeta = session.metadata as SessionBlockMeta | null;
+    if (blockMeta?.block_id && session.paid) {
+      showToast(
+        "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
+        "danger",
+      );
+      return;
+    }
+    guardAction(() => setIsCancelModalOpen(true));
+  };
+
   return (
     <>
       <Card className={styles.nextStrip}>
@@ -150,9 +165,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                   variant="secondary"
                   primaryLabel="Reschedule"
                   primaryAction={() => !isDemo && guardAction(() => setIsRescheduleModalOpen(true))}
-                  options={[
-                    { label: "Cancel", onClick: () => !isDemo && guardAction(() => setIsCancelModalOpen(true)) },
-                  ]}
+                  options={[{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]}
                 />
               </div>
 
@@ -171,13 +184,13 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                   }
                   options={
                     session.paid
-                      ? [{ label: "Cancel", onClick: () => !isDemo && guardAction(() => setIsCancelModalOpen(true)) }]
+                      ? [{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]
                       : [
                           {
                             label: "Reschedule",
                             onClick: () => !isDemo && guardAction(() => setIsRescheduleModalOpen(true)),
                           },
-                          { label: "Cancel", onClick: () => !isDemo && guardAction(() => setIsCancelModalOpen(true)) },
+                          { label: "Cancel", onClick: () => !isDemo && handleCancelClick() },
                         ]
                   }
                 />
