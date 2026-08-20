@@ -4,8 +4,14 @@ import type { Session } from "@supabase/supabase-js";
 
 import { resetStore, store } from "@store/index";
 
-import { supabase } from "../lib/supabase";
+import { clearPersistedAuthSession, supabase } from "../lib/supabase";
 import type { AuthUser, UserProfile } from "../models/globalTypes";
+
+// supabase-js's own internals (cross-tab lock, session recovery) can stall
+// before ever making a network request our fetchWithTimeout would catch —
+// this is the outer backstop. If init hasn't settled by here, treat it as
+// failed rather than spin forever.
+const AUTH_INIT_TIMEOUT_MS = 15_000;
 
 type ProfileUpdates = Partial<
   Pick<UserProfile, "display_name" | "avatar_url" | "focus_keywords" | "onboarding_completed">
@@ -131,15 +137,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        const timeout = new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error(`Auth init did not settle within ${AUTH_INIT_TIMEOUT_MS}ms`)),
+            AUTH_INIT_TIMEOUT_MS,
+          );
+        });
+        const { data } = await Promise.race([supabase.auth.getSession(), timeout]);
         await handleSession(data.session);
       } catch (err) {
         // Multiple tabs/windows open can cause supabase-js's cross-tab auth
         // lock to get "stolen" from this one (AbortError, after its 5s
         // recovery timeout) — without this catch, the rejection was never
         // handled and `loading` stayed true forever, leaving the app stuck
-        // on the spinner.
+        // on the spinner. The outer race above also catches cases where
+        // getSession() stalls without ever throwing (the exact mechanism
+        // isn't always visible to us — supabase-js internals can hang before
+        // making any network request our own fetch timeout would catch).
+        // Either way, clear the persisted session so the retry — this one,
+        // or the user's next reload — doesn't hit the exact same stuck
+        // state again; that's what manually deleting the token does today.
         console.error("Auth init failed:", err);
+        clearPersistedAuthSession();
         setLoading(false);
       } finally {
         initialised = true;

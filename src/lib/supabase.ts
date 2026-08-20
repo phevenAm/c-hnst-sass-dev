@@ -121,3 +121,22 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   global: { fetch: fetchWithTimeout },
 });
+
+// Removes the persisted session so the next auth init starts clean. Used
+// when init hangs for reasons that never reach fetchWithTimeout at all —
+// e.g. a cross-tab navigator.locks lock that's stuck client-side (the JWT
+// contains everything needed to check/refresh it, so getSession() can stall
+// inside supabase-js's own internals before ever making a network call,
+// which is why this can happen with zero console errors and zero network
+// activity). Clearing the token and reloading is exactly the manual fix of
+// deleting the sb-<ref>-auth-token localStorage key — this just automates
+// it instead of requiring DevTools.
+export function clearPersistedAuthSession() {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (/^sb-.*-auth-token$/.test(key)) localStorage.removeItem(key);
+    }
+  } catch {
+    // localStorage unavailable (private browsing, etc.) — nothing to clear
+  }
+}
