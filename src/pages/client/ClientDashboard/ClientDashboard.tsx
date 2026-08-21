@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
+import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
@@ -9,7 +10,7 @@ import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
 import { useAuth } from "@context/AuthContext";
 import type { Response } from "@models/globalTypes";
 import { useGetQuotesByTagQuery } from "@services/inspirationalQuotesApi";
-import { useAppSelector, useFetchOnIdle } from "@store/hooks";
+import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectActiveQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchResponsesByUser, selectUserResponses } from "@store/slices/responsesSlice";
@@ -24,6 +25,7 @@ const getLatestResponseForQuestionnaire = (responses: Response[], questionnaireI
 
 export default function ClientDashboard() {
   const { authUser, userProfile, displayName } = useAuth();
+  const dispatch = useAppDispatch();
 
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
   const responsesStatus = useAppSelector((state: RootState) => state.responses.status);
@@ -80,6 +82,15 @@ export default function ClientDashboard() {
     (state: RootState) => state.sessions.status,
     authUser ? () => fetchSessionsByClientId(authUser.id) : null,
     "Failed to fetch sessions",
+  );
+
+  // Without this, a session cancelled/updated by the admin while the client
+  // is sitting on the dashboard (rather than the Schedule page, which already
+  // had this) never refreshes — useFetchOnIdle only fires once per Redux
+  // session, and the dashboard's "next session" card would keep showing a
+  // session that's actually been cancelled.
+  useRealtimeTable("sessions", authUser?.id ? `client_id=eq.${authUser.id}` : undefined, () =>
+    dispatch(fetchSessionsByClientId(authUser!.id)),
   );
 
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
