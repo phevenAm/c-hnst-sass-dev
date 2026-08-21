@@ -37,6 +37,12 @@ interface EncryptionContextType {
   relinkWithCode: (code: string, currentPassword: string) => Promise<boolean>;
   /** Change password: re-wraps code under new password. Data key untouched. */
   rotatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  /** Issues a brand new 4-word code (e.g. the old one was lost). Verifies
+   *  currentPassword, then re-wraps the *existing* data key under the new
+   *  code and the new code under currentPassword — every note encrypted
+   *  under the old code stays readable, only the code itself changes.
+   *  Returns false if currentPassword is wrong. */
+  regenerateCode: (currentPassword: string) => Promise<boolean>;
   encryptNote: (content: string) => Promise<{ iv: string; ciphertext: string }>;
   decryptNote: (ciphertext: string, iv: string) => Promise<string>;
   /** Encrypts a PII string to JSON {c, iv} — idempotent if already encrypted. */
@@ -276,6 +282,64 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     [fetchSettings],
   );
 
+  const regenerateCode = useCallback(
+    async (currentPassword: string): Promise<boolean> => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return false;
+      const settings = await fetchSettings();
+      if (!settings?.enc_code_wrapped) return false;
+
+      let dataKey: CryptoKey;
+      try {
+        // Decrypting enc_code_wrapped with a password-derived KEK both
+        // verifies the password and recovers the current code — needed to
+        // unwrap the existing data key so it can be re-wrapped under the
+        // new code, not regenerated (that would orphan every note already
+        // encrypted under the old one).
+        const pwKEK = await deriveKEK(currentPassword, fromBase64(settings.enc_code_salt!));
+        const currentCode = await cryptoDecrypt(settings.enc_code_wrapped, settings.enc_code_iv!, pwKEK);
+        const codeKEK = await deriveKEK(currentCode, fromBase64(settings.enc_data_key_salt!));
+        dataKey = await unwrapDataKey(settings.enc_data_key!, settings.enc_data_key_iv!, codeKEK);
+      } catch {
+        return false;
+      }
+
+      const newCode = generateEncryptionCode();
+
+      // Re-wrap the same data key under the new code.
+      const dataKeySalt = generateSalt();
+      const newCodeKEK = await deriveKEK(newCode, dataKeySalt);
+      const { iv: dataKeyIv, wrapped: dataKeyWrapped } = await wrapDataKey(dataKey, newCodeKEK);
+
+      // Re-wrap the new code under the (unchanged) password.
+      const codeSalt = generateSalt();
+      const pwKEK = await deriveKEK(currentPassword, codeSalt);
+      const { iv: codeIv, ciphertext: codeWrapped } = await cryptoEncrypt(newCode, pwKEK);
+
+      const { error } = await supabase
+        .from("practice_settings")
+        .update({
+          enc_code_wrapped: codeWrapped,
+          enc_code_salt: toBase64(codeSalt.buffer as ArrayBuffer),
+          enc_code_iv: codeIv,
+          enc_data_key: dataKeyWrapped,
+          enc_data_key_salt: toBase64(dataKeySalt.buffer as ArrayBuffer),
+          enc_data_key_iv: dataKeyIv,
+        })
+        .eq("admin_id", user.id);
+      if (error) return false;
+
+      dataKeyRef.current = dataKey;
+      await saveKeyToSession(dataKey);
+      setStatus("unlocked");
+      setPendingCode(newCode);
+      return true;
+    },
+    [fetchSettings],
+  );
+
   const encryptNote = useCallback(async (content: string) => {
     if (!dataKeyRef.current) throw new Error("Notes are locked.");
     return cryptoEncrypt(content, dataKeyRef.current);
@@ -315,6 +379,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         unlockWithPassword,
         relinkWithCode,
         rotatePassword,
+        regenerateCode,
         encryptNote,
         decryptNote,
         encryptPII,
