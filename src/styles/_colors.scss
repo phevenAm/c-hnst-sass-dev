@@ -75,19 +75,15 @@ $color-warning-light: #fffbeb;
 
 // ── Dark mode overrides ────────────────────────────────────
 // Applied via .dark class on <html>
-// Backgrounds/text/border are warm-neutral (same family as the
-// $warm-* scale above) rather than teal-tinted — a teal-tinted
-// canvas plus a teal accent on top of it is what read as "too
-// green"; keeping the base neutral lets $dark-accent still pop.
-$dark-bg-base: #1c1a18;
-$dark-bg-card: #262320;
-$dark-bg-muted: #302b27;
-$dark-text-primary: #f2ede7;
-$dark-text-secondary: #c7bcb0;
-$dark-text-muted: #948779;
-$dark-border: #3a342e;
+$dark-bg-base: #0f1f1c;
+$dark-bg-card: #162622;
+$dark-bg-muted: #1c3330;
+$dark-text-primary: #ecf5f3;
+$dark-text-secondary: #a8c8c2;
+$dark-text-muted: #6fa49c;
+$dark-border: #254f49;
 $dark-accent: $teal-300; // pops on dark
-$dark-accent-light: #24302c;
+$dark-accent-light: #1a3d38;
 
 $dark-highlight: $terracotta-400;
 $dark-highlight-light: #3a2620;

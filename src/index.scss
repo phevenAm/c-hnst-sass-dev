@@ -120,19 +120,19 @@
   --text-primary: #{$dark-text-primary};
   --text-secondary: #{$dark-text-secondary};
   --text-muted: #{$dark-text-muted};
-  --text-disabled: #4a443d;
-  --text-inverse: #1c1a18;
+  --text-disabled: #3d4258;
+  --text-inverse: #111318;
 
   // Backgrounds
   --bg-base: #{$dark-bg-base};
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
-  --bg-grey: #332f2a;
-  --bg-overlay: rgba(28, 26, 24, 0.92);
-  --bg-card-rgb: 38, 35, 32;
-  --border-rgb: 58, 52, 46;
-  --glass-bg: rgba(38, 35, 32, 0.891);
-  --glass-bg-heavy: rgba(38, 35, 32, 0.95);
+  --bg-grey: #202837;
+  --bg-overlay: rgba(17, 19, 24, 0.92);
+  --bg-card-rgb: 27, 30, 39;
+  --border-rgb: 45, 50, 69;
+  --glass-bg: rgba(27, 30, 39, 0.891);
+  --glass-bg-heavy: rgba(27, 30, 39, 0.95);
 
   // Borders
   --border: #{$dark-border};
