@@ -18,7 +18,12 @@ import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
 import type { Session, StubSession } from "@/models/globalTypes";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
-import { revenueByMonth } from "@/pages/admin/AdminDashboard/dashboardUtils";
+import {
+  mergeTrendPoints,
+  revenueByMonth,
+  revenueByMonthFromPayments,
+  revenueByMonthFromStubSessions,
+} from "@/pages/admin/AdminDashboard/dashboardUtils";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import { fetchAllSessions, updateSession, upsertSession } from "@/store/slices/sessionsSlice";
@@ -127,6 +132,7 @@ const AdminPaymentsPage = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [stubSessions, setStubSessions] = useState<StubSession[]>([]);
+  const [manualPayments, setManualPayments] = useState<ManualPayment[]>([]);
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
   const [markAmount, setMarkAmount] = useState("");
   const [markNotify, setMarkNotify] = useState(true);
@@ -164,6 +170,24 @@ const AdminPaymentsPage = () => {
   useEffect(() => {
     loadStubSessions();
   }, [loadStubSessions]);
+
+  // Unpaginated, like stubSessions above — Summary/Revenue need the full set
+  // to aggregate correctly, same reasoning as the comment on ledgerRows below.
+  // Previously the Summary/Revenue calc only looked at sessions + stub
+  // sessions, so manually-recorded payments (cash, bank transfer — anything
+  // logged via "Add payment") showed up in the ledger table but never in
+  // Collected or the revenue chart.
+  const loadManualPayments = useCallback(async () => {
+    const { data } = await supabase
+      .from("payments")
+      .select("id, client_id, stub_id, amount_pence, description, paid_at")
+      .order("paid_at", { ascending: false });
+    if (data) setManualPayments(data as ManualPayment[]);
+  }, []);
+
+  useEffect(() => {
+    loadManualPayments();
+  }, [loadManualPayments]);
 
   // Debounce the search box before it drives a server query
   useEffect(() => {
@@ -276,6 +300,17 @@ const AdminPaymentsPage = () => {
     return stubSessions.filter((s) => linkedStubIds.has(s.stub_id));
   }, [stubSessions, allStubs, selectedClientId]);
 
+  const scopedManualPayments = useMemo(() => {
+    if (selectedClientId === "all") return manualPayments;
+    if (allStubs.some((s) => s.id === selectedClientId)) {
+      return manualPayments.filter((p) => p.stub_id === selectedClientId);
+    }
+    const linkedStubIds = new Set(allStubs.filter((s) => s.linked_user_id === selectedClientId).map((s) => s.id));
+    return manualPayments.filter(
+      (p) => p.client_id === selectedClientId || (!!p.stub_id && linkedStubIds.has(p.stub_id)),
+    );
+  }, [manualPayments, allStubs, selectedClientId]);
+
   const stats = useMemo(() => {
     const base = scopedSessions.reduce(
       (acc, s) => {
@@ -291,7 +326,7 @@ const AdminPaymentsPage = () => {
       },
       { collectedPence: 0, outstandingPence: 0, paidCount: 0, unpaidCount: 0 },
     );
-    return scopedStubSessions
+    const withStubs = scopedStubSessions
       .filter((s) => s.status !== "cancelled")
       .reduce((acc, s) => {
         const amountPence = Math.round((s.amount_paid ?? 0) * 100);
@@ -303,9 +338,22 @@ const AdminPaymentsPage = () => {
         }
         return acc;
       }, base);
-  }, [scopedSessions, scopedStubSessions]);
+    // Manual payments (cash, bank transfer, etc. logged via "Add payment")
+    // are money already received, not a session — they add to Collected but
+    // deliberately don't touch paidCount/unpaidCount, which are session tallies.
+    const manualPence = scopedManualPayments.reduce((sum, p) => sum + p.amount_pence, 0);
+    return { ...withStubs, collectedPence: withStubs.collectedPence + manualPence };
+  }, [scopedSessions, scopedStubSessions, scopedManualPayments]);
 
-  const revenueData = useMemo(() => revenueByMonth(scopedSessions, 6), [scopedSessions]);
+  const revenueData = useMemo(
+    () =>
+      mergeTrendPoints(
+        revenueByMonth(scopedSessions, 6),
+        revenueByMonthFromStubSessions(scopedStubSessions, 6),
+        revenueByMonthFromPayments(scopedManualPayments, 6),
+      ),
+    [scopedSessions, scopedStubSessions, scopedManualPayments],
+  );
 
   // Not scoped to selectedClientId — this is an actionable inbox, so a client
   // filter shouldn't hide something the admin still needs to respond to.
@@ -442,7 +490,7 @@ const AdminPaymentsPage = () => {
     setRemoving(true);
     await supabase.from("payments").delete().eq("id", removeTarget);
     setRemoving(false);
-    await loadLedgerPage();
+    await Promise.all([loadLedgerPage(), loadManualPayments()]);
     showToast("Payment removed.");
     setRemoveTarget(null);
   };
@@ -695,6 +743,7 @@ const AdminPaymentsPage = () => {
           onClose={() => setAddPaymentOpen(false)}
           onSaved={() => {
             loadLedgerPage();
+            loadManualPayments();
             setAddPaymentOpen(false);
           }}
         />

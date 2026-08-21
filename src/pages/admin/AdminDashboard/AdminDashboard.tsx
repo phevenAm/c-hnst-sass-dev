@@ -19,7 +19,13 @@ import { fetchClientStubs } from "@/store/slices/clientStubsSlice";
 import TodoListCard from "../Blocks/TodoList/TodoListCard";
 import TrendChart from "./Blocks/TrendChart/TrendChart";
 import UpcomingSessions from "./Blocks/UpcomingSessions/UpcomingSessions";
-import { revenueByMonth, sessionsByWeek } from "./dashboardUtils";
+import {
+  mergeTrendPoints,
+  revenueByMonth,
+  revenueByMonthFromPayments,
+  revenueByMonthFromStubSessions,
+  sessionsByWeek,
+} from "./dashboardUtils";
 
 import styles from "./AdminDashboard.module.scss";
 
@@ -55,6 +61,12 @@ export default function AdminDashboard() {
   const dispatch = useAppDispatch();
 
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  // Revenue chart needs paid stub sessions + manual payments alongside
+  // `allSessions`, or offline-client and manually-recorded (cash/bank
+  // transfer) payments silently don't count towards revenue — see the same
+  // fix on AdminPaymentsPage.
+  const [stubSessions, setStubSessions] = useState<{ scheduled_at: string; amount_paid: number | null }[]>([]);
+  const [manualPayments, setManualPayments] = useState<{ paid_at: string; amount_pence: number }[]>([]);
 
   useFetchOnIdle(
     (state: RootState) => state.userDirectory.status,
@@ -77,6 +89,18 @@ export default function AdminDashboard() {
   useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
 
   useEffect(() => {
+    supabase
+      .from("stub_sessions")
+      .select("scheduled_at, amount_paid")
+      .neq("status", "cancelled")
+      .then(({ data }) => data && setStubSessions(data));
+    supabase
+      .from("payments")
+      .select("paid_at, amount_pence")
+      .then(({ data }) => data && setManualPayments(data));
+  }, []);
+
+  useEffect(() => {
     Promise.all([
       supabase.from("reschedule_requests").select("id, client_id, requested_at, created_at").eq("status", "pending"),
       supabase.from("cancellation_requests").select("id, client_id, created_at").eq("status", "pending"),
@@ -90,7 +114,15 @@ export default function AdminDashboard() {
     });
   }, []);
 
-  const revenueData = useMemo(() => revenueByMonth(allSessions, 6), [allSessions]);
+  const revenueData = useMemo(
+    () =>
+      mergeTrendPoints(
+        revenueByMonth(allSessions, 6),
+        revenueByMonthFromStubSessions(stubSessions, 6),
+        revenueByMonthFromPayments(manualPayments, 6),
+      ),
+    [allSessions, stubSessions, manualPayments],
+  );
   const sessionVolumeData = useMemo(() => sessionsByWeek(allSessions, 8), [allSessions]);
 
   const unpaidSessions = useMemo(
