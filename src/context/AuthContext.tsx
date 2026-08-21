@@ -3,15 +3,29 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session } from "@supabase/supabase-js";
 
 import { resetStore, store } from "@store/index";
+import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 
-import { clearPersistedAuthSession, supabase } from "../lib/supabase";
+import { clearPersistedAuthSession, REQUEST_TIMEOUT_MS, supabase } from "../lib/supabase";
 import type { AuthUser, UserProfile } from "../models/globalTypes";
 
 // supabase-js's own internals (cross-tab lock, session recovery) can stall
 // before ever making a network request our fetchWithTimeout would catch —
-// this is the outer backstop. If init hasn't settled by here, treat it as
+// these are the outer backstops. If init hasn't settled by here, treat it as
 // failed rather than spin forever.
-const AUTH_INIT_TIMEOUT_MS = 15_000;
+//
+// Both are derived from REQUEST_TIMEOUT_MS (supabase.ts) rather than a fixed
+// number: they wrap operations that can themselves make one or more fetches
+// bound by that timeout, so an outer backstop shorter than the fetch(es) it's
+// meant to backstop would fire on a merely-slow-but-succeeding request and
+// wipe a perfectly valid session (see git history 2026-08-19/20 for the bug
+// this caused). Each gets a fixed grace on top for the lock-acquire/steal
+// overhead that happens before any fetch even starts.
+const LOCK_OVERHEAD_MS = 5_000;
+// getSession() makes at most one network call (a token refresh).
+const AUTH_INIT_TIMEOUT_MS = REQUEST_TIMEOUT_MS + LOCK_OVERHEAD_MS;
+// handleSession() makes up to two sequential calls: fetchProfile, then the
+// shared practice_settings fetch (fetchPracticeSettings).
+const HANDLE_SESSION_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 2 + LOCK_OVERHEAD_MS;
 
 type ProfileUpdates = Partial<
   Pick<UserProfile, "display_name" | "avatar_url" | "focus_keywords" | "onboarding_completed">
@@ -86,19 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const prevUserIdRef = useRef<string | null>(null);
 
-  // Races any promise against the same outer backstop used for auth init —
-  // shared so a hang triggered mid-session (e.g. a TOKEN_REFRESHED event
-  // landing while supabase-js's internals are in a bad state) gets the same
-  // guaranteed recovery as a hang on page load, instead of only page load
-  // being covered.
-  const withTimeout = <T,>(promise: Promise<T>, label: string): Promise<T> =>
+  // Races any promise against the same kind of outer backstop used for auth
+  // init — reused so a hang triggered mid-session (e.g. a TOKEN_REFRESHED
+  // event landing while supabase-js's internals are in a bad state) gets the
+  // same guaranteed recovery as a hang on page load, instead of only page
+  // load being covered. timeoutMs must be sized to what `promise` can
+  // legitimately take (see the constants above) — too short and this fires
+  // on a merely-slow-but-succeeding call instead of an actual hang.
+  const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs: number): Promise<T> =>
     Promise.race([
       promise,
       new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error(`${label} did not settle within ${AUTH_INIT_TIMEOUT_MS}ms`)),
-          AUTH_INIT_TIMEOUT_MS,
-        );
+        setTimeout(() => reject(new Error(`${label} did not settle within ${timeoutMs}ms`)), timeoutMs);
       }),
     ]);
 
@@ -125,26 +138,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile(profileData);
         setProfileError(profileData ? null : "Couldn't load your profile.");
 
-        if (profileData?.role === "admin") {
-          // maybeSingle (not single): a demo admin — or any admin without a
-          // practice_settings row — legitimately has no row, and single() would
-          // 406 on zero rows. maybeSingle returns null cleanly.
-          const { data: settings } = await supabase
-            .from("practice_settings")
-            .select(
-              "subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames, reschedule_cutoff_hours",
-            )
-            .eq("admin_id", currentAuthUser.id)
-            .maybeSingle();
-          setPracticeSettings(settings ?? null);
-          setRescheduleCutoffHours(settings?.reschedule_cutoff_hours ?? null);
-        } else {
-          setPracticeSettings(null);
-          // Clients can't SELECT practice_settings directly (RLS scopes it to
-          // the owning admin), so this one field is exposed via RPC instead.
-          const { data: cutoff } = await supabase.rpc("get_my_reschedule_cutoff_hours");
-          setRescheduleCutoffHours(cutoff ?? null);
-        }
+        // Shared cache (practiceSettingsSlice) — RLS scopes SELECT to exactly
+        // one row for any caller (admin's own row, or a client's own admin's
+        // row), so this same dispatch works for both roles and is reused by
+        // every other consumer (Navbar, PaymentModal, etc.) instead of each
+        // firing its own independent fetch. Read via the action result
+        // rather than .unwrap() so a failure degrades to null like the old
+        // direct-select code did, instead of throwing into the outer
+        // auth-hang recovery path and clearing a perfectly good session.
+        const settingsAction = await store.dispatch(fetchPracticeSettings());
+        const settings = fetchPracticeSettings.fulfilled.match(settingsAction) ? settingsAction.payload : null;
+        setPracticeSettings(profileData?.role === "admin" ? (settings ?? null) : null);
+        setRescheduleCutoffHours(settings?.reschedule_cutoff_hours ?? null);
       } else {
         setUserProfile(null);
         setProfileError(null);
@@ -162,8 +167,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const { data } = await withTimeout(supabase.auth.getSession(), "Auth init (getSession)");
-        await withTimeout(handleSession(data.session), "Auth init (handleSession)");
+        const { data } = await withTimeout(supabase.auth.getSession(), "Auth init (getSession)", AUTH_INIT_TIMEOUT_MS);
+        await withTimeout(handleSession(data.session), "Auth init (handleSession)", HANDLE_SESSION_TIMEOUT_MS);
       } catch (err) {
         // Multiple tabs/windows open can cause supabase-js's cross-tab auth
         // lock to get "stolen" from this one (AbortError, after its 5s
@@ -195,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // to have no recovery path at all — the app would sit in whatever
       // half-updated state it was in indefinitely, the "clear localStorage
       // and sign back in" symptom, but mid-session instead of on load.
-      withTimeout(handleSession(session), "Auth state change").catch((err) => {
+      withTimeout(handleSession(session), "Auth state change", HANDLE_SESSION_TIMEOUT_MS).catch((err) => {
         console.error("Auth state change handling failed:", err);
         clearPersistedAuthSession();
         setLoading(false);
@@ -334,12 +339,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshPracticeSettings = useCallback(async () => {
     if (!authUser || userProfile?.role !== "admin") return;
-    const { data } = await supabase
-      .from("practice_settings")
-      .select("subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames")
-      .eq("admin_id", authUser.id)
-      .maybeSingle();
-    setPracticeSettings(data ?? null);
+    const settingsAction = await store.dispatch(fetchPracticeSettings());
+    const settings = fetchPracticeSettings.fulfilled.match(settingsAction) ? settingsAction.payload : null;
+    setPracticeSettings(settings ?? null);
   }, [authUser, userProfile?.role]);
 
   const retryProfile = useCallback(() => {

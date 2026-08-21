@@ -9,6 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import type { Session, SessionBlockMeta } from "@/models/globalTypes";
+import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 
 import styles from "./PaymentModal.module.scss";
 
@@ -63,8 +65,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   const { isDemo } = useAuth();
   const { showToast } = useToast();
   const [tab, setTab] = useState<"bank" | "card">("bank");
-  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(true);
+  const [blockTotalLoading, setBlockTotalLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState("");
   const [manualPaymentStatus, setManualPaymentStatus] = useState(session.manual_payment_status ?? "none");
@@ -97,40 +98,55 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
   // const cardTotalPounds = ((totalPricePence * 1.02) / 100).toFixed(2);
   const cardTotalPounds = pricePounds;
 
+  // Shared cache (practiceSettingsSlice) — same row every other consumer
+  // (Navbar, InterfacePrefsContext, etc.) reads, instead of this modal firing
+  // its own independent practice_settings fetch every time it opens. RLS
+  // scopes the row to "your own admin" for a client caller, so no explicit
+  // admin_id filter is needed here.
+  useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
+  const practiceSettingsStatus = useAppSelector((state) => state.practiceSettings.status);
+  const bankDetails = useAppSelector((state): BankDetails | null => {
+    const d = state.practiceSettings.data;
+    if (!d) return null;
+    return {
+      bank_name: d.bank_name,
+      bank_account_name: d.bank_account_name,
+      bank_sort_code: d.bank_sort_code,
+      bank_account_number: d.bank_account_number,
+      bank_payment_reference: d.bank_payment_reference,
+    };
+  });
+
   useEffect(() => {
-    const bankDetailsPromise = session.created_by
-      ? supabase
-          .from("practice_settings")
-          .select("bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference")
-          .eq("admin_id", session.created_by)
-          .single()
-          .then(({ data }) => {
-            setBankDetails(data as BankDetails | null);
-            if (!data?.bank_account_number) setTab("card");
-          })
-      : Promise.resolve(setTab("card"));
+    if (practiceSettingsStatus !== "succeeded") return;
+    if (!bankDetails?.bank_account_number) setTab("card");
+  }, [practiceSettingsStatus, bankDetails]);
 
+  useEffect(() => {
     const blockId = meta?.block_id;
-    const blockTotalPromise =
-      blockId && session.client_id
-        ? supabase
-            .from("sessions")
-            .select("price_pence")
-            .eq("client_id", session.client_id)
-            .filter("metadata->>block_id", "eq", blockId)
-            .then(({ data }) => {
-              const rows = data ?? [];
-              setBlockTotalPence(rows.reduce((sum, row) => sum + (row.price_pence ?? 0), 0));
-              setBlockSessionCount(rows.length);
-            })
-        : Promise.resolve();
-
-    Promise.all([bankDetailsPromise, blockTotalPromise]).then(() => setLoadingDetails(false));
+    if (!blockId || !session.client_id) {
+      setBlockTotalPence(null);
+      setBlockSessionCount(0);
+      return;
+    }
+    setBlockTotalLoading(true);
+    supabase
+      .from("sessions")
+      .select("price_pence")
+      .eq("client_id", session.client_id)
+      .filter("metadata->>block_id", "eq", blockId)
+      .then(({ data }) => {
+        const rows = data ?? [];
+        setBlockTotalPence(rows.reduce((sum, row) => sum + (row.price_pence ?? 0), 0));
+        setBlockSessionCount(rows.length);
+        setBlockTotalLoading(false);
+      });
     // meta is derived from session.metadata on every render, not a stable
     // dependency — key on the block_id value itself instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.created_by, session.client_id, meta?.block_id]);
+  }, [session.client_id, meta?.block_id]);
 
+  const loadingDetails = practiceSettingsStatus === "idle" || practiceSettingsStatus === "loading" || blockTotalLoading;
   const hasBankDetails = !!(bankDetails?.bank_account_number && bankDetails?.bank_sort_code);
 
   function bankTransferNote(): string {

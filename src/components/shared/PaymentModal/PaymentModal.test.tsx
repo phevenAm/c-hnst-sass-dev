@@ -1,7 +1,11 @@
+import { Provider } from "react-redux";
+
+import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Session } from "@models/globalTypes";
+import practiceSettingsReducer from "@store/slices/practiceSettingsSlice";
 
 import PaymentModal from "./PaymentModal";
 
@@ -61,17 +65,12 @@ const blockSession = {
 // price_pence for every session sharing blk-1 — 3 x 5000 = 15000 pence = £150.00
 const blockSiblingPrices = [{ price_pence: 5000 }, { price_pence: 5000 }, { price_pence: 5000 }];
 
-function mockSupabaseWith(bankRow: typeof bankDetails | null, blockRows: { price_pence: number }[]) {
+// Bank details now come from the shared practiceSettingsSlice cache, not a
+// direct fetch inside PaymentModal — preload a test store with them instead
+// of mocking a practice_settings supabase chain. Block totals are still
+// fetched directly from the sessions table, so that mock stays.
+function mockSessionsTable(blockRows: { price_pence: number }[]) {
   supabaseMock.from.mockImplementation((table: string) => {
-    if (table === "practice_settings") {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: bankRow, error: null }),
-          }),
-        }),
-      };
-    }
     if (table === "sessions") {
       return {
         select: () => ({
@@ -85,12 +84,24 @@ function mockSupabaseWith(bankRow: typeof bankDetails | null, blockRows: { price
   });
 }
 
+function renderPaymentModal(session: Session) {
+  const testStore = configureStore({
+    reducer: { practiceSettings: practiceSettingsReducer },
+    preloadedState: { practiceSettings: { data: bankDetails, status: "succeeded", error: null } },
+  });
+  return render(
+    <Provider store={testStore}>
+      <PaymentModal session={session} onClose={() => {}} />
+    </Provider>,
+  );
+}
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("PaymentModal — single session", () => {
   it("shows the single session's price, not a block total", async () => {
-    mockSupabaseWith(bankDetails, []);
-    render(<PaymentModal session={singleSession} onClose={() => {}} />);
+    mockSessionsTable([]);
+    renderPaymentModal(singleSession);
 
     expect(await screen.findByText("£50.00")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Pay for session" })).toBeInTheDocument();
@@ -98,9 +109,9 @@ describe("PaymentModal — single session", () => {
   });
 
   it("requests manual payment for just this session", async () => {
-    mockSupabaseWith(bankDetails, []);
+    mockSessionsTable([]);
     supabaseMock.rpc.mockResolvedValue({ error: null });
-    render(<PaymentModal session={singleSession} onClose={() => {}} />);
+    renderPaymentModal(singleSession);
 
     fireEvent.click(await screen.findByRole("button", { name: /mark as paid/i }));
 
@@ -112,8 +123,8 @@ describe("PaymentModal — single session", () => {
 
 describe("PaymentModal — block session", () => {
   it("shows the block total across all sessions in the block, not this session's price", async () => {
-    mockSupabaseWith(bankDetails, blockSiblingPrices);
-    render(<PaymentModal session={blockSession} onClose={() => {}} />);
+    mockSessionsTable(blockSiblingPrices);
+    renderPaymentModal(blockSession);
 
     expect(await screen.findByText("£150.00")).toBeInTheDocument();
     expect(screen.queryByText("£50.00")).not.toBeInTheDocument();
@@ -121,8 +132,8 @@ describe("PaymentModal — block session", () => {
   });
 
   it("labels the bank transfer amount as covering the full block", async () => {
-    mockSupabaseWith(bankDetails, blockSiblingPrices);
-    render(<PaymentModal session={blockSession} onClose={() => {}} />);
+    mockSessionsTable(blockSiblingPrices);
+    renderPaymentModal(blockSession);
 
     expect(await screen.findByText("Amount (full block)")).toBeInTheDocument();
     expect(
@@ -134,8 +145,8 @@ describe("PaymentModal — block session", () => {
   });
 
   it("mentions the block in the card payment intro and button", async () => {
-    mockSupabaseWith(bankDetails, blockSiblingPrices);
-    render(<PaymentModal session={blockSession} onClose={() => {}} />);
+    mockSessionsTable(blockSiblingPrices);
+    renderPaymentModal(blockSession);
 
     fireEvent.click(await screen.findByRole("button", { name: "Pay with Stripe" }));
 
@@ -144,9 +155,9 @@ describe("PaymentModal — block session", () => {
   });
 
   it("still sends only this session's id to checkout — the server sums the block", async () => {
-    mockSupabaseWith(bankDetails, blockSiblingPrices);
+    mockSessionsTable(blockSiblingPrices);
     supabaseMock.functions.invoke.mockResolvedValue({ data: { url: "https://stripe.test/checkout" }, error: null });
-    render(<PaymentModal session={blockSession} onClose={() => {}} />);
+    renderPaymentModal(blockSession);
 
     fireEvent.click(await screen.findByRole("button", { name: "Pay with Stripe" }));
     fireEvent.click(await screen.findByRole("button", { name: "Pay £150.00 with Stripe" }));
@@ -163,9 +174,9 @@ describe("PaymentModal — block session", () => {
     // propagation happens inside request_manual_payment itself (see
     // 20260819000006_block_aware_manual_payment.sql), not from the client fanning
     // out calls per sibling session.
-    mockSupabaseWith(bankDetails, blockSiblingPrices);
+    mockSessionsTable(blockSiblingPrices);
     supabaseMock.rpc.mockResolvedValue({ error: null });
-    render(<PaymentModal session={blockSession} onClose={() => {}} />);
+    renderPaymentModal(blockSession);
 
     fireEvent.click(await screen.findByRole("button", { name: /mark as paid/i }));
 

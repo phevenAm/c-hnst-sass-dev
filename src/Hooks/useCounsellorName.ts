@@ -1,20 +1,8 @@
-import { useEffect, useState } from "react";
+import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 
-import { supabase } from "@/lib/supabase.js";
+import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
 
 export function useCounsellorName() {
-  const [name, setName] = useState("your therapist");
-
-  useEffect(() => {
-    supabase
-      .from("practice_settings")
-      .select("counsellor_name")
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data?.counsellor_name) setName(data.counsellor_name);
-      });
-  }, []);
-
-  return name;
+  useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
+  return useAppSelector((state) => state.practiceSettings.data?.counsellor_name) || "your therapist";
 }

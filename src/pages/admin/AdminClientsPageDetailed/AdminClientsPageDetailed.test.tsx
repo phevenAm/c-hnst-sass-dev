@@ -28,6 +28,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import auditLogsReducer from "@store/slices/auditLogsSlice";
+import practiceSettingsReducer from "@store/slices/practiceSettingsSlice";
 import assignmentsReducer from "@store/slices/questionnaireAssignmentsSlice";
 import questionnairesReducer from "@store/slices/questionnairesSlice";
 import resourcesReducer from "@store/slices/resourcesSlice";
@@ -341,12 +342,14 @@ function createTestStore(extra: Record<string, any> = {}) {
       tags: tagsReducer,
       theme: themeReducer,
       auditLogs: auditLogsReducer,
+      practiceSettings: practiceSettingsReducer,
     },
     preloadedState: {
       userDirectory: { users: [mockClient], status: "succeeded", error: null },
       sessions: { sessions: [mockUpcomingSession, mockPastSession], status: "succeeded", error: null },
       questionnaires: { questionnaires: [], status: "succeeded", error: null },
       responses: { responses: [], status: "succeeded", error: null },
+      practiceSettings: { data: null, status: "succeeded", error: null },
       ...extra,
     },
   });

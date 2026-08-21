@@ -28,6 +28,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
+import RegenerateCodeModal from "./RegenerateCodeModal/RegenerateCodeModal";
 
 import styles from "./SettingsPage.module.scss";
 
@@ -81,6 +82,7 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showRegenerateCodeModal, setShowRegenerateCodeModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
@@ -577,6 +579,11 @@ const SettingsPage = () => {
               {!isDemo && (
                 <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
                   Change password
+                </Button>
+              )}
+              {!isDemo && isAdmin && (encStatus === "unlocked" || encStatus === "locked") && (
+                <Button variant="secondary" size="sm" onClick={() => setShowRegenerateCodeModal(true)}>
+                  Get a new encryption code
                 </Button>
               )}
               {!isAdmin && !isDemo && (
@@ -1476,6 +1483,7 @@ const SettingsPage = () => {
 
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
+      {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}
       {confirmDisconnectGoogle && (
         <ConfirmModal
           title="Disconnect Google Calendar?"
