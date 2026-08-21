@@ -7,6 +7,7 @@ import { useAuth } from "@context/AuthContext";
 import { RootState } from "@/store";
 
 import { Card, NextSessionCard, SessionCard, ToggleButtonTabs } from "@/components/shared";
+import { BlockSessionCard } from "@/components/shared/BlockSessionCard/BlockSessionCard";
 import Button from "@/components/shared/Button/Button";
 import Modal from "@/components/shared/Modal/Modal";
 import SchedulerCalendar from "@/components/shared/SchedulerCalendar/SchedulerCalendar";
@@ -24,6 +25,7 @@ import type { Session } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
+import { groupSessionsForDisplay, type SessionRenderItem } from "./clientScheduleUtils";
 
 import styles from "./ClientSchedule.module.scss";
 
@@ -128,6 +130,14 @@ const ClientSchedule = () => {
   // upcomingSessions[0] is featured in the strip above, so list starts at [1]
   const sessionsToRender = activeTabs === "past" ? pastSessions : upcomingSessions.slice(1);
 
+  // Only the upcoming tab groups block sessions into a BlockSessionCard —
+  // past sessions always render individually (see groupSessionsForDisplay's
+  // own comment for why).
+  const renderItems =
+    activeTabs === "past"
+      ? sessionsToRender.map((session): SessionRenderItem => ({ kind: "single", session }))
+      : groupSessionsForDisplay(sessionsToRender);
+
   let emptyMessage = "Nothing booked yet";
 
   if (activeTabs === "past") {
@@ -192,9 +202,18 @@ const ClientSchedule = () => {
               <p className={styles.emptyList}>{emptyMessage}</p>
             ) : (
               <div className={styles.scrollable}>
-                {sessionsToRender.map((session) => (
-                  <SessionCard key={session.id} session={session} isAdmin={isAdmin} isDemo={isDemo} />
-                ))}
+                {renderItems.map((item) =>
+                  item.kind === "block" ? (
+                    <BlockSessionCard
+                      key={item.sessions[0].id}
+                      sessions={item.sessions}
+                      isAdmin={isAdmin}
+                      isDemo={isDemo}
+                    />
+                  ) : (
+                    <SessionCard key={item.session.id} session={item.session} isAdmin={isAdmin} isDemo={isDemo} />
+                  ),
+                )}
               </div>
             )}
           </Card>

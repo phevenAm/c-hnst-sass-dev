@@ -1,0 +1,68 @@
+@use "../../../styles/spacing" as *;
+
+.blockCard {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: $sp-3;
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-page));
+}
+
+.blockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $sp-2;
+  padding: 0 $sp-2 $sp-3;
+}
+
+.blockLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.blockPaidCount {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.tabRow {
+  display: flex;
+  gap: $sp-1;
+}
+
+.tab {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.tabActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.tabPaid:not(.tabActive) {
+  border-color: var(--success);
+  color: var(--success);
+}
