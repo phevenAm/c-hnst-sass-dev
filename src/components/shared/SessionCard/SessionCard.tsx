@@ -93,10 +93,21 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
     setIsCancelModalOpen(true);
   };
 
+  // Goes through the same pending -> admin-approves pipeline as the "Pay"
+  // button's bank-transfer option (PaymentModal -> request_manual_payment),
+  // not a direct paid:true write — this modal's own copy promises "they
+  // will confirm receipt and mark the session as paid on their end", so the
+  // session must actually stay unpaid (and block-aware, same RPC) until
+  // that happens instead of self-confirming on the client's click.
   const handleMarkAsPaid = async () => {
     if (isDemo) return;
     setIsMarkingPaid(true);
-    dispatch(updateSession({ id: session.id, paid: true }));
+    const { error } = await supabase.rpc("request_manual_payment", { p_session_id: session.id });
+    if (error) {
+      showToast("Couldn't mark this as paid — please try again.", "danger");
+      setIsMarkingPaid(false);
+      return;
+    }
     supabase.functions.invoke("notify-client-payment-claimed", { body: { session_id: session.id } });
     showToast("Payment noted — your counsellor has been notified.", "success");
     setIsMarkingPaid(false);

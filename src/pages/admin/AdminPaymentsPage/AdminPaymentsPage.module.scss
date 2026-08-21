@@ -71,23 +71,28 @@
   font-size: 1.1rem;
   color: var(--text-primary);
   margin: 0;
+  padding: var(--sp-2);
 }
 
 .pendingCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  height: 23px;
+  padding: 6px;
+  padding-bottom: 12px;
   border-radius: var(--r-full);
   background: var(--warning);
-  color: #fff;
-  font-size: 0.75rem;
+  color: var(--text-inverse) !important;
+  font-size: 1.3rem !important;
   font-weight: 700;
+  display: grid;
+  place-content: center;
+  transform-origin: center;
+
 }
 
 .pendingSub {
+  padding: 0 var(--sp-2);
+
   color: var(--text-secondary);
   font-size: 0.85rem;
   margin: var(--sp-1) 0 var(--sp-4);
@@ -100,6 +105,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+
+  padding: 0 var(--sp-2)
 }
 
 .pendingRow {
@@ -108,7 +115,7 @@
   justify-content: space-between;
   gap: var(--sp-3);
   padding: var(--sp-3);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   background: var(--bg-muted);
   flex-wrap: wrap;
 }

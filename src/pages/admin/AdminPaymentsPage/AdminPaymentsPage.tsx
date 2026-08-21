@@ -40,6 +40,16 @@ export type ManualPayment = {
 
 type StatusFilter = "all" | "paid" | "unpaid";
 
+function respondConfirmMessage(target: { sessions: Session[]; approved: boolean }): string {
+  if (!target.approved) {
+    return "The client will need to re-check the transfer details or contact you directly.";
+  }
+  if (target.sessions.length > 1) {
+    return `This marks all ${target.sessions.length} sessions in the block as paid.`;
+  }
+  return "This marks the session as paid.";
+}
+
 type PaymentRow = {
   id: string;
   clientId: string | null;
@@ -120,7 +130,7 @@ const AdminPaymentsPage = () => {
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
   const [markAmount, setMarkAmount] = useState("");
   const [markNotify, setMarkNotify] = useState(true);
-  const [respondTarget, setRespondTarget] = useState<{ session: Session; approved: boolean } | null>(null);
+  const [respondTarget, setRespondTarget] = useState<{ sessions: Session[]; approved: boolean } | null>(null);
   const [respondNotify, setRespondNotify] = useState(true);
   const [responding, setResponding] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
@@ -304,6 +314,28 @@ const AdminPaymentsPage = () => {
     [sessions],
   );
 
+  // request_manual_payment() flags every session in a block as pending at
+  // once (see 20260819000006_block_aware_manual_payment.sql), so a 3-session
+  // block previously showed as 3 separate rows here, each with its own
+  // Confirm/Decline — approving any one of them cascades server-side and
+  // makes all 3 vanish on the next refetch, which read as "the others just
+  // disappeared". Grouping by block_id shows one row for the whole block
+  // (any session's id is enough — respond_manual_payment cascades from it).
+  const pendingManualPaymentGroups = useMemo(() => {
+    const groups = new Map<string, Session[]>();
+    for (const s of pendingManualPayments) {
+      const blockId = (s.metadata as { block_id?: string } | null)?.block_id;
+      const key = blockId ? `block:${blockId}` : `session:${s.id}`;
+      const existing = groups.get(key);
+      if (existing) existing.push(s);
+      else groups.set(key, [s]);
+    }
+    return Array.from(groups.values()).map((group) => ({
+      sessions: group.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)),
+      totalPence: group.reduce((sum, s) => sum + (s.price_pence ?? 0), 0),
+    }));
+  }, [pendingManualPayments]);
+
   const paymentSlices: DonutSlice[] = [
     { name: "Paid", value: stats.paidCount, color: "#2d7264" },
     { name: "Unpaid", value: stats.unpaidCount, color: "#c98a2b" },
@@ -348,21 +380,26 @@ const AdminPaymentsPage = () => {
     setMarkAmount("");
   };
 
-  const openRespondConfirm = (session: Session, approved: boolean) => {
+  const openRespondConfirm = (sessions: Session[], approved: boolean) => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
     }
     setRespondNotify(true);
-    setRespondTarget({ session, approved });
+    setRespondTarget({ sessions, approved });
   };
 
   const handleConfirmRespond = async () => {
     if (!respondTarget) return;
-    const { session, approved } = respondTarget;
+    const { sessions: targetSessions, approved } = respondTarget;
+    // respond_manual_payment cascades to every session sharing this one's
+    // block_id server-side (or just this session, if it's not part of a
+    // block) — any session in the group is enough to trigger the whole
+    // group's approval/decline.
+    const primarySession = targetSessions[0];
     setResponding(true);
     const { error } = await supabase.rpc("respond_manual_payment", {
-      p_session_id: session.id,
+      p_session_id: primarySession.id,
       p_approved: approved,
     });
     setResponding(false);
@@ -370,18 +407,21 @@ const AdminPaymentsPage = () => {
       showToast("Failed to update payment.", "error");
       return;
     }
-    dispatch(
-      upsertSession({
-        ...session,
-        manual_payment_status: approved ? "approved" : "declined",
-        paid: approved ? true : session.paid,
-        paid_at: approved ? new Date().toISOString() : session.paid_at,
-      }),
-    );
+    const paidAt = new Date().toISOString();
+    for (const session of targetSessions) {
+      dispatch(
+        upsertSession({
+          ...session,
+          manual_payment_status: approved ? "approved" : "declined",
+          paid: approved ? true : session.paid,
+          paid_at: approved ? paidAt : session.paid_at,
+        }),
+      );
+    }
     await loadLedgerPage();
     if (respondNotify) {
       supabase.functions.invoke(approved ? "send-payment-notification" : "notify-manual-payment-declined", {
-        body: { session_id: session.id },
+        body: { session_id: primarySession.id },
       });
     }
     showToast(approved ? "Payment confirmed." : "Payment declined.");
@@ -539,28 +579,38 @@ const AdminPaymentsPage = () => {
         {pendingManualPayments.length > 0 && (
           <Card className={styles.pendingCard}>
             <h2 className={styles.pendingHeading}>
-              Pending bank transfers <span className={styles.pendingCount}>{pendingManualPayments.length}</span>
+              Pending bank transfers <span className={styles.pendingCount}>{pendingManualPaymentGroups.length}</span>
             </h2>
             <p className={styles.pendingSub}>Clients have marked these sessions as paid by bank transfer.</p>
             <ul className={styles.pendingList}>
-              {pendingManualPayments.map((s) => (
-                <li key={s.id} className={styles.pendingRow}>
-                  <div className={styles.pendingInfo}>
-                    <span className={styles.pendingClient}>{clientNameById(s.client_id, null)}</span>
-                    <span className={styles.pendingMeta}>
-                      {dayjs(s.scheduled_at).format("D MMM YYYY")} · {money(s.price_pence ?? 0)}
-                    </span>
-                  </div>
-                  <div className={styles.pendingActions}>
-                    <Button size="sm" variant="ghost" onClick={() => openRespondConfirm(s, false)}>
-                      Decline
-                    </Button>
-                    <Button size="sm" onClick={() => openRespondConfirm(s, true)}>
-                      Confirm paid
-                    </Button>
-                  </div>
-                </li>
-              ))}
+              {pendingManualPaymentGroups.map(({ sessions: groupSessions, totalPence }) => {
+                const first = groupSessions[0];
+                const isBlock = groupSessions.length > 1;
+                return (
+                  <li key={first.id} className={styles.pendingRow}>
+                    <div className={styles.pendingInfo}>
+                      <span className={styles.pendingClient}>
+                        {clientNameById(first.client_id, null)}
+                        {isBlock && ` — block of ${groupSessions.length} sessions`}
+                      </span>
+                      <span className={styles.pendingMeta}>
+                        {isBlock
+                          ? `${dayjs(first.scheduled_at).format("D MMM")} – ${dayjs(groupSessions[groupSessions.length - 1].scheduled_at).format("D MMM YYYY")}`
+                          : dayjs(first.scheduled_at).format("D MMM YYYY")}{" "}
+                        · {money(totalPence)}
+                      </span>
+                    </div>
+                    <div className={styles.pendingActions}>
+                      <Button size="sm" onClick={() => openRespondConfirm(groupSessions, true)}>
+                        Confirm paid
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => openRespondConfirm(groupSessions, false)}>
+                        Decline
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </Card>
         )}
@@ -715,11 +765,7 @@ const AdminPaymentsPage = () => {
             onChange: setRespondNotify,
           }}
         >
-          <p>
-            {respondTarget.approved
-              ? "This marks the session as paid."
-              : "The client will need to re-check the transfer details or contact you directly."}
-          </p>
+          <p>{respondConfirmMessage(respondTarget)}</p>
         </ConfirmModal>
       )}
 

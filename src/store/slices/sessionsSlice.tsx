@@ -16,6 +16,8 @@ const initialState: SessionsState = {
   error: null,
 };
 
+const byScheduledAt = (a: Session, b: Session) => a.scheduled_at.localeCompare(b.scheduled_at);
+
 type CreateSessionPayload = Omit<Session, "id" | "created_at" | "status">;
 // Note: avoid using React hooks at module scope; to show toasts, handle in components or middleware
 
@@ -105,8 +107,11 @@ const sessionsSlice = createSlice({
         state.sessions[idx] = action.payload;
       } else {
         state.sessions.push(action.payload);
-        state.sessions.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
       }
+      // Re-sort on every upsert, not just inserts — an existing session's
+      // scheduled_at can change (this is exactly what a reschedule is), and
+      // it needs to move to its new chronological position, not stay put.
+      state.sessions.sort(byScheduledAt);
     },
   },
   extraReducers: (builder) => {
@@ -117,7 +122,7 @@ const sessionsSlice = createSlice({
       })
       .addCase(fetchAllSessions.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.sessions = action.payload;
+        state.sessions = [...action.payload].sort(byScheduledAt);
       })
       .addCase(fetchAllSessions.rejected, (state, action) => {
         state.status = "failed";
@@ -129,7 +134,7 @@ const sessionsSlice = createSlice({
       })
       .addCase(fetchSessionsByClientId.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.sessions = action.payload.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+        state.sessions = action.payload.sort(byScheduledAt);
       })
       .addCase(fetchSessionsByClientId.rejected, (state, action) => {
         state.status = "failed";
@@ -142,7 +147,7 @@ const sessionsSlice = createSlice({
       .addCase(createSession.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.sessions.push(action.payload);
-        state.sessions.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+        state.sessions.sort(byScheduledAt);
       })
       .addCase(createSession.rejected, (state, action) => {
         state.status = "failed";
@@ -157,6 +162,10 @@ const sessionsSlice = createSlice({
 
         if (targetIndex !== -1) {
           state.sessions[targetIndex] = action.payload;
+          // A reschedule changes scheduled_at in place — without re-sorting,
+          // the session stays at its old list position instead of moving to
+          // reflect the new date/time.
+          state.sessions.sort(byScheduledAt);
         }
 
         state.status = "succeeded";

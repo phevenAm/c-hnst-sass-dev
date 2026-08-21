@@ -345,6 +345,13 @@
   line-height: 1.5;
 }
 
+.fieldError {
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin: 0.25rem 0 0;
+  line-height: 1.5;
+}
+
 // ── Setting row (label + control stacked vertically) ───────
 .settingRow {
   display: flex;

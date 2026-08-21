@@ -31,7 +31,8 @@ export default function Navbar() {
   const themeMode = useAppSelector(selectThemeMode);
   const [menuOpen, setMenuOpen] = useState(false);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
-  const { isAdmin, isDemo, signIn, signOut, userProfile, displayName } = useAuth();
+  const { isAdmin, isDemo, loading: authLoading, signIn, signOut, userProfile, displayName } = useAuth();
+  const [switchingDemoRole, setSwitchingDemoRole] = useState<"admin" | "client" | null>(null);
   const { status: encStatus } = useEncryption();
   const { showToast } = useToast();
 
@@ -53,18 +54,37 @@ export default function Navbar() {
     }
   };
 
+  // signIn()'s promise resolving doesn't mean AuthContext has finished
+  // loading the new account's profile/role yet — that's a separate async
+  // fetch triggered by the auth-state-change event, with its own network
+  // round trip. Navigating immediately after signIn() raced that fetch:
+  // ProtectedRoute would see the *previous* role for a moment and bounce
+  // straight back. Track the target role and navigate only once `loading`
+  // has cleared and isAdmin actually reflects it — driven by confirmed
+  // state instead of guessed timing.
   const handleSwitchDemoRole = async () => {
+    const targetRole = isAdmin ? "client" : "admin";
     try {
+      setSwitchingDemoRole(targetRole);
       await signIn(
-        isAdmin ? "demo-client@honest.com" : "demo-admin@honest.com",
-        isAdmin ? "DemoClient2026" : "DemoAdmin2026",
+        targetRole === "admin" ? "demo-admin@honest.com" : "demo-client@honest.com",
+        targetRole === "admin" ? "DemoAdmin2026" : "DemoClient2026",
       );
-      navigate(isAdmin ? "/dashboard" : "/admin");
     } catch (error) {
       console.error("Error switching demo role:", error);
       showToast("Couldn't switch demo accounts — try again in a moment.", "danger");
+      setSwitchingDemoRole(null);
     }
   };
+
+  useEffect(() => {
+    if (!switchingDemoRole || authLoading) return;
+    const reachedTarget = switchingDemoRole === "admin" ? isAdmin : !isAdmin;
+    if (reachedTarget) {
+      navigate(switchingDemoRole === "admin" ? "/admin" : "/dashboard");
+      setSwitchingDemoRole(null);
+    }
+  }, [switchingDemoRole, authLoading, isAdmin, navigate]);
 
   const adminLinks = [
     { to: "/admin", label: "Dashboard" },
