@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Session } from "@/models/globalTypes";
-import { groupSessionsForDisplay } from "./clientScheduleUtils";
+import { groupSessionsForDisplay } from "./sessionGrouping";
 
 const makeSession = (overrides: Partial<Session> & { id: string; scheduled_at: string }): Session => ({
   address: null,

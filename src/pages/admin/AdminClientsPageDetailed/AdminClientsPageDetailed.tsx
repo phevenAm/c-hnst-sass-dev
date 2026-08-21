@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import { BlockSessionCard } from "@components/shared/BlockSessionCard/BlockSessionCard";
 import {
   Avatar,
   Button,
@@ -30,6 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEncryption } from "@/context/EncryptionContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import { groupSessionsForDisplay } from "@/Helpers/sessionGrouping";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
@@ -962,21 +964,53 @@ export default function AdminClientsPageDetailed() {
               (clientSessions.length === 0 ? (
                 <p className={styles.sessionEmpty}>No sessions yet.</p>
               ) : (
-                paginateSessions(searchResults, sessionPageNumber ?? 1, maxPageSize).map((s) => (
-                  <div
-                    key={s.id}
-                    id={`session-${s.id}`}
-                    className={highlightedSessionId === s.id ? styles.sessionHighlighted : undefined}
-                  >
-                    <SessionCard
-                      session={s}
-                      isDemo={isDemo}
-                      isAdmin
-                      clientLabel={displayedClientName}
-                      onNotesClick={(id) => setSelectedNoteSessionId(id)}
-                    />
-                  </div>
-                ))
+                (() => {
+                  const pageSessions = paginateSessions(searchResults, sessionPageNumber ?? 1, maxPageSize);
+                  // Grouping only makes sense for the upcoming tab — a past
+                  // session never belongs in a live block card (see
+                  // groupSessionsForDisplay's own comment).
+                  const pageItems =
+                    sessionsDateTab === "past"
+                      ? pageSessions.map((session) => ({ kind: "single" as const, session }))
+                      : groupSessionsForDisplay(pageSessions);
+
+                  return pageItems.map((item) => {
+                    if (item.kind === "block") {
+                      const highlightedInBlock =
+                        !!highlightedSessionId && item.sessions.some((x) => x.id === highlightedSessionId);
+                      const anchorId = highlightedInBlock ? highlightedSessionId : item.sessions[0].id;
+                      return (
+                        <BlockSessionCard
+                          key={item.sessions[0].id}
+                          id={`session-${anchorId}`}
+                          className={highlightedInBlock ? styles.sessionHighlighted : undefined}
+                          sessions={item.sessions}
+                          isAdmin
+                          isDemo={isDemo}
+                          clientLabel={displayedClientName}
+                          onNotesClick={(id) => setSelectedNoteSessionId(id)}
+                          initialActiveId={highlightSessionId ?? undefined}
+                        />
+                      );
+                    }
+                    const s = item.session;
+                    return (
+                      <div
+                        key={s.id}
+                        id={`session-${s.id}`}
+                        className={highlightedSessionId === s.id ? styles.sessionHighlighted : undefined}
+                      >
+                        <SessionCard
+                          session={s}
+                          isDemo={isDemo}
+                          isAdmin
+                          clientLabel={displayedClientName}
+                          onNotesClick={(id) => setSelectedNoteSessionId(id)}
+                        />
+                      </div>
+                    );
+                  });
+                })()
               ))}
 
             {searchResults.length > 4 && (

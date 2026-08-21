@@ -20,12 +20,12 @@ import {
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useToast } from "@/context/ToastContext";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { groupSessionsForDisplay, type SessionRenderItem } from "@/Helpers/sessionGrouping";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import type { Session } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
-import { groupSessionsForDisplay, type SessionRenderItem } from "./clientScheduleUtils";
 
 import styles from "./ClientSchedule.module.scss";
 

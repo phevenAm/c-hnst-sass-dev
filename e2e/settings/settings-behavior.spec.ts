@@ -474,4 +474,120 @@ test.describe("Block payment cascade", () => {
       .rows[0];
     expect(outside.paid).toBe(false);
   });
+
+  test("unmarking one paid block session as unpaid reverts the whole block, not just that session", () => {
+    test.setTimeout(60_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '105 hours' and now() + interval '108 hours';`,
+    );
+
+    const blockId = `e2e-unpayblock-${Date.now()}`;
+    const { first, second } = insertSessions([
+      {
+        label: "first",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(105, "hour").toISOString(),
+        paid: true,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "second",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(106, "hour").toISOString(),
+        paid: true,
+        metadata: { block_id: blockId },
+      },
+    ]);
+    dbQuery(`update public.sessions set manual_payment_status = 'approved' where id in ('${first}', '${second}');`);
+
+    dbQuery(`update public.sessions set paid = false where id = '${first}';`);
+
+    const rows = dbQuery<{ id: string; paid: boolean; manual_payment_status: string }>(
+      `select id, paid, manual_payment_status from public.sessions where id in ('${first}', '${second}');`,
+    ).rows;
+    for (const row of rows) {
+      expect(row.paid, `${row.id} should be unpaid after unmarking either session in the block`).toBe(false);
+      expect(row.manual_payment_status).toBe("none");
+    }
+  });
+});
+
+// ── Manual payment decline + retry ──────────────────────────────────────────
+//
+// respond_manual_payment()'s decline branch sets manual_payment_status to
+// 'declined' — request_manual_payment()'s own eligibility guard used to
+// require exactly 'none', which permanently blocked ever re-requesting bank
+// transfer payment after a single decline (20260821000001). Card/Stripe
+// payment was never affected (it doesn't check this column at all), and an
+// admin could always mark a session paid directly — but the "fix the
+// reference and try the transfer again" path was a dead end until this fix.
+
+test.describe("Manual payment decline and retry", () => {
+  test("a declined manual payment request can be re-requested, staying consistent across the block", async () => {
+    test.setTimeout(90_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    const adminDb = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
+    const clientDb = await signIn(FIXTURES.client.email, FIXTURES.client.password);
+
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '109 hours' and now() + interval '112 hours';`,
+    );
+
+    const blockId = `e2e-retryblock-${Date.now()}`;
+    const { first, second } = insertSessions([
+      {
+        label: "first",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(109, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "second",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(110, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+    ]);
+
+    const statusesOf = (ids: string[]) =>
+      dbQuery<{ id: string; manual_payment_status: string; paid: boolean }>(
+        `select id, manual_payment_status, paid from public.sessions where id in (${ids.map((id) => `'${id}'`).join(",")});`,
+      ).rows;
+
+    const { error: requestErr } = await clientDb.rpc("request_manual_payment", { p_session_id: first });
+    expect(requestErr, requestErr?.message).toBeFalsy();
+    for (const row of statusesOf([first, second])) expect(row.manual_payment_status).toBe("pending");
+
+    const { error: declineErr } = await adminDb.rpc("respond_manual_payment", {
+      p_session_id: first,
+      p_approved: false,
+    });
+    expect(declineErr, declineErr?.message).toBeFalsy();
+    for (const row of statusesOf([first, second])) expect(row.manual_payment_status).toBe("declined");
+
+    // This call used to fail with "Session not found, already paid, or
+    // manual payment already requested" — that's the bug this test exists
+    // to catch a regression of.
+    const { error: retryErr } = await clientDb.rpc("request_manual_payment", { p_session_id: first });
+    expect(retryErr, "retrying after a decline should succeed, not stay permanently blocked").toBeFalsy();
+    for (const row of statusesOf([first, second])) expect(row.manual_payment_status).toBe("pending");
+
+    const { error: approveErr } = await adminDb.rpc("respond_manual_payment", {
+      p_session_id: first,
+      p_approved: true,
+    });
+    expect(approveErr, approveErr?.message).toBeFalsy();
+    for (const row of statusesOf([first, second])) {
+      expect(row.manual_payment_status).toBe("approved");
+      expect(row.paid).toBe(true);
+    }
+  });
 });
