@@ -241,85 +241,87 @@ export default function LoginPage() {
         creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
       />
       <div className={`${styles.container} container`}>
-        <div className={styles.logoWrap}>
-          <LeafLogoMark size={48} />
-          <div className={styles.logoText}>
-            <h1 className={styles.logoTitle}>Clarity</h1>
-            <p className={styles.logoSub}>A safe space for your journey</p>
+        <div className={styles.containerInner}>
+          <div className={styles.logoWrap}>
+            <LeafLogoMark size={48} />
+            <div className={styles.logoText}>
+              <h1 className={styles.logoTitle}>Clarity</h1>
+              <p className={styles.logoSub}>A safe space for your journey</p>
+            </div>
           </div>
-        </div>
 
-        {resetMode ? <ResetPasswordForm /> : null}
+          {resetMode ? <ResetPasswordForm /> : null}
 
-        <div className={styles.card} style={resetMode ? { display: "none" } : undefined}>
-          <h2 className={styles.heading}>Welcome back</h2>
+          <div className={styles.card} style={resetMode ? { display: "none" } : undefined}>
+            <h2 className={styles.heading}>Welcome back</h2>
 
-          {error && (
-            <div role="alert" className={styles.error}>
-              {error}
-            </div>
-          )}
+            {error && (
+              <div role="alert" className={styles.error}>
+                {error}
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} noValidate>
-            <div className={styles.field}>
-              <label htmlFor="email" className={styles.label}>
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className={styles.input}
-              />
-            </div>
+            <form onSubmit={handleSubmit} noValidate>
+              <div className={styles.field}>
+                <label htmlFor="email" className={styles.label}>
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className={styles.input}
+                />
+              </div>
 
-            <div className={`${styles.field} ${styles.fieldLast}`}>
-              <label htmlFor="password" className={styles.label}>
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className={styles.input}
-              />
-              <button type="button" className={styles.forgotLink} onClick={() => setShowForgotModal(true)}>
-                Forgot password?
+              <div className={`${styles.field} ${styles.fieldLast}`}>
+                <label htmlFor="password" className={styles.label}>
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={styles.input}
+                />
+                <button type="button" className={styles.forgotLink} onClick={() => setShowForgotModal(true)}>
+                  Forgot password?
+                </button>
+              </div>
+
+              <button type="submit" disabled={isLoading || !email || !password} className={styles.submitBtn}>
+                {isLoading ? "Signing in…" : "Sign in"}
               </button>
-            </div>
+            </form>
 
-            <button type="submit" disabled={isLoading || !email || !password} className={styles.submitBtn}>
-              {isLoading ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
+            <p className={styles.footer}>
+              Don't have an account?{" "}
+              <Link to="/signup" className={styles.link}>
+                Sign up
+              </Link>
+            </p>
+            <p className={styles.footer}>
+              Are you a therapist?{" "}
+              <Link to="/register" className={styles.link}>
+                Register your practice
+              </Link>
+            </p>
+          </div>
 
-          <p className={styles.footer}>
-            Don't have an account?{" "}
-            <Link to="/signup" className={styles.link}>
-              Sign up
+          <div className={styles.demoSection}>
+            <p className={styles.demoDivider}>curious first?</p>
+            <Link to="/demo" className={styles.link} style={{ display: "block", textAlign: "center" }}>
+              Try a demo
             </Link>
-          </p>
-          <p className={styles.footer}>
-            Are you a therapist?{" "}
-            <Link to="/register" className={styles.link}>
-              Register your practice
-            </Link>
-          </p>
-        </div>
-
-        <div className={styles.demoSection}>
-          <p className={styles.demoDivider}>curious first?</p>
-          <Link to="/demo" className={styles.link} style={{ display: "block", textAlign: "center" }}>
-            Try a demo
-          </Link>
+          </div>
         </div>
       </div>
       {showForgotModal && <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />}

@@ -18,10 +18,19 @@ const tmpDir = mkdtempSync(join(tmpdir(), "settings-e2e-"));
 export function dbQuery<T = Record<string, unknown>>(sql: string): { rows: T[] } {
   const file = join(tmpDir, `q-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
   writeFileSync(file, sql);
-  const out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked"], {
-    encoding: "utf8",
-    shell: true,
-  });
+  let out: string;
+  try {
+    out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked"], {
+      encoding: "utf8",
+      shell: true,
+    });
+  } catch (err) {
+    // execFileSync's own thrown error only ever showed "Command failed" plus
+    // whatever made it to stdout before the CLI errored — the actual
+    // Postgres/CLI error message is on stderr, which was silently dropped.
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    throw new Error(`dbQuery failed.\nSQL: ${sql}\nstdout: ${e.stdout}\nstderr: ${e.stderr}`);
+  }
   const jsonStart = out.indexOf("{");
   return JSON.parse(out.slice(jsonStart));
 }
@@ -44,18 +53,27 @@ export function lookupFixtureIds(adminEmail: string, clientEmail: string): { adm
   return { adminId, clientId };
 }
 
-type SessionSpec = { label: string; clientId: string; adminId: string; scheduledAt: string; paid: boolean };
+type SessionSpec = {
+  label: string;
+  clientId: string;
+  adminId: string;
+  scheduledAt: string;
+  paid: boolean;
+  /** e.g. { block_id: "abc" } — sessions.metadata is jsonb; matches the app's
+   *  own block-booking convention (see 20260819000006_block_aware_manual_payment.sql). */
+  metadata?: Record<string, unknown>;
+};
 
 // Inserts several sessions in a single round trip via a CTE, returning each
 // one's id keyed by the label you gave it.
 export function insertSessions(specs: SessionSpec[]): Record<string, string> {
   const ctes = specs
-    .map(
-      (s, i) =>
-        `s${i} as (insert into public.sessions (client_id, created_by, scheduled_at, duration_minutes, status, location, price_pence, paid)
-          values ('${s.clientId}', '${s.adminId}', '${s.scheduledAt}', 50, 'scheduled', 'remote', 5000, ${s.paid})
-          returning id)`,
-    )
+    .map((s, i) => {
+      const metadataSql = s.metadata ? `'${JSON.stringify(s.metadata)}'::jsonb` : "null";
+      return `s${i} as (insert into public.sessions (client_id, created_by, scheduled_at, duration_minutes, status, location, price_pence, paid, metadata)
+          values ('${s.clientId}', '${s.adminId}', '${s.scheduledAt}', 50, 'scheduled', 'remote', 5000, ${s.paid}, ${metadataSql})
+          returning id)`;
+    })
     .join(",\n");
   const selects = specs.map((s, i) => `select '${s.label}' as label, id from s${i}`).join("\nunion all\n");
   const rows = dbQuery<{ label: string; id: string }>(`with ${ctes} ${selects};`).rows;

@@ -304,3 +304,290 @@ test.describe("Auto-cancel unpaid sessions", () => {
     expect(finalStatuses.find((r) => r.id === paidId)?.status).toBe("scheduled");
   });
 });
+
+// ── Block-session cancellation ──────────────────────────────────────────────
+//
+// practice_settings.allow_block_session_cancellation (added 2026-08-20) gates
+// whether a client can request to cancel a single session that's part of a
+// block booking, independent of whether that block has been paid yet — see
+// request-cancel-session/index.ts.
+
+test.describe("Block session cancellation setting", () => {
+  test("blocks the request when off, allows it when on", async () => {
+    test.setTimeout(90_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    const adminDb = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
+    const clientDb = await signIn(FIXTURES.client.email, FIXTURES.client.password);
+
+    // check_session_overlap (20260817000000_no_double_booking.sql) rejects
+    // any two non-cancelled sessions for the same admin whose time ranges
+    // intersect — a re-run of this test lands its new sessions at nearly the
+    // same "now + N hours" offset as a previous run's leftovers, which is
+    // well within the 50-minute overlap window. Clear this test's slice of
+    // the calendar first so a rerun can't collide with itself.
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '89 hours' and now() + interval '93 hours';`,
+    );
+
+    const blockId = `e2e-block-${Date.now()}`;
+    const { blocked, allowed } = insertSessions([
+      {
+        label: "blocked",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(90, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "allowed",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(91, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+    ]);
+
+    await adminDb.from("practice_settings").update({ allow_block_session_cancellation: false }).eq("admin_id", adminId);
+
+    const { error: blockedErr } = await clientDb.functions.invoke("request-cancel-session", {
+      body: { session_id: blocked },
+    });
+    // supabase-js surfaces a non-2xx edge function response as a
+    // FunctionsHttpError on `error`, not a JSON body on `data` — the actual
+    // { error: "..." } payload the function returned lives on the raw
+    // Response at error.context.
+    expect(blockedErr, "expected a FunctionsHttpError (the function should reject this)").toBeTruthy();
+    const blockedBody = await (blockedErr as { context: Response }).context.json();
+    expect(blockedBody.error).toContain("can't be cancelled individually");
+
+    // Confirm no request was actually recorded.
+    const pendingCount = dbQuery<{ count: string }>(
+      `select count(*)::text as count from public.cancellation_requests where session_id = '${blocked}';`,
+    ).rows[0];
+    expect(pendingCount.count).toBe("0");
+
+    await adminDb.from("practice_settings").update({ allow_block_session_cancellation: true }).eq("admin_id", adminId);
+
+    const { error: allowedErr } = await clientDb.functions.invoke("request-cancel-session", {
+      body: { session_id: allowed },
+    });
+    expect(allowedErr, allowedErr?.message).toBeFalsy();
+
+    const recorded = dbQuery<{ count: string }>(
+      `select count(*)::text as count from public.cancellation_requests where session_id = '${allowed}' and status = 'pending';`,
+    ).rows[0];
+    expect(recorded.count).toBe("1");
+  });
+});
+
+// ── Block payment cascade ───────────────────────────────────────────────────
+//
+// sessions_cascade_block_payment (added 2026-08-20) marks every sibling in a
+// block as paid whenever any one of them gets marked paid, regardless of
+// which code path did it — tested here at the DB level with a raw UPDATE so
+// it covers the trigger itself, not any one call site.
+
+test.describe("Block payment cascade", () => {
+  test("marking one block session paid marks every unpaid sibling paid too", () => {
+    test.setTimeout(60_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+
+    // See the identical comment in "Block session cancellation setting" —
+    // check_session_overlap rejects a rerun's sessions colliding with a
+    // previous run's leftovers at nearly the same "now + N hours" offset.
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '99 hours' and now() + interval '103 hours';`,
+    );
+
+    const blockId = `e2e-payblock-${Date.now()}`;
+    const { first, second, third } = insertSessions([
+      {
+        label: "first",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(100, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "second",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(101, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "third",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(102, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+    ]);
+
+    // "second" is mid-approval on a manual (bank transfer) payment — the
+    // cascade should settle it to 'approved', not leave it dangling on
+    // 'pending' once the block is already paid.
+    dbQuery(`update public.sessions set manual_payment_status = 'pending' where id = '${second}';`);
+
+    dbQuery(`update public.sessions set paid = true, paid_at = now() where id = '${first}';`);
+
+    const rows = dbQuery<{ id: string; paid: boolean; manual_payment_status: string }>(
+      `select id, paid, manual_payment_status from public.sessions where id in ('${first}', '${second}', '${third}');`,
+    ).rows;
+
+    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+    expect(byId[first].paid).toBe(true);
+    expect(byId[second].paid).toBe(true);
+    expect(byId[second].manual_payment_status).toBe("approved");
+    expect(byId[third].paid).toBe(true);
+  });
+
+  test("does not touch sessions outside the block", () => {
+    test.setTimeout(60_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '103 hours' and now() + interval '105 hours';`,
+    );
+
+    const blockId = `e2e-payblock-${Date.now()}`;
+    const { inBlock, outsideBlock } = insertSessions([
+      {
+        label: "inBlock",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(103, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+      { label: "outsideBlock", clientId, adminId, scheduledAt: dayjs().add(104, "hour").toISOString(), paid: false },
+    ]);
+
+    dbQuery(`update public.sessions set paid = true, paid_at = now() where id = '${inBlock}';`);
+
+    const outside = dbQuery<{ paid: boolean }>(`select paid from public.sessions where id = '${outsideBlock}';`)
+      .rows[0];
+    expect(outside.paid).toBe(false);
+  });
+
+  test("unmarking one paid block session as unpaid reverts the whole block, not just that session", () => {
+    test.setTimeout(60_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '105 hours' and now() + interval '108 hours';`,
+    );
+
+    const blockId = `e2e-unpayblock-${Date.now()}`;
+    const { first, second } = insertSessions([
+      {
+        label: "first",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(105, "hour").toISOString(),
+        paid: true,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "second",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(106, "hour").toISOString(),
+        paid: true,
+        metadata: { block_id: blockId },
+      },
+    ]);
+    dbQuery(`update public.sessions set manual_payment_status = 'approved' where id in ('${first}', '${second}');`);
+
+    dbQuery(`update public.sessions set paid = false where id = '${first}';`);
+
+    const rows = dbQuery<{ id: string; paid: boolean; manual_payment_status: string }>(
+      `select id, paid, manual_payment_status from public.sessions where id in ('${first}', '${second}');`,
+    ).rows;
+    for (const row of rows) {
+      expect(row.paid, `${row.id} should be unpaid after unmarking either session in the block`).toBe(false);
+      expect(row.manual_payment_status).toBe("none");
+    }
+  });
+});
+
+// ── Manual payment decline + retry ──────────────────────────────────────────
+//
+// respond_manual_payment()'s decline branch sets manual_payment_status to
+// 'declined' — request_manual_payment()'s own eligibility guard used to
+// require exactly 'none', which permanently blocked ever re-requesting bank
+// transfer payment after a single decline (20260821000001). Card/Stripe
+// payment was never affected (it doesn't check this column at all), and an
+// admin could always mark a session paid directly — but the "fix the
+// reference and try the transfer again" path was a dead end until this fix.
+
+test.describe("Manual payment decline and retry", () => {
+  test("a declined manual payment request can be re-requested, staying consistent across the block", async () => {
+    test.setTimeout(90_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    const adminDb = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
+    const clientDb = await signIn(FIXTURES.client.email, FIXTURES.client.password);
+
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '109 hours' and now() + interval '112 hours';`,
+    );
+
+    const blockId = `e2e-retryblock-${Date.now()}`;
+    const { first, second } = insertSessions([
+      {
+        label: "first",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(109, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+      {
+        label: "second",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(110, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId },
+      },
+    ]);
+
+    const statusesOf = (ids: string[]) =>
+      dbQuery<{ id: string; manual_payment_status: string; paid: boolean }>(
+        `select id, manual_payment_status, paid from public.sessions where id in (${ids.map((id) => `'${id}'`).join(",")});`,
+      ).rows;
+
+    const { error: requestErr } = await clientDb.rpc("request_manual_payment", { p_session_id: first });
+    expect(requestErr, requestErr?.message).toBeFalsy();
+    for (const row of statusesOf([first, second])) expect(row.manual_payment_status).toBe("pending");
+
+    const { error: declineErr } = await adminDb.rpc("respond_manual_payment", {
+      p_session_id: first,
+      p_approved: false,
+    });
+    expect(declineErr, declineErr?.message).toBeFalsy();
+    for (const row of statusesOf([first, second])) expect(row.manual_payment_status).toBe("declined");
+
+    // This call used to fail with "Session not found, already paid, or
+    // manual payment already requested" — that's the bug this test exists
+    // to catch a regression of.
+    const { error: retryErr } = await clientDb.rpc("request_manual_payment", { p_session_id: first });
+    expect(retryErr, "retrying after a decline should succeed, not stay permanently blocked").toBeFalsy();
+    for (const row of statusesOf([first, second])) expect(row.manual_payment_status).toBe("pending");
+
+    const { error: approveErr } = await adminDb.rpc("respond_manual_payment", {
+      p_session_id: first,
+      p_approved: true,
+    });
+    expect(approveErr, approveErr?.message).toBeFalsy();
+    for (const row of statusesOf([first, second])) {
+      expect(row.manual_payment_status).toBe("approved");
+      expect(row.paid).toBe(true);
+    }
+  });
+});
