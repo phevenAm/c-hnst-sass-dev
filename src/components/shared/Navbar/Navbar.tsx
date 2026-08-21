@@ -4,12 +4,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { pickColor } from "@Helpers/Helpers";
 
 import { useAuth } from "../../../context/AuthContext";
-import { useEncryption } from "../../../context/EncryptionContext";
 import { useToast } from "../../../context/ToastContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "../../../store/hooks";
 import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
+import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
 import {
   ClarityLogoMark,
   CloseIcon,
@@ -32,7 +32,6 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isAdmin, isDemo, loading: authLoading, signIn, signOut, userProfile, displayName } = useAuth();
   const [switchingDemoRole, setSwitchingDemoRole] = useState<"admin" | "client" | null>(null);
-  const { status: encStatus } = useEncryption();
   const { showToast } = useToast();
 
   useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
@@ -166,28 +165,7 @@ export default function Navbar() {
 
           <NotificationBell />
 
-          {isAdmin && (encStatus === "unlocked" || encStatus === "locked") && (
-            <div
-              className={`${styles.encPill} ${encStatus === "unlocked" ? styles.encUnlocked : styles.encLocked}`}
-              title={
-                encStatus === "unlocked"
-                  ? "Notes are encrypted and unlocked"
-                  : "Notes are encrypted but locked — open a client's session notes to unlock"
-              }
-              aria-label={encStatus === "unlocked" ? "Encryption: unlocked" : "Encryption: locked"}
-              role="status"
-            >
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <rect x="2.5" y="7.5" width="11" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
-                {encStatus === "unlocked" ? (
-                  <path d="M5 7.5V5A3 3 0 0110.5 3.33" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-                ) : (
-                  <path d="M5 7.5V5a3 3 0 016 0v2.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-                )}
-              </svg>
-              <span>{encStatus === "unlocked" ? "Encrypted" : "Locked"}</span>
-            </div>
-          )}
+          {isAdmin && <EncryptionStatusPill />}
 
           <div className={styles.userSection}>
             {userProfile && (

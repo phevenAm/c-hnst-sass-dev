@@ -1,0 +1,39 @@
+.encPill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+
+  @media (max-width: 960px) {
+    display: none;
+  }
+
+  &.encUnlocked {
+    background: color-mix(in srgb, var(--success) 10%, transparent);
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 25%, transparent);
+  }
+
+  &.encLocked {
+    background: color-mix(in srgb, var(--warning) 12%, transparent);
+    color: #92400e;
+    border-color: color-mix(in srgb, var(--warning) 25%, transparent);
+
+    :global(.dark) & {
+      color: var(--warning);
+    }
+  }
+
+  &.encDisabled {
+    background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+    color: var(--text-secondary);
+    border-color: color-mix(in srgb, var(--text-muted) 25%, transparent);
+  }
+}
