@@ -15,6 +15,7 @@ import adminPrivateEventsReducer from "./slices/adminPrivateEventsSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
 import availabilityReducer from "./slices/availabilitySlice";
 import clientStubsReducer from "./slices/clientStubsSlice";
+import practiceSettingsReducer from "./slices/practiceSettingsSlice";
 import assignmentsReducer from "./slices/questionnaireAssignmentsSlice";
 import questionnairesReducer from "./slices/questionnairesSlice";
 import resourcesReducer from "./slices/resourcesSlice";
@@ -40,6 +41,7 @@ export const store = configureStore({
     auditLogs: auditLogsReducer,
     todos: todoReducer,
     clientStubs: clientStubsReducer,
+    practiceSettings: practiceSettingsReducer,
     [inspirationalQuotesApi.reducerPath]: inspirationalQuotesApi.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(inspirationalQuotesApi.middleware as Middleware),

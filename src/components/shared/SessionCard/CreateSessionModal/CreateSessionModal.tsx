@@ -12,7 +12,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import { createSession, updateSession } from "@/store/slices/sessionsSlice";
 
 import styles from "./CreateSessionModal.module.scss";
@@ -66,17 +67,11 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
 
+  useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
+  const cachedSavedLocations = useAppSelector((state) => state.practiceSettings.data?.saved_locations);
   useEffect(() => {
-    if (!authUser) return;
-    supabase
-      .from("practice_settings")
-      .select("saved_locations")
-      .eq("admin_id", authUser.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.saved_locations) setSavedLocations(data.saved_locations as string[]);
-      });
-  }, [authUser?.id]);
+    if (cachedSavedLocations) setSavedLocations(cachedSavedLocations as string[]);
+  }, [cachedSavedLocations]);
 
   const handleSaveLocation = async () => {
     if (!sessionAddress.trim() || !authUser) return;

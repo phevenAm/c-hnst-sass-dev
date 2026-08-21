@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session } from "@supabase/supabase-js";
 
 import { resetStore, store } from "@store/index";
+import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 
 import { clearPersistedAuthSession, REQUEST_TIMEOUT_MS, supabase } from "../lib/supabase";
 import type { AuthUser, UserProfile } from "../models/globalTypes";
@@ -22,8 +23,8 @@ import type { AuthUser, UserProfile } from "../models/globalTypes";
 const LOCK_OVERHEAD_MS = 5_000;
 // getSession() makes at most one network call (a token refresh).
 const AUTH_INIT_TIMEOUT_MS = REQUEST_TIMEOUT_MS + LOCK_OVERHEAD_MS;
-// handleSession() makes up to two sequential calls: fetchProfile, then either
-// the practice_settings select or the reschedule-cutoff RPC.
+// handleSession() makes up to two sequential calls: fetchProfile, then the
+// shared practice_settings fetch (fetchPracticeSettings).
 const HANDLE_SESSION_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 2 + LOCK_OVERHEAD_MS;
 
 type ProfileUpdates = Partial<
@@ -137,26 +138,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile(profileData);
         setProfileError(profileData ? null : "Couldn't load your profile.");
 
-        if (profileData?.role === "admin") {
-          // maybeSingle (not single): a demo admin — or any admin without a
-          // practice_settings row — legitimately has no row, and single() would
-          // 406 on zero rows. maybeSingle returns null cleanly.
-          const { data: settings } = await supabase
-            .from("practice_settings")
-            .select(
-              "subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames, reschedule_cutoff_hours",
-            )
-            .eq("admin_id", currentAuthUser.id)
-            .maybeSingle();
-          setPracticeSettings(settings ?? null);
-          setRescheduleCutoffHours(settings?.reschedule_cutoff_hours ?? null);
-        } else {
-          setPracticeSettings(null);
-          // Clients can't SELECT practice_settings directly (RLS scopes it to
-          // the owning admin), so this one field is exposed via RPC instead.
-          const { data: cutoff } = await supabase.rpc("get_my_reschedule_cutoff_hours");
-          setRescheduleCutoffHours(cutoff ?? null);
-        }
+        // Shared cache (practiceSettingsSlice) — RLS scopes SELECT to exactly
+        // one row for any caller (admin's own row, or a client's own admin's
+        // row), so this same dispatch works for both roles and is reused by
+        // every other consumer (Navbar, PaymentModal, etc.) instead of each
+        // firing its own independent fetch. Read via the action result
+        // rather than .unwrap() so a failure degrades to null like the old
+        // direct-select code did, instead of throwing into the outer
+        // auth-hang recovery path and clearing a perfectly good session.
+        const settingsAction = await store.dispatch(fetchPracticeSettings());
+        const settings = fetchPracticeSettings.fulfilled.match(settingsAction) ? settingsAction.payload : null;
+        setPracticeSettings(profileData?.role === "admin" ? (settings ?? null) : null);
+        setRescheduleCutoffHours(settings?.reschedule_cutoff_hours ?? null);
       } else {
         setUserProfile(null);
         setProfileError(null);
@@ -346,12 +339,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshPracticeSettings = useCallback(async () => {
     if (!authUser || userProfile?.role !== "admin") return;
-    const { data } = await supabase
-      .from("practice_settings")
-      .select("subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames")
-      .eq("admin_id", authUser.id)
-      .maybeSingle();
-    setPracticeSettings(data ?? null);
+    const settingsAction = await store.dispatch(fetchPracticeSettings());
+    const settings = fetchPracticeSettings.fulfilled.match(settingsAction) ? settingsAction.payload : null;
+    setPracticeSettings(settings ?? null);
   }, [authUser, userProfile?.role]);
 
   const retryProfile = useCallback(() => {

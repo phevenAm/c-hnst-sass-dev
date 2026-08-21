@@ -6,8 +6,8 @@ import { pickColor } from "@Helpers/Helpers";
 import { useAuth } from "../../../context/AuthContext";
 import { useEncryption } from "../../../context/EncryptionContext";
 import { useToast } from "../../../context/ToastContext";
-import { supabase } from "../../../lib/supabase.js";
-import { useAppDispatch, useAppSelector } from "../../../store/hooks";
+import { useAppDispatch, useAppSelector, useFetchOnIdle } from "../../../store/hooks";
+import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
 import {
@@ -30,20 +30,13 @@ export default function Navbar() {
   const navigate = useNavigate();
   const themeMode = useAppSelector(selectThemeMode);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const { isAdmin, isDemo, loading: authLoading, signIn, signOut, userProfile, displayName } = useAuth();
   const [switchingDemoRole, setSwitchingDemoRole] = useState<"admin" | "client" | null>(null);
   const { status: encStatus } = useEncryption();
   const { showToast } = useToast();
 
-  useEffect(() => {
-    supabase
-      .from("practice_settings")
-      .select("logo_url")
-      .limit(1)
-      .single()
-      .then(({ data }) => setPracticeLogoUrl(data?.logo_url ?? null));
-  }, []);
+  useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
+  const practiceLogoUrl = useAppSelector((state) => state.practiceSettings.data?.logo_url ?? null);
 
   const handleLogout = async () => {
     try {

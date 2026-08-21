@@ -9,6 +9,8 @@ import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
+import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import CpdEntryModal from "./CpdEntryModal";
 import CpdExportModal from "./CpdExportModal";
 
@@ -123,17 +125,11 @@ export default function AdminCpdPage() {
     void fetchLogs();
   }, [fetchLogs]);
 
+  useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
+  const cachedTargetHours = useAppSelector((state) => state.practiceSettings.data?.cpd_annual_target_hours);
   useEffect(() => {
-    if (!userProfile?.id) return;
-    supabase
-      .from("practice_settings")
-      .select("cpd_annual_target_hours")
-      .eq("admin_id", userProfile.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.cpd_annual_target_hours) setTarget(data.cpd_annual_target_hours);
-      });
-  }, [userProfile?.id]);
+    if (cachedTargetHours) setTarget(cachedTargetHours);
+  }, [cachedTargetHours]);
 
   const handleDelete = async (log: CpdLog) => {
     if (log._source === "private_event") {
