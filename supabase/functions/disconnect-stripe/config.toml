@@ -1,0 +1,2 @@
+[functions.disconnect-stripe]
+verify_jwt = true

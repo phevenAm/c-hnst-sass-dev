@@ -106,6 +106,8 @@ const SettingsPage = () => {
   const [stripeConnected, setStripeConnected] = useState(false);
   const [cardPaymentsEnabled, setCardPaymentsEnabled] = useState(false);
   const [savingCardPayments, setSavingCardPayments] = useState(false);
+  const [disconnectingStripe, setDisconnectingStripe] = useState(false);
+  const [confirmDisconnectStripe, setConfirmDisconnectStripe] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [billingCustomerId, setBillingCustomerId] = useState<string | null>(null);
 
@@ -465,6 +467,21 @@ const SettingsPage = () => {
     setSavingCardPayments(false);
   };
 
+  const handleDisconnectStripe = async () => {
+    setDisconnectingStripe(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("disconnect-stripe");
+      if (fnError) throw new Error(fnError.message);
+      setStripeConnected(false);
+      setCardPaymentsEnabled(false);
+      showToast("Stripe disconnected. Clients can no longer pay by card.");
+      setConfirmDisconnectStripe(false);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Couldn't disconnect Stripe — please try again.", "error");
+    }
+    setDisconnectingStripe(false);
+  };
+
   const handleToggleGoogleSync = async () => {
     if (!googleStatus) return;
     const nextEnabled = !googleStatus.sync_enabled;
@@ -736,6 +753,9 @@ const SettingsPage = () => {
                         <span className={styles.toggleThumb} />
                       </span>
                     </label>
+                    <Button variant="ghost" onClick={() => setConfirmDisconnectStripe(true)}>
+                      Disconnect Stripe
+                    </Button>
                   </>
                 ) : (
                   <Button
@@ -1534,6 +1554,21 @@ const SettingsPage = () => {
           confirmLabel="Yes, disconnect"
         >
           <p>Future sessions will stop syncing to Google Calendar. Events already created there won't be removed.</p>
+        </ConfirmModal>
+      )}
+      {confirmDisconnectStripe && (
+        <ConfirmModal
+          title="Disconnect Stripe?"
+          onClose={() => setConfirmDisconnectStripe(false)}
+          onConfirm={handleDisconnectStripe}
+          confirming={disconnectingStripe}
+          confirmLabel="Yes, disconnect"
+          danger
+        >
+          <p>
+            Clients will no longer be able to pay by card — bank transfer stays available. You'll need to reconnect and
+            turn card payments back on to offer it again.
+          </p>
         </ConfirmModal>
       )}
     </div>

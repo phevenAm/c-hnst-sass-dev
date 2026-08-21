@@ -1,6 +1,6 @@
 {
   "name": "Clarity",
-  "version": "5.7.2",
+  "version": "5.7.3",
   "private": true,
   "type": "module",
   "dependencies": {

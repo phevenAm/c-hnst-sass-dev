@@ -26,7 +26,7 @@
   }
 }
 
-// Subtle background shapes — teal tints
+// Subtle background shapes — teal + warm highlight tints
 .blob {
   position: absolute;
   border-radius: 50%;
@@ -45,7 +45,7 @@
     left: -4%;
     width: clamp(180px, 26vw, 360px);
     height: clamp(180px, 26vw, 360px);
-    background: radial-gradient(circle, rgba(#cfe8e0, 0.45), transparent 70%);
+    background: radial-gradient(circle, rgba(var(--highlight-rgb), 0.35), transparent 70%);
   }
 }
 
