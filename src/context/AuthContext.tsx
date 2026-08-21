@@ -4,14 +4,27 @@ import type { Session } from "@supabase/supabase-js";
 
 import { resetStore, store } from "@store/index";
 
-import { clearPersistedAuthSession, supabase } from "../lib/supabase";
+import { clearPersistedAuthSession, REQUEST_TIMEOUT_MS, supabase } from "../lib/supabase";
 import type { AuthUser, UserProfile } from "../models/globalTypes";
 
 // supabase-js's own internals (cross-tab lock, session recovery) can stall
 // before ever making a network request our fetchWithTimeout would catch —
-// this is the outer backstop. If init hasn't settled by here, treat it as
+// these are the outer backstops. If init hasn't settled by here, treat it as
 // failed rather than spin forever.
-const AUTH_INIT_TIMEOUT_MS = 15_000;
+//
+// Both are derived from REQUEST_TIMEOUT_MS (supabase.ts) rather than a fixed
+// number: they wrap operations that can themselves make one or more fetches
+// bound by that timeout, so an outer backstop shorter than the fetch(es) it's
+// meant to backstop would fire on a merely-slow-but-succeeding request and
+// wipe a perfectly valid session (see git history 2026-08-19/20 for the bug
+// this caused). Each gets a fixed grace on top for the lock-acquire/steal
+// overhead that happens before any fetch even starts.
+const LOCK_OVERHEAD_MS = 5_000;
+// getSession() makes at most one network call (a token refresh).
+const AUTH_INIT_TIMEOUT_MS = REQUEST_TIMEOUT_MS + LOCK_OVERHEAD_MS;
+// handleSession() makes up to two sequential calls: fetchProfile, then either
+// the practice_settings select or the reschedule-cutoff RPC.
+const HANDLE_SESSION_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 2 + LOCK_OVERHEAD_MS;
 
 type ProfileUpdates = Partial<
   Pick<UserProfile, "display_name" | "avatar_url" | "focus_keywords" | "onboarding_completed">
@@ -86,19 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const prevUserIdRef = useRef<string | null>(null);
 
-  // Races any promise against the same outer backstop used for auth init —
-  // shared so a hang triggered mid-session (e.g. a TOKEN_REFRESHED event
-  // landing while supabase-js's internals are in a bad state) gets the same
-  // guaranteed recovery as a hang on page load, instead of only page load
-  // being covered.
-  const withTimeout = <T,>(promise: Promise<T>, label: string): Promise<T> =>
+  // Races any promise against the same kind of outer backstop used for auth
+  // init — reused so a hang triggered mid-session (e.g. a TOKEN_REFRESHED
+  // event landing while supabase-js's internals are in a bad state) gets the
+  // same guaranteed recovery as a hang on page load, instead of only page
+  // load being covered. timeoutMs must be sized to what `promise` can
+  // legitimately take (see the constants above) — too short and this fires
+  // on a merely-slow-but-succeeding call instead of an actual hang.
+  const withTimeout = <T,>(promise: Promise<T>, label: string, timeoutMs: number): Promise<T> =>
     Promise.race([
       promise,
       new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error(`${label} did not settle within ${AUTH_INIT_TIMEOUT_MS}ms`)),
-          AUTH_INIT_TIMEOUT_MS,
-        );
+        setTimeout(() => reject(new Error(`${label} did not settle within ${timeoutMs}ms`)), timeoutMs);
       }),
     ]);
 
@@ -162,8 +174,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
-        const { data } = await withTimeout(supabase.auth.getSession(), "Auth init (getSession)");
-        await withTimeout(handleSession(data.session), "Auth init (handleSession)");
+        const { data } = await withTimeout(supabase.auth.getSession(), "Auth init (getSession)", AUTH_INIT_TIMEOUT_MS);
+        await withTimeout(handleSession(data.session), "Auth init (handleSession)", HANDLE_SESSION_TIMEOUT_MS);
       } catch (err) {
         // Multiple tabs/windows open can cause supabase-js's cross-tab auth
         // lock to get "stolen" from this one (AbortError, after its 5s
@@ -195,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // to have no recovery path at all — the app would sit in whatever
       // half-updated state it was in indefinitely, the "clear localStorage
       // and sign back in" symptom, but mid-session instead of on load.
-      withTimeout(handleSession(session), "Auth state change").catch((err) => {
+      withTimeout(handleSession(session), "Auth state change", HANDLE_SESSION_TIMEOUT_MS).catch((err) => {
         console.error("Auth state change handling failed:", err);
         clearPersistedAuthSession();
         setLoading(false);

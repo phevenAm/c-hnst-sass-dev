@@ -13,7 +13,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // reaches "failed" if the promise never settles. Bounding every request to
 // this client fixes that: a hang now surfaces as a real error within 20s
 // instead of an indefinite spinner.
-const REQUEST_TIMEOUT_MS = 20_000;
+export const REQUEST_TIMEOUT_MS = 20_000;
 // Anything slower than this gets logged even though it succeeded, so a spike
 // that stops just short of the hard timeout still leaves a trace.
 const SLOW_LOG_THRESHOLD_MS = 2_000;
