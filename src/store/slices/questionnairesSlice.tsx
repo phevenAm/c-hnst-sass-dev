@@ -48,6 +48,7 @@ export const createQuestionnaire = createAsyncThunk<Questionnaire, Questionnaire
         description: data.description,
         frequency: formType === "outcome_measure" ? data.frequency : null,
         form_type: formType,
+        pdf_url: d.pdf_url ?? null,
         is_active: true,
       })
       .select()

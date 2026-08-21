@@ -48,6 +48,7 @@ beforeEach(() => {
   mockUseAuth.mockImplementation(() => defaultAuthValue);
   Object.assign(currentRow, initialRow);
   setGoogleStatusRow(null);
+  setOnboardingFormsRows([]);
 });
 
 vi.mock("@context/EncryptionContext", () => ({
@@ -76,78 +77,94 @@ vi.mock("@context/ToastContext", () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
-const { supabaseMock, updateSpy, initialRow, currentRow, invokeSpy, setGoogleStatusRow } = vi.hoisted(() => {
-  const initialRow = {
-    business_name: "",
-    email: "",
-    phone: "",
-    address: "",
-    logo_url: "",
-    bank_name: "",
-    bank_account_name: "",
-    bank_sort_code: "",
-    bank_account_number: "",
-    bank_payment_reference: "",
-    stripe_connect_onboarded: false,
-    billing_customer_id: null,
-    reminder_hours_before: 120,
-    reminder_email_subject: "",
-    reminder_email_body: "",
-    reminder_email_heading: "",
-    disabled_email_types: [] as string[],
-    payment_deadline_hours: 48,
-    use_client_codenames: false,
-    auto_cancel_enabled: false,
-    reschedule_cutoff_hours: 48,
-    consent_enabled: false,
-    consent_title: "Before you continue",
-    consent_body: "",
-    consent_pdf_url: "",
-    consent_counsellor_cta: "If you have any questions, speak to your counsellor.",
-  };
-  // Mutable copy the mock reads from — tests can tweak fields (e.g.
-  // stripe_connect_onboarded) before rendering without touching the defaults.
-  const currentRow: typeof initialRow = { ...initialRow };
-  let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
-  const updateSpy = vi.fn();
-  const invokeSpy = vi.fn((fnName: string) =>
-    Promise.resolve({ data: { url: `https://example.com/${fnName}` }, error: null }),
-  );
-  const rpcSpy = vi.fn((fnName: string) => {
-    if (fnName === "get_google_calendar_status") {
-      return Promise.resolve({ data: googleStatusRow ? [googleStatusRow] : [], error: null });
-    }
-    return Promise.resolve({ data: [], error: null });
-  });
-  const supabaseMock = {
-    from: vi.fn((table: string) => {
-      if (table !== "practice_settings") throw new Error(`Unexpected table in test: ${table}`);
-      return {
-        select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: currentRow, error: null }),
+const { supabaseMock, updateSpy, initialRow, currentRow, invokeSpy, setGoogleStatusRow, setOnboardingFormsRows } =
+  vi.hoisted(() => {
+    const initialRow = {
+      business_name: "",
+      email: "",
+      phone: "",
+      address: "",
+      logo_url: "",
+      bank_name: "",
+      bank_account_name: "",
+      bank_sort_code: "",
+      bank_account_number: "",
+      bank_payment_reference: "",
+      stripe_connect_onboarded: false,
+      billing_customer_id: null,
+      reminder_hours_before: 120,
+      reminder_email_subject: "",
+      reminder_email_body: "",
+      reminder_email_heading: "",
+      disabled_email_types: [] as string[],
+      payment_deadline_hours: 48,
+      use_client_codenames: false,
+      auto_cancel_enabled: false,
+      reschedule_cutoff_hours: 48,
+      consent_enabled: false,
+      consent_title: "Before you continue",
+      consent_body: "",
+      consent_pdf_url: "",
+      consent_counsellor_cta: "If you have any questions, speak to your counsellor.",
+    };
+    // Mutable copy the mock reads from — tests can tweak fields (e.g.
+    // stripe_connect_onboarded) before rendering without touching the defaults.
+    const currentRow: typeof initialRow = { ...initialRow };
+    let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
+    const onboardingFormsRows: { id: string; title: string }[] = [];
+    const updateSpy = vi.fn();
+    const invokeSpy = vi.fn((fnName: string) =>
+      Promise.resolve({ data: { url: `https://example.com/${fnName}` }, error: null }),
+    );
+    const rpcSpy = vi.fn((fnName: string) => {
+      if (fnName === "get_google_calendar_status") {
+        return Promise.resolve({ data: googleStatusRow ? [googleStatusRow] : [], error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+    const supabaseMock = {
+      from: vi.fn((table: string) => {
+        if (table === "questionnaires") {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  order: () => Promise.resolve({ data: onboardingFormsRows, error: null }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table !== "practice_settings") throw new Error(`Unexpected table in test: ${table}`);
+        return {
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: currentRow, error: null }),
+            }),
           }),
-        }),
-        update: (payload: Record<string, unknown>) => {
-          updateSpy(payload);
-          return { eq: () => Promise.resolve({ data: null, error: null }) };
-        },
-      };
-    }),
-    rpc: rpcSpy,
-    functions: { invoke: invokeSpy },
-  };
-  return {
-    supabaseMock,
-    updateSpy,
-    initialRow,
-    currentRow,
-    invokeSpy,
-    setGoogleStatusRow: (row: typeof googleStatusRow) => {
-      googleStatusRow = row;
-    },
-  };
-});
+          update: (payload: Record<string, unknown>) => {
+            updateSpy(payload);
+            return { eq: () => Promise.resolve({ data: null, error: null }) };
+          },
+        };
+      }),
+      rpc: rpcSpy,
+      functions: { invoke: invokeSpy },
+    };
+    return {
+      supabaseMock,
+      updateSpy,
+      initialRow,
+      currentRow,
+      invokeSpy,
+      setGoogleStatusRow: (row: typeof googleStatusRow) => {
+        googleStatusRow = row;
+      },
+      setOnboardingFormsRows: (rows: typeof onboardingFormsRows) => {
+        onboardingFormsRows.splice(0, onboardingFormsRows.length, ...rows);
+      },
+    };
+  });
 vi.mock("@/lib/supabase", () => ({ supabase: supabaseMock }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -271,6 +288,39 @@ describe("SettingsPage — client consent", () => {
           consent_body: "By continuing you agree to our confidentiality policy.",
         }),
       );
+    });
+  });
+
+  it("picking an onboarding form disables the free-text fields and saves its id instead", async () => {
+    setOnboardingFormsRows([{ id: "form-1", title: "New client welcome pack" }]);
+    await openPracticeTab();
+
+    await screen.findByRole("option", { name: "New client welcome pack" });
+    fireEvent.change(screen.getByLabelText(/use one of your forms instead/i), {
+      target: { value: "form-1" },
+    });
+
+    expect(screen.getByLabelText(/^heading$/i)).toBeDisabled();
+    expect(screen.getByLabelText(/agreement text/i)).toBeDisabled();
+    expect(screen.getByLabelText(/pdf link/i)).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ consent_questionnaire_id: "form-1" }));
+    });
+  });
+
+  it("clearing the picked form falls back to saving the typed-in text", async () => {
+    setOnboardingFormsRows([{ id: "form-1", title: "New client welcome pack" }]);
+    await openPracticeTab();
+
+    expect(screen.getByLabelText(/^heading$/i)).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ consent_questionnaire_id: null }));
     });
   });
 });
