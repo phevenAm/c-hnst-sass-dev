@@ -28,11 +28,28 @@ $warm-50: #fcfcfc; // page background
 
 $ivory: #fffdf9; // card backgrounds
 
+// ── Highlight palette — warm terracotta, used sparingly ─────
+// Decorative/marketing accent only (auth pages, empty states,
+// badges). Deliberately NOT used for buttons — its hue sits too
+// close to $color-danger to double as an interactive action color.
+$terracotta-700: #9c4a34; // text/icon on light bg — 5.9:1 on white (AA)
+$terracotta-600: #b8563c; // primary highlight
+$terracotta-500: #c96f52;
+$terracotta-400: #d98f72; // dark-mode highlight
+$terracotta-200: #f0c3ae;
+$terracotta-100: #f8e0d3;
+$terracotta-50: #fdf2ec;
+
 // ── Semantic aliases ───────────────────────────────────────
 $color-accent: $teal-600;
 $color-accent-dark: $teal-800;
 $color-accent-light: $teal-100;
 $color-accent-subtle: $teal-50;
+
+$color-highlight: $terracotta-600;
+$color-highlight-dark: $terracotta-700;
+$color-highlight-light: $terracotta-100;
+$color-highlight-subtle: $terracotta-50;
 
 $color-text-primary: $warm-900; // 14:1 on white — AAA
 $color-text-secondary: $warm-700; // 7:1 on white — AAA
@@ -58,12 +75,19 @@ $color-warning-light: #fffbeb;
 
 // ── Dark mode overrides ────────────────────────────────────
 // Applied via .dark class on <html>
-$dark-bg-base: #0f1f1c;
-$dark-bg-card: #162622;
-$dark-bg-muted: #1c3330;
-$dark-text-primary: #ecf5f3;
-$dark-text-secondary: #a8c8c2;
-$dark-text-muted: #6fa49c;
-$dark-border: #254f49;
+// Backgrounds/text/border are warm-neutral (same family as the
+// $warm-* scale above) rather than teal-tinted — a teal-tinted
+// canvas plus a teal accent on top of it is what read as "too
+// green"; keeping the base neutral lets $dark-accent still pop.
+$dark-bg-base: #1c1a18;
+$dark-bg-card: #262320;
+$dark-bg-muted: #302b27;
+$dark-text-primary: #f2ede7;
+$dark-text-secondary: #c7bcb0;
+$dark-text-muted: #948779;
+$dark-border: #3a342e;
 $dark-accent: $teal-300; // pops on dark
-$dark-accent-light: #1a3d38;
+$dark-accent-light: #24302c;
+
+$dark-highlight: $terracotta-400;
+$dark-highlight-light: #3a2620;

@@ -19,6 +19,13 @@
   --accent-light: #{$color-accent-light};
   --accent-subtle: #{$color-accent-subtle};
 
+  // Highlight — warm accent, decorative use only (not buttons)
+  --highlight: #{$color-highlight};
+  --highlight-dark: #{$color-highlight-dark};
+  --highlight-light: #{$color-highlight-light};
+  --highlight-subtle: #{$color-highlight-subtle};
+  --highlight-rgb: 184, 86, 60;
+
   // Text
   --text-primary: #{$color-text-primary};
   --text-secondary: #{$color-text-secondary};
@@ -31,7 +38,7 @@
   --bg-card: #{$color-bg-card};
   --bg-muted: #{$color-bg-muted};
   --bg-overlay: #{$color-bg-overlay};
-  --bg-grey: #dae0de;
+  --bg-grey: #e3e0dc;
   --bg-card-rgb: 255, 255, 255;
   --border-rgb: 195, 212, 207;
   --glass-bg: rgba(255, 255, 255, 0.72);
@@ -102,23 +109,30 @@
   --accent-light: #{$dark-accent-light};
   --accent-subtle: #{$dark-accent-light};
 
+  // Highlight — warm accent, decorative use only (not buttons)
+  --highlight: #{$dark-highlight};
+  --highlight-dark: #{$terracotta-500};
+  --highlight-light: #{$dark-highlight-light};
+  --highlight-subtle: #{$dark-highlight-light};
+  --highlight-rgb: 217, 143, 114;
+
   // Text
   --text-primary: #{$dark-text-primary};
   --text-secondary: #{$dark-text-secondary};
   --text-muted: #{$dark-text-muted};
-  --text-disabled: #3d4258;
-  --text-inverse: #111318;
+  --text-disabled: #4a443d;
+  --text-inverse: #1c1a18;
 
   // Backgrounds
   --bg-base: #{$dark-bg-base};
   --bg-card: #{$dark-bg-card};
   --bg-muted: #{$dark-bg-muted};
-  --bg-grey: #202837;
-  --bg-overlay: rgba(17, 19, 24, 0.92);
-  --bg-card-rgb: 27, 30, 39;
-  --border-rgb: 45, 50, 69;
-  --glass-bg: rgba(27, 30, 39, 0.891);
-  --glass-bg-heavy: rgba(27, 30, 39, 0.95);
+  --bg-grey: #332f2a;
+  --bg-overlay: rgba(28, 26, 24, 0.92);
+  --bg-card-rgb: 38, 35, 32;
+  --border-rgb: 58, 52, 46;
+  --glass-bg: rgba(38, 35, 32, 0.891);
+  --glass-bg-heavy: rgba(38, 35, 32, 0.95);
 
   // Borders
   --border: #{$dark-border};
