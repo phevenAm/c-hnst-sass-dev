@@ -108,39 +108,52 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event) => {
-      try {
-        if (event === "SIGNED_OUT") {
-          sessionStorage.removeItem(SESSION_KEY);
-          dataKeyRef.current = null;
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Deferred via setTimeout — calling any supabase.auth.* method
+      // (fetchSettings → getUser()) directly inside this callback can hang
+      // forever: onAuthStateChange fires while supabase-js's internal
+      // session lock is still held for the event being processed, and that
+      // lock isn't released until this callback returns. A nested call
+      // that needs the same lock then waits on a release that can't happen
+      // until it itself returns — a real deadlock, observed live as
+      // `status` sticking on "checking" indefinitely with no error thrown
+      // (nothing ever rejects; the awaited call just never settles).
+      // Escaping to a new task via setTimeout(…, 0) runs this after the
+      // callback (and the lock along with it) has been released. This is
+      // Supabase's own documented workaround for this exact class of bug.
+      setTimeout(async () => {
+        try {
+          if (event === "SIGNED_OUT") {
+            sessionStorage.removeItem(SESSION_KEY);
+            dataKeyRef.current = null;
+            setStatus("checking");
+          } else if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+            // INITIAL_SESSION fires once for every new listener, including
+            // with session === null on a fresh page load before any login
+            // has happened yet — that's not "encryption is disabled", it's
+            // "there's no user to have a status yet". Treating it as
+            // "disabled" produced a real, reproducible flash of "Not
+            // encrypted" in the UI on login before the real SIGNED_IN event
+            // (moments later, with the actual session) corrected it.
+            if (!session?.user) return;
+            const sessionKey = await loadKeyFromSession();
+            if (sessionKey) {
+              dataKeyRef.current = sessionKey;
+              setStatus("unlocked");
+            } else {
+              const settings = await fetchSettings();
+              setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
+            }
+          }
+        } catch (err) {
+          // Multiple tabs open can cause supabase-js's cross-tab auth lock to
+          // get stolen from this one (AbortError) — without this catch, the
+          // rejection was never handled and status stayed stuck on
+          // "checking" forever.
+          console.error("Encryption status update failed:", err);
           setStatus("checking");
-        } else if (event === "SIGNED_IN") {
-          const sessionKey = await loadKeyFromSession();
-          if (sessionKey) {
-            dataKeyRef.current = sessionKey;
-            setStatus("unlocked");
-          } else {
-            const settings = await fetchSettings();
-            setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
-          }
-        } else if (event === "INITIAL_SESSION") {
-          const sessionKey = await loadKeyFromSession();
-          if (sessionKey) {
-            dataKeyRef.current = sessionKey;
-            setStatus("unlocked");
-          } else {
-            const settings = await fetchSettings();
-            setStatus(settings?.enc_code_wrapped ? "locked" : "disabled");
-          }
         }
-      } catch (err) {
-        // Multiple tabs open can cause supabase-js's cross-tab auth lock to
-        // get stolen from this one (AbortError) — without this catch, status
-        // was left stuck at "checking" forever since the rejection was never
-        // handled.
-        console.error("Encryption status update failed:", err);
-        setStatus("checking");
-      }
+      }, 0);
     });
     return () => subscription.unsubscribe();
   }, [fetchSettings]);

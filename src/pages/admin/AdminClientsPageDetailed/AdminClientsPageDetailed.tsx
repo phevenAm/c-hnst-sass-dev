@@ -155,6 +155,11 @@ export default function AdminClientsPageDetailed() {
   });
   const [selectedNoteSessionId, setSelectedNoteSessionId] = useState<string | null>(null);
   const [accountSummaryPreview, setAccountSummaryPreview] = useState<string | null>(null);
+  // Distinct from accountSummaryPreview being null "no summary exists" — this
+  // tracks "a summary exists but we can't show it right now" (locked, or
+  // encryption never set up) so the UI can say so instead of the line just
+  // silently not appearing, which was indistinguishable from no summary.
+  const [summaryLocked, setSummaryLocked] = useState(false);
 
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
@@ -249,20 +254,32 @@ export default function AdminClientsPageDetailed() {
       .then(async ({ data }) => {
         if (!data) {
           setAccountSummaryPreview(null);
+          setSummaryLocked(false);
           return;
         }
         if (!data.is_encrypted) {
           const text = data.content as string;
           setAccountSummaryPreview(text?.length > 120 ? text.slice(0, 120) + "…" : text);
+          setSummaryLocked(false);
           return;
         }
         if (data.note_iv && encStatus === "unlocked") {
           try {
             const plain = await decryptNote(data.content as string, data.note_iv as string);
             setAccountSummaryPreview(plain?.length > 120 ? plain.slice(0, 120) + "…" : plain);
+            setSummaryLocked(false);
           } catch {
             setAccountSummaryPreview(null);
+            setSummaryLocked(true);
           }
+        } else {
+          // Encrypted, but we're not unlocked (locked, or encryption was
+          // never set up on this practice at all) — a summary exists, we
+          // just can't show it right now. Previously this branch did
+          // nothing, leaving the preview line blank with no way to tell
+          // "no summary" apart from "summary exists but hidden."
+          setAccountSummaryPreview(null);
+          setSummaryLocked(true);
         }
       });
   }, [clientId, encStatus, decryptNote]);
@@ -711,6 +728,13 @@ export default function AdminClientsPageDetailed() {
                 </p>
               )}
               {accountSummaryPreview && <p className={styles.accountSummary}>{accountSummaryPreview}</p>}
+              {!accountSummaryPreview && summaryLocked && (
+                <p className={styles.accountSummaryLocked}>
+                  {encStatus === "disabled"
+                    ? "🔒 This client has an account summary, but note encryption isn't set up yet — open Account Summary to set it up."
+                    : "🔒 This client has an account summary — open Account Summary to unlock and view it."}
+                </p>
+              )}
             </div>
           </div>
 
