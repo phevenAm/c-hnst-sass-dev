@@ -392,11 +392,13 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
           </>
         )}
 
-        {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && !isWithinRescheduleCutoff && (
+        {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && (
           <div className={styles.actions_Icons}>
-            <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>
-              Add to calendar
-            </Button>
+            {!isWithinRescheduleCutoff && (
+              <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>
+                Add to calendar
+              </Button>
+            )}
             {!session.paid ? (
               <SplitButton
                 size="sm"
@@ -406,13 +408,15 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                 options={[{ label: "Mark as paid", onClick: () => !isDemo && setIsMarkAsPaidOpen(true) }]}
               />
             ) : null}
-            <SplitButton
-              size="sm"
-              variant="secondary"
-              primaryLabel="Reschedule"
-              primaryAction={() => !isDemo && setIsRescheduleModalOpen(true)}
-              options={[{ label: "Cancel", onClick: () => !isDemo && handleClientCancelClick() }]}
-            />
+            {!isWithinRescheduleCutoff && (
+              <SplitButton
+                size="sm"
+                variant="secondary"
+                primaryLabel="Reschedule"
+                primaryAction={() => !isDemo && setIsRescheduleModalOpen(true)}
+                options={[{ label: "Cancel", onClick: () => !isDemo && handleClientCancelClick() }]}
+              />
+            )}
           </div>
         )}
       </div>
