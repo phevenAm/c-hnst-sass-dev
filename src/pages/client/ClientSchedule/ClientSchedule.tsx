@@ -35,10 +35,15 @@ const ClientSchedule = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTabs, setActiveTabs] = useState<"past" | "upcoming">("upcoming");
-  const [showCalendar, setShowCalendar] = useState(true);
+  const [showCalendar, setShowCalendar] = useState(() => localStorage.getItem("clientSessionsView") !== "list");
   const [calDate, setCalDate] = useState<Date>(new Date());
   const [calView, setCalView] = useState<View>(Views.WORK_WEEK);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+
+  const handleViewChange = (calendar: boolean) => {
+    setShowCalendar(calendar);
+    localStorage.setItem("clientSessionsView", calendar ? "calendar" : "list");
+  };
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
@@ -152,10 +157,10 @@ const ClientSchedule = () => {
         <div className={styles.headingRow} id="sessions-header">
           <h1 className={styles.heading}>My Sessions</h1>
           <div className={styles.viewToggle} id="sessions-view-toggle">
-            <Button size="sm" variant={showCalendar ? "ghost" : "primary"} onClick={() => setShowCalendar(false)}>
+            <Button size="sm" variant={showCalendar ? "ghost" : "primary"} onClick={() => handleViewChange(false)}>
               List
             </Button>
-            <Button size="sm" variant={showCalendar ? "primary" : "ghost"} onClick={() => setShowCalendar(true)}>
+            <Button size="sm" variant={showCalendar ? "primary" : "ghost"} onClick={() => handleViewChange(true)}>
               Calendar
             </Button>
           </div>
