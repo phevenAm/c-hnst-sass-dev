@@ -151,12 +151,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                   Add to calendar
                 </Button>
                 {!session.paid && (
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={isDemo}
-                    onClick={() => guardAction(() => setIsPayModalOpen(true))}
-                  >
+                  <Button size="sm" variant="primary" disabled={isDemo} onClick={() => setIsPayModalOpen(true)}>
                     Pay
                   </Button>
                 )}
@@ -180,7 +175,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
                   primaryLabel={session.paid ? "Reschedule" : "Pay"}
                   primaryAction={() =>
                     !isDemo &&
-                    guardAction(() => (session.paid ? setIsRescheduleModalOpen(true) : setIsPayModalOpen(true)))
+                    (session.paid ? guardAction(() => setIsRescheduleModalOpen(true)) : setIsPayModalOpen(true))
                   }
                   options={
                     session.paid

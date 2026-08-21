@@ -248,18 +248,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
       {/* ── Client actions ────────────────────────────── */}
       {!isAdmin && !isPast && (
         <div className={styles.clientActions}>
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={isDemo || session.paid}
-            onClick={() => {
-              if (isWithinRescheduleCutoff) {
-                showToast(rescheduleCutoffMessage, "warning");
-                return;
-              }
-              setIsPayModalOpen(true);
-            }}
-          >
+          <Button size="sm" variant="primary" disabled={isDemo || session.paid} onClick={() => setIsPayModalOpen(true)}>
             Pay
           </Button>
           <Button

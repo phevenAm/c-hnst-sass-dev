@@ -29,6 +29,8 @@ export {
   IdeasIcon,
   LightmodeIcon,
   LinkIcon,
+  LockIcon,
+  LockOpenIcon,
   MailIcon,
   MenuIcon,
   MoneyIcon,
