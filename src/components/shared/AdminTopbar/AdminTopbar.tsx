@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 
 import Avatar from "../Avatar/Avatar";
+import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
 import { MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 
@@ -75,6 +76,8 @@ export default function AdminTopbar() {
         </button>
 
         <NotificationBell />
+
+        <EncryptionStatusPill />
 
         {userProfile && (
           <Link to="/settings" className={styles.avatarLink} aria-label="Settings">
