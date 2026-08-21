@@ -37,6 +37,7 @@ export type PracticeSettingsCache = Pick<
   | "subscription_status"
   | "subscription_plan"
   | "stripe_connect_onboarded"
+  | "card_payments_enabled"
   | "use_client_codenames"
   | "reschedule_cutoff_hours"
   | "hidden_sections"
@@ -53,7 +54,7 @@ export type PracticeSettingsCache = Pick<
 >;
 
 const SELECT_COLUMNS =
-  "admin_id, subscription_status, subscription_plan, stripe_connect_onboarded, use_client_codenames, reschedule_cutoff_hours, hidden_sections, reduce_motion, logo_url, counsellor_name, bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference, cpd_annual_target_hours, saved_locations";
+  "admin_id, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, hidden_sections, reduce_motion, logo_url, counsellor_name, bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference, cpd_annual_target_hours, saved_locations";
 
 type PracticeSettingsState = {
   data: PracticeSettingsCache | null;

@@ -15,10 +15,10 @@ import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOver
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
+import { useConsentPending } from "../Hooks/useConsentPending";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
-import { supabase } from "../lib/supabase";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
 import AdminClientScheduler from "../pages/admin/AdminClientScheduler/AdminClientScheduler";
 import AdminClientsPage from "../pages/admin/AdminClientsPage/AdminClientsPage";
@@ -180,27 +180,10 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-type ConsentSettings = {
-  consent_title: string;
-  consent_body: string;
-  consent_pdf_url: string | null;
-  consent_counsellor_cta: string;
-};
-
 function ConsentGate() {
-  const { userProfile, isAdmin, isDemo, loading } = useAuth();
-  const [settings, setSettings] = useState<ConsentSettings | null>(null);
-
-  useEffect(() => {
-    if (loading || isAdmin || isDemo || !userProfile || userProfile.has_consented) return;
-    supabase.rpc("get_my_admin_consent_settings").then(({ data }) => {
-      const row = data?.[0];
-      if (row?.consent_enabled) setSettings(row);
-    });
-  }, [loading, isAdmin, isDemo, userProfile]);
-
+  const { settings, dismiss } = useConsentPending();
   if (!settings) return null;
-  return <ConsentModal settings={settings} onComplete={() => setSettings(null)} />;
+  return <ConsentModal settings={settings} onComplete={dismiss} />;
 }
 
 function OnboardingGate() {

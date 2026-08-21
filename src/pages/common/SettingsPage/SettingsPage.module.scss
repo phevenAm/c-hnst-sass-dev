@@ -233,6 +233,7 @@
 .deleteAccountBlock {
   padding-top: $sp-4;
   border-top: 1px solid var(--border);
+  width: 100%;
 }
 
 // ── Tabs (admin only) ──────────────────────────────────────
@@ -242,7 +243,10 @@
   gap: 0;
   overflow-x: auto;
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tab {
@@ -466,7 +470,7 @@
   gap: $sp-4;
   min-width: 0;
 
-  > div {
+  >div {
     display: flex;
     flex-direction: column;
     gap: 2px;

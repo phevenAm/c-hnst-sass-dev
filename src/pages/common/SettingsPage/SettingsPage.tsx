@@ -104,6 +104,8 @@ const SettingsPage = () => {
   const [savingBank, setSavingBank] = useState(false);
   const [piiLocked, setPiiLocked] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
+  const [cardPaymentsEnabled, setCardPaymentsEnabled] = useState(false);
+  const [savingCardPayments, setSavingCardPayments] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [billingCustomerId, setBillingCustomerId] = useState<string | null>(null);
 
@@ -222,6 +224,7 @@ const SettingsPage = () => {
         setLogoUrl(data.logo_url ?? "");
         setBankDetails(bankData);
         setStripeConnected(data.stripe_connect_onboarded ?? false);
+        setCardPaymentsEnabled(data.card_payments_enabled ?? false);
         setBillingCustomerId(data.billing_customer_id ?? null);
         setReminderHours(data.reminder_hours_before ?? 120);
         setReminderSubject(data.reminder_email_subject ?? "");
@@ -443,6 +446,23 @@ const SettingsPage = () => {
     window.location.href =
       `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}` +
       `&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
+  };
+
+  const handleToggleCardPayments = async () => {
+    if (!userProfile?.id) return;
+    const next = !cardPaymentsEnabled;
+    setSavingCardPayments(true);
+    const { error } = await supabase
+      .from("practice_settings")
+      .update({ card_payments_enabled: next })
+      .eq("admin_id", userProfile.id);
+    if (error) {
+      showToast("Couldn't update card payments — please try again.", "error");
+    } else {
+      setCardPaymentsEnabled(next);
+      showToast(next ? "Card payments are now offered to clients." : "Card payments turned off for clients.");
+    }
+    setSavingCardPayments(false);
   };
 
   const handleToggleGoogleSync = async () => {
@@ -695,7 +715,28 @@ const SettingsPage = () => {
                   Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
                 </p>
                 {stripeConnected ? (
-                  <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
+                  <>
+                    <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Offer card payments to clients</strong>
+                        <span>
+                          Off by default even once connected — turn on when you're ready for clients to see "Pay with
+                          Stripe" as an option.
+                        </span>
+                      </span>
+                      <span className={`${styles.toggleSwitch} ${cardPaymentsEnabled ? styles.toggleSwitchOn : ""}`}>
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={cardPaymentsEnabled}
+                          disabled={savingCardPayments}
+                          onChange={handleToggleCardPayments}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                  </>
                 ) : (
                   <Button
                     variant="primary"

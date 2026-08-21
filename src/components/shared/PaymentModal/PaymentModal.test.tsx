@@ -85,9 +85,18 @@ function mockSessionsTable(blockRows: { price_pence: number }[]) {
 }
 
 function renderPaymentModal(session: Session) {
+  return renderPaymentModalWithData(session, {
+    ...bankDetails,
+    stripe_connect_onboarded: true,
+    card_payments_enabled: true,
+  });
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: test fixture, shape matches PracticeSettingsCache loosely
+function renderPaymentModalWithData(session: Session, data: any) {
   const testStore = configureStore({
     reducer: { practiceSettings: practiceSettingsReducer },
-    preloadedState: { practiceSettings: { data: bankDetails, status: "succeeded", error: null } },
+    preloadedState: { practiceSettings: { data, status: "succeeded", error: null } },
   });
   return render(
     <Provider store={testStore}>
@@ -184,5 +193,61 @@ describe("PaymentModal — block session", () => {
       expect(supabaseMock.rpc).toHaveBeenCalledTimes(1);
       expect(supabaseMock.rpc).toHaveBeenCalledWith("request_manual_payment", { p_session_id: "session-block-1" });
     });
+  });
+});
+
+describe("PaymentModal — card payment availability", () => {
+  it("hides the Stripe tab and defaults to bank transfer when Stripe isn't connected", async () => {
+    mockSessionsTable([]);
+    renderPaymentModalWithData(singleSession, {
+      ...bankDetails,
+      stripe_connect_onboarded: false,
+      card_payments_enabled: false,
+    });
+
+    expect(await screen.findByRole("button", { name: /mark as paid/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pay with Stripe" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pay .* with stripe/i })).not.toBeInTheDocument();
+  });
+
+  it("hides the Stripe tab when connected but the admin has toggled it off", async () => {
+    mockSessionsTable([]);
+    renderPaymentModalWithData(singleSession, {
+      ...bankDetails,
+      stripe_connect_onboarded: true,
+      card_payments_enabled: false,
+    });
+
+    expect(await screen.findByRole("button", { name: /mark as paid/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pay with Stripe" })).not.toBeInTheDocument();
+  });
+
+  it("shows the Stripe tab when connected and explicitly enabled", async () => {
+    mockSessionsTable([]);
+    renderPaymentModalWithData(singleSession, {
+      ...bankDetails,
+      stripe_connect_onboarded: true,
+      card_payments_enabled: true,
+    });
+
+    expect(await screen.findByRole("button", { name: "Pay with Stripe" })).toBeInTheDocument();
+  });
+
+  it("shows a fallback message instead of a broken card tab when neither payment method is set up", async () => {
+    mockSessionsTable([]);
+    const noBank = {
+      bank_name: null,
+      bank_account_name: null,
+      bank_sort_code: null,
+      bank_account_number: null,
+      bank_payment_reference: null,
+      stripe_connect_onboarded: false,
+      card_payments_enabled: false,
+    };
+    renderPaymentModalWithData(singleSession, noBank);
+
+    expect(await screen.findByText(/no payment method is set up yet/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /mark as paid/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pay with Stripe" })).not.toBeInTheDocument();
   });
 });

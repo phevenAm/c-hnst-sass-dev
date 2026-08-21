@@ -116,11 +116,19 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
       bank_payment_reference: d.bank_payment_reference,
     };
   });
+  // Being connected to Stripe doesn't mean the admin wants clients paying by
+  // card right now — card_payments_enabled is a separate, explicit opt-in
+  // (default off) so a client never sees "Pay with Stripe" only to hit a
+  // checkout error because it was connected but never actually turned on.
+  const cardPaymentsAvailable = useAppSelector(
+    (state) =>
+      !!state.practiceSettings.data?.stripe_connect_onboarded && !!state.practiceSettings.data?.card_payments_enabled,
+  );
 
   useEffect(() => {
     if (practiceSettingsStatus !== "succeeded") return;
-    if (!bankDetails?.bank_account_number) setTab("card");
-  }, [practiceSettingsStatus, bankDetails]);
+    if (!bankDetails?.bank_account_number && cardPaymentsAvailable) setTab("card");
+  }, [practiceSettingsStatus, bankDetails, cardPaymentsAvailable]);
 
   useEffect(() => {
     const blockId = meta?.block_id;
@@ -194,7 +202,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
         <p className={styles.loading}>Loading payment options…</p>
       ) : (
         <>
-          {hasBankDetails && (
+          {hasBankDetails && cardPaymentsAvailable && (
             <ToggleButtonTabs
               leftButtonTitle="Bank transfer"
               rightButtonTitle="Pay with Stripe"
@@ -246,7 +254,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
             </div>
           )}
 
-          {tab === "card" && (
+          {tab === "card" && cardPaymentsAvailable && (
             <div className={styles.panel}>
               <p className={styles.intro}>
                 {isBlock
@@ -282,6 +290,20 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
                 </Button>
                 <Button onClick={handleStripePayment} disabled={isRedirecting || isDemo}>
                   {isRedirecting ? "Redirecting…" : `Pay £${cardTotalPounds} with Stripe`}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!hasBankDetails && !cardPaymentsAvailable && (
+            <div className={styles.panel}>
+              <p className={styles.intro}>
+                No payment method is set up yet — ask your therapist to add bank transfer details or connect Stripe in
+                their settings.
+              </p>
+              <div className={styles.actions}>
+                <Button variant="ghost" onClick={onClose}>
+                  Close
                 </Button>
               </div>
             </div>

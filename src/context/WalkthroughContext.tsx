@@ -2,6 +2,8 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useR
 import { useLocation } from "react-router-dom";
 
 import { type WalkthroughPage, type WalkthroughStep, walkthroughSteps } from "../data/walkthroughSteps";
+import { useConsentPending } from "../Hooks/useConsentPending";
+import { useAuth } from "./AuthContext";
 
 const LS_DISMISSED_KEY = "walkthrough_dismissed_routes";
 const LS_GLOBAL_KEY = "walkthrough_globally_dismissed";
@@ -64,6 +66,8 @@ function removeDismissed(route: string) {
 
 export function WalkthroughProvider({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const { loading: authLoading } = useAuth();
+  const { pending: consentPending } = useConsentPending();
 
   const [matchedRoute, setMatchedRoute] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -80,7 +84,14 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
   const currentStep = sortedSteps[stepIndex] ?? null;
   const totalSteps = sortedSteps.length;
 
-  // On navigation: reset state, then after a delay show the prompt if page is unseen
+  // On navigation: reset state, then after a delay show the prompt if page is unseen.
+  // Never start that timer while auth is still resolving (the page behind it
+  // isn't real content yet — could still be a spinner, or about to redirect
+  // to somewhere else entirely) or while the client-consent modal is up
+  // (it's meant to block the whole app until agreed to; the walkthrough
+  // popping up over/behind it was a real, reported bug). Both are in the
+  // dependency array so the timer starts the moment whichever was blocking
+  // clears, rather than only re-checking on the next navigation.
   useEffect(() => {
     if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
 
@@ -90,7 +101,7 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
     setIsActive(false);
     setPromptVisible(false);
 
-    if (!route || isDismissedGlobally || getDismissed().includes(route)) return;
+    if (!route || isDismissedGlobally || getDismissed().includes(route) || authLoading || consentPending) return;
 
     promptTimerRef.current = setTimeout(() => {
       setPromptVisible(true);
@@ -99,7 +110,7 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
     return () => {
       if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
     };
-  }, [pathname, isDismissedGlobally]);
+  }, [pathname, isDismissedGlobally, authLoading, consentPending]);
 
   // Accept prompt → start the walkthrough
   const acceptPrompt = useCallback(() => {
