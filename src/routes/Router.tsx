@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
+import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import { supabase } from "../lib/supabase";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage";
@@ -69,6 +70,7 @@ function AppLayout() {
   const topRef = useFocusOnNavigate();
   useSessionsRealtime();
   useAssignmentsRealtime();
+  usePracticeSettingsRealtime();
 
   return (
     <>
@@ -88,6 +90,7 @@ function AdminLayout() {
   const topRef = useFocusOnNavigate();
   const { pathname } = useLocation();
   useSessionsRealtime();
+  usePracticeSettingsRealtime();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );

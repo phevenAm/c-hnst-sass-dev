@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/supabase";
+import { useAppSelector, useFetchOnIdle } from "@/store/hooks";
+import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import { useAuth } from "./AuthContext";
 
 type InterfacePrefsContextValue = {
@@ -22,22 +24,22 @@ export function InterfacePrefsProvider({ children }: { children: React.ReactNode
   const [hiddenSections, setHiddenSections] = useState<string[]>([]);
   const [reduceMotion, setReduceMotionState] = useState(false);
 
+  // hidden_sections/reduce_motion are admin-only prefs — for clients this
+  // stays untriggered (no reason to even hold the shared fetch open for
+  // them here; Navbar/etc. already trigger it where they need it).
+  useFetchOnIdle(
+    (state) => state.practiceSettings.status,
+    isAdmin ? fetchPracticeSettings : null,
+    "Failed to load practice settings",
+  );
+  const cachedPrefs = useAppSelector((state) => state.practiceSettings.data);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applyMotion is a stable per-render closure, not a changing dependency
   useEffect(() => {
-    // hidden_sections/reduce_motion are admin-only prefs, keyed by admin_id —
-    // for a client, userProfile.id is their own id, which can never match an
-    // admin_id, so this would always return zero rows. Skipping it for
-    // clients removes a guaranteed-empty request from every page load.
-    if (!userProfile?.id || !isAdmin) return;
-    supabase
-      .from("practice_settings")
-      .select("hidden_sections, reduce_motion")
-      .eq("admin_id", userProfile.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.hidden_sections) setHiddenSections(data.hidden_sections);
-        if (data?.reduce_motion) applyMotion(true);
-      });
-  }, [userProfile?.id, isAdmin]);
+    if (!isAdmin || !cachedPrefs) return;
+    if (cachedPrefs.hidden_sections) setHiddenSections(cachedPrefs.hidden_sections);
+    if (cachedPrefs.reduce_motion) applyMotion(true);
+  }, [isAdmin, cachedPrefs]);
 
   const applyMotion = (reduce: boolean) => {
     setReduceMotionState(reduce);
