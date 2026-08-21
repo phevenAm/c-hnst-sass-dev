@@ -138,6 +138,11 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
       );
 
       setNotes(decrypted);
+      // Account summary is a single field, not a list — pre-fill the editor
+      // with whatever's already there instead of leaving it blank (that's a
+      // trap: hitting "Save" on an empty textarea would wipe an existing
+      // summary). Session notes stay append-only, so their input starts empty.
+      if (!sessionId) setContent(decrypted[0]?.content ?? "");
       setLoading(false);
 
       // Silently re-encrypt any notes written before encryption was set up.
@@ -168,6 +173,12 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     fetchNotes();
   }, [user.id, sessionId, status, isDemo, decryptNote]);
 
+  // Account summary is a single row per client (enforced by a unique index —
+  // see 20260821000004_one_account_summary_per_client.sql) — editing it
+  // updates that row in place instead of appending a new one. Session notes
+  // stay an append-only log, so they always insert.
+  const existingSummaryNote = !sessionId ? (notes[0] ?? null) : null;
+
   const handleAdd = async () => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
@@ -177,23 +188,44 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     setSaving(true);
 
     const plaintext = content.trim();
-    let insertPayload: Record<string, unknown>;
+    let ciphertext: string;
+    let iv: string;
 
     try {
-      const { iv, ciphertext } = await encryptNote(plaintext);
-      insertPayload = {
-        admin_id: userProfile.id,
-        user_id: user.id,
-        session_id: sessionId ?? null,
-        content: ciphertext,
-        is_encrypted: true,
-        note_iv: iv,
-      };
+      ({ iv, ciphertext } = await encryptNote(plaintext));
     } catch {
       showToast("Encryption failed — note not saved.", "warning");
       setSaving(false);
       return;
     }
+
+    if (existingSummaryNote) {
+      const { data, error } = await supabase
+        .from("session_notes")
+        .update({ content: ciphertext, is_encrypted: true, note_iv: iv })
+        .eq("id", existingSummaryNote.id)
+        .select("id, content, is_encrypted, note_iv, created_at")
+        .single();
+
+      if (error) {
+        setError(error.message);
+        showToast("Sorry, something went wrong", "warning");
+      } else {
+        setNotes([{ ...data, content: plaintext }]);
+        showToast("Account summary updated");
+      }
+      setSaving(false);
+      return;
+    }
+
+    const insertPayload = {
+      admin_id: userProfile.id,
+      user_id: user.id,
+      session_id: sessionId ?? null,
+      content: ciphertext,
+      is_encrypted: true,
+      note_iv: iv,
+    };
 
     const { data, error } = await supabase
       .from("session_notes")
@@ -204,10 +236,13 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     if (error) {
       setError(error.message);
       showToast("Sorry, something went wrong", "warning");
-    } else {
+    } else if (sessionId) {
       setNotes((prev) => [{ ...data, content: plaintext }, ...prev]);
       setContent("");
       showToast("Note added");
+    } else {
+      setNotes([{ ...data, content: plaintext }]);
+      showToast("Account summary saved");
     }
     setSaving(false);
   };
@@ -363,13 +398,64 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     );
   }
 
-  let notesSection;
+  // Account summary: one field, edited in place — no list, no per-entry
+  // delete/timestamp. Session notes keep the append-only list below.
+  if (!sessionId) {
+    return (
+      <Modal title={modalTitle} onClose={onClose} size="md">
+        {error && <p className={styles.modalError}>{error}</p>}
+        <div className={styles.encStatusBar}>🔒 End-to-end encrypted — notes are decrypted locally in your browser</div>
+
+        {loading ? (
+          <p className={styles.empty}>Loading…</p>
+        ) : (
+          <div className={styles.notesAddForm}>
+            <textarea
+              className={styles.notesTextarea}
+              placeholder="No account summary yet — add one…"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={6}
+            />
+            <div className={styles.notesFormActions}>
+              {existingSummaryNote &&
+                (existingSummaryNote.is_encrypted ? (
+                  <span className={styles.noteLockBadge}>🔒 encrypted</span>
+                ) : (
+                  <span className={styles.notePlainBadge}>⚠ unencrypted</span>
+                ))}
+              {existingSummaryNote && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    handleDelete(existingSummaryNote.id);
+                    setContent("");
+                  }}
+                  disabled={isDemo || deletingId === existingSummaryNote.id}
+                >
+                  {deletingId === existingSummaryNote.id ? "…" : "Clear"}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={handleAdd}
+                disabled={saving || !content.trim() || content.trim() === existingSummaryNote?.content}
+              >
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    );
+  }
+
+  let notesSection: React.ReactNode;
   if (loading) {
     notesSection = <p className={styles.empty}>Loading…</p>;
   } else if (notes.length === 0) {
-    notesSection = (
-      <p className={styles.empty}>{sessionId ? "No notes for this session yet." : "No account summary yet."}</p>
-    );
+    notesSection = <p className={styles.empty}>No notes for this session yet.</p>;
   } else {
     notesSection = (
       <ul className={styles.notesList}>
@@ -418,7 +504,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
       <div className={styles.notesAddForm}>
         <textarea
           className={styles.notesTextarea}
-          placeholder={sessionId ? "Add a session note…" : "Add an account summary note…"}
+          placeholder="Add a session note…"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={3}
