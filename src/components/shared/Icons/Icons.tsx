@@ -16,6 +16,8 @@ import InsertInvitationIcon from "@mui/icons-material/InsertInvitation";
 import InsertLinkOutlinedIcon from "@mui/icons-material/InsertLinkOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -466,6 +468,9 @@ export const CloseIcon = () => (
 );
 
 export const LinkIcon = () => <InsertLinkOutlinedIcon />;
+
+export const LockIcon = () => <LockOutlinedIcon fontSize="inherit" />;
+export const LockOpenIcon = () => <LockOpenOutlinedIcon fontSize="inherit" />;
 
 export const DocumentIcon = () => <ArticleOutlinedIcon />;
 

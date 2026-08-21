@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   HideableSection,
+  LockIcon,
   ProgressChart,
   Search,
   SplitButton,
@@ -730,9 +731,10 @@ export default function AdminClientsPageDetailed() {
               {accountSummaryPreview && <p className={styles.accountSummary}>{accountSummaryPreview}</p>}
               {!accountSummaryPreview && summaryLocked && (
                 <p className={styles.accountSummaryLocked}>
+                  <LockIcon />
                   {encStatus === "disabled"
-                    ? "🔒 This client has an account summary, but note encryption isn't set up yet — open Account Summary to set it up."
-                    : "🔒 This client has an account summary — open Account Summary to unlock and view it."}
+                    ? "This client has an account summary, but note encryption isn't set up yet — open Account Summary to set it up."
+                    : "This client has an account summary — open Account Summary to unlock and view it."}
                 </p>
               )}
             </div>

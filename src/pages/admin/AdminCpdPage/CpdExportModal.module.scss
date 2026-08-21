@@ -58,11 +58,8 @@
 
 .dateRow {
   display: flex;
+  flex-direction: column;
   gap: $sp-3;
-
-  > * {
-    flex: 1;
-  }
 }
 
 .count {

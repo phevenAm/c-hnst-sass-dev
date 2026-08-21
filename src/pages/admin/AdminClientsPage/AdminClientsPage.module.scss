@@ -536,6 +536,9 @@
 }
 
 .noteLockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 0.7rem;
   font-weight: 500;
   padding: 1px $sp-2;
@@ -546,6 +549,9 @@
 }
 
 .notePlainBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 0.7rem;
   font-weight: 500;
   padding: 1px $sp-2;

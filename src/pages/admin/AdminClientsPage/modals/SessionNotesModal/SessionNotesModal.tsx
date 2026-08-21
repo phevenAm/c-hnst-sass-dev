@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import Button from "@components/shared/Button/Button";
+import { LockIcon, LockOpenIcon } from "@components/shared/Icons/Icons";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
 import { useEncryption } from "@context/EncryptionContext";
@@ -404,7 +405,9 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     return (
       <Modal title={modalTitle} onClose={onClose} size="md">
         {error && <p className={styles.modalError}>{error}</p>}
-        <div className={styles.encStatusBar}>🔒 End-to-end encrypted — notes are decrypted locally in your browser</div>
+        <div className={styles.encStatusBar}>
+          <LockIcon /> End-to-end encrypted — notes are decrypted locally in your browser
+        </div>
 
         {loading ? (
           <p className={styles.empty}>Loading…</p>
@@ -420,9 +423,13 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
             <div className={styles.notesFormActions}>
               {existingSummaryNote &&
                 (existingSummaryNote.is_encrypted ? (
-                  <span className={styles.noteLockBadge}>🔒 encrypted</span>
+                  <span className={styles.noteLockBadge}>
+                    <LockIcon /> Encrypted
+                  </span>
                 ) : (
-                  <span className={styles.notePlainBadge}>⚠ unencrypted</span>
+                  <span className={styles.notePlainBadge}>
+                    <LockOpenIcon /> Unencrypted
+                  </span>
                 ))}
               {existingSummaryNote && (
                 <Button
@@ -473,9 +480,13 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
                   })}
                 </span>
                 {note.is_encrypted ? (
-                  <span className={styles.noteLockBadge}>🔒 encrypted</span>
+                  <span className={styles.noteLockBadge}>
+                    <LockIcon /> Encrypted
+                  </span>
                 ) : (
-                  <span className={styles.notePlainBadge}>⚠ unencrypted</span>
+                  <span className={styles.notePlainBadge}>
+                    <LockOpenIcon /> Unencrypted
+                  </span>
                 )}
               </div>
               <Button
@@ -499,7 +510,9 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     <Modal title={modalTitle} onClose={onClose} size="md">
       {error && <p className={styles.modalError}>{error}</p>}
 
-      <div className={styles.encStatusBar}>🔒 End-to-end encrypted — notes are decrypted locally in your browser</div>
+      <div className={styles.encStatusBar}>
+        <LockIcon /> End-to-end encrypted — notes are decrypted locally in your browser
+      </div>
 
       <div className={styles.notesAddForm}>
         <textarea
