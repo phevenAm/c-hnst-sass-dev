@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { pickColor } from "@Helpers/Helpers";
 import { useAuth } from "@context/AuthContext";
@@ -14,9 +15,11 @@ import styles from "./AdminTopbar.module.scss";
 
 export default function AdminTopbar() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const themeMode = useAppSelector(selectThemeMode);
-  const { signOut, userProfile, displayName } = useAuth();
+  const { isDemo, isAdmin, loading: authLoading, signIn, signOut, userProfile, displayName } = useAuth();
   const { showToast } = useToast();
+  const [switchingToClient, setSwitchingToClient] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -27,9 +30,41 @@ export default function AdminTopbar() {
     }
   };
 
+  // Navbar.tsx (the client-side layout) has always had a "View as
+  // therapist"/"View as client" toggle for demo mode, but AdminLayout never
+  // renders Navbar — it has its own AdminTopbar — so the client -> admin
+  // direction worked while admin -> client had no button at all. Mirrors
+  // Navbar's fix: wait for `loading` to clear and isAdmin to actually flip
+  // before navigating, since signIn() resolving doesn't mean the new
+  // account's profile has finished loading yet (a separate network call).
+  const handleSwitchToClient = async () => {
+    try {
+      setSwitchingToClient(true);
+      await signIn("demo-client@honest.com", "DemoClient2026");
+    } catch (error) {
+      console.error("Error switching demo role:", error);
+      showToast("Couldn't switch demo accounts — try again in a moment.", "danger");
+      setSwitchingToClient(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!switchingToClient || authLoading) return;
+    if (!isAdmin) {
+      navigate("/dashboard");
+      setSwitchingToClient(false);
+    }
+  }, [switchingToClient, authLoading, isAdmin, navigate]);
+
   return (
     <header className={styles.topbar}>
       <div className={styles.actions}>
+        {isDemo && (
+          <button type="button" onClick={handleSwitchToClient} className={styles.iconBtn}>
+            View as client
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => dispatch(toggleTheme())}

@@ -112,6 +112,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       prevUserIdRef.current = newUserId;
 
       if (currentAuthUser) {
+        // A user-id change mid-session (e.g. the demo "View as therapist"/
+        // "View as client" switch, which signs into a different account
+        // without a full page reload) leaves `loading` false as the new
+        // profile/role fetch is still in flight — ProtectedRoute and the
+        // root role redirect only gate on `loading`, so without this they'd
+        // make their allow/redirect decision against the *previous* user's
+        // stale isAdmin, immediately bouncing back to the old role's route
+        // before this fetch had a chance to update it.
+        setLoading(true);
         const profileData = await fetchProfile(currentAuthUser);
         setUserProfile(profileData);
         setProfileError(profileData ? null : "Couldn't load your profile.");
