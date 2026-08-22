@@ -1,0 +1,92 @@
+.card {
+  margin-bottom: var(--sp-6);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+
+  h2 {
+    font-family: var(--font-serif);
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    text-align: left;
+    padding: var(--sp-2) var(--sp-3);
+    color: var(--text-muted);
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+}
+
+.totalRow td {
+  font-weight: 600;
+}
+
+.tPill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--r-full);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.normal {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
+
+.borderline {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.clinical {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: var(--sp-3);
+
+  &:first-child {
+    margin-left: 0;
+  }
+}
