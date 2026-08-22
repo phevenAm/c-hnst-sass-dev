@@ -63,6 +63,7 @@ type QuestionnaireFormData = {
   description: string;
   frequency: QuestionnaireFrequency | null;
   form_type: string;
+  pdf_url: string | null;
   questions: QuestionDraft[];
 };
 
@@ -106,6 +107,7 @@ function QuestionnaireBuilder({
   const [description, setDesc] = useState(initial?.description ?? "");
   const [formType, setFormType] = useState<string>((initial as any)?.form_type ?? defaultFormType ?? "outcome_measure");
   const [frequency, setFrequency] = useState<QuestionnaireFrequency | null>(initial?.frequency ?? "weekly");
+  const [pdfUrl, setPdfUrl] = useState((initial as any)?.pdf_url ?? "");
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     initial?.questions?.map((q) => ({
       id: q.id,
@@ -183,7 +185,14 @@ function QuestionnaireBuilder({
       alert("Please fill in a title and all question texts");
       return;
     }
-    onSave({ title, description, frequency: frequency ?? null, form_type: formType, questions });
+    onSave({
+      title,
+      description,
+      frequency: frequency ?? null,
+      form_type: formType,
+      pdf_url: formType === "onboarding" ? pdfUrl.trim() || null : null,
+      questions,
+    });
     onClose();
   };
 
@@ -243,6 +252,22 @@ function QuestionnaireBuilder({
               <option value="weekly">Weekly</option>
               <option value="fortnightly">Fortnightly</option>
             </select>
+          </div>
+        )}
+        {formType === "onboarding" && (
+          <div className={`${styles.formField} ${styles.fullCol}`}>
+            <label htmlFor="q-pdf">PDF link (optional)</label>
+            <input
+              id="q-pdf"
+              type="url"
+              value={pdfUrl}
+              onChange={(e) => setPdfUrl(e.target.value)}
+              placeholder="https://example.com/document.pdf"
+            />
+            <p className={styles.fieldHint}>
+              A form linked as your client consent document (Settings → Practice) shows this alongside its title —
+              useful for terms, an info sheet, or anything clients should read before agreeing.
+            </p>
           </div>
         )}
       </div>

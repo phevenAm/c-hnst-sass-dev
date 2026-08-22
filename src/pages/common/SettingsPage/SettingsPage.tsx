@@ -134,6 +134,8 @@ const SettingsPage = () => {
   const [consentBody, setConsentBody] = useState("");
   const [consentPdfUrl, setConsentPdfUrl] = useState("");
   const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
+  const [consentQuestionnaireId, setConsentQuestionnaireId] = useState("");
+  const [onboardingForms, setOnboardingForms] = useState<{ id: string; title: string }[]>([]);
   const [consentCounsellorCta, setConsentCounsellorCta] = useState(
     "If you have any questions, speak to your counsellor.",
   );
@@ -244,8 +246,22 @@ const SettingsPage = () => {
         setConsentBody(data.consent_body ?? "");
         setConsentPdfUrl(data.consent_pdf_url ?? "");
         setConsentCounsellorCta(data.consent_counsellor_cta ?? "If you have any questions, speak to your counsellor.");
+        setConsentQuestionnaireId(data.consent_questionnaire_id ?? "");
       });
   }, [isAdmin, userProfile?.id, encStatus, decryptPII]);
+
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    supabase
+      .from("questionnaires")
+      .select("id, title")
+      .eq("admin_id", userProfile.id)
+      .eq("form_type", "onboarding")
+      .order("title")
+      .then(({ data }) => {
+        if (data) setOnboardingForms(data);
+      });
+  }, [isAdmin, userProfile?.id]);
 
   useEffect(() => {
     if (!isAdmin || !userProfile?.id) return;
@@ -398,7 +414,7 @@ const SettingsPage = () => {
 
   const handleSaveConsent = async () => {
     if (!userProfile?.id) return;
-    if (consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
+    if (!consentQuestionnaireId && consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
       setConsentPdfUrlError("This must be a direct link to a .pdf file.");
       showToast("PDF link must point directly to a .pdf file.", "danger");
       return;
@@ -413,6 +429,7 @@ const SettingsPage = () => {
         consent_body: consentBody,
         consent_pdf_url: consentPdfUrl || null,
         consent_counsellor_cta: consentCounsellorCta || null,
+        consent_questionnaire_id: consentQuestionnaireId || null,
       })
       .eq("admin_id", userProfile.id);
     setSavingConsent(false);
@@ -1034,12 +1051,34 @@ const SettingsPage = () => {
                 </label>
 
                 <div className={styles.field} style={{ marginTop: "var(--sp-5)" }}>
+                  <label htmlFor="consentForm">Use one of your Forms instead (optional)</label>
+                  <select
+                    id="consentForm"
+                    value={consentQuestionnaireId}
+                    onChange={(e) => setConsentQuestionnaireId(e.target.value)}
+                  >
+                    <option value="">— Use the text below instead —</option>
+                    {onboardingForms.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.title}
+                      </option>
+                    ))}
+                  </select>
+                  <p className={styles.toggleHint}>
+                    {consentQuestionnaireId
+                      ? "Its title and PDF link (if any) are shown to clients instead of the fields below. Build or edit onboarding forms under Forms."
+                      : "Create an onboarding form under Forms (with a PDF link, if you want one) to manage your consent document there instead of typing it in below."}
+                  </p>
+                </div>
+
+                <div className={styles.field}>
                   <label htmlFor="consentTitle">Heading</label>
                   <input
                     id="consentTitle"
                     value={consentTitle}
                     onChange={(e) => setConsentTitle(e.target.value)}
                     placeholder="Before you continue"
+                    disabled={!!consentQuestionnaireId}
                   />
                 </div>
 
@@ -1052,6 +1091,7 @@ const SettingsPage = () => {
                     value={consentBody}
                     onChange={(e) => setConsentBody(e.target.value)}
                     placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                    disabled={!!consentQuestionnaireId}
                   />
                 </div>
 
@@ -1069,6 +1109,7 @@ const SettingsPage = () => {
                     }}
                     placeholder="https://example.com/document.pdf"
                     aria-invalid={!!consentPdfUrlError}
+                    disabled={!!consentQuestionnaireId}
                   />
                   {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
                   <p className={styles.toggleHint}>

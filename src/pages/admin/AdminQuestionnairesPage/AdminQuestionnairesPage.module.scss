@@ -210,6 +210,13 @@
   }
 }
 
+.fieldHint {
+  margin-top: $sp-2;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
 .questionsSection {
   margin-bottom: $sp-5;
 }
