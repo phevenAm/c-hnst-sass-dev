@@ -77,6 +77,7 @@ type AssignedForm = {
     form_type: string;
     frequency: string | null;
     is_active: boolean;
+    is_rcads: boolean;
     questions: AssignedQuestion[];
   } | null;
 };
@@ -225,7 +226,7 @@ export default function AdminClientsPageDetailed() {
     supabase
       .from("questionnaire_assignments")
       .select(
-        "id, assigned_at, is_plotted, questionnaires(id, title, form_type, frequency, is_active, questions(id, text, type, options, order_index))",
+        "id, assigned_at, is_plotted, questionnaires(id, title, form_type, frequency, is_active, is_rcads, questions(id, text, type, options, order_index))",
       )
       .eq("user_id", clientId)
       .order("assigned_at", { ascending: false })
@@ -844,7 +845,7 @@ export default function AdminClientsPageDetailed() {
                     <h3 className={styles.formTypeGroupLabel}>{label}</h3>
                     {forms.map((form) => {
                       const q = form.questionnaires;
-                      const isRcads = !!(q as any)?.is_rcads;
+                      const isRcads = !!q?.is_rcads;
                       const hasScaleQs = q?.questions?.some((qn) => qn.type === "scale") ?? false;
                       const hasResults = isRcads
                         ? hasRcadsAssessment
@@ -920,7 +921,7 @@ export default function AdminClientsPageDetailed() {
             const fq = group?.questionnaire ?? assignment?.questionnaires;
             if (!fq) return null;
 
-            if ((fq as any).is_rcads) {
+            if (fq.is_rcads) {
               return (
                 <Modal title={fq.title} onClose={() => setViewResultsForId(null)} size="lg">
                   {clientId && <RcadsResultsCard clientId={clientId} />}
