@@ -125,6 +125,16 @@
   line-height: 1.5;
 }
 
+.configSection {
+  margin-top: $sp-5;
+  padding-top: $sp-5;
+  border-top: 1px solid var(--border);
+
+  .configHint {
+    margin-bottom: $sp-3;
+  }
+}
+
 // ── Stats bar ────────────────────────────────────────────────
 .statsRow {
   display: flex;

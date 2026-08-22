@@ -29,6 +29,7 @@ import AccessTokenModal from "./modals/AccessTokenModal/AccessTokenModal";
 import CreateStubModal from "./modals/CreateStubModal/CreateStubModal";
 import DeleteClientModal from "./modals/DeleteClientModal/DeleteClientModal";
 import ImportStubsModal from "./modals/ImportStubsModal/ImportStubsModal";
+import InviteClientModal from "./modals/InviteClientModal/InviteClientModal";
 import ManageTokensModal from "./modals/ManageTokensModal/ManageTokensModal";
 import MergeStubModal from "./modals/MergeStubModal/MergeStubModal";
 import SessionNotesModal from "./modals/SessionNotesModal/SessionNotesModal";
@@ -328,6 +329,7 @@ export default function AdminClientsPage() {
   const allStubs = useAppSelector(selectAllStubs);
   const unlinkedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id), [allStubs]);
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [manageTokensModal, setManageTokensModal] = useState(false);
   const [createStubOpen, setCreateStubOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -364,7 +366,7 @@ export default function AdminClientsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (searchParams.get("new") === "true") {
-      setShowTokenModal(true);
+      setShowInviteModal(true);
       setSearchParams({}); // clear it so back/refresh doesn't re-open
     }
   }, [searchParams, setSearchParams]);
@@ -394,9 +396,10 @@ export default function AdminClientsPage() {
           </div>
 
           <SplitButton
-            primaryLabel="Create access token"
-            primaryAction={() => setShowTokenModal(true)}
+            primaryLabel="Invite a client"
+            primaryAction={() => setShowInviteModal(true)}
             options={[
+              { label: "Create token", onClick: () => setShowTokenModal(true) },
               { label: "Create offline client", onClick: () => setCreateStubOpen(true) },
               { label: "Manage tokens", onClick: () => setManageTokensModal(true) },
               { label: "CSV client import", onClick: () => setImportOpen(true) },
@@ -454,6 +457,7 @@ export default function AdminClientsPage() {
         )}
       </div>
 
+      {showInviteModal && <InviteClientModal onClose={() => setShowInviteModal(false)} />}
       {showTokenModal && <AccessTokenModal onClose={() => setShowTokenModal(false)} />}
       {manageTokensModal && <ManageTokensModal onClose={() => setManageTokensModal(false)} />}
       {createStubOpen && <CreateStubModal onClose={() => setCreateStubOpen(false)} />}

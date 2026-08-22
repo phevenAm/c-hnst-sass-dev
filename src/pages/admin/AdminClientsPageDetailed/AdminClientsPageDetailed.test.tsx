@@ -723,15 +723,23 @@ describe("AdminClientsPageDetailed", () => {
   // ── Modals ─────────────────────────────────────────────────────────────────
 
   describe("Notes modal", () => {
-    it("opens when the Account Summary button is clicked", async () => {
+    // Account Summary lives inside the Configure client modal, not as its
+    // own dropdown item — open that first, then the Account Summary button
+    // within it.
+    async function openAccountSummary() {
+      fireEvent.click(screen.getByRole("button", { name: /^configure client$/i }));
+      fireEvent.click(await screen.findByRole("button", { name: /open account summary/i }));
+    }
+
+    it("opens when the Account Summary button (inside Configure client) is clicked", async () => {
       renderPage();
-      fireEvent.click(screen.getByRole("button", { name: /account summary/i }));
+      await openAccountSummary();
       expect(await screen.findByTestId("notes-modal")).toBeInTheDocument();
     });
 
     it("closes when its onClose is triggered", async () => {
       renderPage();
-      fireEvent.click(screen.getByRole("button", { name: /account summary/i }));
+      await openAccountSummary();
       await screen.findByTestId("notes-modal");
       fireEvent.click(screen.getByRole("button", { name: /close notes/i }));
       await waitFor(() => {

@@ -748,7 +748,6 @@ export default function AdminClientsPageDetailed() {
               primaryLabel="Configure client"
               primaryAction={() => setIsConfigOpen(true)}
               options={[
-                { label: "Account Summary", onClick: () => setNotesOpen(true) },
                 {
                   label: exporting ? "Exporting…" : "Export PDF",
                   onClick: () => setExportPickerOpen(true),
@@ -1139,6 +1138,21 @@ export default function AdminClientsPageDetailed() {
             Set a codename to show instead of {client.first_name}'s real name across your admin. Leave blank to use
             their real name.
           </p>
+
+          <div className={styles.configSection}>
+            <p className={styles.configLabel}>Account Summary</p>
+            <p className={styles.configHint}>A running note about this client, separate from per-session notes.</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsConfigOpen(false);
+                setNotesOpen(true);
+              }}
+            >
+              Open Account Summary
+            </Button>
+          </div>
         </Modal>
       )}
 

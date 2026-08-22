@@ -482,11 +482,11 @@ const AdminScheduler = () => {
             <SplitButton
               variant="primary"
               // size="sm"
-              primaryLabel="Manage schedule"
-              primaryAction={() => setIsAvailabilityOpen(true)}
+              primaryLabel="Create new session"
+              primaryAction={() => setNewSessionWithoutId(true)}
               options={[
                 { label: "Add private event", onClick: openNewPrivate },
-                { label: "Create new session", onClick: () => setNewSessionWithoutId(true) },
+                { label: "Manage availability", onClick: () => setIsAvailabilityOpen(true) },
               ]}
             />
           </div>

@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 
 import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Avatar from "@components/shared/Avatar/Avatar";
-import { BookIcon, CreateSession, FormsIcon, KeyIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
+import { BookIcon, CreateSession, FormsIcon, MailIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
@@ -154,27 +154,27 @@ export default function AdminDashboard() {
           <Card className={styles.quickActionsCard} id="dash-quick-actions">
             <p className={styles.quickActionsLabel}>Quick actions</p>
             <div className={styles.quickActionsRow}>
-              <Link to="/admin/scheduler?newSession=1" title="Create a new session">
+              <Link to="/admin/scheduler?newSession=1" title="New client session">
                 <div className={`${styles.metricIcon} ${styles.sky}`}>
                   <CreateSession />
+                </div>
+              </Link>
+
+              <Link to="/admin/clients?new=true" title="Invite client to platform">
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
+                  <MailIcon />
+                </div>
+              </Link>
+
+              <Link to="/admin/forms?new=true" title="New form">
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
+                  <FormsIcon />
                 </div>
               </Link>
 
               <Link to="/admin/scheduler?availability=1" title="Manage availability">
                 <div className={`${styles.metricIcon} ${styles.sky}`}>
                   <RescheduleIcon />
-                </div>
-              </Link>
-
-              <Link to="/admin/forms?new=true" title="Create a new form">
-                <div className={`${styles.metricIcon} ${styles.sky}`}>
-                  <FormsIcon />
-                </div>
-              </Link>
-
-              <Link to="/admin/clients?new=true" title="Create sign-up token">
-                <div className={`${styles.metricIcon} ${styles.sky}`}>
-                  <KeyIcon />
                 </div>
               </Link>
             </div>
