@@ -190,6 +190,20 @@ export default function ClientDashboard() {
           ))}
         </div>
 
+        <Card className={styles.cardPad}>
+          <div className={styles.rcadsPrompt}>
+            <div>
+              <h3 className={styles.cardTitle}>Wellbeing questionnaire</h3>
+              <p className={styles.emptyText}>
+                A short set of questions your therapist uses to understand how you're doing.
+              </p>
+            </div>
+            <Link to="/rcads">
+              <Button size="sm">Start</Button>
+            </Link>
+          </div>
+        </Card>
+
         {randomQuote ? (
           <section className={`${styles.quotes} ${styles.warm}`}>
             <h2>{randomQuote?.content}</h2>

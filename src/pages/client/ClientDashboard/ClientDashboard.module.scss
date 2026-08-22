@@ -135,6 +135,23 @@
   margin: 0 0 $sp-4;
 }
 
+.rcadsPrompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  flex-wrap: wrap;
+  margin-bottom: $sp-7;
+
+  .cardTitle {
+    margin-bottom: $sp-1;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
 // ── Check-in list ──────────────────────────────────────────
 .checkInList {
   display: flex;
