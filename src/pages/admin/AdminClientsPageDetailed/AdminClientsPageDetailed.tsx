@@ -16,6 +16,7 @@ import {
   SplitButton,
   ToggleButtonTabs,
 } from "@components/shared/index";
+import RcadsResultsCard from "@components/shared/RcadsResultsCard/RcadsResultsCard";
 import CancelSessionModal from "@components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
@@ -778,6 +779,8 @@ export default function AdminClientsPageDetailed() {
             <p className={styles.statLabel}>Last check-in</p>
           </div>
         </div>
+
+        {clientId && <RcadsResultsCard clientId={clientId} />}
 
         {/* Progress chart — auto-picks the plotted (or first available) form; see
             the preference useEffect above. Which one shows is controlled from the

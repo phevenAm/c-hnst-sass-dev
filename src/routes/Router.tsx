@@ -35,6 +35,7 @@ import CheckInPage from "../pages/client/CheckInPage/CheckInPage";
 import ClientDashboard from "../pages/client/ClientDashboard/ClientDashboard";
 import ClientSchedule from "../pages/client/ClientSchedule/ClientSchedule";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
+import RcadsAssessmentPage from "../pages/client/RcadsAssessmentPage/RcadsAssessmentPage";
 import ResourcesPage from "../pages/client/ResourcesPage/ResourcesPage";
 import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/CounsellorSignupPage";
 import DemoPage from "../pages/common/DemoPage/DemoPage";
@@ -247,6 +248,7 @@ export default function AppRoutes() {
               <Route path="/check-in" element={<CheckInPage />} />
               <Route path="/my-sessions" element={<ClientSchedule />} />
               <Route path="/resources" element={<ResourcesPage />} />
+              <Route path="/rcads" element={<RcadsAssessmentPage />} />
             </Route>
 
             <Route
