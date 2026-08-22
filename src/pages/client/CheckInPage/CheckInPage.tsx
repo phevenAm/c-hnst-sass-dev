@@ -135,8 +135,9 @@ export default function CheckInPage() {
   const [currentStep, setCurrentStep] = useState(0);
   // RCADS answers live in rcads_assessments, not `responses` — the generic
   // "has this been answered" check below can't see it, so its completion
+  // (and re-prompting, via prompt_again_at like every other one-time form)
   // is tracked separately.
-  const [hasRcadsAssessment, setHasRcadsAssessment] = useState(false);
+  const [latestRcadsAt, setLatestRcadsAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -144,9 +145,12 @@ export default function CheckInPage() {
     dispatch(fetchResponsesByUser(authUser.id)).unwrap().catch(console.error);
     supabase
       .from("rcads_assessments")
-      .select("id", { count: "exact", head: true })
+      .select("submitted_at")
       .eq("client_id", authUser.id)
-      .then(({ count }) => setHasRcadsAssessment(!!count));
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setLatestRcadsAt(data?.submitted_at ?? null));
   }, [dispatch, authUser?.id]);
 
   // Reset form state when tab changes
@@ -165,7 +169,10 @@ export default function CheckInPage() {
   const availableAssignments = tabAssignments.filter((a) => {
     const q = a.questionnaires;
     if (!q) return false;
-    if ((q as any).is_rcads) return !hasRcadsAssessment;
+    if ((q as any).is_rcads) {
+      if (!latestRcadsAt) return true;
+      return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(latestRcadsAt);
+    }
     const latest = getLatestResponseForQuestionnaire(allUserResponses, q.id);
     if (activeTab === "outcome_measure") {
       if (!q.frequency) {
