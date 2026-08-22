@@ -11,21 +11,21 @@ type Props = { onClose: () => void };
 export default function RegenerateCodeModal({ onClose }: Props) {
   const { pendingCode, clearPendingCode, regenerateCode } = useEncryption();
 
-  const [password, setPassword] = useState("");
+  const [currentCode, setCurrentCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
 
   const handleRegenerate = async () => {
-    if (!password) return;
+    if (!currentCode.trim()) return;
     setError(null);
     setWorking(true);
-    const ok = await regenerateCode(password);
+    const ok = await regenerateCode(currentCode.trim());
     setWorking(false);
     if (!ok) {
-      setError("Incorrect password.");
+      setError("Incorrect encryption code.");
       return;
     }
-    setPassword("");
+    setCurrentCode("");
   };
 
   // Same one-time reveal pattern as first-time setup (SessionNotesModal) —
@@ -62,7 +62,7 @@ export default function RegenerateCodeModal({ onClose }: Props) {
       size="sm"
       actions={
         <>
-          <Button variant="primary" onClick={handleRegenerate} disabled={working || !password}>
+          <Button variant="primary" onClick={handleRegenerate} disabled={working || !currentCode.trim()}>
             {working ? "Generating…" : "Generate new code"}
           </Button>
           <Button variant="secondary" onClick={onClose}>
@@ -84,15 +84,16 @@ export default function RegenerateCodeModal({ onClose }: Props) {
           they are — only the code itself changes, so any copy of the old code you'd saved stops working.
         </p>
         <div className={styles.field}>
-          <label htmlFor="regen-password">Current password</label>
+          <label htmlFor="regen-code">Current encryption code</label>
           <input
-            id="regen-password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            id="regen-code"
+            type="text"
+            autoComplete="off"
+            placeholder="e.g. calm-reef-gold-pine"
+            value={currentCode}
+            onChange={(e) => setCurrentCode(e.target.value)}
           />
-          <p className={styles.hint}>Required to confirm it's you before re-wrapping your notes' encryption key.</p>
+          <p className={styles.hint}>Required to prove you hold the current code before re-wrapping the notes' key.</p>
         </div>
       </form>
     </Modal>

@@ -6,7 +6,6 @@ import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
-import { useEncryption } from "@context/EncryptionContext";
 
 import { supabase } from "@/lib/supabase";
 
@@ -177,7 +176,6 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, loading, isAuthenticated, isAdmin, error } = useAuth();
-  const { unlockWithPassword } = useEncryption();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -215,16 +213,6 @@ export default function LoginPage() {
       await signIn(email, password);
     } catch {
       // error is set in AuthContext
-      setSubmitting(false);
-      return;
-    }
-    // signIn succeeded — try to restore the note encryption key from the DB.
-    // If no key exists yet ("no_key"), encryption setup is done explicitly inside
-    // the notes modal — never auto-created here so a missing key never wipes data.
-    try {
-      await unlockWithPassword(password);
-    } catch (encErr) {
-      console.error("Note encryption unlock failed:", encErr);
     } finally {
       setSubmitting(false);
     }

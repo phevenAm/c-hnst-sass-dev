@@ -695,9 +695,6 @@ export type Database = {
           cpd_custom_categories: string[]
           disabled_email_types: string[]
           email: string | null
-          enc_code_iv: string | null
-          enc_code_salt: string | null
-          enc_code_wrapped: string | null
           enc_data_key: string | null
           enc_data_key_iv: string | null
           enc_data_key_salt: string | null
@@ -748,9 +745,6 @@ export type Database = {
           cpd_custom_categories?: string[]
           disabled_email_types?: string[]
           email?: string | null
-          enc_code_iv?: string | null
-          enc_code_salt?: string | null
-          enc_code_wrapped?: string | null
           enc_data_key?: string | null
           enc_data_key_iv?: string | null
           enc_data_key_salt?: string | null
@@ -801,9 +795,6 @@ export type Database = {
           cpd_custom_categories?: string[]
           disabled_email_types?: string[]
           email?: string | null
-          enc_code_iv?: string | null
-          enc_code_salt?: string | null
-          enc_code_wrapped?: string | null
           enc_data_key?: string | null
           enc_data_key_iv?: string | null
           enc_data_key_salt?: string | null
