@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
@@ -15,6 +15,8 @@ import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectActiveQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchResponsesByUser, selectUserResponses } from "@store/slices/responsesSlice";
 import { fetchSessionsByClientId } from "@store/slices/sessionsSlice";
+
+import { supabase } from "@/lib/supabase";
 
 import styles from "./ClientDashboard.module.scss";
 
@@ -48,7 +50,22 @@ export default function ClientDashboard() {
 
   const assignedQs = questionnaires.filter((q) => q.assignedTo.includes(authUser?.id ?? ""));
 
+  // RCADS answers live in rcads_assessments, not `responses` — the generic
+  // getLatestResponseForQuestionnaire check below can never see it, so
+  // without this it would count as "available" forever, even once complete.
+  const [hasRcadsAssessment, setHasRcadsAssessment] = useState(false);
+  useEffect(() => {
+    if (!authUser?.id) return;
+    supabase
+      .from("rcads_assessments")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", authUser.id)
+      .then(({ count }) => setHasRcadsAssessment(!!count));
+  }, [authUser?.id]);
+
   const availableAssignedQs = assignedQs.filter((q) => {
+    if ((q as any).is_rcads) return !hasRcadsAssessment;
+
     const latestResponse = getLatestResponseForQuestionnaire(allUserResponses, q.id);
 
     if (!latestResponse) return true;
@@ -189,20 +206,6 @@ export default function ClientDashboard() {
             </div>
           ))}
         </div>
-
-        <Card className={styles.cardPad}>
-          <div className={styles.rcadsPrompt}>
-            <div>
-              <h3 className={styles.cardTitle}>Wellbeing questionnaire</h3>
-              <p className={styles.emptyText}>
-                A short set of questions your therapist uses to understand how you're doing.
-              </p>
-            </div>
-            <Link to="/rcads">
-              <Button size="sm">Start</Button>
-            </Link>
-          </div>
-        </Card>
 
         {randomQuote ? (
           <section className={`${styles.quotes} ${styles.warm}`}>
