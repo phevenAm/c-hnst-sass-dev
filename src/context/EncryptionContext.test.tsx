@@ -3,11 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EncryptionProvider, useEncryption } from "./EncryptionContext";
 
-// End-to-end coverage of the password-gated flows through the actual React
+// End-to-end coverage of the code-gated flows through the actual React
 // context (not just the underlying crypto primitives — see
-// lib/noteEncryption.test.ts for those) — setup, unlock, rotatePassword, and
-// regenerateCode. This is the code path that guards real client session
-// notes; a bug here either corrupts data or locks an admin out of it.
+// lib/noteEncryption.test.ts for those) — setup, unlock, and regenerateCode.
+// This is the code path that guards real client session notes; a bug here
+// either corrupts data or locks an admin out of it.
+//
+// There is deliberately no password-based unlock path here — the 4-word
+// code is the only secret that can unlock notes. A previous version of this
+// context also wrapped the code itself under the login password as a
+// convenience, which meant anyone who could log in as the admin could also
+// decrypt every note without ever knowing the code — that defeated the
+// point of having a separate secret at all, so it was removed.
 
 const ADMIN_ID = "admin-1";
 
@@ -63,46 +70,66 @@ function renderEncryption() {
 }
 
 describe("EncryptionContext", () => {
-  it("setupEncryption unlocks and issues a one-time pending code", async () => {
+  it("setupEncryption takes no password and issues a one-time pending code", async () => {
     const { result } = renderEncryption();
 
-    await result.current.setupEncryption("correct-password-123");
+    await result.current.setupEncryption();
 
     await waitFor(() => expect(result.current.status).toBe("unlocked"));
     expect(result.current.pendingCode).toBeTruthy();
     expect(result.current.pendingCode!.split("-")).toHaveLength(4);
   });
 
-  it("unlockWithPassword rejects the wrong password without corrupting state", async () => {
+  it("setupEncryption never persists an enc_code_wrapped-style password layer", async () => {
     const { result } = renderEncryption();
-    await result.current.setupEncryption("right-password");
+    await result.current.setupEncryption();
     await waitFor(() => expect(result.current.status).toBe("unlocked"));
 
-    const outcome = await result.current.unlockWithPassword("totally-wrong");
-    expect(outcome).toBe("wrong_password");
+    // Only the code-wrapped data key should exist server-side — nothing
+    // recoverable via a password, by design.
+    expect(fakeRow.value).not.toHaveProperty("enc_code_wrapped");
+    expect(fakeRow.value).toHaveProperty("enc_data_key");
   });
 
-  it("a note encrypted before setup's password is later confirmed unlockable with the same password", async () => {
+  it("unlockWithCode rejects the wrong code without corrupting state", async () => {
     const { result } = renderEncryption();
-    await result.current.setupEncryption("my-password");
+    await result.current.setupEncryption();
     await waitFor(() => expect(result.current.status).toBe("unlocked"));
+
+    const outcome = await result.current.unlockWithCode("totally-wrong-code-here");
+    expect(outcome).toBe("wrong_code");
+  });
+
+  it("unlockWithCode returns no_key when encryption was never set up", async () => {
+    const { result } = renderEncryption();
+    const outcome = await result.current.unlockWithCode("anything-at-all-here");
+    expect(outcome).toBe("no_key");
+  });
+
+  it("a note encrypted at setup is later readable after locking and unlocking with the code", async () => {
+    const { result } = renderEncryption();
+    await result.current.setupEncryption();
+    await waitFor(() => expect(result.current.status).toBe("unlocked"));
+    const code = result.current.pendingCode!;
 
     const { iv, ciphertext } = await result.current.encryptNote("client is making good progress");
     expect(await result.current.decryptNote(ciphertext, iv)).toBe("client is making good progress");
 
-    const outcome = await result.current.unlockWithPassword("my-password");
+    // Simulate a fresh session with no in-memory key — only the code unlocks it.
+    const { result: fresh } = renderEncryption();
+    const outcome = await fresh.current.unlockWithCode(code);
     expect(outcome).toBe("unlocked");
-    expect(await result.current.decryptNote(ciphertext, iv)).toBe("client is making good progress");
+    expect(await fresh.current.decryptNote(ciphertext, iv)).toBe("client is making good progress");
   });
 
   describe("regenerateCode", () => {
-    it("returns false and leaves everything unchanged when the password is wrong", async () => {
+    it("returns false and leaves everything unchanged when the current code is wrong", async () => {
       const { result } = renderEncryption();
-      await result.current.setupEncryption("original-password");
+      await result.current.setupEncryption();
       await waitFor(() => expect(result.current.status).toBe("unlocked"));
 
       const codeBefore = result.current.pendingCode;
-      const ok = await result.current.regenerateCode("wrong-password-guess");
+      const ok = await result.current.regenerateCode("wrong-code-guess-here");
 
       expect(ok).toBe(false);
       // Nothing about the stored wrap should have moved on a failed attempt.
@@ -111,16 +138,17 @@ describe("EncryptionContext", () => {
 
     it("issues a new code and keeps notes encrypted before the rotation fully readable after it", async () => {
       const { result } = renderEncryption();
-      await result.current.setupEncryption("stable-password");
+      await result.current.setupEncryption();
       await waitFor(() => expect(result.current.status).toBe("unlocked"));
 
-      const oldCode = result.current.pendingCode;
+      const oldCode = result.current.pendingCode!;
       const { iv, ciphertext } = await result.current.encryptNote("pre-rotation note");
 
-      const ok = await result.current.regenerateCode("stable-password");
+      const ok = await result.current.regenerateCode(oldCode);
       expect(ok).toBe(true);
 
       await waitFor(() => expect(result.current.pendingCode).not.toBe(oldCode));
+      const newCode = result.current.pendingCode!;
       expect(result.current.status).toBe("unlocked");
 
       // The critical assertion: the note encrypted BEFORE regeneration must
@@ -128,36 +156,17 @@ describe("EncryptionContext", () => {
       // in place (it re-wraps the same data key — it must not swap it out).
       expect(await result.current.decryptNote(ciphertext, iv)).toBe("pre-rotation note");
 
-      // And unlocking fresh with the same password, post-rotation, must also
-      // reach a key that can read the pre-rotation note — proves the DB
-      // write itself (not just in-memory state) is internally consistent.
-      const outcome = await result.current.unlockWithPassword("stable-password");
+      // The OLD code must no longer unlock anything post-rotation...
+      const { result: withOldCode } = renderEncryption();
+      expect(await withOldCode.current.unlockWithCode(oldCode)).toBe("wrong_code");
+
+      // ...and the NEW code, fresh from the DB, must reach a key that can
+      // read the pre-rotation note — proves the DB write itself (not just
+      // in-memory state) is internally consistent.
+      const { result: withNewCode } = renderEncryption();
+      const outcome = await withNewCode.current.unlockWithCode(newCode);
       expect(outcome).toBe("unlocked");
-      expect(await result.current.decryptNote(ciphertext, iv)).toBe("pre-rotation note");
-    });
-
-    it("the old password stops working if regenerateCode also rotated it via rotatePassword", async () => {
-      // regenerateCode itself keeps the same password (only the code
-      // changes) — this documents that boundary: rotating the *password*
-      // is rotatePassword's job, and the two are independent.
-      const { result } = renderEncryption();
-      await result.current.setupEncryption("password-a");
-      await waitFor(() => expect(result.current.status).toBe("unlocked"));
-
-      await result.current.regenerateCode("password-a");
-      await waitFor(() => expect(result.current.status).toBe("unlocked"));
-
-      // The password from setup still works after regenerateCode.
-      const stillWorks = await result.current.unlockWithPassword("password-a");
-      expect(stillWorks).toBe("unlocked");
-
-      await result.current.rotatePassword("password-a", "password-b");
-
-      const oldPasswordNowFails = await result.current.unlockWithPassword("password-a");
-      expect(oldPasswordNowFails).toBe("wrong_password");
-
-      const newPasswordWorks = await result.current.unlockWithPassword("password-b");
-      expect(newPasswordWorks).toBe("unlocked");
+      expect(await withNewCode.current.decryptNote(ciphertext, iv)).toBe("pre-rotation note");
     });
   });
 });

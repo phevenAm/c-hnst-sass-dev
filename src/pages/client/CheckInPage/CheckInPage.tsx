@@ -6,6 +6,8 @@ import Card from "../../../components/shared/Card/Card";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "../../../Helpers/Helpers";
+import { useRealtimeTable } from "../../../Hooks/useRealtimeTable";
+import { supabase } from "../../../lib/supabase";
 import type { Question, Questionnaire, Response } from "../../../models/globalTypes";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { fetchAssignmentsByUser, selectAllAssignments } from "../../../store/slices/questionnaireAssignmentsSlice";
@@ -132,12 +134,32 @@ export default function CheckInPage() {
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  // RCADS answers live in rcads_assessments, not `responses` — the generic
+  // "has this been answered" check below can't see it, so its completion
+  // (and re-prompting, via prompt_again_at like every other one-time form)
+  // is tracked separately.
+  const [latestRcadsAt, setLatestRcadsAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authUser?.id) return;
     dispatch(fetchAssignmentsByUser(authUser.id)).unwrap().catch(console.error);
     dispatch(fetchResponsesByUser(authUser.id)).unwrap().catch(console.error);
+    supabase
+      .from("rcads_assessments")
+      .select("submitted_at")
+      .eq("client_id", authUser.id)
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setLatestRcadsAt(data?.submitted_at ?? null));
   }, [dispatch, authUser?.id]);
+
+  // Without this, an admin assigning (or re-prompting) a form while the
+  // client is sitting on this exact page never showed up — the effect above
+  // only fires once per mount, not on every assignment change.
+  useRealtimeTable("questionnaire_assignments", authUser?.id ? `user_id=eq.${authUser.id}` : undefined, () => {
+    dispatch(fetchAssignmentsByUser(authUser!.id));
+  });
 
   // Reset form state when tab changes
   useEffect(() => {
@@ -155,6 +177,10 @@ export default function CheckInPage() {
   const availableAssignments = tabAssignments.filter((a) => {
     const q = a.questionnaires;
     if (!q) return false;
+    if ((q as any).is_rcads) {
+      if (!latestRcadsAt) return true;
+      return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(latestRcadsAt);
+    }
     const latest = getLatestResponseForQuestionnaire(allUserResponses, q.id);
     if (activeTab === "outcome_measure") {
       if (!q.frequency) {
@@ -197,6 +223,7 @@ export default function CheckInPage() {
     onboarding: "No onboarding forms pending.",
   };
 
+  const isRcads = !!(questionnaire as any)?.is_rcads;
   const questions = questionnaire?.questions ?? [];
   const currentQ = questions[currentStep];
   const isLast = currentStep === questions.length - 1;
@@ -258,17 +285,31 @@ export default function CheckInPage() {
           ))}
         </div>
 
-        {!questionnaire ? (
+        {!questionnaire && (
           <div className={styles.emptyState}>
             <p>{emptyMessages[activeTab]}</p>
             <Button onClick={() => navigate("/dashboard")}>Back to dashboard</Button>
           </div>
-        ) : !currentQ ? (
+        )}
+
+        {questionnaire && isRcads && (
+          <div className={styles.formMeta}>
+            <h2>{questionnaire.title}</h2>
+            {questionnaire.description && <p>{questionnaire.description}</p>}
+            <div style={{ marginTop: "var(--sp-5)" }}>
+              <Button onClick={() => navigate("/rcads")}>Start</Button>
+            </div>
+          </div>
+        )}
+
+        {questionnaire && !isRcads && !currentQ && (
           <div className={styles.emptyState}>
             <p>This form has no questions yet.</p>
             <Button onClick={() => navigate("/dashboard")}>Back to dashboard</Button>
           </div>
-        ) : (
+        )}
+
+        {questionnaire && !isRcads && currentQ && (
           <>
             <div className={styles.formMeta}>
               <h2>{questionnaire.title}</h2>

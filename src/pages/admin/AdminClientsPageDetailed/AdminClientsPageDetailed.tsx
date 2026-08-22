@@ -77,6 +77,7 @@ type AssignedForm = {
     form_type: string;
     frequency: string | null;
     is_active: boolean;
+    is_rcads: boolean;
     questions: AssignedQuestion[];
   } | null;
 };
@@ -163,7 +164,30 @@ export default function AdminClientsPageDetailed() {
   // silently not appearing, which was indistinguishable from no summary.
   const [summaryLocked, setSummaryLocked] = useState(false);
 
+  // RCADS answers live in rcads_assessments, not `responses` — needed so
+  // "Prompt again" and "View details" for it don't rely on formResultGroups,
+  // which can never see it.
+  const [hasRcadsAssessment, setHasRcadsAssessment] = useState(false);
+  useEffect(() => {
+    if (!clientId) return;
+    supabase
+      .from("rcads_assessments")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .then(({ count }) => setHasRcadsAssessment(!!count));
+  }, [clientId]);
+
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
+  // React Router reuses this component across /admin/clients/:clientId
+  // navigations (same route, different param) rather than remounting it, so
+  // without this the chart kept showing whichever form was selected for the
+  // *previous* client — the "prefer the plotted form" effect below only
+  // fires when this is empty, and it never got the chance to for the new
+  // client.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clientId is the deliberate trigger even though it's not referenced in the body
+  useEffect(() => {
+    setSelectedQuestionnaireId("");
+  }, [clientId]);
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
   const [isManageSessionsModal, setIsManageSessionsModal] = useState(false);
   const [sessionPageNumber, setSessionPageNumber] = useState<null | number>(1);
@@ -202,7 +226,7 @@ export default function AdminClientsPageDetailed() {
     supabase
       .from("questionnaire_assignments")
       .select(
-        "id, assigned_at, is_plotted, questionnaires(id, title, form_type, frequency, is_active, questions(id, text, type, options, order_index))",
+        "id, assigned_at, is_plotted, questionnaires(id, title, form_type, frequency, is_active, is_rcads, questions(id, text, type, options, order_index))",
       )
       .eq("user_id", clientId)
       .order("assigned_at", { ascending: false })
@@ -748,7 +772,6 @@ export default function AdminClientsPageDetailed() {
               primaryLabel="Configure client"
               primaryAction={() => setIsConfigOpen(true)}
               options={[
-                { label: "Account Summary", onClick: () => setNotesOpen(true) },
                 {
                   label: exporting ? "Exporting…" : "Export PDF",
                   onClick: () => setExportPickerOpen(true),
@@ -779,8 +802,6 @@ export default function AdminClientsPageDetailed() {
             <p className={styles.statLabel}>Last check-in</p>
           </div>
         </div>
-
-        {clientId && <RcadsResultsCard clientId={clientId} />}
 
         {/* Progress chart — auto-picks the plotted (or first available) form; see
             the preference useEffect above. Which one shows is controlled from the
@@ -824,8 +845,11 @@ export default function AdminClientsPageDetailed() {
                     <h3 className={styles.formTypeGroupLabel}>{label}</h3>
                     {forms.map((form) => {
                       const q = form.questionnaires;
+                      const isRcads = !!q?.is_rcads;
                       const hasScaleQs = q?.questions?.some((qn) => qn.type === "scale") ?? false;
-                      const hasResults = formResultGroups.some((g) => g.questionnaire.id === q?.id);
+                      const hasResults = isRcads
+                        ? hasRcadsAssessment
+                        : formResultGroups.some((g) => g.questionnaire.id === q?.id);
                       const canPromptAgain = !q?.frequency && hasResults;
                       return (
                         <div key={form.id} className={styles.checkInRow}>
@@ -896,6 +920,14 @@ export default function AdminClientsPageDetailed() {
             const assignment = assignedForms.find((f) => f.questionnaires?.id === viewResultsForId);
             const fq = group?.questionnaire ?? assignment?.questionnaires;
             if (!fq) return null;
+
+            if (fq.is_rcads) {
+              return (
+                <Modal title={fq.title} onClose={() => setViewResultsForId(null)} size="lg">
+                  {clientId && <RcadsResultsCard clientId={clientId} />}
+                </Modal>
+              );
+            }
 
             if (!group) {
               return (
@@ -1139,6 +1171,21 @@ export default function AdminClientsPageDetailed() {
             Set a codename to show instead of {client.first_name}'s real name across your admin. Leave blank to use
             their real name.
           </p>
+
+          <div className={styles.configSection}>
+            <p className={styles.configLabel}>Account Summary</p>
+            <p className={styles.configHint}>A running note about this client, separate from per-session notes.</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsConfigOpen(false);
+                setNotesOpen(true);
+              }}
+            >
+              Open Account Summary
+            </Button>
+          </div>
         </Modal>
       )}
 

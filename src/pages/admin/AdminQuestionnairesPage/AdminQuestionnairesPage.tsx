@@ -811,6 +811,11 @@ export default function AdminQuestionnairesPage() {
           {tabQuestionnaires.map((q) => {
             const isDefault = !!(q as any).source_default_id;
             const formType = (q as any).form_type ?? "outcome_measure";
+            // RCADS has fixed, clinically-validated content and its own
+            // dedicated fill-in/scoring flow (src/Helpers/rcadsScoring.ts) —
+            // there's nothing here to edit, and "reset to default" makes no
+            // sense for something that was never customised.
+            const isRcads = !!(q as any).is_rcads;
             return (
               <Card key={q.id}>
                 <div className={styles.qCard}>
@@ -825,7 +830,9 @@ export default function AdminQuestionnairesPage() {
                       </div>
                       <p className={styles.qDesc}>{q.description}</p>
                       <p className={styles.qMeta}>
-                        {q.questions.length} question{q.questions.length !== 1 ? "s" : ""}
+                        {isRcads
+                          ? "47 items · scored automatically"
+                          : `${q.questions.length} question${q.questions.length !== 1 ? "s" : ""}`}
                         {formType === "outcome_measure" && q.frequency ? ` · ${q.frequency}` : ""}
                         {` · ${q.assignedTo?.length ?? 0} client${(q.assignedTo?.length ?? 0) !== 1 ? "s" : ""} assigned`}
                       </p>
@@ -836,10 +843,12 @@ export default function AdminQuestionnairesPage() {
                         <Button variant="secondary" size="sm" onClick={() => setIsAssigningQ(q)}>
                           Assign
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => setEditingQ(q)}>
-                          Edit
-                        </Button>
-                        {isDefault && (
+                        {!isRcads && (
+                          <Button variant="secondary" size="sm" onClick={() => setEditingQ(q)}>
+                            Edit
+                          </Button>
+                        )}
+                        {isDefault && !isRcads && (
                           <Button
                             variant="secondary"
                             size="sm"
@@ -879,8 +888,8 @@ export default function AdminQuestionnairesPage() {
                           primaryLabel="Assign"
                           primaryAction={() => setIsAssigningQ(q)}
                           options={[
-                            { label: "Edit", onClick: () => setEditingQ(q) },
-                            ...(isDefault
+                            ...(isRcads ? [] : [{ label: "Edit", onClick: () => setEditingQ(q) }]),
+                            ...(isDefault && !isRcads
                               ? [
                                   {
                                     label: resettingId === q.id ? "Resetting…" : "Reset to default",

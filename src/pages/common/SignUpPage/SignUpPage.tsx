@@ -51,7 +51,7 @@ export default function SignUpPage() {
   const [form, setForm] = useState<Record<FieldId, string>>({
     firstName: "",
     lastName: "",
-    email: "",
+    email: searchParams.get("email") ?? "",
     dob: "",
     accessToken: searchParams.get("token") ?? "",
     password: "",

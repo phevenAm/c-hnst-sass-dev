@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 
 import dayjs from "dayjs";
 
-import Card from "@components/shared/Card/Card";
-
 import { ageInYears, computeRcadsResult, type Gender, type RcadsResult } from "@/Helpers/rcadsScoring";
 import { supabase } from "@/lib/supabase";
 
@@ -23,6 +21,15 @@ function bandClass(band: RcadsResult["totalRcads"]["band"]): string {
   return styles.normal;
 }
 
+function bandLabel(band: RcadsResult["totalRcads"]["band"]): string {
+  if (band === "clinical") return "Clinical";
+  if (band === "borderline") return "Borderline";
+  return "Normal";
+}
+
+/** Renders inside the "View details" modal shared with every other assigned
+ * form — RCADS just needs its own content there since its scoring doesn't
+ * fit the generic response table (see rcadsScoring.ts). */
 export default function RcadsResultsCard({ clientId }: { clientId: string }) {
   const [row, setRow] = useState<RcadsRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,64 +55,41 @@ export default function RcadsResultsCard({ clientId }: { clientId: string }) {
     };
   }, [clientId]);
 
-  if (loading) return null;
-  if (!row || !Array.isArray(row.answers) || row.answers.length !== 47) return null;
+  if (loading) return <p className={styles.empty}>Loading…</p>;
+  if (!row || !Array.isArray(row.answers) || row.answers.length !== 47) {
+    return <p className={styles.empty}>No responses yet.</p>;
+  }
 
   const result = computeRcadsResult(row.answers, row.date_of_birth, row.gender, row.submitted_at);
   const age = ageInYears(row.date_of_birth, row.submitted_at);
+  const rows = [...result.subscales, result.totalAnxiety, result.totalRcads];
 
   return (
-    <Card className={styles.card}>
-      <div className={styles.header}>
-        <h2>RCADS assessment</h2>
-        <span className={styles.meta}>
-          {dayjs(row.submitted_at).format("D MMM YYYY")} · age {age} · {row.gender}
-        </span>
-      </div>
+    <div className={styles.wrap}>
+      <span className={styles.meta}>
+        Submitted {dayjs(row.submitted_at).format("D MMM YYYY")} · age {age} · {row.gender}
+      </span>
 
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Scale</th>
-            <th>Raw</th>
-            <th>T-score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.subscales.map((s) => (
-            <tr key={s.key}>
-              <td>{s.label}</td>
-              <td>{s.raw ?? "—"}</td>
-              <td>
-                <span className={`${styles.tPill} ${bandClass(s.band)}`}>{s.tScoreDisplay}</span>
-              </td>
-            </tr>
-          ))}
-          <tr className={styles.totalRow}>
-            <td>Total Anxiety</td>
-            <td>{result.totalAnxiety.raw ?? "—"}</td>
-            <td>
-              <span className={`${styles.tPill} ${bandClass(result.totalAnxiety.band)}`}>
-                {result.totalAnxiety.tScoreDisplay}
+      <ul className={styles.rowList}>
+        {rows.map((r) => {
+          const isTotal = r.key === "totalAnxiety" || r.key === "totalRcads";
+          return (
+            <li key={r.key} className={`${styles.row} ${bandClass(r.band)} ${isTotal ? styles.rowTotal : ""}`}>
+              <span className={styles.rowLabel}>{r.label}</span>
+              <span className={styles.rowRaw}>{r.raw ?? "—"} raw</span>
+              <span className={styles.rowT}>
+                <strong>{r.tScoreDisplay}</strong>
+                {r.band && <span className={styles.rowBandLabel}>{bandLabel(r.band)}</span>}
               </span>
-            </td>
-          </tr>
-          <tr className={styles.totalRow}>
-            <td>Total RCADS</td>
-            <td>{result.totalRcads.raw ?? "—"}</td>
-            <td>
-              <span className={`${styles.tPill} ${bandClass(result.totalRcads.band)}`}>
-                {result.totalRcads.tScoreDisplay}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </li>
+          );
+        })}
+      </ul>
 
       <p className={styles.legend}>
         <span className={`${styles.dot} ${styles.borderline}`} /> T ≥ 65 borderline
         <span className={`${styles.dot} ${styles.clinical}`} /> T ≥ 70 clinical
       </p>
-    </Card>
+    </div>
   );
 }

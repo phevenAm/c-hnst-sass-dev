@@ -14,9 +14,9 @@ import {
 } from "./noteEncryption";
 
 // These cover the actual cryptographic primitives behind EncryptionContext's
-// setup/unlock/rotatePassword/regenerateCode flows. Getting any of this wrong
-// either silently corrupts real client session notes or locks an admin out
-// of their own data — worth testing directly, not just through the UI.
+// setup/unlock/regenerateCode flows. Getting any of this wrong either
+// silently corrupts real client session notes or locks an admin out of
+// their own data — worth testing directly, not just through the UI.
 
 describe("noteEncryption", () => {
   it("encrypts and decrypts a note round-trip", async () => {
@@ -32,13 +32,13 @@ describe("noteEncryption", () => {
     await expect(decryptNote(ciphertext, iv, wrongKey)).rejects.toThrow();
   });
 
-  it("wraps and unwraps a data key with a password-derived KEK", async () => {
+  it("wraps and unwraps a data key with a code-derived KEK", async () => {
     const dataKey = await generateDataKey();
     const salt = generateSalt();
-    const kek = await deriveKEK("correct horse battery staple", salt);
+    const kek = await deriveKEK("calm-reef-gold-pine", salt);
     const { iv, wrapped } = await wrapDataKey(dataKey, kek);
 
-    const sameKek = await deriveKEK("correct horse battery staple", salt);
+    const sameKek = await deriveKEK("calm-reef-gold-pine", salt);
     const unwrapped = await unwrapDataKey(wrapped, iv, sameKek);
 
     // Prove it's really the same key, not just "didn't throw" — encrypt with
@@ -47,13 +47,13 @@ describe("noteEncryption", () => {
     expect(await decryptNote(ciphertext, noteIv, unwrapped)).toBe("client note");
   });
 
-  it("rejects unwrapping with the wrong password", async () => {
+  it("rejects unwrapping with the wrong code", async () => {
     const dataKey = await generateDataKey();
     const salt = generateSalt();
-    const kek = await deriveKEK("right-password", salt);
+    const kek = await deriveKEK("right-code-here", salt);
     const { iv, wrapped } = await wrapDataKey(dataKey, kek);
 
-    const wrongKek = await deriveKEK("wrong-password", salt);
+    const wrongKek = await deriveKEK("wrong-code-here", salt);
     await expect(unwrapDataKey(wrapped, iv, wrongKek)).rejects.toThrow();
   });
 
@@ -73,12 +73,12 @@ describe("noteEncryption", () => {
     expect(Array.from(roundTripped)).toEqual(Array.from(original));
   });
 
-  // ── The two-layer envelope end to end, including regenerateCode's core
+  // ── The single-layer envelope end to end, including regenerateCode's core
   // operation: re-wrapping the SAME data key under a NEW code, without
-  // touching any already-encrypted note content. ────────────────────────
+  // touching any already-encrypted note content. There is deliberately no
+  // password layer here — the code is the only secret that can ever unwrap
+  // the data key, so a compromised login password alone can't read notes. ──
   it("setup → unlock → regenerate code → old notes still decrypt under the new code", async () => {
-    const password = "hunter2-but-longer";
-
     // ── Setup (mirrors EncryptionContext.setupEncryption) ──
     const originalCode = generateEncryptionCode();
     const dataKey = await generateDataKey();
@@ -87,48 +87,36 @@ describe("noteEncryption", () => {
     const codeKEK1 = await deriveKEK(originalCode, dataKeySalt1);
     const wrappedDataKey1 = await wrapDataKey(dataKey, codeKEK1);
 
-    const codeSalt1 = generateSalt();
-    const pwKEK1 = await deriveKEK(password, codeSalt1);
-    const wrappedCode1 = await encryptNote(originalCode, pwKEK1);
-
     // A note written before the code is ever regenerated.
     const { iv: legacyNoteIv, ciphertext: legacyNoteCiphertext } = await encryptNote(
       "client disclosed a change in circumstances",
       dataKey,
     );
 
-    // ── Unlock (mirrors EncryptionContext.unlockWithPassword) — sanity check
+    // ── Unlock (mirrors EncryptionContext.unlockWithCode) — sanity check
     // the setup above actually works before regenerating anything. ──
-    const pwKEKForUnlock = await deriveKEK(password, codeSalt1);
-    const recoveredCode = await decryptNote(wrappedCode1.ciphertext, wrappedCode1.iv, pwKEKForUnlock);
-    expect(recoveredCode).toBe(originalCode);
-    const codeKEKForUnlock = await deriveKEK(recoveredCode, dataKeySalt1);
+    const codeKEKForUnlock = await deriveKEK(originalCode, dataKeySalt1);
     const unwrappedDataKey = await unwrapDataKey(wrappedDataKey1.wrapped, wrappedDataKey1.iv, codeKEKForUnlock);
     expect(await decryptNote(legacyNoteCiphertext, legacyNoteIv, unwrappedDataKey)).toBe(
       "client disclosed a change in circumstances",
     );
 
     // ── Regenerate code (mirrors EncryptionContext.regenerateCode) — the
-    // SAME dataKey (not a fresh one) gets re-wrapped under a brand new code. ──
+    // SAME dataKey (not a fresh one) gets re-wrapped under a brand new code.
+    // regenerateCode first unwraps with the CURRENT code to both verify it
+    // and recover the data key, exactly like the unlock step above. ──
     const newCode = generateEncryptionCode();
     expect(newCode).not.toBe(originalCode);
 
     const dataKeySalt2 = generateSalt();
     const codeKEK2 = await deriveKEK(newCode, dataKeySalt2);
-    const wrappedDataKey2 = await wrapDataKey(dataKey, codeKEK2); // same dataKey object
+    const wrappedDataKey2 = await wrapDataKey(unwrappedDataKey, codeKEK2); // same dataKey object
 
-    const codeSalt2 = generateSalt();
-    const pwKEK2 = await deriveKEK(password, codeSalt2);
-    const wrappedCode2 = await encryptNote(newCode, pwKEK2);
-
-    // ── Unlock again with the SAME password, after regeneration — must
-    // reach the exact same dataKey, and the pre-existing note must still
-    // decrypt correctly. This is the whole point: rotating the code must
-    // never orphan previously-encrypted content. ──
-    const pwKEKAfter = await deriveKEK(password, codeSalt2);
-    const codeAfter = await decryptNote(wrappedCode2.ciphertext, wrappedCode2.iv, pwKEKAfter);
-    expect(codeAfter).toBe(newCode);
-    const codeKEKAfter = await deriveKEK(codeAfter, dataKeySalt2);
+    // ── Unlock again with the NEW code, after regeneration — must reach the
+    // exact same dataKey, and the pre-existing note must still decrypt
+    // correctly. This is the whole point: rotating the code must never
+    // orphan previously-encrypted content. ──
+    const codeKEKAfter = await deriveKEK(newCode, dataKeySalt2);
     const dataKeyAfter = await unwrapDataKey(wrappedDataKey2.wrapped, wrappedDataKey2.iv, codeKEKAfter);
 
     expect(await decryptNote(legacyNoteCiphertext, legacyNoteIv, dataKeyAfter)).toBe(
@@ -147,18 +135,17 @@ describe("noteEncryption", () => {
     await expect(unwrapDataKey(wrappedDataKey2.wrapped, wrappedDataKey2.iv, oldCodeKEK)).rejects.toThrow();
   });
 
-  it("rejects regenerateCode's password-verification step when the password is wrong", async () => {
-    const password = "the-real-password";
-    const code = generateEncryptionCode();
-    const codeSalt = generateSalt();
-    const pwKEK = await deriveKEK(password, codeSalt);
-    const wrappedCode = await encryptNote(code, pwKEK);
+  it("rejects regenerateCode's code-verification step when the current code is wrong", async () => {
+    const dataKey = await generateDataKey();
+    const dataKeySalt = generateSalt();
+    const codeKEK = await deriveKEK("the-real-code-here", dataKeySalt);
+    const wrappedDataKey = await wrapDataKey(dataKey, codeKEK);
 
     // This is exactly the first thing EncryptionContext.regenerateCode does
-    // to verify the caller actually knows the current password — it must
-    // throw (not silently return garbage) so regenerateCode can catch it
-    // and return false rather than proceeding to wrap under a bogus KEK.
-    const wrongPwKEK = await deriveKEK("guessed-password", codeSalt);
-    await expect(decryptNote(wrappedCode.ciphertext, wrappedCode.iv, wrongPwKEK)).rejects.toThrow();
+    // to verify the caller actually knows the current code — it must throw
+    // (not silently return garbage) so regenerateCode can catch it and
+    // return false rather than proceeding to wrap under a bogus KEK.
+    const wrongCodeKEK = await deriveKEK("guessed-code-here", dataKeySalt);
+    await expect(unwrapDataKey(wrappedDataKey.wrapped, wrappedDataKey.iv, wrongCodeKEK)).rejects.toThrow();
   });
 });

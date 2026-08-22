@@ -11,8 +11,6 @@ import type { UserProfile } from "@models/globalTypes";
 
 import styles from "../../AdminClientsPage.module.scss";
 
-type GateMode = "password" | "recovery";
-
 type SessionNote = {
   id: string;
   content: string;
@@ -36,8 +34,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     pendingCode,
     clearPendingCode,
     setupEncryption,
-    unlockWithPassword,
-    relinkWithCode,
+    unlockWithCode,
     encryptNote,
     decryptNote,
   } = useEncryption();
@@ -49,47 +46,31 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  // Unlock / recovery gate state
-  const [gateMode, setGateMode] = useState<GateMode>("password");
-  const [unlockPassword, setUnlockPassword] = useState("");
-  const [recoveryCode, setRecoveryCode] = useState("");
-  const [recoveryNewPassword, setRecoveryNewPassword] = useState("");
+  // Unlock / setup gate state
+  const [unlockCode, setUnlockCode] = useState("");
   const [gateError, setGateError] = useState("");
   const [gateWorking, setGateWorking] = useState(false);
 
   const handleUnlock = async () => {
+    if (!unlockCode.trim()) return;
     setGateWorking(true);
     setGateError("");
-    const result = await unlockWithPassword(unlockPassword);
-    if (result === "wrong_password") {
-      setGateError("Incorrect password. Try your encryption code instead.");
+    const result = await unlockWithCode(unlockCode.trim());
+    if (result === "wrong_code") {
+      setGateError("Incorrect encryption code. Check it and try again.");
     } else if (result === "no_key") {
       setGateError("No encryption key found — notes may not be set up yet.");
-    }
-    setGateWorking(false);
-  };
-
-  const handleRelink = async () => {
-    if (!recoveryCode.trim() || !recoveryNewPassword.trim()) return;
-    setGateWorking(true);
-    setGateError("");
-    const ok = await relinkWithCode(recoveryCode.trim(), recoveryNewPassword);
-    if (!ok) {
-      setGateError("Could not unlock — check your encryption code and try again.");
     } else {
-      setGateMode("password");
-      setRecoveryCode("");
-      setRecoveryNewPassword("");
+      setUnlockCode("");
     }
     setGateWorking(false);
   };
 
   const handleSetup = async () => {
-    if (!unlockPassword) return;
     setGateWorking(true);
     setGateError("");
     try {
-      await setupEncryption(unlockPassword);
+      await setupEncryption();
     } catch (err) {
       setGateError(err instanceof Error ? err.message : "Setup failed. Please try again.");
     }
@@ -185,6 +166,10 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
     }
+    // Belt-and-braces: the add form is only ever rendered once status is
+    // "unlocked" (see the gate returns above), but a note must never be
+    // writable without the key that can also read it back.
+    if (status !== "unlocked") return;
     if (!content.trim() || !userProfile) return;
     setSaving(true);
 
@@ -253,6 +238,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
       showToast("Demo mode — changes are not saved.");
       return;
     }
+    if (status !== "unlocked") return;
     setDeletingId(id);
     const { error } = await supabase.from("session_notes").delete().eq("id", id);
     if (error) setError(error.message);
@@ -273,83 +259,27 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
   }
 
   if (status === "locked") {
-    const showCodeForm = gateMode === "recovery";
     return (
       <Modal title={modalTitle} onClose={onClose} size="md">
         <div className={styles.encGate}>
-          {showCodeForm ? (
-            <>
-              <p className={styles.encGateTitle}>Unlock with your encryption code</p>
-              <p className={styles.encGateBody}>
-                Enter the 4-word code shown when you first set up encryption, plus your current login password. This
-                re-links the code to your password so future logins work normally.
-              </p>
-              <input
-                type="text"
-                className={styles.encInput}
-                placeholder="Encryption code (e.g. calm-reef-gold-pine)"
-                value={recoveryCode}
-                onChange={(e) => setRecoveryCode(e.target.value)}
-                autoComplete="off"
-              />
-              <input
-                type="password"
-                className={styles.encInput}
-                placeholder="Your current login password"
-                value={recoveryNewPassword}
-                onChange={(e) => setRecoveryNewPassword(e.target.value)}
-              />
-              {gateError && <p className={styles.modalError}>{gateError}</p>}
-              <div style={{ display: "flex", gap: "var(--sp-2)", flexWrap: "wrap" }}>
-                <Button
-                  size="sm"
-                  onClick={handleRelink}
-                  disabled={gateWorking || !recoveryCode.trim() || !recoveryNewPassword.trim()}
-                >
-                  {gateWorking ? "Unlocking…" : "Unlock notes"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setGateMode("password");
-                    setGateError("");
-                  }}
-                >
-                  Back
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className={styles.encGateTitle}>Notes are locked</p>
-              <p className={styles.encGateBody}>Enter your login password to unlock your encrypted notes.</p>
-              <input
-                type="password"
-                className={styles.encInput}
-                placeholder="Your login password"
-                value={unlockPassword}
-                onChange={(e) => setUnlockPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
-              />
-              {gateError && <p className={styles.modalError}>{gateError}</p>}
-              <div style={{ display: "flex", gap: "var(--sp-2)", flexWrap: "wrap" }}>
-                <Button size="sm" onClick={handleUnlock} disabled={gateWorking || !unlockPassword}>
-                  {gateWorking ? "Unlocking…" : "Unlock notes"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setGateMode("recovery");
-                    setGateError("");
-                  }}
-                >
-                  Use encryption code instead
-                </Button>
-              </div>
-            </>
-          )}
+          <p className={styles.encGateTitle}>Notes are locked</p>
+          <p className={styles.encGateBody}>
+            Enter your 4-word encryption code to unlock. Your login password won't work here — the code is a separate
+            secret, kept apart from your login on purpose.
+          </p>
+          <input
+            type="text"
+            className={styles.encInput}
+            placeholder="Encryption code (e.g. calm-reef-gold-pine)"
+            value={unlockCode}
+            onChange={(e) => setUnlockCode(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+            autoComplete="off"
+          />
+          {gateError && <p className={styles.modalError}>{gateError}</p>}
+          <Button size="sm" onClick={handleUnlock} disabled={gateWorking || !unlockCode.trim()}>
+            {gateWorking ? "Unlocking…" : "Unlock notes"}
+          </Button>
         </div>
       </Modal>
     );
@@ -361,19 +291,12 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
         <div className={styles.encGate}>
           <p className={styles.encGateTitle}>Set up note encryption</p>
           <p className={styles.encGateBody}>
-            Notes are encrypted in your browser. Enter your login password to enable encryption — you'll get a 4-word
-            encryption code to save somewhere safe. The code never changes unless you request a new one.
+            Notes are encrypted in your browser. Set it up now and you'll get a 4-word encryption code — save it
+            somewhere safe, since it's the only way to unlock your notes from here on. It never changes unless you
+            request a new one.
           </p>
-          <input
-            type="password"
-            className={styles.encInput}
-            placeholder="Your login password"
-            value={unlockPassword}
-            onChange={(e) => setUnlockPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSetup()}
-          />
           {gateError && <p className={styles.modalError}>{gateError}</p>}
-          <Button size="sm" onClick={handleSetup} disabled={gateWorking || !unlockPassword}>
+          <Button size="sm" onClick={handleSetup} disabled={gateWorking}>
             {gateWorking ? "Setting up…" : "Enable encryption"}
           </Button>
         </div>

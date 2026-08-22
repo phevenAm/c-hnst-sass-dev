@@ -1,10 +1,18 @@
 // Web Crypto API utilities for client-side AES-256-GCM note encryption.
 //
-// Architecture (two-layer envelope):
-//   - generateEncryptionCode() generates a random 4-word code, stored permanently.
-//   - A random data key encrypts notes; it is wrapped with PBKDF2(code).
-//   - The code itself is wrapped with PBKDF2(password) and stored in the DB.
-//   - Password changes only re-wrap the code — the data key wrapper never changes.
+// Architecture (single-layer envelope):
+//   - generateEncryptionCode() generates a random 4-word code, shown once and
+//     never stored anywhere — not even encrypted.
+//   - A random data key encrypts notes; it is wrapped with PBKDF2(code) and
+//     that wrapped form is what actually lives in the DB.
+//   - The code is deliberately NOT wrapped under the login password or
+//     stored in any recoverable form — the code is the only secret that can
+//     ever unwrap the data key. A previous version also wrapped the code
+//     under the password as a convenience so login alone could unlock notes;
+//     that meant a compromised login password was enough to read every note
+//     without ever knowing the code, defeating the point of having a
+//     separate secret. There is no recovery path if the code is lost — that
+//     is the intended trade-off of the code being the only thing that works.
 //   - The DB stores only ciphertext; the data key only ever lives in browser memory.
 
 const PBKDF2_ITERATIONS = 310_000; // OWASP-recommended minimum for SHA-256

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
@@ -12,9 +12,16 @@ import type { Response } from "@models/globalTypes";
 import { useGetQuotesByTagQuery } from "@services/inspirationalQuotesApi";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
+import {
+  fetchAssignmentsByUser,
+  selectAllAssignments,
+  selectPlottedAssignmentByUser,
+} from "@store/slices/questionnaireAssignmentsSlice";
 import { fetchQuestionnaires, selectActiveQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchResponsesByUser, selectUserResponses } from "@store/slices/responsesSlice";
 import { fetchSessionsByClientId } from "@store/slices/sessionsSlice";
+
+import { supabase } from "@/lib/supabase";
 
 import styles from "./ClientDashboard.module.scss";
 
@@ -47,8 +54,32 @@ export default function ClientDashboard() {
   );
 
   const assignedQs = questionnaires.filter((q) => q.assignedTo.includes(authUser?.id ?? ""));
+  const allAssignments = useAppSelector(selectAllAssignments);
+
+  // RCADS answers live in rcads_assessments, not `responses` — the generic
+  // getLatestResponseForQuestionnaire check below can never see it, so
+  // without this it would count as "available" forever, even once complete.
+  // prompt_again_at re-opens it, same as every other one-time form.
+  const [latestRcadsAt, setLatestRcadsAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!authUser?.id) return;
+    supabase
+      .from("rcads_assessments")
+      .select("submitted_at")
+      .eq("client_id", authUser.id)
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setLatestRcadsAt(data?.submitted_at ?? null));
+  }, [authUser?.id]);
 
   const availableAssignedQs = assignedQs.filter((q) => {
+    if ((q as any).is_rcads) {
+      if (!latestRcadsAt) return true;
+      const assignment = allAssignments.find((a) => a.questionnaire_id === q.id && a.user_id === authUser?.id);
+      return !!assignment?.prompt_again_at && new Date(assignment.prompt_again_at) > new Date(latestRcadsAt);
+    }
+
     const latestResponse = getLatestResponseForQuestionnaire(allUserResponses, q.id);
 
     if (!latestResponse) return true;
@@ -56,20 +87,37 @@ export default function ClientDashboard() {
     return isQuestionnaireCheckInDue(getResponseDate(latestResponse), q.frequency);
   });
 
-  // All responses across every assigned questionnaire, sorted oldest → newest for the chart
-  const assignedQIds = new Set(assignedQs.map((q) => q.id));
+  // Which single form the chart/stats are built from — must be the exact
+  // same one the admin picked via the "Chart"/"Charting" toggle on the
+  // client detail page (selectPlottedAssignmentByUser), not an arbitrary
+  // mix of every assigned form. Different outcome measures use different
+  // scales, so blending their responses together previously produced a
+  // meaningless average once a client had more than one assigned. Falls
+  // back to the first assigned form with any responses if the admin hasn't
+  // explicitly plotted one — same fallback the admin side uses.
+  const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(authUser?.id ?? ""));
+  const chartedQuestionnaireId =
+    plottedAssignment?.questionnaire_id ??
+    assignedQs.find((q) => allUserResponses.some((r) => r.questionnaire_id === q.id))?.id;
+  const chartedQuestionnaire = assignedQs.find((q) => q.id === chartedQuestionnaireId);
+
   const chartResponses = allUserResponses
-    .filter((r) => assignedQIds.has(r.questionnaire_id))
+    .filter((r) => r.questionnaire_id === chartedQuestionnaireId)
     .slice()
     .sort((a, b) => new Date(getResponseDate(a)).getTime() - new Date(getResponseDate(b)).getTime());
 
-  // All questions from all assigned questionnaires, flattened (tags joined in by the fetch query)
-  const allAssignedQuestions = assignedQs.flatMap((q) => q.questions ?? []);
+  const allAssignedQuestions = chartedQuestionnaire?.questions ?? [];
 
   useFetchOnIdle(
     (state: RootState) => state.questionnaires.status,
     () => fetchQuestionnaires(),
     "Error fetch questionnares",
+  );
+
+  useFetchOnIdle(
+    (state: RootState) => state.assignments.status,
+    authUser ? () => fetchAssignmentsByUser(authUser.id) : null,
+    "Failed to fetch assignments",
   );
 
   useFetchOnIdle(
@@ -92,6 +140,15 @@ export default function ClientDashboard() {
   useRealtimeTable("sessions", authUser?.id ? `client_id=eq.${authUser.id}` : undefined, () =>
     dispatch(fetchSessionsByClientId(authUser!.id)),
   );
+
+  // Same gap for forms: an admin assigning (or re-prompting) a form while
+  // the client is sitting on this page never showed up without a reload.
+  // questionnaires.assignedTo drives "available check-ins" above, and
+  // assignments drives the plotted-form pick — both need a refetch.
+  useRealtimeTable("questionnaire_assignments", authUser?.id ? `user_id=eq.${authUser.id}` : undefined, () => {
+    dispatch(fetchQuestionnaires());
+    dispatch(fetchAssignmentsByUser(authUser!.id));
+  });
 
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
   const nextSession = useMemo(() => {
