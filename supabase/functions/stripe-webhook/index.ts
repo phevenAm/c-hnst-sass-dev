@@ -1,7 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe";
-import { detailsTable, emailTemplate, formatDate, para, sendEmail } from "../_shared/email.ts";
+import { detailsTable, emailTemplate, formatDate, logEmail, para, sendEmail } from "../_shared/email.ts";
+
+const REFUND_EMAIL_TYPE = "refund_issued";
 
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
@@ -11,11 +13,29 @@ Deno.serve(async (req) => {
 
   const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
 
-  let event: Stripe.Event;
-  try {
-    event = await stripe.webhooks.constructEventAsync(body, signature, Deno.env.get("STRIPE_WEBHOOK_SECRET")!);
-  } catch (err: any) {
-    return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
+  // Two distinct Stripe endpoint objects point at this same URL: the
+  // platform-account endpoint (subscription billing, STRIPE_WEBHOOK_SECRET)
+  // and a Connect endpoint scoped to "events on connected accounts"
+  // (session payments — direct charges on the counsellor's own Stripe
+  // account, STRIPE_CONNECT_WEBHOOK_SECRET). Each signs with its own
+  // secret, so verification tries both rather than assuming the origin.
+  const candidateSecrets = [
+    Deno.env.get("STRIPE_WEBHOOK_SECRET"),
+    Deno.env.get("STRIPE_CONNECT_WEBHOOK_SECRET"),
+  ].filter((s): s is string => !!s);
+
+  let event: Stripe.Event | null = null;
+  let lastError: Error | null = null;
+  for (const secret of candidateSecrets) {
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, signature, secret);
+      break;
+    } catch (err: any) {
+      lastError = err;
+    }
+  }
+  if (!event) {
+    return new Response(`Webhook signature verification failed: ${lastError?.message}`, { status: 400 });
   }
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -181,6 +201,116 @@ Deno.serve(async (req) => {
               })
             : Promise.resolve(),
         ]);
+      }
+    }
+  }
+
+  // ── Refunds — the single place the client is told about a refund, since
+  // this fires whether the refund was issued through Clarity's Cancel/Delete
+  // flow or directly from the Stripe dashboard (which never touches
+  // cancel-session at all). Guarded on paid = true so a refund cancel-session
+  // already flipped to unpaid doesn't get double-processed here. Any refund
+  // on the charge — full or partial — marks every session tied to it unpaid;
+  // partial-refund granularity isn't tracked anywhere else in the app either.
+  if (event.type === "charge.refunded") {
+    const charge = event.data.object as Stripe.Charge;
+    const paymentIntentId = charge.payment_intent as string | null;
+
+    if (paymentIntentId) {
+      const { data: sessions } = await supabase
+        .from("sessions")
+        .select("id, client_id")
+        .eq("stripe_payment_intent_id", paymentIntentId)
+        .eq("paid", true);
+
+      if (sessions && sessions.length > 0) {
+        await supabase
+          .from("sessions")
+          .update({ paid: false })
+          .in(
+            "id",
+            sessions.map((s: { id: string }) => s.id),
+          );
+
+        const clientId = sessions[0].client_id;
+        const amountPounds = (charge.amount_refunded / 100).toFixed(2);
+
+        const [{ data: clientProfile }, { data: authResult }] = await Promise.all([
+          supabase
+            .from("users")
+            .select("first_name, admin_id, email_prefs_disabled, unsubscribe_token")
+            .eq("id", clientId)
+            .single(),
+          supabase.auth.admin.getUserById(clientId),
+        ]);
+
+        await supabase.from("notifications").insert({
+          user_id: clientId,
+          type: "refund_issued",
+          message: `You were refunded £${amountPounds}.`,
+        });
+
+        const clientEmail = authResult?.user?.email;
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+        let skipEmail = !clientEmail || (clientProfile?.email_prefs_disabled ?? []).includes(REFUND_EMAIL_TYPE);
+        let counsellorName: string | undefined;
+
+        if (!skipEmail && clientProfile?.admin_id) {
+          const { data: ps } = await supabase
+            .from("practice_settings")
+            .select("disabled_email_types, counsellor_name")
+            .eq("admin_id", clientProfile.admin_id)
+            .maybeSingle();
+          counsellorName = ps?.counsellor_name ?? undefined;
+          if ((ps?.disabled_email_types ?? []).includes(REFUND_EMAIL_TYPE)) skipEmail = true;
+        }
+
+        if (!skipEmail && resendKey && fromEmail && clientEmail) {
+          const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+          const firstName = clientProfile?.first_name ?? "there";
+          const subject = `You've been refunded £${amountPounds}`;
+          const unsubscribeUrl = clientProfile?.unsubscribe_token
+            ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${REFUND_EMAIL_TYPE}`
+            : undefined;
+
+          const html = emailTemplate({
+            label: "Refund Issued",
+            title: `Hi ${firstName}, you've been refunded`,
+            body:
+              para("A refund has been issued for your session:") +
+              detailsTable([{ label: "Amount", value: `£${amountPounds}`, bold: true }]),
+            footerNote:
+              "This email was sent because a refund was issued through Clarity. It may take a few days to appear on your statement.",
+            unsubscribeUrl,
+            counsellorName,
+          });
+
+          try {
+            const resendId = await sendEmail({ to: clientEmail, subject, html, resendKey, fromEmail });
+            await logEmail(supabase, {
+              adminId: clientProfile?.admin_id,
+              clientId,
+              sessionId: sessions[0].id,
+              emailType: REFUND_EMAIL_TYPE,
+              recipientEmail: clientEmail,
+              subject,
+              resendEmailId: resendId,
+              status: "sent",
+            });
+          } catch (sendErr: any) {
+            await logEmail(supabase, {
+              adminId: clientProfile?.admin_id,
+              clientId,
+              sessionId: sessions[0].id,
+              emailType: REFUND_EMAIL_TYPE,
+              recipientEmail: clientEmail,
+              subject,
+              status: "failed",
+              errorMessage: sendErr.message,
+            });
+          }
+        }
       }
     }
   }

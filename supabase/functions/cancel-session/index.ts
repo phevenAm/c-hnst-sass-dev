@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe";
-import { detailsTable, emailTemplate, formatDate, para, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,6 +81,10 @@ Deno.serve(async (req) => {
         });
         await supabase.from("sessions").update({ paid: false }).eq("id", session_id);
         refundIssued = true;
+        // Client notification is handled centrally by stripe-webhook's
+        // charge.refunded handler — that's the only path that also catches
+        // refunds an admin issues directly from the Stripe dashboard, so
+        // notifying here too would either duplicate it or drift out of sync.
       } else {
         refundSkippedReason = "admin_declined";
       }
