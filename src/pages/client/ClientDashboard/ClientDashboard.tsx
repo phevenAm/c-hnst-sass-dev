@@ -141,6 +141,15 @@ export default function ClientDashboard() {
     dispatch(fetchSessionsByClientId(authUser!.id)),
   );
 
+  // Same gap for forms: an admin assigning (or re-prompting) a form while
+  // the client is sitting on this page never showed up without a reload.
+  // questionnaires.assignedTo drives "available check-ins" above, and
+  // assignments drives the plotted-form pick — both need a refetch.
+  useRealtimeTable("questionnaire_assignments", authUser?.id ? `user_id=eq.${authUser.id}` : undefined, () => {
+    dispatch(fetchQuestionnaires());
+    dispatch(fetchAssignmentsByUser(authUser!.id));
+  });
+
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
   const nextSession = useMemo(() => {
     const now = new Date();

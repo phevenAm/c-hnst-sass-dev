@@ -6,6 +6,7 @@ import Card from "../../../components/shared/Card/Card";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "../../../Helpers/Helpers";
+import { useRealtimeTable } from "../../../Hooks/useRealtimeTable";
 import { supabase } from "../../../lib/supabase";
 import type { Question, Questionnaire, Response } from "../../../models/globalTypes";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
@@ -152,6 +153,13 @@ export default function CheckInPage() {
       .maybeSingle()
       .then(({ data }) => setLatestRcadsAt(data?.submitted_at ?? null));
   }, [dispatch, authUser?.id]);
+
+  // Without this, an admin assigning (or re-prompting) a form while the
+  // client is sitting on this exact page never showed up — the effect above
+  // only fires once per mount, not on every assignment change.
+  useRealtimeTable("questionnaire_assignments", authUser?.id ? `user_id=eq.${authUser.id}` : undefined, () => {
+    dispatch(fetchAssignmentsByUser(authUser!.id));
+  });
 
   // Reset form state when tab changes
   useEffect(() => {
