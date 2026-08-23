@@ -1282,6 +1282,53 @@ export type Database = {
           },
         ];
       };
+      session_packages: {
+        Row: {
+          admin_id: string;
+          archived: boolean;
+          created_at: string;
+          description: string | null;
+          duration_minutes: number;
+          id: string;
+          name: string;
+          price_pence: number;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          admin_id: string;
+          archived?: boolean;
+          created_at?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          id?: string;
+          name: string;
+          price_pence?: number;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          admin_id?: string;
+          archived?: boolean;
+          created_at?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          id?: string;
+          name?: string;
+          price_pence?: number;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "session_packages_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sessions: {
         Row: {
           address: string | null;
