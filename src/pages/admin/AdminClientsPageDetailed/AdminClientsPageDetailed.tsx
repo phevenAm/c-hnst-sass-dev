@@ -120,7 +120,7 @@ export default function AdminClientsPageDetailed() {
   const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
   const handledHighlightRef = useRef<string | null>(null);
   const dispatch = useAppDispatch();
-  const { isDemo, practiceSettings } = useAuth();
+  const { isDemo, practiceSettings, userProfile } = useAuth();
   const { showToast } = useToast();
   const { status: encStatus, decryptNote } = useEncryption();
 
@@ -449,6 +449,53 @@ export default function AdminClientsPageDetailed() {
 
   const clientSessions = useAppSelector((state) => state.sessions.sessions);
 
+  const [reminderMuted, setReminderMuted] = useState(false);
+  const [muteRowId, setMuteRowId] = useState<string | null>(null);
+  const [togglingMute, setTogglingMute] = useState(false);
+
+  useEffect(() => {
+    if (!userProfile?.id || !clientId) return;
+    supabase
+      .from("admin_reminder_mutes")
+      .select("id")
+      .eq("admin_id", userProfile.id)
+      .eq("client_id", clientId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setReminderMuted(!!data);
+        setMuteRowId(data?.id ?? null);
+      });
+  }, [userProfile?.id, clientId]);
+
+  const handleToggleReminderMute = async () => {
+    if (!userProfile?.id || !clientId) return;
+    setTogglingMute(true);
+    if (reminderMuted && muteRowId) {
+      const { error } = await supabase.from("admin_reminder_mutes").delete().eq("id", muteRowId);
+      if (error) {
+        showToast("Failed to unmute.", "danger");
+      } else {
+        setReminderMuted(false);
+        setMuteRowId(null);
+        showToast("Session-prep reminders unmuted for this client.");
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("admin_reminder_mutes")
+        .insert({ admin_id: userProfile.id, client_id: clientId })
+        .select("id")
+        .single();
+      if (error) {
+        showToast("Failed to mute.", "danger");
+      } else {
+        setReminderMuted(true);
+        setMuteRowId(data.id);
+        showToast("Session-prep reminders muted for this client.");
+      }
+    }
+    setTogglingMute(false);
+  };
+
   // Prefer the plotted form for the progress chart, fall back to first with responses
   useEffect(() => {
     if (selectedQuestionnaireId) return;
@@ -776,6 +823,11 @@ export default function AdminClientsPageDetailed() {
                   label: exporting ? "Exporting…" : "Export PDF",
                   onClick: () => setExportPickerOpen(true),
                   disabled: exporting,
+                },
+                {
+                  label: reminderMuted ? "Unmute session reminders" : "Mute session reminders",
+                  onClick: handleToggleReminderMute,
+                  disabled: togglingMute,
                 },
               ]}
             />

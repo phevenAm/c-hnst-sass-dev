@@ -153,6 +153,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
 
   return (
     <div className={[styles.sessionItem, getCardClass(session.status, session.attended)].filter(Boolean).join(" ")}>
+      {isAdmin && clientLabel && <p className={styles.clientLabel}>{clientLabel}</p>}
       <div className={styles.dateRow}>
         {sessionNumber !== undefined && <span className={styles.sessionNumber}>#{sessionNumber}</span>}
         <p className={styles.date}>{dayjs(session.scheduled_at).format("dddd D MMM YYYY · h:mma")}</p>

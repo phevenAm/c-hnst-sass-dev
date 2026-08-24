@@ -37,6 +37,7 @@ import ClientSchedule from "../pages/client/ClientSchedule/ClientSchedule";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import RcadsAssessmentPage from "../pages/client/RcadsAssessmentPage/RcadsAssessmentPage";
 import ResourcesPage from "../pages/client/ResourcesPage/ResourcesPage";
+import AdminSetupPage from "../pages/common/AdminSetupPage/AdminSetupPage";
 import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/CounsellorSignupPage";
 import DemoPage from "../pages/common/DemoPage/DemoPage";
 import GoogleCalendarCallbackPage from "../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage";
@@ -181,6 +182,15 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminSetupGate({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isDemo, practiceSettings, loading } = useAuth();
+  if (loading) return <Spinner />;
+  if (isAdmin && !isDemo && practiceSettings?.onboarding_required) {
+    return <Navigate to="/admin/setup" replace />;
+  }
+  return <>{children}</>;
+}
+
 function ConsentGate() {
   const { settings, dismiss } = useConsentPending();
   if (!settings) return null;
@@ -251,11 +261,23 @@ export default function AppRoutes() {
               <Route path="/rcads" element={<RcadsAssessmentPage />} />
             </Route>
 
+            {/* Standalone — no navbar, forced first-run setup for new admins */}
+            <Route
+              path="/admin/setup"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminSetupPage />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               element={
                 <ProtectedRoute requiredRole="admin">
                   <SubscriptionGate>
-                    <AdminLayout />
+                    <AdminSetupGate>
+                      <AdminLayout />
+                    </AdminSetupGate>
                   </SubscriptionGate>
                 </ProtectedRoute>
               }

@@ -32,6 +32,8 @@ type ProfileUpdates = Partial<
 >;
 
 type PracticeSettings = {
+  business_name: string | null;
+  onboarding_required: boolean;
   subscription_status: string;
   subscription_plan: string;
   stripe_connect_onboarded: boolean;

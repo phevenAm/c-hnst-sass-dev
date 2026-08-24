@@ -10,6 +10,8 @@ import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import Modal from "@components/shared/Modal/Modal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
+import type { ToggleButtonTabsTypes } from "@components/shared/ToggleButtonTabs/ToggleButtonTabs";
+import ToggleButtonTabs from "@components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 import { supabase } from "@lib/supabase";
@@ -23,9 +25,11 @@ import {
 } from "@store/slices/questionnairesSlice";
 import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
 
+import { groupSessionsForDisplay } from "@/Helpers/sessionGrouping";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import CreateStubModal from "../AdminClientsPage/modals/CreateStubModal/CreateStubModal";
 import InviteStubModal from "./InviteStubModal";
+import StubBlockSessionCard from "./StubBlockSessionCard";
 import StubSessionCard from "./StubSessionCard";
 
 import styles from "./AdminStubDetailPage.module.scss";
@@ -98,6 +102,10 @@ export default function AdminStubDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const [reminderMuted, setReminderMuted] = useState(false);
+  const [muteRowId, setMuteRowId] = useState<string | null>(null);
+  const [togglingMute, setTogglingMute] = useState(false);
+
   useEffect(() => {
     if (stubFromRedux) setStub(stubFromRedux);
   }, [stubFromRedux]);
@@ -106,6 +114,49 @@ export default function AdminStubDetailPage() {
     if (!stubId) return;
     supabase.rpc("record_client_view", { p_type: "stub", p_ref: stubId });
   }, [stubId]);
+
+  useEffect(() => {
+    if (!userProfile?.id || !stubId) return;
+    supabase
+      .from("admin_reminder_mutes")
+      .select("id")
+      .eq("admin_id", userProfile.id)
+      .eq("stub_id", stubId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setReminderMuted(!!data);
+        setMuteRowId(data?.id ?? null);
+      });
+  }, [userProfile?.id, stubId]);
+
+  const handleToggleReminderMute = async () => {
+    if (!userProfile?.id || !stubId) return;
+    setTogglingMute(true);
+    if (reminderMuted && muteRowId) {
+      const { error } = await supabase.from("admin_reminder_mutes").delete().eq("id", muteRowId);
+      if (error) {
+        showToast("Failed to unmute.", "danger");
+      } else {
+        setReminderMuted(false);
+        setMuteRowId(null);
+        showToast("Session-prep reminders unmuted for this client.");
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("admin_reminder_mutes")
+        .insert({ admin_id: userProfile.id, stub_id: stubId })
+        .select("id")
+        .single();
+      if (error) {
+        showToast("Failed to mute.", "danger");
+      } else {
+        setReminderMuted(true);
+        setMuteRowId(data.id);
+        showToast("Session-prep reminders muted for this client.");
+      }
+    }
+    setTogglingMute(false);
+  };
 
   useEffect(() => {
     if (stubFromRedux || !stubId) return;
@@ -223,6 +274,34 @@ export default function AdminStubDetailPage() {
     );
     return new Map(chronological.map((s, i) => [s.id, i + 1]));
   }, [sessions]);
+
+  const [sessionsDateTab, setSessionsDateTab] = useState<"upcoming" | "past">("upcoming");
+
+  const tabSessions = useMemo(() => {
+    const now = new Date();
+    return sessions.filter((s) => {
+      const scheduledAt = new Date(s.scheduled_at);
+      return sessionsDateTab === "upcoming" ? scheduledAt >= now : scheduledAt < now;
+    });
+  }, [sessions, sessionsDateTab]);
+
+  // Grouping only makes sense for the upcoming tab — a past session never
+  // belongs in a live block card (see groupSessionsForDisplay's own comment).
+  const sessionItems = useMemo(
+    () =>
+      sessionsDateTab === "past"
+        ? tabSessions.map((session) => ({ kind: "single" as const, session }))
+        : groupSessionsForDisplay(tabSessions),
+    [tabSessions, sessionsDateTab],
+  );
+
+  const sessionsTabsObj: ToggleButtonTabsTypes = {
+    leftButtonTitle: "Past",
+    leftButtonAction: () => setSessionsDateTab("past"),
+    rightButtonTitle: "Upcoming",
+    rightButtonAction: () => setSessionsDateTab("upcoming"),
+    activeTab: sessionsDateTab === "past" ? "left" : "right",
+  };
 
   const handleAddNote = async () => {
     if (!stubId || !userProfile || !noteContent.trim()) return;
@@ -390,6 +469,11 @@ export default function AdminStubDetailPage() {
     ...(stub.linked_user_id
       ? [{ label: "Unlink", onClick: () => setUnlinkConfirmOpen(true), disabled: unlinking }]
       : []),
+    {
+      label: reminderMuted ? "Unmute session reminders" : "Mute session reminders",
+      onClick: handleToggleReminderMute,
+      disabled: togglingMute,
+    },
   ];
 
   return (
@@ -465,25 +549,62 @@ export default function AdminStubDetailPage() {
           {sessions.length === 0 ? (
             <p className={styles.emptyState}>No sessions yet.</p>
           ) : (
-            <div className={styles.sessionList}>
-              {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  id={`stub-session-${s.id}`}
-                  className={highlightedSessionId === s.id ? styles.sessionHighlighted : undefined}
-                >
-                  <StubSessionCard
-                    session={s}
-                    sessionNumber={sessionNumberMap.get(s.id) ?? 1}
-                    stubId={stubId!}
-                    adminId={userProfile?.id ?? ""}
-                    isDemo={isDemo}
-                    onUpdated={(updated) => handleSessionSaved([updated])}
-                    onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
-                  />
+            <>
+              <div style={{ marginBottom: "var(--sp-3)" }}>
+                <ToggleButtonTabs {...sessionsTabsObj} />
+              </div>
+              {sessionItems.length === 0 ? (
+                <p className={styles.emptyState}>
+                  {sessionsDateTab === "past" ? "No past sessions." : "No upcoming sessions."}
+                </p>
+              ) : (
+                <div className={styles.sessionList}>
+                  {sessionItems.map((item) => {
+                    if (item.kind === "block") {
+                      const highlightedInBlock =
+                        !!highlightedSessionId && item.sessions.some((x) => x.id === highlightedSessionId);
+                      const anchorId = highlightedInBlock ? highlightedSessionId : item.sessions[0].id;
+                      return (
+                        <div
+                          key={item.sessions[0].id}
+                          id={`stub-session-${anchorId}`}
+                          className={highlightedInBlock ? styles.sessionHighlighted : undefined}
+                        >
+                          <StubBlockSessionCard
+                            sessions={item.sessions}
+                            sessionNumberMap={sessionNumberMap}
+                            stubId={stubId!}
+                            adminId={userProfile?.id ?? ""}
+                            isDemo={isDemo}
+                            onUpdated={(updated) => handleSessionSaved([updated])}
+                            onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
+                            initialActiveId={highlightSessionId ?? undefined}
+                          />
+                        </div>
+                      );
+                    }
+                    const s = item.session;
+                    return (
+                      <div
+                        key={s.id}
+                        id={`stub-session-${s.id}`}
+                        className={highlightedSessionId === s.id ? styles.sessionHighlighted : undefined}
+                      >
+                        <StubSessionCard
+                          session={s}
+                          sessionNumber={sessionNumberMap.get(s.id) ?? 1}
+                          stubId={stubId!}
+                          adminId={userProfile?.id ?? ""}
+                          isDemo={isDemo}
+                          onUpdated={(updated) => handleSessionSaved([updated])}
+                          onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </Card>
 
@@ -610,7 +731,10 @@ export default function AdminStubDetailPage() {
           clientName={displayName}
           onClose={() => setAddSessionOpen(false)}
           onSave={async (values) => {
-            const rows = values.dates.map((d) => ({
+            // For batch creates, tag every session with a shared block_id so
+            // they group into one card, same as real-client bulk booking.
+            const blockId = values.dates.length > 1 ? crypto.randomUUID().slice(0, 6) : null;
+            const rows = values.dates.map((d, i) => ({
               stub_id: stubId!,
               admin_id: userProfile.id,
               scheduled_at: d,
@@ -622,6 +746,14 @@ export default function AdminStubDetailPage() {
               notes: values.notes || null,
               code: values.reference_code || null,
               currency: "GBP",
+              metadata: blockId
+                ? {
+                    block_id: blockId,
+                    block_pos: i + 1,
+                    block_total: values.dates.length,
+                    block_start: values.dates[0],
+                  }
+                : null,
             }));
             const { data, error } = await supabase.from("stub_sessions").insert(rows).select();
             if (error) throw new Error("Failed to add session.");

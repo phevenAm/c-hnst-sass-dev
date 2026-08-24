@@ -1,0 +1,104 @@
+@use "../../../styles/spacing" as *;
+
+.wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $sp-5 $sp-3;
+  background: var(--bg-page);
+}
+
+.card {
+  width: 100%;
+  max-width: 560px;
+  padding: $sp-5;
+}
+
+.title {
+  margin: 0 0 $sp-2;
+}
+
+.intro {
+  color: var(--text-secondary);
+  margin: 0 0 $sp-5;
+}
+
+.section {
+  margin-bottom: $sp-5;
+}
+
+.sectionTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 $sp-3;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+  margin-bottom: $sp-3;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  input {
+    padding: $sp-2;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+}
+
+.packageRow {
+  display: flex;
+  gap: $sp-2;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: $sp-3;
+
+  .field {
+    margin-bottom: 0;
+    flex: 1 1 120px;
+  }
+}
+
+.packageList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 $sp-3;
+}
+
+.packageItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $sp-2 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.packageMeta {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 0 0 $sp-3;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $sp-4;
+}

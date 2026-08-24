@@ -109,6 +109,7 @@ const AdminScheduler = () => {
   // edit form — SessionCard's own "Reschedule" button opens CreateSessionModal
   // itself from there when the admin actually wants to edit it.
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
+  const [viewingStubSession, setViewingStubSession] = useState<StubSession | null>(null);
   const [allStubSessions, setAllStubSessions] = useState<StubSession[]>([]);
   const [newSessionWithoutId, setNewSessionWithoutId] = useState(false);
   const [newSessionClientId, setNewSessionClientId] = useState<string | null>(null);
@@ -284,20 +285,42 @@ const AdminScheduler = () => {
   }, [filteredSessions]);
 
   // Most-recent-first history for the session list below the calendar.
-  const recentSessions = useMemo(
+  // "History" means already happened — future sessions belong on the
+  // calendar/upcoming view, not here.
+  const HISTORY_PAGE_SIZE = 10;
+  const [historyPage, setHistoryPage] = useState(1);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset the page only when the client filter changes, not on every realtime session update
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [selectedClientId]);
+
+  const pastSessions = useMemo(
     () =>
-      [...filteredSessions]
-        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
-        .slice(0, 10),
+      filteredSessions
+        .filter((s) => new Date(s.scheduled_at) <= new Date())
+        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()),
     [filteredSessions],
   );
 
-  const recentStubSessions = useMemo(
+  const pastStubSessions = useMemo(
     () =>
-      [...filteredStubSessions]
-        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())
-        .slice(0, 10),
+      filteredStubSessions
+        .filter((s) => new Date(s.scheduled_at) <= new Date())
+        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()),
     [filteredStubSessions],
+  );
+
+  const historyTotal = isStubSelected ? pastStubSessions.length : pastSessions.length;
+  const historyPageCount = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE));
+
+  const recentSessions = useMemo(
+    () => pastSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
+    [pastSessions, historyPage],
+  );
+
+  const recentStubSessions = useMemo(
+    () => pastStubSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
+    [pastStubSessions, historyPage],
   );
 
   const handleStubSessionUpdated = (updated: StubSession) =>
@@ -376,7 +399,7 @@ const AdminScheduler = () => {
     if (r.type === "session" || r.type === "cancelled-session") {
       setViewingSession(r.session);
     } else if (r.type === "stub-session") {
-      navigate(`/admin/clients/stub/${r.stub.id}`);
+      setViewingStubSession(r.stubSession);
     } else if (r.type === "private") {
       setEditingPrivate(r.event);
       setIsPrivateOpen(true);
@@ -624,7 +647,7 @@ const AdminScheduler = () => {
                   <StubSessionCard
                     key={session.id}
                     session={session}
-                    sessionNumber={recentStubSessions.length - idx}
+                    sessionNumber={historyTotal - ((historyPage - 1) * HISTORY_PAGE_SIZE + idx)}
                     stubId={selectedStubId!}
                     adminId={userProfile!.id}
                     isDemo={isDemo}
@@ -634,16 +657,48 @@ const AdminScheduler = () => {
                 ))}
               </div>
             ) : (
-              <p className={styles.empty}>No sessions yet.</p>
+              <p className={styles.empty}>No past sessions.</p>
             )
           ) : recentSessions.length > 0 ? (
             <div className={styles.historyList}>
-              {recentSessions.map((session) => (
-                <SessionCard key={session.id} session={session} isAdmin isDemo={isDemo} />
-              ))}
+              {recentSessions.map((session) => {
+                const client = clients.find((c) => c.id === session.client_id);
+                return (
+                  <SessionCard
+                    key={session.id}
+                    session={session}
+                    isAdmin
+                    isDemo={isDemo}
+                    clientLabel={client ? clientDisplayName(client, useCodenames) : undefined}
+                  />
+                );
+              })}
             </div>
           ) : (
-            <p className={styles.empty}>No sessions yet.</p>
+            <p className={styles.empty}>No past sessions.</p>
+          )}
+          {historyPageCount > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-2)", marginTop: "var(--sp-3)" }}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setHistoryPage((p) => p - 1)}
+                disabled={historyPage <= 1}
+              >
+                ← Prev
+              </Button>
+              <span className={styles.historyMeta}>
+                Page {historyPage} of {historyPageCount}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setHistoryPage((p) => p + 1)}
+                disabled={historyPage >= historyPageCount}
+              >
+                Next →
+              </Button>
+            </div>
           )}
         </CollapsibleSection>
       </div>
@@ -687,8 +742,49 @@ const AdminScheduler = () => {
       )}
 
       {viewingSession && (
-        <Modal title="Session details" onClose={() => setViewingSession(null)} size="md">
-          <SessionCard session={viewingSession} isAdmin isDemo={isDemo} />
+        <Modal
+          title={
+            clients.find((c) => c.id === viewingSession.client_id)
+              ? `Session with ${clientDisplayName(clients.find((c) => c.id === viewingSession.client_id)!, useCodenames)}`
+              : "Session details"
+          }
+          onClose={() => setViewingSession(null)}
+          size="md"
+        >
+          <SessionCard
+            session={viewingSession}
+            isAdmin
+            isDemo={isDemo}
+            clientLabel={(() => {
+              const client = clients.find((c) => c.id === viewingSession.client_id);
+              return client ? clientDisplayName(client, useCodenames) : undefined;
+            })()}
+          />
+        </Modal>
+      )}
+
+      {viewingStubSession && (
+        <Modal title="Session details" onClose={() => setViewingStubSession(null)} size="md">
+          <StubSessionCard
+            session={viewingStubSession}
+            sessionNumber={
+              [...allStubSessions]
+                .filter((s) => s.stub_id === viewingStubSession.stub_id)
+                .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+                .findIndex((s) => s.id === viewingStubSession.id) + 1
+            }
+            stubId={viewingStubSession.stub_id}
+            adminId={userProfile?.id ?? ""}
+            isDemo={isDemo}
+            onUpdated={(updated) => {
+              handleStubSessionUpdated(updated);
+              setViewingStubSession(updated);
+            }}
+            onDeleted={(id) => {
+              handleStubSessionDeleted(id);
+              setViewingStubSession(null);
+            }}
+          />
         </Modal>
       )}
 
@@ -737,15 +833,17 @@ const AdminScheduler = () => {
                   {clientDisplayName(client, useCodenames)}
                 </option>
               ))}
-              {allStubs.length > 0 && (
+              {allStubs.filter((s) => !s.linked_user_id).length > 0 && (
                 <optgroup label="Offline clients">
-                  {allStubs.map((stub) => (
-                    <option key={stub.id} value={stub.id}>
-                      {useCodenames
-                        ? stub.codename || `${stub.first_name} ${stub.last_name}`
-                        : `${stub.first_name} ${stub.last_name}`}
-                    </option>
-                  ))}
+                  {allStubs
+                    .filter((s) => !s.linked_user_id)
+                    .map((stub) => (
+                      <option key={stub.id} value={stub.id}>
+                        {useCodenames
+                          ? stub.codename || `${stub.first_name} ${stub.last_name}`
+                          : `${stub.first_name} ${stub.last_name}`}
+                      </option>
+                    ))}
                 </optgroup>
               )}
             </select>
