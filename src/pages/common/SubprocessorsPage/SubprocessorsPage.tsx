@@ -8,8 +8,8 @@ export default function SubprocessorsPage() {
         <p className={styles.updated}>Last updated: 24 August 2026</p>
 
         <p>
-          These are the third-party companies ("subprocessors") that Clarity uses to deliver its service and that
-          may process personal data on our behalf.
+          These are the third-party companies ("subprocessors") that Clarity uses to deliver its service and that may
+          process personal data on our behalf.
         </p>
 
         <div className={styles.tableWrap}>
@@ -29,11 +29,19 @@ export default function SubprocessorsPage() {
                 <td>Supabase</td>
                 <td>Database, authentication, file storage, edge functions</td>
                 <td>All personal data; session notes (optionally encrypted); form and check-in responses</td>
-                <td>[TODO: confirm Supabase project region — Project Settings → Infrastructure. Must be EU region for UK GDPR compliance without extra safeguards]</td>
+                <td>
+                  [TODO: confirm Supabase project region — Project Settings → Infrastructure. Must be EU region for UK
+                  GDPR compliance without extra safeguards]
+                </td>
                 <td>IDTA (if US region) / not required (if EU region)</td>
                 <td>
-                  <a href="https://supabase.com/legal/dpa" target="_blank" rel="noopener noreferrer">DPA</a> ·{" "}
-                  <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+                  <a href="https://supabase.com/legal/dpa" target="_blank" rel="noopener noreferrer">
+                    DPA
+                  </a>{" "}
+                  ·{" "}
+                  <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">
+                    Privacy
+                  </a>
                 </td>
               </tr>
               <tr>
@@ -43,8 +51,13 @@ export default function SubprocessorsPage() {
                 <td>United States</td>
                 <td>UK IDTA / Resend DPA</td>
                 <td>
-                  <a href="https://resend.com/legal/dpa" target="_blank" rel="noopener noreferrer">DPA</a> ·{" "}
-                  <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a>
+                  <a href="https://resend.com/legal/dpa" target="_blank" rel="noopener noreferrer">
+                    DPA
+                  </a>{" "}
+                  ·{" "}
+                  <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">
+                    Privacy
+                  </a>
                 </td>
               </tr>
               <tr>
@@ -54,8 +67,13 @@ export default function SubprocessorsPage() {
                 <td>United States</td>
                 <td>EU–US Data Privacy Framework</td>
                 <td>
-                  <a href="https://stripe.com/legal/dpa" target="_blank" rel="noopener noreferrer">DPA</a> ·{" "}
-                  <a href="https://stripe.com/gb/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+                  <a href="https://stripe.com/legal/dpa" target="_blank" rel="noopener noreferrer">
+                    DPA
+                  </a>{" "}
+                  ·{" "}
+                  <a href="https://stripe.com/gb/privacy" target="_blank" rel="noopener noreferrer">
+                    Privacy
+                  </a>
                 </td>
               </tr>
               <tr>
@@ -65,8 +83,17 @@ export default function SubprocessorsPage() {
                 <td>[TODO: confirm Netlify region/edge configuration]</td>
                 <td>UK IDTA / Netlify DPA</td>
                 <td>
-                  <a href="https://www.netlify.com/legal/data-processing-agreement/" target="_blank" rel="noopener noreferrer">DPA</a> ·{" "}
-                  <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a>
+                  <a
+                    href="https://www.netlify.com/legal/data-processing-agreement/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    DPA
+                  </a>{" "}
+                  ·{" "}
+                  <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener noreferrer">
+                    Privacy
+                  </a>
                 </td>
               </tr>
             </tbody>
@@ -91,8 +118,8 @@ export default function SubprocessorsPage() {
         <section>
           <h2>Updates</h2>
           <p>
-            We will update this list when we add or remove subprocessors. We will provide reasonable advance notice
-            to practitioners of any material changes.
+            We will update this list when we add or remove subprocessors. We will provide reasonable advance notice to
+            practitioners of any material changes.
           </p>
         </section>
 

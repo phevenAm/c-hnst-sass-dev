@@ -13,8 +13,8 @@ export default function PrivacyPage() {
           <h2>1. Who we are</h2>
           <p>
             Clarity is operated by [Trading name — TBD], a sole trader ("we", "us", "our"). Our business address is
-            [Registered business address — TBD, pending forwarding address registration]. For privacy questions,
-            contact us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>.
+            [Registered business address — TBD, pending forwarding address registration]. For privacy questions, contact
+            us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>.
           </p>
         </section>
 
@@ -26,10 +26,10 @@ export default function PrivacyPage() {
             <strong>client</strong> (someone invited to the platform by their practitioner).
           </p>
           <p>
-            <strong>Clarity and your practitioner.</strong> When you use Clarity as a client, your practitioner is
-            the data controller of your clinical and session data. Clarity processes that data on their behalf as a
-            data processor. Your practitioner's own privacy notice will apply to the clinical aspects of your care.
-            This policy covers Clarity's processing as operator of the platform.
+            <strong>Clarity and your practitioner.</strong> When you use Clarity as a client, your practitioner is the
+            data controller of your clinical and session data. Clarity processes that data on their behalf as a data
+            processor. Your practitioner's own privacy notice will apply to the clinical aspects of your care. This
+            policy covers Clarity's processing as operator of the platform.
           </p>
         </section>
 
@@ -201,19 +201,21 @@ export default function PrivacyPage() {
         <section>
           <h2>4. Special-category data</h2>
           <p>
-            Session notes and form responses may constitute <strong>health data</strong> under Article 9 UK GDPR.
-            This data is processed on behalf of your practitioner, who is the data controller for your clinical
-            information. Your practitioner relies on Article 9(2)(h) (health care purposes under UK law) as the
-            condition for processing this data. If you have questions about why your clinical data is held, please
-            contact your practitioner directly.
+            Session notes and form responses may constitute <strong>health data</strong> under Article 9 UK GDPR. This
+            data is processed on behalf of your practitioner, who is the data controller for your clinical information.
+            Your practitioner relies on Article 9(2)(h) (health care purposes under UK law) as the condition for
+            processing this data. If you have questions about why your clinical data is held, please contact your
+            practitioner directly.
           </p>
           <p>
             Practitioners can optionally turn on client-side encryption for session notes. Where a practitioner has
-            enabled it, Clarity cannot read the content of those notes. Where it isn't enabled, notes are stored
-            without that additional protection — see our{" "}
-            <Link to="/security">Security page</Link> for details.
+            enabled it, Clarity cannot read the content of those notes. Where it isn't enabled, notes are stored without
+            that additional protection — see our <Link to="/security">Security page</Link> for details.
           </p>
-          <p>Private journal entries are encrypted client-side. Neither Clarity nor your practitioner can read your journal.</p>
+          <p>
+            Private journal entries are encrypted client-side. Neither Clarity nor your practitioner can read your
+            journal.
+          </p>
         </section>
 
         <section>
@@ -238,8 +240,8 @@ export default function PrivacyPage() {
                 <td>Deleted client accounts</td>
                 <td>
                   Client profile deleted immediately on deletion; session records and any encrypted notes may be
-                  retained by the practitioner in line with their clinical record-keeping obligations (typically 8
-                  years for adult records under NHS / professional body guidance)
+                  retained by the practitioner in line with their clinical record-keeping obligations (typically 8 years
+                  for adult records under NHS / professional body guidance)
                 </td>
               </tr>
               <tr>
@@ -265,8 +267,8 @@ export default function PrivacyPage() {
         <section>
           <h2>6. Who we share your data with</h2>
           <p>
-            We share data only with the subprocessors listed at{" "}
-            <Link to="/legal/subprocessors">Subprocessors</Link>. We do not sell your data.
+            We share data only with the subprocessors listed at <Link to="/legal/subprocessors">Subprocessors</Link>. We
+            do not sell your data.
           </p>
           <p>
             Where subprocessors are based outside the UK or EEA, transfers are covered by the UK International Data
@@ -285,54 +287,57 @@ export default function PrivacyPage() {
               <strong>Correct</strong> inaccurate data (Article 16)
             </li>
             <li>
-              <strong>Delete</strong> your data, subject to our legal obligations to retain certain records (Article
-              17)
+              <strong>Delete</strong> your data, subject to our legal obligations to retain certain records (Article 17)
             </li>
             <li>
               <strong>Restrict</strong> processing in certain circumstances (Article 18)
             </li>
             <li>
-              <strong>Data portability</strong> — receive a copy of your data in a machine-readable format (Article
-              20)
+              <strong>Data portability</strong> — receive a copy of your data in a machine-readable format (Article 20)
             </li>
             <li>
               <strong>Object</strong> to processing based on legitimate interests (Article 21)
             </li>
           </ul>
           <p>
-            To exercise any of these rights, contact us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>.
-            We will respond within one calendar month.
+            To exercise any of these rights, contact us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>. We
+            will respond within one calendar month.
           </p>
           <p>
-            <strong>Note for clients:</strong> rights relating to your clinical records (session notes, form
-            responses) should be exercised with your practitioner as the data controller for that data.
+            <strong>Note for clients:</strong> rights relating to your clinical records (session notes, form responses)
+            should be exercised with your practitioner as the data controller for that data.
           </p>
           <p>
-            You have the right to lodge a complaint with the <strong>Information Commissioner's Office (ICO)</strong>{" "}
-            at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer">ico.org.uk</a> or by calling
-            0303 123 1113.
+            You have the right to lodge a complaint with the <strong>Information Commissioner's Office (ICO)</strong> at{" "}
+            <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer">
+              ico.org.uk
+            </a>{" "}
+            or by calling 0303 123 1113.
           </p>
         </section>
 
         <section>
           <h2>8. Cookies</h2>
           <p>
-            We use essential cookies only — session and authentication cookies required to operate the service. We
-            do not use tracking, advertising, or analytics cookies.
+            We use essential cookies only — session and authentication cookies required to operate the service. We do
+            not use tracking, advertising, or analytics cookies.
           </p>
         </section>
 
         <section>
           <h2>9. Profile photos</h2>
-          <p>Profile photos are stored in publicly accessible storage. Do not upload a photo you do not wish to be publicly visible.</p>
+          <p>
+            Profile photos are stored in publicly accessible storage. Do not upload a photo you do not wish to be
+            publicly visible.
+          </p>
         </section>
 
         <section>
           <h2>10. Changes to this policy</h2>
           <p>
-            We will notify active users by email if we make material changes to this policy. The "last updated" date
-            at the top reflects the most recent version. Continued use of the platform after a notified change
-            constitutes acceptance.
+            We will notify active users by email if we make material changes to this policy. The "last updated" date at
+            the top reflects the most recent version. Continued use of the platform after a notified change constitutes
+            acceptance.
           </p>
         </section>
 

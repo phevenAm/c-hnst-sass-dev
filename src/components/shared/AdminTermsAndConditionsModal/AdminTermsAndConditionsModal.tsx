@@ -107,10 +107,18 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
 
       <p className={styles.contact}>
         This is a summary — read the full{" "}
-        <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>,{" "}
-        <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>, and{" "}
-        <a href="/security" target="_blank" rel="noopener noreferrer">Security</a> page. Questions? Contact us at{" "}
-        <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
+        <a href="/terms" target="_blank" rel="noopener noreferrer">
+          Terms of Service
+        </a>
+        ,{" "}
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">
+          Privacy Policy
+        </a>
+        , and{" "}
+        <a href="/security" target="_blank" rel="noopener noreferrer">
+          Security
+        </a>{" "}
+        page. Questions? Contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
       </p>
 
       <div className={styles.modalAction}>{action}</div>
