@@ -42,9 +42,12 @@ import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/Counsello
 import DemoPage from "../pages/common/DemoPage/DemoPage";
 import GoogleCalendarCallbackPage from "../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
+import PrivacyPage from "../pages/common/PrivacyPage/PrivacyPage";
+import SecurityPage from "../pages/common/SecurityPage/SecurityPage";
 import SettingsPage from "../pages/common/SettingsPage/SettingsPage";
 import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
 import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
+import SubprocessorsPage from "../pages/common/SubprocessorsPage/SubprocessorsPage";
 import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
 import TermsPage from "../pages/common/TermsPage/TermsPage";
 import UnsubscribePage from "../pages/common/UnsubscribePage/UnsubscribePage";
@@ -240,6 +243,9 @@ export default function AppRoutes() {
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/register" element={<CounsellorSignupPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/security" element={<SecurityPage />} />
+            <Route path="/legal/subprocessors" element={<SubprocessorsPage />} />
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
             {/* Standalone — no navbar, own minimal header */}
