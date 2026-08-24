@@ -41,6 +41,18 @@ export default function CounsellorSignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendMessage("");
+    const { error: resendError } = await supabase.auth.resend({ type: "signup", email: form.email });
+    setResending(false);
+    setResendMessage(
+      resendError ? "Couldn't resend right now — please try again shortly." : "Email sent — check your inbox.",
+    );
+  };
 
   const termsCheckbox = (insideModal: boolean) => {
     return (
@@ -143,6 +155,19 @@ export default function CounsellorSignupPage() {
             Once confirmed, sign in and you'll be guided through setting up your subscription to complete your
             registration.
           </p>
+          <p className={styles.confirmHint}>
+            Didn't get it?{" "}
+            <button
+              type="button"
+              className={styles.backLink}
+              onClick={handleResend}
+              disabled={resending}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" }}
+            >
+              {resending ? "Sending…" : "Resend the email"}
+            </button>
+          </p>
+          {resendMessage && <p className={styles.confirmHint}>{resendMessage}</p>}
           <p className={styles.confirmHint}>
             Already confirmed your email?{" "}
             <Link to="/login" className={styles.backLink}>
