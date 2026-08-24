@@ -39,28 +39,33 @@ export default function StubBlockSessionCard({
   id,
   className,
 }: Props) {
-  const [activeId, setActiveId] = useState(
-    (initialActiveId && sessions.some((s) => s.id === initialActiveId) ? initialActiveId : undefined) ??
-      sessions[0]?.id,
+  // Tabs are numbered by chronological position, soonest first — the caller's
+  // array order isn't guaranteed to match that, so sort here rather than trust it.
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
   );
-  const activeSession = sessions.find((s) => s.id === activeId) ?? sessions[0];
+  const [activeId, setActiveId] = useState(
+    (initialActiveId && sortedSessions.some((s) => s.id === initialActiveId) ? initialActiveId : undefined) ??
+      sortedSessions[0]?.id,
+  );
+  const activeSession = sortedSessions.find((s) => s.id === activeId) ?? sortedSessions[0];
 
   if (!activeSession) return null;
 
-  const blockTotal = (sessions[0]?.metadata as { block_total?: number } | null)?.block_total ?? sessions.length;
-  const allPaid = sessions.every((s) => s.paid);
+  const blockTotal =
+    (sortedSessions[0]?.metadata as { block_total?: number } | null)?.block_total ?? sortedSessions.length;
+  const allPaid = sortedSessions.every((s) => s.paid);
 
   return (
     <div id={id} className={[styles.blockCard, className].filter(Boolean).join(" ")}>
       <div className={styles.blockHeader}>
         <span className={styles.blockLabel}>
           {blockTotal} session block
-          {sessions.length < blockTotal && ` · ${sessions.length} remaining`}
+          {sortedSessions.length < blockTotal && ` · ${sortedSessions.length} remaining`}
           {allPaid && <span className={styles.blockPaidBadge}> · Paid</span>}
         </span>
         <div className={styles.tabRow} role="tablist" aria-label="Sessions in this block">
-          {sessions.map((s) => {
-            const meta = s.metadata as { block_pos?: number } | null;
+          {sortedSessions.map((s, index) => {
             return (
               <button
                 key={s.id}
@@ -78,7 +83,7 @@ export default function StubBlockSessionCard({
                   .join(" ")}
                 onClick={() => setActiveId(s.id)}
               >
-                {meta?.block_pos ?? sessions.indexOf(s) + 1}
+                {index + 1}
               </button>
             );
           })}

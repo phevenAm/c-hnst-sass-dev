@@ -41,6 +41,23 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "interface", label: "Interface" },
 ];
 
+function subscriptionStatusColor(status: string | null | undefined, cancelAtPeriodEnd: boolean): string {
+  if (cancelAtPeriodEnd) return "var(--color-warning, #f59e0b)";
+  if (status === "active" || status === "trialing") return "var(--color-success)";
+  if (status === "paused") return "var(--color-warning, #f59e0b)";
+  return "var(--color-danger)";
+}
+
+function subscriptionHintText(cancelAtPeriodEnd: boolean, hasBillingCustomer: boolean): string {
+  if (cancelAtPeriodEnd) {
+    return "You've cancelled — access continues until the date above, then the account reverts to free. Resubscribe any time before then through the Stripe billing portal.";
+  }
+  if (hasBillingCustomer) {
+    return "Manage your plan, update your payment method, or cancel through the Stripe billing portal.";
+  }
+  return "This account isn't linked to a Stripe subscription — there's nothing to manage here.";
+}
+
 const BUSINESS_FIELDS = [
   { key: "business_name", label: "Business name" },
   { key: "email", label: "Email" },
@@ -536,7 +553,8 @@ const SettingsPage = () => {
         throw new Error(message);
       }
       if (!data?.url) throw new Error("No portal URL returned");
-      window.location.href = data.url;
+      window.open(data.url, "_blank", "noopener,noreferrer");
+      setLoadingPortal(false);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Something went wrong", "error");
       setLoadingPortal(false);
@@ -1360,23 +1378,27 @@ const SettingsPage = () => {
                     Status:{" "}
                     <strong
                       style={{
-                        color:
-                          practiceSettings.subscription_status === "active" ||
-                          practiceSettings.subscription_status === "trialing"
-                            ? "var(--color-success)"
-                            : practiceSettings.subscription_status === "paused"
-                              ? "var(--color-warning, #f59e0b)"
-                              : "var(--color-danger)",
+                        color: subscriptionStatusColor(
+                          practiceSettings.subscription_status,
+                          practiceSettings.subscription_cancel_at_period_end,
+                        ),
                         textTransform: "capitalize",
                       }}
                     >
                       {practiceSettings.subscription_status}
                     </strong>
+                    {practiceSettings.subscription_cancel_at_period_end && (
+                      <>
+                        {" "}
+                        — cancels{" "}
+                        {practiceSettings.subscription_current_period_end
+                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                          : "at the end of the current billing period"}
+                      </>
+                    )}
                   </p>
                   <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                    {billingCustomerId
-                      ? "Manage your plan, update your payment method, or cancel through the Stripe billing portal."
-                      : "This account isn't linked to a Stripe subscription — there's nothing to manage here."}
+                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
                   </p>
                 </section>
                 {billingCustomerId && (
