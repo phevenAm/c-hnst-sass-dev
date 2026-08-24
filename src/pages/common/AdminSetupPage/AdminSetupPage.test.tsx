@@ -18,11 +18,15 @@ const mockSignOut = vi.fn();
 const mockRefreshPracticeSettings = vi.fn();
 vi.mock("@context/AuthContext", () => ({
   useAuth: () => ({
-    userProfile: { id: "admin-1" },
+    userProfile: { id: "admin-1", first_name: "Sarah" },
     practiceSettings: { business_name: null },
     refreshPracticeSettings: mockRefreshPracticeSettings,
     signOut: mockSignOut,
   }),
+}));
+
+vi.mock("@context/EncryptionContext", () => ({
+  useEncryption: () => ({ status: "disabled", encryptPII: async (v: string) => v }),
 }));
 
 const { supabaseMock, packagesRows, updateSpy } = vi.hoisted(() => {
@@ -102,10 +106,38 @@ describe("AdminSetupPage — happy path", () => {
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith({ business_name: "Sarah Smith Therapy", onboarding_required: false });
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ business_name: "Sarah Smith Therapy", onboarding_required: false }),
+      );
     });
     await waitFor(() => expect(mockRefreshPracticeSettings).toHaveBeenCalled());
     expect(mockNavigate).toHaveBeenCalledWith("/admin");
+  });
+
+  it("bank details are optional — completes setup fine when left blank", async () => {
+    render(<AdminSetupPage />);
+    await addPackage("Standard session", "60.00");
+    fireEvent.change(screen.getByLabelText("Business name"), { target: { value: "Sarah Smith Therapy" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/admin"));
+  });
+
+  it("saves bank details when filled in", async () => {
+    render(<AdminSetupPage />);
+    await addPackage("Standard session", "60.00");
+    fireEvent.change(screen.getByLabelText("Business name"), { target: { value: "Sarah Smith Therapy" } });
+    fireEvent.change(screen.getByLabelText("Bank name"), { target: { value: "Barclays" } });
+    fireEvent.change(screen.getByLabelText("Account number"), { target: { value: "12345678" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ bank_name: "Barclays", bank_account_number: "12345678" }),
+      );
+    });
   });
 
   it("removing a package takes it out of the list", async () => {

@@ -198,12 +198,29 @@ function ConsentGate() {
 }
 
 function OnboardingGate() {
-  const { userProfile, isDemo, isAuthenticated, loading } = useAuth();
+  const { userProfile, isDemo, isAuthenticated, loading, isAdmin, practiceSettings } = useAuth();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    setShow(!loading && isAuthenticated && !!userProfile && !userProfile.onboarding_completed);
-  }, [loading, isAuthenticated, userProfile]);
+    const eligible = !loading && isAuthenticated && !!userProfile && !userProfile.onboarding_completed;
+    if (!eligible) {
+      setShow(false);
+      return;
+    }
+    if (!isAdmin) {
+      setShow(true);
+      return;
+    }
+    // Admins only see the "personalize your profile" modal once they've
+    // actually subscribed and finished practice setup — showing it right
+    // after signup, before they've paid or configured anything, put a
+    // client-facing first-impression step ahead of the business-critical
+    // ones (2026-08-25).
+    const subscribed =
+      practiceSettings?.subscription_status === "active" || practiceSettings?.subscription_status === "trialing";
+    const setupDone = !!practiceSettings && !practiceSettings.onboarding_required;
+    setShow(subscribed && setupDone);
+  }, [loading, isAuthenticated, userProfile, isAdmin, practiceSettings]);
 
   if (!show || isDemo) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
