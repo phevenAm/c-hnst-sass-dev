@@ -14,6 +14,12 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 // LeafLogoMark reads theme mode from Redux to pick the right variant.
 function renderPage() {
   const store = configureStore({ reducer: { theme: themeReducer } });
@@ -97,5 +103,47 @@ describe("CounsellorSignupPage — resend confirmation email", () => {
 
     resolveResend({ error: null });
     await screen.findByRole("button", { name: "Resend the email" });
+  });
+});
+
+describe("CounsellorSignupPage — confirmation gates access before the subscribe page", () => {
+  it("stays on the check-your-email screen and never navigates while unconfirmed (happy path)", async () => {
+    // The real Supabase behaviour with "Confirm email" on: signUp() succeeds
+    // but grants no session, so isAuthenticated stays false until the link
+    // is actually clicked — this is what stops CounsellorSignupPage's own
+    // isAuthenticated effect (which sends people to /admin, and from there
+    // SubscriptionGate on to /subscribe) from firing early.
+    mockSignUp.mockResolvedValue({ error: null });
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
+
+    renderPage();
+    await fillAndSubmit();
+
+    expect(screen.getByText("Check your email")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("navigates to /admin only once isAuthenticated actually becomes true (sad path: confirms the gate isn't just decorative)", () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, loading: false });
+    const { rerender } = render(
+      <Provider store={configureStore({ reducer: { theme: themeReducer } })}>
+        <MemoryRouter>
+          <CounsellorSignupPage />
+        </MemoryRouter>
+      </Provider>,
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    // Simulate returning from the confirmation link and logging in.
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, loading: false });
+    rerender(
+      <Provider store={configureStore({ reducer: { theme: themeReducer } })}>
+        <MemoryRouter>
+          <CounsellorSignupPage />
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    expect(mockNavigate).toHaveBeenCalledWith("/admin", { replace: true });
   });
 });
