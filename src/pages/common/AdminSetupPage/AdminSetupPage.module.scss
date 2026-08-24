@@ -1,82 +1,147 @@
 @use "../../../styles/spacing" as *;
 
-.wrap {
+// Shell (page/container/logoWrap/card/footer) intentionally mirrors
+// SignUpPage.module.scss — same visual language as every other page in the
+// auth funnel (Login, SignUp, CounsellorSignup), not a one-off.
+.page {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-page);
-}
-
-.header {
+  background: var(--bg-base);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: $sp-4 $sp-5;
+  justify-content: center;
+  padding: $sp-6 $sp-3;
+  position: relative;
+  overflow-x: hidden;
 }
 
-.brand {
+.container {
+  width: 100%;
+  max-width: 560px;
+  position: relative;
+  z-index: 2;
+}
+
+.logoWrap {
   display: flex;
   align-items: center;
-  gap: $sp-2;
-  font-weight: 700;
-  font-size: 1.1rem;
+  gap: $sp-3;
+  margin-bottom: $sp-5;
+}
+
+.logoText {
+  text-align: left;
+}
+
+.logoTitle {
+  font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.logoSub {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.card {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: $sp-6 $sp-8;
+  box-shadow: var(--shadow-lg);
+
+  @media (max-width: 640px) {
+    padding: $sp-4 $sp-5;
+    border-radius: var(--r-lg);
+  }
+}
+
+.footer {
+  text-align: center;
+  margin-top: $sp-5;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .signOutLink {
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
-
-  &:hover {
-    color: var(--text-secondary);
-  }
 }
 
-.content {
-  flex: 1;
+// Step wizard — mirrors SignUpPage.module.scss's own step-dots pattern, same
+// reason: one screen holding all three sections read as one very tall wall
+// of form.
+
+.stepDots {
   display: flex;
   justify-content: center;
-  padding: $sp-3 $sp-3 $sp-6;
-}
-
-.card {
-  width: 100%;
-  max-width: 560px;
-  padding: $sp-5;
-  height: fit-content;
-}
-
-.title {
-  margin: 0 0 $sp-2;
-}
-
-.intro {
-  color: var(--text-secondary);
-  margin: 0 0 $sp-5;
-  line-height: 1.5;
-}
-
-.section {
+  gap: $sp-2;
   margin-bottom: $sp-5;
-  padding-top: $sp-4;
-  border-top: 1px solid var(--border);
+}
 
-  &:first-of-type {
-    padding-top: 0;
-    border-top: none;
+.stepDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--transition-base);
+}
+
+.stepDotActive {
+  background: var(--accent);
+}
+
+.stepHeading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 $sp-4;
+}
+
+.stepNav {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  margin-top: $sp-4;
+}
+
+.backBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1.5px solid var(--border);
+  padding: $sp-3 $sp-5;
+  border-radius: var(--r-full);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    color var(--transition-base);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
   }
 }
 
-.sectionTitle {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0 0 $sp-1;
+.stepSubmitBtn {
+  flex: 1;
+}
+
+// Form content
+
+.section {
+  margin-bottom: $sp-2;
 }
 
 .sectionHint {
@@ -156,10 +221,4 @@
   color: var(--danger);
   font-size: 0.85rem;
   margin: 0 0 $sp-3;
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: $sp-4;
 }

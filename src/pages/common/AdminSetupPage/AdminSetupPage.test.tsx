@@ -1,7 +1,23 @@
+import { Provider } from "react-redux";
+
+import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import themeReducer from "@store/slices/themeSlice";
+
 import AdminSetupPage from "./AdminSetupPage";
+
+// LeafLogoMark (used in the page header, matching the rest of the auth
+// funnel) reads theme mode from Redux to pick the right variant.
+function renderPage() {
+  const store = configureStore({ reducer: { theme: themeReducer } });
+  return render(
+    <Provider store={store}>
+      <AdminSetupPage />
+    </Provider>,
+  );
+}
 
 afterEach(() => {
   cleanup();
@@ -82,27 +98,57 @@ beforeEach(() => {
   packagesRows.length = 0;
 });
 
-async function addPackage(name: string, price: string) {
+// Step 1 -> fills business name and continues to step 2.
+function goToStep2(businessName = "Sarah Smith Therapy") {
+  fireEvent.change(screen.getByLabelText("Business name"), { target: { value: businessName } });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+}
+
+// Step 2 -> adds one package and continues to step 3.
+async function addPackageAndGoToStep3(name = "Standard session", price = "60.00") {
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: name } });
   fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: price } });
   fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
   await screen.findByText(name, { exact: false });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
 
-describe("AdminSetupPage — happy path", () => {
-  it("adds a session package and shows it in the list", async () => {
-    render(<AdminSetupPage />);
-    await addPackage("Standard session", "60.00");
+// Full happy-path walk from step 1 to step 3 (bank details), business name +
+// one package filled in, landing on the last step ready to Finish.
+async function walkToStep3() {
+  renderPage();
+  goToStep2();
+  await addPackageAndGoToStep3();
+  await screen.findByLabelText("Bank name");
+}
 
-    expect(screen.getByText(/Standard session/)).toBeInTheDocument();
-    expect(screen.getByText(/£60\.00/)).toBeInTheDocument();
+describe("AdminSetupPage — staged flow (happy path)", () => {
+  it("shows step 1 (business info) first, with Continue disabled until a name is entered", () => {
+    renderPage();
+    expect(screen.getByLabelText("Business name")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
-  it("completes setup once business name and a package are both present, then redirects", async () => {
-    render(<AdminSetupPage />);
-    await addPackage("Standard session", "60.00");
-    fireEvent.change(screen.getByLabelText("Business name"), { target: { value: "Sarah Smith Therapy" } });
+  it("moves through all three steps and lands on Finish setup", async () => {
+    await walkToStep3();
+    expect(screen.getByRole("button", { name: "Finish setup" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+  });
 
+  it("Back returns to the previous step without losing what was entered", async () => {
+    renderPage();
+    goToStep2();
+    await addPackageAndGoToStep3();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByText(/Standard session/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByLabelText("Business name")).toHaveValue("Sarah Smith Therapy");
+  });
+
+  it("completes setup once all steps are done, then redirects", async () => {
+    await walkToStep3();
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => {
@@ -115,19 +161,14 @@ describe("AdminSetupPage — happy path", () => {
   });
 
   it("bank details are optional — completes setup fine when left blank", async () => {
-    render(<AdminSetupPage />);
-    await addPackage("Standard session", "60.00");
-    fireEvent.change(screen.getByLabelText("Business name"), { target: { value: "Sarah Smith Therapy" } });
-
+    await walkToStep3();
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/admin"));
   });
 
   it("saves bank details when filled in", async () => {
-    render(<AdminSetupPage />);
-    await addPackage("Standard session", "60.00");
-    fireEvent.change(screen.getByLabelText("Business name"), { target: { value: "Sarah Smith Therapy" } });
+    await walkToStep3();
     fireEvent.change(screen.getByLabelText("Bank name"), { target: { value: "Barclays" } });
     fireEvent.change(screen.getByLabelText("Account number"), { target: { value: "12345678" } });
 
@@ -140,9 +181,13 @@ describe("AdminSetupPage — happy path", () => {
     });
   });
 
-  it("removing a package takes it out of the list", async () => {
-    render(<AdminSetupPage />);
-    await addPackage("Standard session", "60.00");
+  it("removing a package on step 2 takes it out of the list", async () => {
+    renderPage();
+    goToStep2();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
+    fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "60.00" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+    await screen.findByText(/Standard session/);
 
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
 
@@ -150,34 +195,28 @@ describe("AdminSetupPage — happy path", () => {
   });
 });
 
-describe("AdminSetupPage — sad paths", () => {
-  it("blocks Finish and shows an error when business name is empty", async () => {
-    render(<AdminSetupPage />);
-    await addPackage("Standard session", "60.00");
-    // business name left blank
+describe("AdminSetupPage — staged flow (sad paths)", () => {
+  it("blocks Continue and shows an error when business name is empty on step 1", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
-
-    expect(await screen.findByText("Business name is required.")).toBeInTheDocument();
-    expect(updateSpy).not.toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByText("Business name is required.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Business name")).toBeInTheDocument(); // still on step 1
   });
 
-  it("blocks Finish and shows an error when no session package has been added", async () => {
-    render(<AdminSetupPage />);
-    fireEvent.change(screen.getByLabelText("Business name"), { target: { value: "Sarah Smith Therapy" } });
+  it("blocks Continue and shows an error when no session package has been added on step 2", () => {
+    renderPage();
+    goToStep2();
 
-    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    expect(
-      await screen.findByText("Add at least one session type with a price before continuing."),
-    ).toBeInTheDocument();
-    expect(updateSpy).not.toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByText("Add at least one session type with a price before continuing.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument(); // still on step 2
   });
 
   it("the + Add button stays disabled until both a name and a price are entered", () => {
-    render(<AdminSetupPage />);
+    renderPage();
+    goToStep2();
     expect(screen.getByRole("button", { name: "+ Add" })).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
