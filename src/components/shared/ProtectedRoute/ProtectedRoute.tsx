@@ -14,7 +14,8 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, loading, isFinishingSignup, userProfile, profileError, retryProfile } = useAuth();
+  const { isAuthenticated, isAdmin, loading, isFinishingSignup, userProfile, profileError, retryProfile, signOut } =
+    useAuth();
   const location = useLocation();
 
   // Wait for session check to finish
@@ -33,9 +34,14 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
     return (
       <div className="page">
         <p>{profileError}</p>
-        <Button variant="secondary" onClick={retryProfile}>
-          Try again
-        </Button>
+        <div style={{ display: "flex", gap: "var(--sp-3)" }}>
+          <Button variant="secondary" onClick={retryProfile}>
+            Try again
+          </Button>
+          <Button variant="ghost" onClick={() => signOut()}>
+            Sign out
+          </Button>
+        </div>
       </div>
     );
   }
