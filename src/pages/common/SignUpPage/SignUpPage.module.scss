@@ -8,14 +8,14 @@
   // display: flex;
   align-items: center;
   justify-content: center;
-  padding: $sp-6;
+  // padding: $sp-6;
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
 
   @media (max-width: 640px) {
     align-items: flex-start;
-    padding: $sp-4;
+    // padding: $sp-4;
   }
 }
 
