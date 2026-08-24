@@ -7,7 +7,11 @@
   backdrop-filter: blur(15px);
   display: grid;
   place-content: center;
-  z-index: 200;
+  // Was 200 — tied with AdminSidebar's own z-index, and since this isn't
+  // portaled (renders inline near the app root, before <Routes>), the
+  // sidebar mounts later in the DOM and won the tie, showing on top of the
+  // modal instead of under it.
+  z-index: 1000;
 }
 
 .modal {
