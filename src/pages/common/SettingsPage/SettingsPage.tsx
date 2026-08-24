@@ -129,6 +129,16 @@ const SettingsPage = () => {
   const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
   const [allowBlockSessionCancellation, setAllowBlockSessionCancellation] = useState(true);
   const [savingBlockCancellation, setSavingBlockCancellation] = useState(false);
+  const [adminRemindersEnabled, setAdminRemindersEnabled] = useState(true);
+  const [adminReminderLeadMinutes, setAdminReminderLeadMinutes] = useState(1440);
+  const [savingAdminReminders, setSavingAdminReminders] = useState(false);
+  const [reminderMutes, setReminderMutes] = useState<
+    { id: string; client_id: string | null; stub_id: string | null }[]
+  >([]);
+  const [clientOptions, setClientOptions] = useState<{ id: string; name: string }[]>([]);
+  const [stubOptions, setStubOptions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedMuteCandidate, setSelectedMuteCandidate] = useState("");
+  const [savingMute, setSavingMute] = useState(false);
   const [consentEnabled, setConsentEnabled] = useState(false);
   const [consentTitle, setConsentTitle] = useState("Before you continue");
   const [consentBody, setConsentBody] = useState("");
@@ -241,6 +251,8 @@ const SettingsPage = () => {
         setRescheduleCutoffEnabled(data.reschedule_cutoff_hours != null);
         setRescheduleCutoffHours(data.reschedule_cutoff_hours ?? 48);
         setAllowBlockSessionCancellation(data.allow_block_session_cancellation ?? true);
+        setAdminRemindersEnabled(data.admin_reminders_enabled ?? true);
+        setAdminReminderLeadMinutes(data.admin_reminder_lead_minutes ?? 1440);
         setConsentEnabled(data.consent_enabled ?? false);
         setConsentTitle(data.consent_title ?? "Before you continue");
         setConsentBody(data.consent_body ?? "");
@@ -269,6 +281,32 @@ const SettingsPage = () => {
       const row = data?.[0];
       if (row) setGoogleStatus(row);
     });
+  }, [isAdmin, userProfile?.id]);
+
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    supabase
+      .from("admin_reminder_mutes")
+      .select("id, client_id, stub_id")
+      .eq("admin_id", userProfile.id)
+      .then(({ data }) => {
+        if (data) setReminderMutes(data);
+      });
+    supabase
+      .from("users")
+      .select("id, first_name, last_name")
+      .eq("admin_id", userProfile.id)
+      .eq("role", "client")
+      .then(({ data }) => {
+        setClientOptions((data ?? []).map((u) => ({ id: u.id, name: `${u.first_name} ${u.last_name}` })));
+      });
+    supabase
+      .from("client_stubs")
+      .select("id, first_name, last_name, codename")
+      .eq("created_by", userProfile.id)
+      .then(({ data }) => {
+        setStubOptions((data ?? []).map((s) => ({ id: s.id, name: s.codename || `${s.first_name} ${s.last_name}` })));
+      });
   }, [isAdmin, userProfile?.id]);
 
   const toggleKeyword = (kw: string) =>
@@ -402,6 +440,53 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingBlockCancellation(false);
     showToast("Block cancellation setting saved.");
+  };
+
+  const handleSaveAdminReminders = async () => {
+    if (!userProfile?.id) return;
+    setSavingAdminReminders(true);
+    await supabase
+      .from("practice_settings")
+      .update({
+        admin_reminders_enabled: adminRemindersEnabled,
+        admin_reminder_lead_minutes: adminReminderLeadMinutes,
+      })
+      .eq("admin_id", userProfile.id);
+    setSavingAdminReminders(false);
+    showToast("Session-prep reminder settings saved.");
+  };
+
+  const handleAddMute = async () => {
+    if (!userProfile?.id || !selectedMuteCandidate) return;
+    const [kind, id] = selectedMuteCandidate.split(":");
+    setSavingMute(true);
+    const { data, error } = await supabase
+      .from("admin_reminder_mutes")
+      .insert({
+        admin_id: userProfile.id,
+        client_id: kind === "client" ? id : null,
+        stub_id: kind === "stub" ? id : null,
+      })
+      .select("id, client_id, stub_id")
+      .single();
+    if (error) {
+      showToast("Failed to mute client.", "danger");
+    } else {
+      // Guard against the initial load (a separate, independent fetch) resolving
+      // late and re-adding this same row on top of this optimistic update.
+      setReminderMutes((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
+      setSelectedMuteCandidate("");
+    }
+    setSavingMute(false);
+  };
+
+  const handleRemoveMute = async (id: string) => {
+    const { error } = await supabase.from("admin_reminder_mutes").delete().eq("id", id);
+    if (error) {
+      showToast("Failed to unmute client.", "danger");
+      return;
+    }
+    setReminderMutes((prev) => prev.filter((m) => m.id !== id));
   };
 
   const isPdfUrl = (url: string) => {
@@ -974,6 +1059,129 @@ const SettingsPage = () => {
                   disabled={savingRescheduleCutoff}
                 >
                   {savingRescheduleCutoff ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Admin session-prep reminders */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Session-prep reminders</h2>
+                <p>
+                  Get an in-app notification before your own sessions so you can review the client's history first.
+                  Doesn't email anyone — it's just for you.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Remind me before sessions</strong>
+                    <span>
+                      {adminRemindersEnabled
+                        ? "On — you'll get a notification before each session."
+                        : "Off — no reminders."}
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${adminRemindersEnabled ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={adminRemindersEnabled}
+                      onChange={(e) => setAdminRemindersEnabled(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                {adminRemindersEnabled && (
+                  <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+                    <label htmlFor="adminReminderLead">Remind me</label>
+                    <select
+                      id="adminReminderLead"
+                      value={adminReminderLeadMinutes}
+                      onChange={(e) => setAdminReminderLeadMinutes(Number(e.target.value))}
+                      className={styles.select}
+                    >
+                      <option value={60}>1 hour before</option>
+                      <option value={180}>3 hours before</option>
+                      <option value={1440}>1 day before</option>
+                      <option value={2880}>2 days before</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className={styles.field} style={{ marginTop: "var(--sp-5)" }}>
+                  <label>Muted clients</label>
+                  <p className={styles.toggleHint}>
+                    These clients won't trigger a reminder, even when the setting above is on.
+                  </p>
+                  {reminderMutes.length > 0 && (
+                    <ul style={{ listStyle: "none", padding: 0, margin: "var(--sp-3) 0 0" }}>
+                      {reminderMutes.map((m) => {
+                        const name =
+                          (m.client_id && clientOptions.find((c) => c.id === m.client_id)?.name) ||
+                          (m.stub_id && stubOptions.find((s) => s.id === m.stub_id)?.name) ||
+                          "Unknown client";
+                        return (
+                          <li
+                            key={m.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "var(--sp-2) 0",
+                            }}
+                          >
+                            <span>{name}</span>
+                            <Button variant="ghost" size="sm" onClick={() => handleRemoveMute(m.id)}>
+                              Unmute
+                            </Button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "var(--sp-2)",
+                      marginTop: "var(--sp-3)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <select
+                      className={styles.select}
+                      value={selectedMuteCandidate}
+                      onChange={(e) => setSelectedMuteCandidate(e.target.value)}
+                    >
+                      <option value="">— mute a client —</option>
+                      {clientOptions
+                        .filter((c) => !reminderMutes.some((m) => m.client_id === c.id))
+                        .map((c) => (
+                          <option key={c.id} value={`client:${c.id}`}>
+                            {c.name}
+                          </option>
+                        ))}
+                      {stubOptions
+                        .filter((s) => !reminderMutes.some((m) => m.stub_id === s.id))
+                        .map((s) => (
+                          <option key={s.id} value={`stub:${s.id}`}>
+                            {s.name} (offline)
+                          </option>
+                        ))}
+                    </select>
+                    <Button size="sm" onClick={handleAddMute} disabled={!selectedMuteCandidate || savingMute}>
+                      {savingMute ? "Muting…" : "Mute"}
+                    </Button>
+                  </div>
+                </div>
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveAdminReminders}
+                  disabled={savingAdminReminders}
+                >
+                  {savingAdminReminders ? "Saving…" : "Save"}
                 </Button>
               </div>
             </Card>

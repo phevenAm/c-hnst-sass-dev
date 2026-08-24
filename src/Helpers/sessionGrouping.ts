@@ -1,6 +1,6 @@
 import type { Session, SessionBlockMeta } from "@/models/globalTypes";
 
-export type SessionRenderItem = { kind: "single"; session: Session } | { kind: "block"; sessions: Session[] };
+export type SessionRenderItem<T = Session> = { kind: "single"; session: T } | { kind: "block"; sessions: T[] };
 
 // A block booking (paid/scheduled together) used to render as N full-height
 // SessionCards stacked in the list — a paid-together, scheduled-together
@@ -11,8 +11,10 @@ export type SessionRenderItem = { kind: "single"; session: Session } | { kind: "
 // it's cancelled — the caller is expected to have already excluded past
 // sessions from `sessions` (this never groups on the "past" tab, since
 // grouping is specifically about live blocks a client can still act on).
-export function groupSessionsForDisplay(sessions: Session[]): SessionRenderItem[] {
-  const blockOf = (s: Session) => (s.metadata as SessionBlockMeta | null)?.block_id;
+export function groupSessionsForDisplay<T extends { status: string; metadata: unknown }>(
+  sessions: T[],
+): SessionRenderItem<T>[] {
+  const blockOf = (s: T) => (s.metadata as SessionBlockMeta | null)?.block_id;
 
   const blockCounts = new Map<string, number>();
   for (const s of sessions) {
@@ -20,7 +22,7 @@ export function groupSessionsForDisplay(sessions: Session[]): SessionRenderItem[
     if (blockId && s.status !== "cancelled") blockCounts.set(blockId, (blockCounts.get(blockId) ?? 0) + 1);
   }
 
-  const items: SessionRenderItem[] = [];
+  const items: SessionRenderItem<T>[] = [];
   const renderedBlocks = new Set<string>();
   for (const s of sessions) {
     const blockId = blockOf(s);

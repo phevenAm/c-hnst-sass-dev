@@ -94,6 +94,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_reminder_mutes: {
+        Row: {
+          admin_id: string;
+          client_id: string | null;
+          created_at: string;
+          id: string;
+          stub_id: string | null;
+        };
+        Insert: {
+          admin_id: string;
+          client_id?: string | null;
+          created_at?: string;
+          id?: string;
+          stub_id?: string | null;
+        };
+        Update: {
+          admin_id?: string;
+          client_id?: string | null;
+          created_at?: string;
+          id?: string;
+          stub_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_reminder_mutes_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_reminder_mutes_stub_id_fkey";
+            columns: ["stub_id"];
+            isOneToOne: false;
+            referencedRelation: "client_stubs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_todos: {
         Row: {
           admin_id: string;
@@ -667,6 +706,9 @@ export type Database = {
         Row: {
           address: string | null;
           admin_id: string;
+          admin_reminder_lead_minutes: number;
+          admin_reminder_summary_fields: string[];
+          admin_reminders_enabled: boolean;
           allow_block_session_cancellation: boolean;
           auto_cancel_enabled: boolean;
           bank_account_name: string | null;
@@ -717,6 +759,9 @@ export type Database = {
         Insert: {
           address?: string | null;
           admin_id: string;
+          admin_reminder_lead_minutes?: number;
+          admin_reminder_summary_fields?: string[];
+          admin_reminders_enabled?: boolean;
           allow_block_session_cancellation?: boolean;
           auto_cancel_enabled?: boolean;
           bank_account_name?: string | null;
@@ -767,6 +812,9 @@ export type Database = {
         Update: {
           address?: string | null;
           admin_id?: string;
+          admin_reminder_lead_minutes?: number;
+          admin_reminder_summary_fields?: string[];
+          admin_reminders_enabled?: boolean;
           allow_block_session_cancellation?: boolean;
           auto_cancel_enabled?: boolean;
           bank_account_name?: string | null;
@@ -1282,9 +1330,57 @@ export type Database = {
           },
         ];
       };
+      session_packages: {
+        Row: {
+          admin_id: string;
+          archived: boolean;
+          created_at: string;
+          description: string | null;
+          duration_minutes: number;
+          id: string;
+          name: string;
+          price_pence: number;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          admin_id: string;
+          archived?: boolean;
+          created_at?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          id?: string;
+          name: string;
+          price_pence?: number;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          admin_id?: string;
+          archived?: boolean;
+          created_at?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          id?: string;
+          name?: string;
+          price_pence?: number;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "session_packages_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sessions: {
         Row: {
           address: string | null;
+          admin_reminder_sent_at: string | null;
           attended: boolean | null;
           client_id: string | null;
           created_at: string;
@@ -1310,6 +1406,7 @@ export type Database = {
         };
         Insert: {
           address?: string | null;
+          admin_reminder_sent_at?: string | null;
           attended?: boolean | null;
           client_id?: string | null;
           created_at?: string;
@@ -1335,6 +1432,7 @@ export type Database = {
         };
         Update: {
           address?: string | null;
+          admin_reminder_sent_at?: string | null;
           attended?: boolean | null;
           client_id?: string | null;
           created_at?: string;
@@ -1371,6 +1469,7 @@ export type Database = {
       stub_sessions: {
         Row: {
           admin_id: string;
+          admin_reminder_sent_at: string | null;
           amount_paid: number | null;
           code: string | null;
           created_at: string;
@@ -1378,6 +1477,7 @@ export type Database = {
           duration_minutes: number | null;
           id: string;
           location: string | null;
+          metadata: Json | null;
           notes: string | null;
           paid: boolean;
           price_pence: number | null;
@@ -1387,6 +1487,7 @@ export type Database = {
         };
         Insert: {
           admin_id: string;
+          admin_reminder_sent_at?: string | null;
           amount_paid?: number | null;
           code?: string | null;
           created_at?: string;
@@ -1394,6 +1495,7 @@ export type Database = {
           duration_minutes?: number | null;
           id?: string;
           location?: string | null;
+          metadata?: Json | null;
           notes?: string | null;
           paid?: boolean;
           price_pence?: number | null;
@@ -1403,6 +1505,7 @@ export type Database = {
         };
         Update: {
           admin_id?: string;
+          admin_reminder_sent_at?: string | null;
           amount_paid?: number | null;
           code?: string | null;
           created_at?: string;
@@ -1410,6 +1513,7 @@ export type Database = {
           duration_minutes?: number | null;
           id?: string;
           location?: string | null;
+          metadata?: Json | null;
           notes?: string | null;
           paid?: boolean;
           price_pence?: number | null;
@@ -1706,6 +1810,7 @@ export type Database = {
         Args: { p_approved: boolean; p_session_id: string };
         Returns: undefined;
       };
+      send_admin_session_reminders: { Args: never; Returns: undefined };
       set_google_calendar_sync_enabled: {
         Args: { p_enabled: boolean };
         Returns: undefined;

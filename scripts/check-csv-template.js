@@ -11,8 +11,8 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// Auto-generated fields that don't need CSV columns
-const SKIP_FIELDS = new Set(["id", "stub_id", "admin_id", "created_at"]);
+// Auto-generated / app-internal fields that don't need CSV columns
+const SKIP_FIELDS = new Set(["id", "stub_id", "admin_id", "created_at", "metadata"]);
 
 // StubSession fields that map to DIFFERENT CSV column names
 const RENAMED = {

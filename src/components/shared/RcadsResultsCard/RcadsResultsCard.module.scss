@@ -32,14 +32,12 @@
   gap: var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--r-md);
-  border-left: 3px solid transparent;
   background: var(--bg-muted);
 }
 
 .rowTotal {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-left-width: 3px;
   margin-top: var(--sp-2);
 }
 
@@ -78,37 +76,21 @@
   border-radius: var(--r-full);
 }
 
-// Band colours drive both the row's left border and the little pill —
-// keeping them on the same class means a row always reads as one unit at a
-// glance, not "text here, colour somewhere else."
-.normal {
-  border-left-color: var(--accent);
+// Band colour lives on the pill only now — matches how status is shown
+// everywhere else in the app (badges, not coloured borders).
+.normal .rowBandLabel {
+  background: var(--accent-light);
   color: var(--accent-dark);
-
-  .rowBandLabel {
-    background: var(--accent-light);
-    color: var(--accent-dark);
-  }
 }
 
-.borderline {
-  border-left-color: var(--warning);
+.borderline .rowBandLabel {
+  background: var(--warning-light);
   color: var(--warning);
-
-  .rowBandLabel {
-    background: var(--warning-light);
-    color: var(--warning);
-  }
 }
 
-.clinical {
-  border-left-color: var(--danger);
+.clinical .rowBandLabel {
+  background: var(--danger-light);
   color: var(--danger);
-
-  .rowBandLabel {
-    background: var(--danger-light);
-    color: var(--danger);
-  }
 }
 
 .legend {
@@ -131,4 +113,63 @@
   &:first-child {
     margin-left: 0;
   }
+}
+
+.linkRow {
+  display: flex;
+  gap: var(--sp-4);
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-dark);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.explainer {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  margin: 0;
+}
+
+.answersList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.answerItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--bg-muted);
+  font-size: 0.82rem;
+}
+
+.answerText {
+  color: var(--text-primary);
+}
+
+.answerValue {
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-weight: 500;
 }

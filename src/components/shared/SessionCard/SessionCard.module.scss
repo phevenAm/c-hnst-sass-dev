@@ -38,6 +38,15 @@
     gap: $sp-2;
 }
 
+.clientLabel {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0 0 $sp-1;
+}
+
 .sessionNumber {
     font-size: 0.72rem;
     font-weight: 600;

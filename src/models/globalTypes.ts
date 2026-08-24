@@ -285,4 +285,5 @@ export type StubSession = {
   code: string | null;
   location: string | null;
   created_at: string;
+  metadata: Record<string, unknown> | null;
 };

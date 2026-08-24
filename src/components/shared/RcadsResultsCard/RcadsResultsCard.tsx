@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import dayjs from "dayjs";
 
+import { RCADS_ITEMS, RCADS_SCALE_OPTIONS } from "@/data/rcadsItems";
 import { ageInYears, computeRcadsResult, type Gender, type RcadsResult } from "@/Helpers/rcadsScoring";
 import { supabase } from "@/lib/supabase";
 
@@ -33,6 +34,8 @@ function bandLabel(band: RcadsResult["totalRcads"]["band"]): string {
 export default function RcadsResultsCard({ clientId }: { clientId: string }) {
   const [row, setRow] = useState<RcadsRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showExplainer, setShowExplainer] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +93,41 @@ export default function RcadsResultsCard({ clientId }: { clientId: string }) {
         <span className={`${styles.dot} ${styles.borderline}`} /> T ≥ 65 borderline
         <span className={`${styles.dot} ${styles.clinical}`} /> T ≥ 70 clinical
       </p>
+
+      <div className={styles.linkRow}>
+        <button type="button" className={styles.linkButton} onClick={() => setShowExplainer((v) => !v)}>
+          {showExplainer ? "Hide" : "How is this calculated?"}
+        </button>
+        <button type="button" className={styles.linkButton} onClick={() => setShowAnswers((v) => !v)}>
+          {showAnswers ? "Hide raw answers" : "View raw answers"}
+        </button>
+      </div>
+
+      {showExplainer && (
+        <p className={styles.explainer}>
+          Each scale's raw score (the sum of its questions, 0-3 each) is converted to a T-score — a standardised score
+          with a mean of 50 and standard deviation of 10 — by comparing it against RCADS norms for children of the same
+          age band and gender. A T-score of 65 or above is borderline; 70 or above is clinical. Total Anxiety combines
+          the five anxiety scales; Total RCADS combines all six.
+        </p>
+      )}
+
+      {showAnswers && (
+        <ul className={styles.answersList}>
+          {RCADS_ITEMS.map((item) => {
+            const value = row.answers[item.number - 1];
+            const label = RCADS_SCALE_OPTIONS.find((o) => o.value === value)?.label ?? "Not answered";
+            return (
+              <li key={item.number} className={styles.answerItem}>
+                <span className={styles.answerText}>
+                  {item.number}. {item.text}
+                </span>
+                <span className={styles.answerValue}>{label}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

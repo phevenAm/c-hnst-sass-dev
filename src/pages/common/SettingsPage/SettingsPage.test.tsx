@@ -49,6 +49,7 @@ beforeEach(() => {
   Object.assign(currentRow, initialRow);
   setGoogleStatusRow(null);
   setOnboardingFormsRows([]);
+  reminderMutesRows.length = 0;
 });
 
 vi.mock("@context/EncryptionContext", () => ({
@@ -77,94 +78,159 @@ vi.mock("@context/ToastContext", () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
-const { supabaseMock, updateSpy, initialRow, currentRow, invokeSpy, setGoogleStatusRow, setOnboardingFormsRows } =
-  vi.hoisted(() => {
-    const initialRow = {
-      business_name: "",
-      email: "",
-      phone: "",
-      address: "",
-      logo_url: "",
-      bank_name: "",
-      bank_account_name: "",
-      bank_sort_code: "",
-      bank_account_number: "",
-      bank_payment_reference: "",
-      stripe_connect_onboarded: false,
-      billing_customer_id: null,
-      reminder_hours_before: 120,
-      reminder_email_subject: "",
-      reminder_email_body: "",
-      reminder_email_heading: "",
-      disabled_email_types: [] as string[],
-      payment_deadline_hours: 48,
-      use_client_codenames: false,
-      auto_cancel_enabled: false,
-      reschedule_cutoff_hours: 48,
-      consent_enabled: false,
-      consent_title: "Before you continue",
-      consent_body: "",
-      consent_pdf_url: "",
-      consent_counsellor_cta: "If you have any questions, speak to your counsellor.",
-    };
-    // Mutable copy the mock reads from — tests can tweak fields (e.g.
-    // stripe_connect_onboarded) before rendering without touching the defaults.
-    const currentRow: typeof initialRow = { ...initialRow };
-    let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
-    const onboardingFormsRows: { id: string; title: string }[] = [];
-    const updateSpy = vi.fn();
-    const invokeSpy = vi.fn((fnName: string) =>
-      Promise.resolve({ data: { url: `https://example.com/${fnName}` }, error: null }),
-    );
-    const rpcSpy = vi.fn((fnName: string) => {
-      if (fnName === "get_google_calendar_status") {
-        return Promise.resolve({ data: googleStatusRow ? [googleStatusRow] : [], error: null });
-      }
-      return Promise.resolve({ data: [], error: null });
-    });
-    const supabaseMock = {
-      from: vi.fn((table: string) => {
-        if (table === "questionnaires") {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  order: () => Promise.resolve({ data: onboardingFormsRows, error: null }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table !== "practice_settings") throw new Error(`Unexpected table in test: ${table}`);
+const {
+  supabaseMock,
+  updateSpy,
+  initialRow,
+  currentRow,
+  invokeSpy,
+  setGoogleStatusRow,
+  setOnboardingFormsRows,
+  reminderMutesRows,
+  clientOptionsRows,
+  stubOptionsRows,
+} = vi.hoisted(() => {
+  const initialRow = {
+    business_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    logo_url: "",
+    bank_name: "",
+    bank_account_name: "",
+    bank_sort_code: "",
+    bank_account_number: "",
+    bank_payment_reference: "",
+    stripe_connect_onboarded: false,
+    billing_customer_id: null,
+    reminder_hours_before: 120,
+    reminder_email_subject: "",
+    reminder_email_body: "",
+    reminder_email_heading: "",
+    disabled_email_types: [] as string[],
+    payment_deadline_hours: 48,
+    use_client_codenames: false,
+    auto_cancel_enabled: false,
+    reschedule_cutoff_hours: 48,
+    consent_enabled: false,
+    consent_title: "Before you continue",
+    consent_body: "",
+    consent_pdf_url: "",
+    consent_counsellor_cta: "If you have any questions, speak to your counsellor.",
+    admin_reminders_enabled: true,
+    admin_reminder_lead_minutes: 1440,
+  };
+  // Mutable copy the mock reads from — tests can tweak fields (e.g.
+  // stripe_connect_onboarded) before rendering without touching the defaults.
+  const currentRow: typeof initialRow = { ...initialRow };
+  let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
+  const onboardingFormsRows: { id: string; title: string }[] = [];
+  const reminderMutesRows: { id: string; client_id: string | null; stub_id: string | null }[] = [];
+  const clientOptionsRows: { id: string; first_name: string; last_name: string }[] = [
+    { id: "client-1", first_name: "Ada", last_name: "Lovelace" },
+  ];
+  const stubOptionsRows: { id: string; first_name: string; last_name: string; codename: string | null }[] = [
+    { id: "stub-1", first_name: "Grace", last_name: "Hopper", codename: null },
+  ];
+  const updateSpy = vi.fn();
+  const invokeSpy = vi.fn((fnName: string) =>
+    Promise.resolve({ data: { url: `https://example.com/${fnName}` }, error: null }),
+  );
+  const rpcSpy = vi.fn((fnName: string) => {
+    if (fnName === "get_google_calendar_status") {
+      return Promise.resolve({ data: googleStatusRow ? [googleStatusRow] : [], error: null });
+    }
+    return Promise.resolve({ data: [], error: null });
+  });
+  const supabaseMock = {
+    from: vi.fn((table: string) => {
+      if (table === "questionnaires") {
         return {
           select: () => ({
             eq: () => ({
-              single: () => Promise.resolve({ data: currentRow, error: null }),
+              eq: () => ({
+                order: () => Promise.resolve({ data: onboardingFormsRows, error: null }),
+              }),
             }),
           }),
-          update: (payload: Record<string, unknown>) => {
-            updateSpy(payload);
-            return { eq: () => Promise.resolve({ data: null, error: null }) };
-          },
         };
-      }),
-      rpc: rpcSpy,
-      functions: { invoke: invokeSpy },
-    };
-    return {
-      supabaseMock,
-      updateSpy,
-      initialRow,
-      currentRow,
-      invokeSpy,
-      setGoogleStatusRow: (row: typeof googleStatusRow) => {
-        googleStatusRow = row;
-      },
-      setOnboardingFormsRows: (rows: typeof onboardingFormsRows) => {
-        onboardingFormsRows.splice(0, onboardingFormsRows.length, ...rows);
-      },
-    };
-  });
+      }
+      if (table === "admin_reminder_mutes") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: reminderMutesRows, error: null }),
+          }),
+          insert: (payload: { client_id: string | null; stub_id: string | null }) => ({
+            select: () => ({
+              single: () => {
+                const row = {
+                  id: `mute-${reminderMutesRows.length + 1}`,
+                  client_id: payload.client_id,
+                  stub_id: payload.stub_id,
+                };
+                reminderMutesRows.push(row);
+                return Promise.resolve({ data: row, error: null });
+              },
+            }),
+          }),
+          delete: () => ({
+            eq: (_col: string, id: string) => {
+              const idx = reminderMutesRows.findIndex((m) => m.id === id);
+              if (idx !== -1) reminderMutesRows.splice(idx, 1);
+              return Promise.resolve({ data: null, error: null });
+            },
+          }),
+        };
+      }
+      if (table === "users") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => Promise.resolve({ data: clientOptionsRows, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "client_stubs") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: stubOptionsRows, error: null }),
+          }),
+        };
+      }
+      if (table !== "practice_settings") throw new Error(`Unexpected table in test: ${table}`);
+      return {
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: currentRow, error: null }),
+          }),
+        }),
+        update: (payload: Record<string, unknown>) => {
+          updateSpy(payload);
+          return { eq: () => Promise.resolve({ data: null, error: null }) };
+        },
+      };
+    }),
+    rpc: rpcSpy,
+    functions: { invoke: invokeSpy },
+  };
+  return {
+    supabaseMock,
+    updateSpy,
+    initialRow,
+    currentRow,
+    invokeSpy,
+    setGoogleStatusRow: (row: typeof googleStatusRow) => {
+      googleStatusRow = row;
+    },
+    setOnboardingFormsRows: (rows: typeof onboardingFormsRows) => {
+      onboardingFormsRows.splice(0, onboardingFormsRows.length, ...rows);
+    },
+    reminderMutesRows,
+    clientOptionsRows,
+    stubOptionsRows,
+  };
+});
 vi.mock("@/lib/supabase", () => ({ supabase: supabaseMock }));
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -174,6 +240,15 @@ async function openPracticeTab() {
   fireEvent.click(screen.getByRole("button", { name: "Practice" }));
   // wait for the initial practice_settings fetch to populate the form
   await waitFor(() => expect(getFieldInput("Bank name")).toHaveValue(initialRow.bank_name));
+}
+
+// The reminders mute picker's clientOptions/stubOptions/reminderMutes loads
+// are separate effects from practice_settings — flush them too before a test
+// interacts with the mute picker, or a late-resolving load can race the
+// optimistic update from a mute/unmute click and double up (or clobber) state.
+async function openPracticeTabAndFlushReminders() {
+  await openPracticeTab();
+  await screen.findByText("Grace Hopper (offline)");
 }
 
 async function openEmailsTab() {
@@ -268,6 +343,68 @@ describe("SettingsPage — reschedule & cancellation cutoff", () => {
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledWith({ reschedule_cutoff_hours: null });
     });
+  });
+});
+
+describe("SettingsPage — session-prep reminders", () => {
+  it("turns reminders off, changes nothing else, and saves", async () => {
+    await openPracticeTab();
+
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: /remind me before sessions/i })).toBeChecked());
+    fireEvent.click(screen.getByRole("checkbox", { name: /remind me before sessions/i }));
+    fireEvent.click(within(getCardByHeading("Session-prep reminders")).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ admin_reminders_enabled: false, admin_reminder_lead_minutes: 1440 }),
+      );
+    });
+  });
+
+  it("changes the lead time and saves it", async () => {
+    await openPracticeTab();
+
+    await screen.findByLabelText("Remind me");
+    fireEvent.change(screen.getByLabelText("Remind me"), { target: { value: "60" } });
+    fireEvent.click(within(getCardByHeading("Session-prep reminders")).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ admin_reminders_enabled: true, admin_reminder_lead_minutes: 60 }),
+      );
+    });
+  });
+
+  it("mutes a client picked from the dropdown", async () => {
+    await openPracticeTabAndFlushReminders();
+
+    const select = await screen.findByDisplayValue("— mute a client —");
+    fireEvent.change(select, { target: { value: "client:client-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+
+    await waitFor(() => {
+      expect(reminderMutesRows).toEqual([expect.objectContaining({ client_id: "client-1", stub_id: null })]);
+    });
+    expect(await screen.findByRole("button", { name: "Unmute" })).toBeInTheDocument();
+  });
+
+  it("the Mute button stays disabled until a candidate is selected", async () => {
+    await openPracticeTab();
+    await screen.findByDisplayValue("— mute a client —");
+    expect(screen.getByRole("button", { name: "Mute" })).toBeDisabled();
+  });
+
+  it("unmutes an already-muted client", async () => {
+    reminderMutesRows.push({ id: "mute-1", client_id: "client-1", stub_id: null });
+    await openPracticeTab();
+
+    const unmuteButton = await screen.findByRole("button", { name: "Unmute" });
+    fireEvent.click(unmuteButton);
+
+    await waitFor(() => expect(reminderMutesRows).toEqual([]));
+    // Unmuted — the "Unmute" row is gone, and the client is selectable again in the dropdown.
+    expect(screen.queryByRole("button", { name: "Unmute" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Ada Lovelace" })).toBeInTheDocument();
   });
 });
 

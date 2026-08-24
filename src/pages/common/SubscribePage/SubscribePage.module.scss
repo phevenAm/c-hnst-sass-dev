@@ -245,6 +245,13 @@
   }
 }
 
+.billingBtnStack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
 .billingBtnSave {
   font-size: 0.65rem;
   font-weight: 700;
