@@ -46,7 +46,6 @@ async function fillAndSubmit() {
   fireEvent.change(await screen.findByLabelText("Email address"), { target: { value: "sarah@example.com" } });
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
   fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "password123" } });
-  fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
   await screen.findByText("Check your email");
