@@ -108,4 +108,51 @@ describe("groupSessionsForDisplay", () => {
     expect(result).toHaveLength(2);
     expect(result.every((r) => r.kind === "block")).toBe(true);
   });
+
+  // Offline (stub) clients got block grouping 2026-08-24, reusing this same
+  // function against StubSession instead of Session — confirm the generic
+  // works for a differently-shaped type, not just Session.
+  describe("with a StubSession-shaped type", () => {
+    type FakeStubSession = { id: string; status: string; metadata: Record<string, unknown> | null };
+
+    const makeStub = (overrides: Partial<FakeStubSession> & { id: string }): FakeStubSession => ({
+      status: "scheduled",
+      metadata: null,
+      ...overrides,
+    });
+
+    it("groups a stub block same as a real-session block (happy path)", () => {
+      const stubs = [
+        makeStub({ id: "s1", metadata: blockMeta("stub-blk", 1, 2) }),
+        makeStub({ id: "s2", metadata: blockMeta("stub-blk", 2, 2) }),
+      ];
+
+      const result = groupSessionsForDisplay(stubs);
+
+      expect(result).toEqual([{ kind: "block", sessions: stubs }]);
+    });
+
+    it("a cancelled stub session never belongs in a block (sad path)", () => {
+      const stubs = [
+        makeStub({ id: "s1", status: "cancelled", metadata: blockMeta("stub-blk", 1, 2) }),
+        makeStub({ id: "s2", metadata: blockMeta("stub-blk", 2, 2) }),
+      ];
+
+      const result = groupSessionsForDisplay(stubs);
+
+      // Only one live sibling left — falls back to single, same rule as Session.
+      expect(result).toEqual([
+        { kind: "single", session: stubs[0] },
+        { kind: "single", session: stubs[1] },
+      ]);
+    });
+
+    it("a stub with no metadata renders standalone (sad path)", () => {
+      const stubs = [makeStub({ id: "s1" })];
+
+      const result = groupSessionsForDisplay(stubs);
+
+      expect(result).toEqual([{ kind: "single", session: stubs[0] }]);
+    });
+  });
 });

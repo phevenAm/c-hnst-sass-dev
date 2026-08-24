@@ -472,7 +472,9 @@ const SettingsPage = () => {
     if (error) {
       showToast("Failed to mute client.", "danger");
     } else {
-      setReminderMutes((prev) => [...prev, data]);
+      // Guard against the initial load (a separate, independent fetch) resolving
+      // late and re-adding this same row on top of this optimistic update.
+      setReminderMutes((prev) => (prev.some((m) => m.id === data.id) ? prev : [...prev, data]));
       setSelectedMuteCandidate("");
     }
     setSavingMute(false);

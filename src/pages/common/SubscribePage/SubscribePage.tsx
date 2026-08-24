@@ -37,7 +37,7 @@ const SLIDES = [
     points: [
       "Bank transfer details shown to clients",
       "Stripe card payments via Connect",
-      "No platform cut on client payments",
+      "No platform cut — just Stripe's standard fee",
     ],
   },
   {
@@ -69,25 +69,26 @@ const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   },
   {
     title: "2. Service description",
-    body: "Clarity is a practice management platform for independent counsellors and therapists — managing clients, sessions, surveys, and payments. Provided on a monthly subscription basis.",
+    body: "Clarity is a practice management platform for independent counsellors and therapists — managing clients, scheduling, session notes, surveys, payments, and related practice tools, with new features added over time. Provided on a monthly subscription basis.",
   },
   {
     title: "3. Subscription & payment",
-    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — Clarity takes no cut.",
+    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — Clarity itself takes no cut, though Stripe's own processing fees apply to card payments.",
   },
   {
     title: "4. Data & privacy",
     body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. Clarity acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
   },
   {
-    title: "5. Clinical records",
+    title: "5. Session notes",
     body: (
       <>
-        Clarity covers scheduling, payments, client check-ins, and resources. It is not designed to store confidential
-        clinical session notes — these must be kept in a separate, encrypted system with access controls, linked to
-        clients by an identifier rather than name, and retained for a minimum of three years after the therapeutic
-        relationship ends, in line with BACP record-keeping guidance (Jan 2024) and UK GDPR. You remain solely
-        responsible for your own record-keeping compliance.
+        Clarity supports storing session notes directly in the platform, with optional client-side encryption you can
+        enable so the note content is unreadable to anyone without your unlock code, Clarity included. Encryption is
+        opt-in and the unlock code is generated only for you — if it's lost, there is no way for us to recover access to
+        notes encrypted under it. Whether or not you enable encryption, you remain solely responsible for your own
+        professional record-keeping obligations (retention periods, access controls, and identification practices) in
+        line with BACP guidance and UK GDPR.
       </>
     ),
   },
@@ -239,7 +240,10 @@ export default function SubscribePage() {
                   className={`${styles.billingBtn} ${billing === "annual" ? styles.billingBtnActive : ""}`}
                   onClick={() => setBilling("annual")}
                 >
-                  Annual <span className={styles.billingBtnSave}>2 months free</span>
+                  <span className={styles.billingBtnStack}>
+                    Annual
+                    <span className={styles.billingBtnSave}>2 months free</span>
+                  </span>
                 </button>
               </div>
 
@@ -335,13 +339,13 @@ export default function SubscribePage() {
             </div>
 
             <div className={styles.modalBody}>
-              <p className={styles.modalIntro}>Last updated: July 2026. Please read carefully before subscribing.</p>
+              <p className={styles.modalIntro}>Last updated: August 2026. Please read carefully before subscribing.</p>
 
               <div className={styles.purposeBox}>
-                <strong>Clarity is a practice management tool</strong> for independent counsellors and therapists. It
-                helps you manage clients, schedule sessions, send surveys, and process payments. It is{" "}
-                <strong>not a clinical record system</strong> — confidential session notes must be stored separately in
-                a secure, encrypted solution that meets your professional obligations.
+                <strong>Clarity is a practice management platform</strong> for independent counsellors and therapists —
+                clients, scheduling, session notes, surveys, and payments, with more added over time. Session notes
+                support <strong>optional client-side encryption</strong> you control, but you remain responsible for
+                meeting your own professional record-keeping obligations.
               </div>
 
               {TERMS_SECTIONS.map(({ title: st, body }) => (

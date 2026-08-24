@@ -64,7 +64,9 @@ export default function AdminSetupPage() {
     if (insertError) {
       showToast("Failed to add session type.", "danger");
     } else {
-      setPackages((prev) => [...prev, data]);
+      // Guard against the initial load (a separate, independent fetch) resolving
+      // late and re-adding this same row on top of this optimistic update.
+      setPackages((prev) => (prev.some((p) => p.id === data.id) ? prev : [...prev, data]));
       setNewName("");
       setNewPrice("");
       setNewDuration("50");
