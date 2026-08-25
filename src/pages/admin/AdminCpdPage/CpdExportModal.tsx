@@ -17,12 +17,9 @@ type CategoryOption = {
 };
 
 const STANDARD_TYPES: { value: CpdActivityType; label: string }[] = [
-  { value: "supervision", label: "Supervision" },
   { value: "training", label: "Training" },
   { value: "reading", label: "Reading" },
   { value: "conference", label: "Conference" },
-  { value: "peer_consultation", label: "Peer Consultation" },
-  { value: "personal_therapy", label: "Personal Therapy" },
 ];
 
 type Props = {

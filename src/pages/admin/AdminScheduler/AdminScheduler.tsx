@@ -520,187 +520,193 @@ const AdminScheduler = () => {
             stays visible + controls every section even when this one is
             collapsed. Each section's open/closed state persists in
             localStorage (survives route changes + reloads). */}
-        <CollapsibleSection
-          title="Session overview"
-          storageKey="scheduler:overview"
-          headerRight={
-            <label className={styles.filter}>
-              <span className={styles.filterLabel}>Client</span>
-              <select
-                className={styles.filterSelect}
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-              >
-                <option value="all">All clients</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {clientDisplayName(c, useCodenames)}
-                  </option>
-                ))}
-                {allStubs.filter((s) => !s.linked_user_id).length > 0 && (
-                  <optgroup label="Offline clients">
-                    {allStubs
-                      .filter((s) => !s.linked_user_id)
-                      .map((s) => (
-                        <option key={s.id} value={`stub:${s.id}`}>
-                          {useCodenames
-                            ? s.codename || `${s.first_name} ${s.last_name}`
-                            : `${s.first_name} ${s.last_name}`}
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
-              </select>
-            </label>
-          }
-        >
-          <div className={styles.statsGrid}>
-            {statCards.map((s) => (
-              <Card key={s.label} className={styles.statCard}>
-                <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
-                <p className={styles.statLabel}>{s.label}</p>
-              </Card>
-            ))}
-          </div>
-          <div className={styles.chartsGrid}>
-            <DonutChart
-              title="Attendance"
-              slices={attendanceSlices}
-              centerValue={attendanceRate === null ? "—" : `${attendanceRate}%`}
-              centerLabel={attendanceRate === null ? "unmarked" : "attended"}
-            />
-            <DonutChart
-              title="Session status"
-              slices={statusSlices}
-              centerValue={String(stats.total)}
-              centerLabel={stats.total === 1 ? "session" : "sessions"}
-            />
-          </div>
-
-          {/* Session totals — lives under the overview, separated by a divider.
-              Its own period toggle (independent of the client filter above). */}
-          <hr className={styles.divider} />
-          <div className={styles.totalsHeader}>
-            <h3 className={styles.totalsLabel}>Session totals</h3>
-            <div className={styles.periodToggle}>
-              {PERIODS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  className={`${styles.periodBtn} ${period === p.value ? styles.periodActive : ""}`}
-                  onClick={() => setPeriod(p.value)}
+        <Card className={styles.sectionCard}>
+          <CollapsibleSection
+            title="Session overview"
+            storageKey="scheduler:overview"
+            headerRight={
+              <label className={styles.filter}>
+                <span className={styles.filterLabel}>Client</span>
+                <select
+                  className={styles.filterSelect}
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
                 >
-                  {p.label}
-                </button>
+                  <option value="all">All clients</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {clientDisplayName(c, useCodenames)}
+                    </option>
+                  ))}
+                  {allStubs.filter((s) => !s.linked_user_id).length > 0 && (
+                    <optgroup label="Offline clients">
+                      {allStubs
+                        .filter((s) => !s.linked_user_id)
+                        .map((s) => (
+                          <option key={s.id} value={`stub:${s.id}`}>
+                            {useCodenames
+                              ? s.codename || `${s.first_name} ${s.last_name}`
+                              : `${s.first_name} ${s.last_name}`}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+                </select>
+              </label>
+            }
+          >
+            <div className={styles.statsGrid}>
+              {statCards.map((s) => (
+                <Card key={s.label} className={styles.statCard}>
+                  <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
+                  <p className={styles.statLabel}>{s.label}</p>
+                </Card>
               ))}
             </div>
-          </div>
-          <div className={styles.statsGrid}>
-            {totalCards.map((s) => (
-              <Card key={s.label} className={styles.statCard}>
-                <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
-                <p className={styles.statLabel}>{s.label}</p>
-              </Card>
-            ))}
-          </div>
-        </CollapsibleSection>
+            <div className={styles.chartsGrid}>
+              <DonutChart
+                title="Attendance"
+                slices={attendanceSlices}
+                centerValue={attendanceRate === null ? "—" : `${attendanceRate}%`}
+                centerLabel={attendanceRate === null ? "unmarked" : "attended"}
+              />
+              <DonutChart
+                title="Session status"
+                slices={statusSlices}
+                centerValue={String(stats.total)}
+                centerLabel={stats.total === 1 ? "session" : "sessions"}
+              />
+            </div>
 
-        <CollapsibleSection title="Calendar" storageKey="scheduler:calendar">
-          <div className={styles.legend}>
-            <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchWindow}`} /> Availability
-            </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchBlocked}`} /> Blocked
-            </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchSession}`} /> Session
-            </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchPrivate}`} /> Private
-            </span>
-          </div>
-          <p className={styles.calendarHint}>Drag a session to reschedule it, or click one to view and edit it.</p>
-
-          <Card className={styles.calendarCard}>
-            <SchedulerCalendar
-              events={events}
-              date={date}
-              view={view}
-              onNavigate={setDate}
-              onView={setView}
-              onSelectEvent={handleSelectEvent}
-              onEventDrop={handleEventDrop}
-            />
-          </Card>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Session history"
-          storageKey="scheduler:history"
-          headerRight={<span className={styles.historyMeta}>{selectedClientLabel}</span>}
-        >
-          {isStubSelected ? (
-            recentStubSessions.length > 0 ? (
-              <div className={styles.historyList}>
-                {recentStubSessions.map((session, idx) => (
-                  <StubSessionCard
-                    key={session.id}
-                    session={session}
-                    sessionNumber={historyTotal - ((historyPage - 1) * HISTORY_PAGE_SIZE + idx)}
-                    stubId={selectedStubId!}
-                    adminId={userProfile!.id}
-                    isDemo={isDemo}
-                    onUpdated={handleStubSessionUpdated}
-                    onDeleted={handleStubSessionDeleted}
-                  />
+            {/* Session totals — lives under the overview, separated by a divider.
+              Its own period toggle (independent of the client filter above). */}
+            <hr className={styles.divider} />
+            <div className={styles.totalsHeader}>
+              <h3 className={styles.totalsLabel}>Session totals</h3>
+              <div className={styles.periodToggle}>
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`${styles.periodBtn} ${period === p.value ? styles.periodActive : ""}`}
+                    onClick={() => setPeriod(p.value)}
+                  >
+                    {p.label}
+                  </button>
                 ))}
+              </div>
+            </div>
+            <div className={styles.statsGrid}>
+              {totalCards.map((s) => (
+                <Card key={s.label} className={styles.statCard}>
+                  <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
+                  <p className={styles.statLabel}>{s.label}</p>
+                </Card>
+              ))}
+            </div>
+          </CollapsibleSection>
+        </Card>
+
+        <Card className={styles.sectionCard}>
+          <CollapsibleSection title="Calendar" storageKey="scheduler:calendar">
+            <div className={styles.legend}>
+              <span className={styles.legendItem}>
+                <span className={`${styles.swatch} ${styles.swatchWindow}`} /> Availability
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.swatch} ${styles.swatchBlocked}`} /> Blocked
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.swatch} ${styles.swatchSession}`} /> Session
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.swatch} ${styles.swatchPrivate}`} /> Private
+              </span>
+            </div>
+            <p className={styles.calendarHint}>Drag a session to reschedule it, or click one to view and edit it.</p>
+
+            <Card className={styles.calendarCard}>
+              <SchedulerCalendar
+                events={events}
+                date={date}
+                view={view}
+                onNavigate={setDate}
+                onView={setView}
+                onSelectEvent={handleSelectEvent}
+                onEventDrop={handleEventDrop}
+              />
+            </Card>
+          </CollapsibleSection>
+        </Card>
+
+        <Card className={styles.sectionCard}>
+          <CollapsibleSection
+            title="Session history"
+            storageKey="scheduler:history"
+            headerRight={<span className={styles.historyMeta}>{selectedClientLabel}</span>}
+          >
+            {isStubSelected ? (
+              recentStubSessions.length > 0 ? (
+                <div className={styles.historyList}>
+                  {recentStubSessions.map((session, idx) => (
+                    <StubSessionCard
+                      key={session.id}
+                      session={session}
+                      sessionNumber={historyTotal - ((historyPage - 1) * HISTORY_PAGE_SIZE + idx)}
+                      stubId={selectedStubId!}
+                      adminId={userProfile!.id}
+                      isDemo={isDemo}
+                      onUpdated={handleStubSessionUpdated}
+                      onDeleted={handleStubSessionDeleted}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className={styles.empty}>No past sessions.</p>
+              )
+            ) : recentSessions.length > 0 ? (
+              <div className={styles.historyList}>
+                {recentSessions.map((session) => {
+                  const client = clients.find((c) => c.id === session.client_id);
+                  return (
+                    <SessionCard
+                      key={session.id}
+                      session={session}
+                      isAdmin
+                      isDemo={isDemo}
+                      clientLabel={client ? clientDisplayName(client, useCodenames) : undefined}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <p className={styles.empty}>No past sessions.</p>
-            )
-          ) : recentSessions.length > 0 ? (
-            <div className={styles.historyList}>
-              {recentSessions.map((session) => {
-                const client = clients.find((c) => c.id === session.client_id);
-                return (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    isAdmin
-                    isDemo={isDemo}
-                    clientLabel={client ? clientDisplayName(client, useCodenames) : undefined}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className={styles.empty}>No past sessions.</p>
-          )}
-          {historyPageCount > 1 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-2)", marginTop: "var(--sp-3)" }}>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setHistoryPage((p) => p - 1)}
-                disabled={historyPage <= 1}
-              >
-                ← Prev
-              </Button>
-              <span className={styles.historyMeta}>
-                Page {historyPage} of {historyPageCount}
-              </span>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setHistoryPage((p) => p + 1)}
-                disabled={historyPage >= historyPageCount}
-              >
-                Next →
-              </Button>
-            </div>
-          )}
-        </CollapsibleSection>
+            )}
+            {historyPageCount > 1 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-2)", marginTop: "var(--sp-3)" }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setHistoryPage((p) => p - 1)}
+                  disabled={historyPage <= 1}
+                >
+                  ← Prev
+                </Button>
+                <span className={styles.historyMeta}>
+                  Page {historyPage} of {historyPageCount}
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setHistoryPage((p) => p + 1)}
+                  disabled={historyPage >= historyPageCount}
+                >
+                  Next →
+                </Button>
+              </div>
+            )}
+          </CollapsibleSection>
+        </Card>
       </div>
 
       {pendingDrop && (

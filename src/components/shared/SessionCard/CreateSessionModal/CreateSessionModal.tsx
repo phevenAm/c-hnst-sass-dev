@@ -450,7 +450,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
                 className={styles.input}
                 type="number"
                 min={1}
-                max={3}
+                max={11}
                 value={recurringWeeks}
                 onChange={(e) => setRecurringWeeks(Number(e.target.value))}
               />

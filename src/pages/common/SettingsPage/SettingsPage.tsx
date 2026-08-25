@@ -9,6 +9,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import { ChevronDown } from "@components/shared/Icons/Icons";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
@@ -87,6 +88,63 @@ const PII_BANK_KEYS: BankField[] = [
   "bank_payment_reference",
 ];
 
+// Reads a persisted collapse state — falls back to open (true) so existing
+// settings stay visible for anyone who hasn't touched a given section yet.
+const readCardOpen = (storageKey: string): boolean => {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    return raw === null ? true : raw === "1";
+  } catch {
+    return true;
+  }
+};
+
+// Every Practice/Interface section shares this shape: a collapsible white
+// card with its own title, filterable by the tab's search box. storageKey
+// persists open/closed per section across reloads, same as CollapsibleSection
+// elsewhere in the app — kept separate here since these sections' padding
+// (.businessSection + .actions as independent full-bleed blocks) doesn't fit
+// CollapsibleSection's single-body layout without reworking every section.
+function SettingsCard({
+  title,
+  storageKey,
+  searchQuery,
+  children,
+}: {
+  title: string;
+  storageKey: string;
+  searchQuery: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(() => readCardOpen(storageKey));
+
+  if (searchQuery.trim() && !title.toLowerCase().includes(searchQuery.trim().toLowerCase())) return null;
+
+  const toggle = () => {
+    setOpen((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(storageKey, next ? "1" : "0");
+      } catch {
+        /* ignore write failures (private mode etc.) */
+      }
+      return next;
+    });
+  };
+
+  return (
+    <Card className={styles.card}>
+      <button type="button" className={styles.cardToggle} onClick={toggle} aria-expanded={open}>
+        <span className={`${styles.cardChevron} ${open ? styles.cardChevronOpen : ""}`} aria-hidden="true">
+          <ChevronDown />
+        </span>
+        <h2 className={styles.cardToggleTitle}>{title}</h2>
+      </button>
+      {open && children}
+    </Card>
+  );
+}
+
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
   const { status: encStatus, encryptPII, decryptPII } = useEncryption();
@@ -112,6 +170,8 @@ const SettingsPage = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showRegenerateCodeModal, setShowRegenerateCodeModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
+  const [practiceSearch, setPracticeSearch] = useState("");
+  const [interfaceSearch, setInterfaceSearch] = useState("");
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
     business_name: "",
@@ -742,18 +802,20 @@ const SettingsPage = () => {
 
         {/* ── Tab bar (admin only) ── */}
         {isAdmin && (
-          <div className={styles.tabs} id="settings-tabs">
-            {ADMIN_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <Card className={styles.tabsCard}>
+            <div className={styles.tabs} id="settings-tabs">
+              {ADMIN_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </Card>
         )}
 
         {/* ── Profile tab ── */}
@@ -855,6 +917,14 @@ const SettingsPage = () => {
         {/* ── Practice tab (admin only) ── */}
         {isAdmin && activeTab === "practice" && (
           <>
+            <input
+              type="search"
+              className={styles.sectionSearch}
+              placeholder="Search practice settings…"
+              value={practiceSearch}
+              onChange={(e) => setPracticeSearch(e.target.value)}
+              aria-label="Search practice settings"
+            />
             {piiLocked && (
               <div
                 style={{
@@ -872,9 +942,12 @@ const SettingsPage = () => {
             )}
 
             {/* Business info */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Business information"
+              storageKey="settings:practice:business"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Business information</h2>
                 <p>This information can be used across the app and in client communications.</p>
                 <form className={styles.form}>
                   {BUSINESS_FIELDS.map(({ key, label }) => (
@@ -912,12 +985,55 @@ const SettingsPage = () => {
                   {savingBusiness ? "Saving…" : "Save business info"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
+
+            {/* Client codenames */}
+            <SettingsCard
+              title="Client codenames"
+              storageKey="settings:practice:codenames"
+              searchQuery={practiceSearch}
+            >
+              <section className={styles.businessSection}>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Use codenames</strong>
+                    <span>Show codenames instead of real names in your admin UI</span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={useCodenames}
+                      onChange={(e) => setUseCodenames(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                <p className={styles.toggleHint}>
+                  Set each client's codename from their profile page. If no codename is set, their real name is used as
+                  a fallback.
+                </p>
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveCodenames}
+                  disabled={savingCodenames}
+                >
+                  {savingCodenames ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </SettingsCard>
 
             {/* Session types & prices */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Session types & prices"
+              storageKey="settings:practice:packages"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Session types & prices</h2>
                 <p>These are what you'll pick from when booking a client's session.</p>
                 {sessionPackages.length > 0 && (
                   <ul className={styles.packageList}>
@@ -978,12 +1094,11 @@ const SettingsPage = () => {
                   </Button>
                 </div>
               </section>
-            </Card>
+            </SettingsCard>
 
             {/* Bank details */}
-            <Card className={styles.card}>
+            <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={practiceSearch}>
               <section className={styles.businessSection}>
-                <h2>Bank details</h2>
                 <p>Shown to clients as a payment option when they pay for a session.</p>
                 <form className={styles.form}>
                   {BANK_FIELDS.map(({ key, label, placeholder }) => (
@@ -1003,12 +1118,15 @@ const SettingsPage = () => {
                   {savingBank ? "Saving…" : "Save bank details"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
 
             {/* Stripe Connect */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Card payments"
+              storageKey="settings:practice:card-payments"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Card payments</h2>
                 <p>
                   Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
                 </p>
@@ -1051,17 +1169,16 @@ const SettingsPage = () => {
                   </Button>
                 )}
               </section>
-            </Card>
+            </SettingsCard>
 
             {/* Calendar sync */}
-            <Card className={styles.card}>
+            <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={practiceSearch}>
               <section className={styles.businessSection}>
-                <h2>Calendar sync</h2>
                 <p>Choose how your sessions show up in your own calendar.</p>
 
                 <div style={{ display: "grid", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
                   <div>
-                    <strong>Built-in (.ics download)</strong>
+                    <h3>Built-in (.ics download)</h3>
                     <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
                       Download a calendar file for any session and import it manually. Works with any calendar app —
                       nothing is connected automatically, so changes made in-app won't update a file you've already
@@ -1069,7 +1186,7 @@ const SettingsPage = () => {
                     </p>
                   </div>
                   <div>
-                    <strong>Google Calendar (auto-sync)</strong>
+                    <h3>Google Calendar (auto-sync)</h3>
                     <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
                       Connect your Google account once — every session you book, reschedule, or cancel is pushed to your
                       Google Calendar automatically. One-way only: changes made directly in Google don't come back into
@@ -1117,12 +1234,15 @@ const SettingsPage = () => {
                   </WIP>
                 )}
               </section>
-            </Card>
+            </SettingsCard>
 
             {/* Session automation */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Session automation"
+              storageKey="settings:practice:auto-cancel"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Session automation</h2>
                 <p>
                   Off by default. When enabled, any session that remains unpaid past the cutoff date is{" "}
                   <strong>automatically cancelled</strong> and a{" "}
@@ -1179,12 +1299,15 @@ const SettingsPage = () => {
                   {savingAutoCancel ? "Saving…" : "Save"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
 
             {/* Reschedule cutoff */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Reschedule & cancellation cutoff"
+              storageKey="settings:practice:cutoff"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Reschedule &amp; cancellation cutoff</h2>
                 <p>
                   Controls how close to a session clients can still pay, reschedule, or cancel it themselves through
                   their portal. Doesn't affect what you can do from the admin side.
@@ -1240,12 +1363,15 @@ const SettingsPage = () => {
                   {savingRescheduleCutoff ? "Saving…" : "Save"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
 
             {/* Admin session-prep reminders */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Session-prep reminders"
+              storageKey="settings:practice:prep-reminders"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Session-prep reminders</h2>
                 <p>
                   Get an in-app notification before your own sessions so you can review the client's history first.
                   Doesn't email anyone — it's just for you.
@@ -1363,12 +1489,15 @@ const SettingsPage = () => {
                   {savingAdminReminders ? "Saving…" : "Save"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
 
             {/* Block session cancellation */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Block booking cancellations"
+              storageKey="settings:practice:block-cancellation"
+              searchQuery={practiceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Block booking cancellations</h2>
                 <p>
                   Controls whether clients can request to cancel a single session that's part of a block booking.
                   Doesn't affect blocks that are already fully paid — those can never be cancelled session-by-session,
@@ -1407,12 +1536,11 @@ const SettingsPage = () => {
                   {savingBlockCancellation ? "Saving…" : "Save"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
 
             {/* Client consent */}
-            <Card className={styles.card}>
+            <SettingsCard title="Client consent" storageKey="settings:practice:consent" searchQuery={practiceSearch}>
               <section className={styles.businessSection}>
-                <h2>Client consent</h2>
                 <p>
                   When enabled, new clients must read and agree to your terms before they can access the app. Existing
                   clients who signed up before this was turned on are not affected.
@@ -1528,13 +1656,16 @@ const SettingsPage = () => {
                   {savingConsent ? "Saving…" : "Save consent settings"}
                 </Button>
               </div>
-            </Card>
+            </SettingsCard>
 
             {/* Subscription */}
             {practiceSettings && (
-              <Card className={styles.card}>
+              <SettingsCard
+                title="Subscription"
+                storageKey="settings:practice:subscription"
+                searchQuery={practiceSearch}
+              >
                 <section className={styles.businessSection}>
-                  <h2>Subscription</h2>
                   <p>
                     Status:{" "}
                     <strong
@@ -1574,14 +1705,13 @@ const SettingsPage = () => {
                     </Button>
                   </div>
                 )}
-              </Card>
+              </SettingsCard>
             )}
 
             {/* Refer a friend */}
             {practiceSettings?.referral_code && (
-              <Card className={styles.card}>
+              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
                 <section className={styles.businessSection}>
-                  <h2>Refer a friend</h2>
                   <p>
                     Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
                     credited to your account automatically.
@@ -1601,7 +1731,7 @@ const SettingsPage = () => {
                     {referralCopied ? "Copied!" : "Copy link"}
                   </Button>
                 </div>
-              </Card>
+              </SettingsCard>
             )}
           </>
         )}
@@ -1609,10 +1739,18 @@ const SettingsPage = () => {
         {/* ── Interface tab (admin only) ── */}
         {isAdmin && activeTab === "interface" && (
           <>
+            <input
+              type="search"
+              className={styles.sectionSearch}
+              placeholder="Search interface settings…"
+              value={interfaceSearch}
+              onChange={(e) => setInterfaceSearch(e.target.value)}
+              aria-label="Search interface settings"
+            />
+
             {/* Clients */}
-            <Card className={styles.card}>
+            <SettingsCard title="Clients" storageKey="settings:interface:clients" searchQuery={interfaceSearch}>
               <section className={styles.businessSection}>
-                <h2>Clients</h2>
                 <p>Show or hide parts of the clients interface.</p>
                 {(
                   [
@@ -1642,43 +1780,12 @@ const SettingsPage = () => {
                     </span>
                   </label>
                 ))}
-                <label className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>
-                    <strong>Use codenames</strong>
-                    <span>Show codenames instead of real names in your admin UI</span>
-                  </span>
-                  <span className={`${styles.toggleSwitch} ${useCodenames ? styles.toggleSwitchOn : ""}`}>
-                    <input
-                      type="checkbox"
-                      className={styles.toggleInput}
-                      checked={useCodenames}
-                      onChange={(e) => setUseCodenames(e.target.checked)}
-                    />
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-                <p className={styles.toggleHint}>
-                  Set each client's codename from their profile page. If no codename is set, their real name is used as
-                  a fallback.
-                </p>
               </section>
-              <div className={styles.actions}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className={styles.saveButton}
-                  onClick={handleSaveCodenames}
-                  disabled={savingCodenames}
-                >
-                  {savingCodenames ? "Saving…" : "Save"}
-                </Button>
-              </div>
-            </Card>
+            </SettingsCard>
 
             {/* Dashboard */}
-            <Card className={styles.card}>
+            <SettingsCard title="Dashboard" storageKey="settings:interface:dashboard" searchQuery={interfaceSearch}>
               <section className={styles.businessSection}>
-                <h2>Dashboard</h2>
                 <p>Show or hide widgets on the admin dashboard.</p>
                 {(
                   [
@@ -1709,12 +1816,15 @@ const SettingsPage = () => {
                   </label>
                 ))}
               </section>
-            </Card>
+            </SettingsCard>
 
             {/* Accessibility */}
-            <Card className={styles.card}>
+            <SettingsCard
+              title="Accessibility"
+              storageKey="settings:interface:accessibility"
+              searchQuery={interfaceSearch}
+            >
               <section className={styles.businessSection}>
-                <h2>Accessibility</h2>
                 <p>Adjust the app's visual behaviour.</p>
                 <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
@@ -1732,12 +1842,11 @@ const SettingsPage = () => {
                   </span>
                 </label>
               </section>
-            </Card>
+            </SettingsCard>
 
             {/* Guided tour */}
-            <Card className={styles.card}>
+            <SettingsCard title="Guided tours" storageKey="settings:interface:tours" searchQuery={interfaceSearch}>
               <section className={styles.businessSection}>
-                <h2>Guided tours</h2>
                 <p>
                   Page walkthroughs appear the first time you visit each section. Reset them here to replay any tour.
                 </p>
@@ -1762,12 +1871,11 @@ const SettingsPage = () => {
                   </Button>
                 </div>
               </section>
-            </Card>
+            </SettingsCard>
 
             {/* Sidebar */}
-            <Card className={styles.card}>
+            <SettingsCard title="Sidebar" storageKey="settings:interface:sidebar" searchQuery={interfaceSearch}>
               <section className={styles.businessSection}>
-                <h2>Sidebar</h2>
                 <p>Customise the position of the sidebar expand button.</p>
                 <div className={styles.settingRow}>
                   <span className={styles.toggleLabel}>
@@ -1792,7 +1900,7 @@ const SettingsPage = () => {
                   </div>
                 </div>
               </section>
-            </Card>
+            </SettingsCard>
           </>
         )}
 

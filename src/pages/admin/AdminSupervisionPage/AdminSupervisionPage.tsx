@@ -31,7 +31,6 @@ type ManualRow = {
   issues_raised: string | null;
   venue: string | null;
   notes: string | null;
-  track_as_cpd: boolean;
   created_at: string;
 };
 
@@ -60,7 +59,6 @@ type Entry = {
   issuesRaised: string | null;
   venue: string | null;
   notes: string | null;
-  trackAsCpd: boolean;
   raw: ManualRow | null;
 };
 
@@ -77,7 +75,6 @@ type FormState = {
   issues_raised: string;
   venue: string;
   notes: string;
-  track_as_cpd: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -93,7 +90,6 @@ const EMPTY_FORM: FormState = {
   issues_raised: "",
   venue: "",
   notes: "",
-  track_as_cpd: false,
 };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -145,7 +141,6 @@ function SupervisionModal({
           issues_raised: initial.issues_raised ?? "",
           venue: initial.venue ?? "",
           notes: initial.notes ?? "",
-          track_as_cpd: initial.track_as_cpd,
         }
       : { ...EMPTY_FORM, session_number: String(nextSessionNumber) },
   );
@@ -181,7 +176,6 @@ function SupervisionModal({
       issues_raised: form.issues_raised.trim() || null,
       venue: form.venue.trim() || null,
       notes: form.notes.trim() || null,
-      track_as_cpd: form.track_as_cpd,
     };
 
     const { error } = initial
@@ -352,15 +346,6 @@ function SupervisionModal({
               placeholder="Reflections, action points…"
             />
           </div>
-
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={form.track_as_cpd}
-              onChange={(e) => set("track_as_cpd", e.target.checked)}
-            />
-            Track this session as a CPD item
-          </label>
         </div>
 
         <div className={styles.modalFooter}>
@@ -470,7 +455,6 @@ export default function AdminSupervisionPage() {
         issuesRaised: r.issues_raised,
         venue: r.venue,
         notes: r.notes,
-        trackAsCpd: r.track_as_cpd,
         raw: r,
       }),
     ),
@@ -490,7 +474,6 @@ export default function AdminSupervisionPage() {
         issuesRaised: null,
         venue: null,
         notes: r.notes,
-        trackAsCpd: false,
         raw: null,
       }),
     ),
@@ -510,7 +493,6 @@ export default function AdminSupervisionPage() {
         issuesRaised: null,
         venue: null,
         notes: r.notes,
-        trackAsCpd: false,
         raw: null,
       }),
     ),

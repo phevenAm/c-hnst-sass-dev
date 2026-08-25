@@ -16,14 +16,7 @@ import CpdExportModal from "./CpdExportModal";
 
 import styles from "./AdminCpdPage.module.scss";
 
-export type CpdActivityType =
-  | "supervision"
-  | "training"
-  | "reading"
-  | "conference"
-  | "peer_consultation"
-  | "personal_therapy"
-  | "other";
+export type CpdActivityType = "training" | "reading" | "conference" | "other";
 
 export type CpdLog = {
   id: string;
@@ -46,12 +39,9 @@ export type CpdLog = {
 };
 
 const ACTIVITY_LABELS: Record<CpdActivityType, string> = {
-  supervision: "Supervision",
   training: "Training",
   reading: "Reading",
   conference: "Conference",
-  peer_consultation: "Peer Consultation",
-  personal_therapy: "Personal Therapy",
   other: "Other",
 };
 
@@ -90,8 +80,9 @@ export default function AdminCpdPage() {
       supabase.from("cpd_logs").select("*").eq("admin_id", userProfile.id).order("date", { ascending: false }),
       supabase
         .from("admin_private_events")
-        .select("id, admin_id, title, starts_at, ends_at, notes, is_supervision, created_at")
-        .eq("is_cpd", true),
+        .select("id, admin_id, title, starts_at, ends_at, notes, created_at")
+        .eq("is_cpd", true)
+        .eq("is_supervision", false),
     ]);
     if (error) showToast("Failed to load CPD log", "error");
     else {
@@ -100,14 +91,14 @@ export default function AdminCpdPage() {
         id: pe.id,
         admin_id: pe.admin_id,
         date: pe.starts_at.slice(0, 10),
-        activity_type: (pe.is_supervision ? "supervision" : "other") as CpdActivityType,
+        activity_type: "other" as CpdActivityType,
         session_number: null,
         contract_code: null,
         mode: null,
         venue: null,
-        issues_raised: pe.is_supervision ? pe.notes : null,
-        supervisor_name: pe.is_supervision ? pe.title : null,
-        title: pe.is_supervision ? null : pe.title,
+        issues_raised: null,
+        supervisor_name: null,
+        title: pe.title,
         provider: null,
         duration_minutes: Math.round((new Date(pe.ends_at).getTime() - new Date(pe.starts_at).getTime()) / 60000),
         notes: pe.notes,
@@ -186,8 +177,8 @@ export default function AdminCpdPage() {
       l.contract_code ?? "",
       l.mode ?? "",
       l.venue ?? "",
-      l.activity_type === "supervision" ? (l.issues_raised ?? "") : (l.title ?? ""),
-      l.activity_type === "supervision" ? (l.supervisor_name ?? "") : (l.provider ?? ""),
+      l.title ?? "",
+      l.provider ?? "",
       minutesToHours(l.duration_minutes),
       l.notes ?? "",
     ]);
@@ -219,15 +210,12 @@ export default function AdminCpdPage() {
 
     autoTable(doc, {
       startY: 44,
-      head: [["Date", "Type", "Session #", "Title / Issues", "Supervisor / Provider", "Mode", "Venue", "Duration"]],
+      head: [["Date", "Type", "Title", "Provider", "Duration"]],
       body: logsToExport.map((l) => [
         l.date,
         activityLabel(l),
-        l.session_number ?? "",
-        l.activity_type === "supervision" ? (l.issues_raised ?? "") : (l.title ?? ""),
-        l.activity_type === "supervision" ? (l.supervisor_name ?? "") : (l.provider ?? ""),
-        l.mode ?? "",
-        l.venue ?? "",
+        l.title ?? "",
+        l.provider ?? "",
         minutesToHours(l.duration_minutes),
       ]),
       styles: { fontSize: 8, cellPadding: 2 },
@@ -265,13 +253,7 @@ export default function AdminCpdPage() {
   const hoursLogged = totalHours(thisYearLogs);
   const progressPct = Math.min(100, (hoursLogged / target) * 100);
 
-  const standardFilterTypes: CpdActivityType[] = [
-    "training",
-    "reading",
-    "conference",
-    "peer_consultation",
-    "personal_therapy",
-  ];
+  const standardFilterTypes: CpdActivityType[] = ["training", "reading", "conference"];
   const customCategoryFilters = Array.from(
     new Set(logs.filter((l) => l.activity_type === "other" && l.custom_category).map((l) => l.custom_category!)),
   );
@@ -284,8 +266,6 @@ export default function AdminCpdPage() {
     if (filterType === "other") return logs.filter((l) => l.activity_type === "other" && !l.custom_category);
     return logs.filter((l) => l.activity_type === "other" && l.custom_category === filterType);
   })();
-
-  const nextSessionNumber = (logs.filter((l) => l.activity_type === "supervision").length ?? 0) + 1;
 
   if (loading) return null;
 
@@ -332,28 +312,30 @@ export default function AdminCpdPage() {
         </Card>
 
         {/* Filter tabs */}
-        <div className={styles.filters} id="cpd-filters">
-          {(["all", ...standardFilterTypes, ...(hasGenericOther ? ["other"] : [])] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={`${styles.filterBtn} ${filterType === t ? styles.filterBtnActive : ""}`}
-              onClick={() => setFilterType(t)}
-            >
-              {t === "all" ? "All" : ACTIVITY_LABELS[t as CpdActivityType]}
-            </button>
-          ))}
-          {customCategoryFilters.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              className={`${styles.filterBtn} ${filterType === cat ? styles.filterBtnActive : ""}`}
-              onClick={() => setFilterType(cat)}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        <Card className={styles.filtersCard} id="cpd-filters">
+          <div className={styles.filters}>
+            {(["all", ...standardFilterTypes, ...(hasGenericOther ? ["other"] : [])] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`${styles.filterBtn} ${filterType === t ? styles.filterBtnActive : ""}`}
+                onClick={() => setFilterType(t)}
+              >
+                {t === "all" ? "All" : ACTIVITY_LABELS[t as CpdActivityType]}
+              </button>
+            ))}
+            {customCategoryFilters.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`${styles.filterBtn} ${filterType === cat ? styles.filterBtnActive : ""}`}
+                onClick={() => setFilterType(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </Card>
 
         {/* Log table */}
         {visibleLogs.length === 0 ? (
@@ -367,8 +349,8 @@ export default function AdminCpdPage() {
                 <tr>
                   <th>Date</th>
                   <th>Type</th>
-                  <th>Title / Issues raised</th>
-                  <th>Supervisor / Provider</th>
+                  <th>Title</th>
+                  <th>Provider</th>
                   <th>Duration</th>
                   <th>Action</th>
                 </tr>
@@ -380,15 +362,10 @@ export default function AdminCpdPage() {
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${log.activity_type}`]}`}>
                         {activityLabel(log)}
-                        {log.activity_type === "supervision" && log.session_number ? ` #${log.session_number}` : ""}
                       </span>
                     </td>
-                    <td className={styles.textCell}>
-                      {log.activity_type === "supervision" ? log.issues_raised : log.title}
-                    </td>
-                    <td className={styles.textCell}>
-                      {log.activity_type === "supervision" ? log.supervisor_name : log.provider}
-                    </td>
+                    <td className={styles.textCell}>{log.title}</td>
+                    <td className={styles.textCell}>{log.provider}</td>
                     <td className={styles.durationCell}>{minutesToHours(log.duration_minutes)}</td>
                     <td className={styles.actionsCell}>
                       {log._source === "private_event" ? (
@@ -425,7 +402,6 @@ export default function AdminCpdPage() {
         <CpdEntryModal
           initial={editing}
           adminId={userProfile?.id ?? ""}
-          nextSessionNumber={nextSessionNumber}
           onClose={() => setModalOpen(false)}
           onSaved={() => {
             setModalOpen(false);

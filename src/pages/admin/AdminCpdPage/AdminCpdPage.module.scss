@@ -81,6 +81,10 @@
 
 // ── Filters ────────────────────────────────────────────────
 
+.filtersCard {
+  padding: $sp-4 $sp-6;
+}
+
 .filters {
   display: flex;
   gap: $sp-2;
@@ -219,22 +223,16 @@
   color: var(--text-secondary);
 }
 
-.badge_supervision    { background: #dff2ef; color: #1f4940; }
 .badge_training       { background: #e8f0fe; color: #1a56a0; }
 .badge_reading        { background: #fef9e7; color: #7d5a00; }
 .badge_conference     { background: #fce8d5; color: #7a3210; }
-.badge_peer_consultation { background: #ede9fe; color: #4c1d95; }
-.badge_personal_therapy  { background: #fce7f3; color: #831843; }
 .badge_other          { background: var(--bg-muted); color: var(--text-muted); }
 
 // Dark mode badge overrides
 :global(.dark) {
-  .badge_supervision    { background: #1a3d38; color: #8ecfc3; }
   .badge_training       { background: #1e3a5f; color: #93c5fd; }
   .badge_reading        { background: #3d2e00; color: #fcd34d; }
   .badge_conference     { background: #3d1a00; color: #fdba74; }
-  .badge_peer_consultation { background: #2e1065; color: #c4b5fd; }
-  .badge_personal_therapy  { background: #4a0020; color: #f9a8d4; }
 }
 
 // ── Empty state ────────────────────────────────────────────

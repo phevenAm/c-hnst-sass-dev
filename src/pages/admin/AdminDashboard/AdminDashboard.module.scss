@@ -194,7 +194,6 @@
 // ── Section card (card background for chunking) ────────────
 .sectionCard {
   padding: $sp-5 $sp-6;
-  border: 1px solid var(--border);
   margin-bottom: $sp-5;
 
   // Collapse the CollapsibleSection's own bottom margin since the card provides spacing.
@@ -216,15 +215,16 @@
   align-items: start;
 
   // Both cards same height in grid — use align-items: stretch
-  > * {
+  >* {
     margin-bottom: 0;
     height: auto;
+    // height: 100%;
   }
 
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
 
-    > * {
+    >* {
       margin-bottom: $sp-4;
     }
   }

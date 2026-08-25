@@ -664,74 +664,78 @@ const AdminPaymentsPage = () => {
         )}
 
         {/* ── Summary ── */}
-        <CollapsibleSection title="Summary" storageKey="payments:summary">
-          <div className={styles.statsGrid}>
-            {[
-              { label: "Collected", value: money(stats.collectedPence), tone: styles.toneGood },
-              { label: "Outstanding", value: money(stats.outstandingPence), tone: styles.toneWarn },
-              { label: "Paid sessions", value: stats.paidCount, tone: "" },
-              { label: "Unpaid sessions", value: stats.unpaidCount, tone: "" },
-            ].map((s) => (
-              <Card key={s.label} className={styles.statCard}>
-                <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
-                <p className={styles.statLabel}>{s.label}</p>
-              </Card>
-            ))}
-          </div>
-          <div className={styles.chartsGrid}>
-            <TrendChart
-              title="Revenue (last 6 months)"
-              data={revenueData}
-              type="bar"
-              color="#2d7264"
-              valueFormatter={(v) => `£${v.toFixed(2)}`}
-            />
-            <DonutChart
-              title="Paid vs unpaid"
-              slices={paymentSlices}
-              centerValue={money(stats.collectedPence)}
-              centerLabel="collected"
-            />
-          </div>
-        </CollapsibleSection>
+        <Card className={styles.sectionCard}>
+          <CollapsibleSection title="Summary" storageKey="payments:summary">
+            <div className={styles.statsGrid}>
+              {[
+                { label: "Collected", value: money(stats.collectedPence), tone: styles.toneGood },
+                { label: "Outstanding", value: money(stats.outstandingPence), tone: styles.toneWarn },
+                { label: "Paid sessions", value: stats.paidCount, tone: "" },
+                { label: "Unpaid sessions", value: stats.unpaidCount, tone: "" },
+              ].map((s) => (
+                <Card key={s.label} className={styles.statCard}>
+                  <p className={`${styles.statValue} ${s.tone}`}>{s.value}</p>
+                  <p className={styles.statLabel}>{s.label}</p>
+                </Card>
+              ))}
+            </div>
+            <div className={styles.chartsGrid}>
+              <TrendChart
+                title="Revenue (last 6 months)"
+                data={revenueData}
+                type="bar"
+                color="#2d7264"
+                valueFormatter={(v) => `£${v.toFixed(2)}`}
+              />
+              <DonutChart
+                title="Paid vs unpaid"
+                slices={paymentSlices}
+                centerValue={money(stats.collectedPence)}
+                centerLabel="collected"
+              />
+            </div>
+          </CollapsibleSection>
+        </Card>
 
-        {/* ── Payments table ── */}
         <Card className={styles.tableCard}>
-          <SortableTable<PaymentRow>
-            columns={columns}
-            rows={ledgerRows}
-            rowKey={(r) => `${r.source}-${r.id}`}
-            emptyText="No payments to show."
-            page={ledgerPage}
-            totalCount={ledgerTotal}
-            pageSize={LEDGER_PAGE_SIZE}
-            onPageChange={setLedgerPage}
-            loading={ledgerLoading}
-            toolbar={
-              <div className={styles.tableToolbar}>
-                <div className={styles.statusFilters}>
-                  {(["all", "paid", "unpaid"] as StatusFilter[]).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      className={`${styles.filterPill} ${statusFilter === f ? styles.filterPillActive : ""}`}
-                      onClick={() => setStatusFilter(f)}
-                    >
-                      {statusPillLabel(f, unpaidLedgerCount)}
-                    </button>
-                  ))}
+          <CollapsibleSection title="History" storageKey="payments:table">
+            {/* ── Payments table ── */}
+            <SortableTable<PaymentRow>
+              columns={columns}
+              rows={ledgerRows}
+              rowKey={(r) => `${r.source}-${r.id}`}
+              emptyText="No payments to show."
+              page={ledgerPage}
+              totalCount={ledgerTotal}
+              pageSize={LEDGER_PAGE_SIZE}
+              onPageChange={setLedgerPage}
+              loading={ledgerLoading}
+              toolbar={
+                <div className={styles.tableToolbar}>
+                  <div className={styles.statusFilters}>
+                    {(["all", "paid", "unpaid"] as StatusFilter[]).map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`${styles.filterPill} ${statusFilter === f ? styles.filterPillActive : ""}`}
+                        onClick={() => setStatusFilter(f)}
+                      >
+                        {statusPillLabel(f, unpaidLedgerCount)}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="search"
+                    className={styles.tableSearchInput}
+                    placeholder="Search by client or description…"
+                    value={ledgerSearchInput}
+                    onChange={(e) => setLedgerSearchInput(e.target.value)}
+                    aria-label="Search payments"
+                  />
                 </div>
-                <input
-                  type="search"
-                  className={styles.tableSearchInput}
-                  placeholder="Search by client or description…"
-                  value={ledgerSearchInput}
-                  onChange={(e) => setLedgerSearchInput(e.target.value)}
-                  aria-label="Search payments"
-                />
-              </div>
-            }
-          />
+              }
+            />
+          </CollapsibleSection>
         </Card>
       </div>
 
