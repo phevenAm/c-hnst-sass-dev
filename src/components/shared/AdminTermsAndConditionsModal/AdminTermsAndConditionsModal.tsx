@@ -12,7 +12,7 @@ type modalProps = {
 const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
   return (
     <Modal title="Terms &amp; Conditions" onClose={onClose}>
-      <p className={styles.updated}>Last updated: August 2026</p>
+      <p className={styles.updated}>Last updated: 24 August 2026</p>
 
       <section>
         <h2>1. Introduction</h2>
@@ -106,7 +106,19 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       </section>
 
       <p className={styles.contact}>
-        Questions? Contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
+        This is a summary — read the full{" "}
+        <a href="/terms" target="_blank" rel="noopener noreferrer">
+          Terms of Service
+        </a>
+        ,{" "}
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">
+          Privacy Policy
+        </a>
+        , and{" "}
+        <a href="/security" target="_blank" rel="noopener noreferrer">
+          Security
+        </a>{" "}
+        page. Questions? Contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
       </p>
 
       <div className={styles.modalAction}>{action}</div>

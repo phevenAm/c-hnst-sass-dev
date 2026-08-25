@@ -16,7 +16,7 @@ type Props = {
 
 export default function CreateStubModal({ onClose, existing }: Props) {
   const dispatch = useAppDispatch();
-  const { userProfile } = useAuth();
+  const { userProfile, isDemo } = useAuth();
   const [firstName, setFirstName] = useState(existing?.first_name ?? "");
   const [lastName, setLastName] = useState(existing?.last_name ?? "");
   const [email, setEmail] = useState(existing?.email ?? "");
@@ -27,6 +27,10 @@ export default function CreateStubModal({ onClose, existing }: Props) {
   const isEdit = !!existing;
 
   const handleSubmit = async () => {
+    if (isDemo) {
+      setError("Demo mode — changes are not saved.");
+      return;
+    }
     if (!firstName.trim() || !lastName.trim()) {
       setError("First and last name are required.");
       return;

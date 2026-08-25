@@ -199,6 +199,21 @@
 .statusInactive { background: var(--bg-muted); color: var(--text-muted); }
 .statusCancelled { background: #fee2e2; color: #991b1b; }
 .statusPastDue { background: #fef3c7; color: #92400e; }
+.statusPaused { background: #fecaca; color: #7f1d1d; }
+
+.pauseReasonInput {
+  width: 100%;
+  min-height: 80px;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 6px);
+  background: var(--bg-input, var(--bg-secondary));
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
 
 .dateCell {
   color: var(--text-muted);

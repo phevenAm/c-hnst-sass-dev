@@ -72,6 +72,11 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
   };
 
   const handleSaveCode = () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      setEditingCode(false);
+      return;
+    }
     dispatch(updateSession({ id: session.id, reference_code: codeText.trim() || null }));
     setEditingCode(false);
   };
@@ -115,6 +120,11 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
   };
 
   const handleSaveNotes = () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      setEditingNotes(false);
+      return;
+    }
     dispatch(updateSession({ id: session.id, notes: notesText.trim() || null }));
     setEditingNotes(false);
   };
@@ -369,7 +379,13 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                   variant="secondary"
                   size="sm"
                   primaryLabel={session.paid ? "Mark as unpaid" : "Mark as paid"}
-                  primaryAction={() => dispatch(updateSession({ id: session.id, paid: !session.paid }))}
+                  primaryAction={() => {
+                    if (isDemo) {
+                      showToast("Demo mode — changes are not saved.");
+                      return;
+                    }
+                    dispatch(updateSession({ id: session.id, paid: !session.paid }));
+                  }}
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),

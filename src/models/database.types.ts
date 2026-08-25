@@ -736,7 +736,11 @@ export type Database = {
           enc_data_key_salt: string | null;
           hidden_sections: string[];
           id: string;
+          is_paused: boolean;
           logo_url: string | null;
+          onboarding_required: boolean;
+          paused_at: string | null;
+          paused_reason: string | null;
           payment_deadline_hours: number;
           phone: string | null;
           reduce_motion: boolean;
@@ -751,6 +755,8 @@ export type Database = {
           stripe_connect_account_id: string | null;
           stripe_connect_onboarded: boolean;
           stripe_subscription_id: string | null;
+          subscription_cancel_at_period_end: boolean;
+          subscription_current_period_end: string | null;
           subscription_plan: string;
           subscription_status: string;
           updated_at: string;
@@ -789,7 +795,11 @@ export type Database = {
           enc_data_key_salt?: string | null;
           hidden_sections?: string[];
           id?: string;
+          is_paused?: boolean;
           logo_url?: string | null;
+          onboarding_required?: boolean;
+          paused_at?: string | null;
+          paused_reason?: string | null;
           payment_deadline_hours?: number;
           phone?: string | null;
           reduce_motion?: boolean;
@@ -804,6 +814,8 @@ export type Database = {
           stripe_connect_account_id?: string | null;
           stripe_connect_onboarded?: boolean;
           stripe_subscription_id?: string | null;
+          subscription_cancel_at_period_end?: boolean;
+          subscription_current_period_end?: string | null;
           subscription_plan?: string;
           subscription_status?: string;
           updated_at?: string;
@@ -842,7 +854,11 @@ export type Database = {
           enc_data_key_salt?: string | null;
           hidden_sections?: string[];
           id?: string;
+          is_paused?: boolean;
           logo_url?: string | null;
+          onboarding_required?: boolean;
+          paused_at?: string | null;
+          paused_reason?: string | null;
           payment_deadline_hours?: number;
           phone?: string | null;
           reduce_motion?: boolean;
@@ -857,6 +873,8 @@ export type Database = {
           stripe_connect_account_id?: string | null;
           stripe_connect_onboarded?: boolean;
           stripe_subscription_id?: string | null;
+          subscription_cancel_at_period_end?: boolean;
+          subscription_current_period_end?: string | null;
           subscription_plan?: string;
           subscription_status?: string;
           updated_at?: string;
@@ -1761,6 +1779,7 @@ export type Database = {
         }[];
       };
       get_my_is_demo: { Args: never; Returns: boolean };
+      get_my_is_paused: { Args: never; Returns: boolean };
       get_my_reschedule_cutoff_hours: { Args: never; Returns: number };
       get_my_role: { Args: never; Returns: string };
       get_practice_busy_slots: {

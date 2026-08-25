@@ -127,6 +127,7 @@ function SupervisionModal({
   onSaved: () => void;
 }) {
   const { showToast } = useToast();
+  const { isDemo } = useAuth();
   const [saving, setSaving] = useState(false);
   const mouseDownTarget = useRef<EventTarget | null>(null);
   const [form, setForm] = useState<FormState>(() =>
@@ -152,6 +153,11 @@ function SupervisionModal({
   const set = (key: keyof FormState, value: string | boolean) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSave = async () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      onClose();
+      return;
+    }
     if (!form.supervisor_name.trim()) {
       showToast("Supervisor name is required", "error");
       return;
@@ -373,7 +379,7 @@ function SupervisionModal({
 // ── Page ───────────────────────────────────────────────────────
 
 export default function AdminSupervisionPage() {
-  const { userProfile } = useAuth();
+  const { userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
   const [manual, setManual] = useState<ManualRow[]>([]);
   const [calendar, setCalendar] = useState<CalendarRow[]>([]);
@@ -427,6 +433,10 @@ export default function AdminSupervisionPage() {
   }, [fetchData]);
 
   const handleDelete = async (entry: Entry) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     let error: { message: string } | null = null;
     if (entry.sourceTable === "supervision_sessions") {
       ({ error } = await supabase.from("supervision_sessions").delete().eq("id", entry.id));

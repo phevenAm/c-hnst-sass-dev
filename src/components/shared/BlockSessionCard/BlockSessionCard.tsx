@@ -29,13 +29,14 @@ type BlockSessionCardProps = {
 // A block booking used to render as N full-height SessionCards stacked in
 // the list — a paid-together, scheduled-together block took up N times the
 // space of a single session for no reason a client could act on
-// differently. This collapses it into one card with a number per session
-// (its stable block_pos, not array index, so a cancelled sibling elsewhere
-// in the block doesn't renumber the rest) — click a number to see that
-// session's own detail/actions via the same SessionCard used everywhere
-// else, unmodified. Only sessions still "in play" belong here: the caller
-// is responsible for excluding cancelled or already-past sessions, which
-// render normally in their own list instead.
+// differently. This collapses it into one card with a number per session,
+// numbered by chronological order (soonest = 1) rather than the stored
+// block_pos — a cancelled sibling dropping out of the group should still
+// leave the rest numbered contiguously, not with a gap — click a number to
+// see that session's own detail/actions via the same SessionCard used
+// everywhere else, unmodified. Only sessions still "in play" belong here:
+// the caller is responsible for excluding cancelled or already-past
+// sessions, which render normally in their own list instead.
 export function BlockSessionCard({
   sessions,
   isAdmin,
@@ -46,11 +47,16 @@ export function BlockSessionCard({
   id,
   className,
 }: BlockSessionCardProps) {
-  const [activeId, setActiveId] = useState(
-    (initialActiveId && sessions.some((s) => s.id === initialActiveId) ? initialActiveId : undefined) ??
-      sessions[0]?.id,
+  // Tabs are numbered by chronological position, soonest first — the caller's
+  // array order isn't guaranteed to match that, so sort here rather than trust it.
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
   );
-  const activeSession = sessions.find((s) => s.id === activeId) ?? sessions[0];
+  const [activeId, setActiveId] = useState(
+    (initialActiveId && sortedSessions.some((s) => s.id === initialActiveId) ? initialActiveId : undefined) ??
+      sortedSessions[0]?.id,
+  );
+  const activeSession = sortedSessions.find((s) => s.id === activeId) ?? sortedSessions[0];
 
   if (!activeSession) return null;
 
@@ -58,12 +64,12 @@ export function BlockSessionCard({
   // are still live in this card, i.e. haven't been cancelled or passed)
   // can differ once some have dropped out — that's worth surfacing so the
   // card doesn't look like it's silently missing sessions.
-  const blockTotal = (sessions[0]?.metadata as SessionBlockMeta | null)?.block_total ?? sessions.length;
+  const blockTotal = (sortedSessions[0]?.metadata as SessionBlockMeta | null)?.block_total ?? sortedSessions.length;
 
   // See blockPaymentState.ts for why this is derived rather than trusting
   // activeSession's own fields — every tab needs to show the same button
   // state, not whichever sibling's realtime update has landed first.
-  const { allPaid, manualStatus } = deriveBlockPaymentState(sessions);
+  const { allPaid, manualStatus } = deriveBlockPaymentState(sortedSessions);
   const displaySession: Session = { ...activeSession, paid: allPaid, manual_payment_status: manualStatus };
 
   return (
@@ -71,12 +77,11 @@ export function BlockSessionCard({
       <div className={styles.blockHeader}>
         <span className={styles.blockLabel}>
           {blockTotal} session block
-          {sessions.length < blockTotal && ` · ${sessions.length} remaining`}
+          {sortedSessions.length < blockTotal && ` · ${sortedSessions.length} remaining`}
           {allPaid && <span className={styles.blockPaidBadge}> · Paid</span>}
         </span>
         <div className={styles.tabRow} role="tablist" aria-label="Sessions in this block">
-          {sessions.map((s) => {
-            const meta = s.metadata as SessionBlockMeta | null;
+          {sortedSessions.map((s, index) => {
             return (
               <button
                 key={s.id}
@@ -94,7 +99,7 @@ export function BlockSessionCard({
                   .join(" ")}
                 onClick={() => setActiveId(s.id)}
               >
-                {meta?.block_pos ?? sessions.indexOf(s) + 1}
+                {index + 1}
               </button>
             );
           })}

@@ -8,6 +8,7 @@ import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import AuthLoadingState from "../components/shared/AuthLoadingState/AuthLoadingState";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Navbar from "../components/shared/Navbar/Navbar";
+import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
 import Spinner from "../components/shared/Spinner/Spinner";
@@ -42,9 +43,12 @@ import CounsellorSignupPage from "../pages/common/CounsellorSignupPage/Counsello
 import DemoPage from "../pages/common/DemoPage/DemoPage";
 import GoogleCalendarCallbackPage from "../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
+import PrivacyPage from "../pages/common/PrivacyPage/PrivacyPage";
+import SecurityPage from "../pages/common/SecurityPage/SecurityPage";
 import SettingsPage from "../pages/common/SettingsPage/SettingsPage";
 import SignUpPage from "../pages/common/SignUpPage/SignUpPage";
 import StripeCallbackPage from "../pages/common/StripeCallbackPage/StripeCallbackPage";
+import SubprocessorsPage from "../pages/common/SubprocessorsPage/SubprocessorsPage";
 import SubscribePage from "../pages/common/SubscribePage/SubscribePage";
 import TermsPage from "../pages/common/TermsPage/TermsPage";
 import UnsubscribePage from "../pages/common/UnsubscribePage/UnsubscribePage";
@@ -79,6 +83,7 @@ function AppLayout() {
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
       <Navbar />
       <DemoBanner />
+      <PausedBanner />
       <main id="main-content" tabIndex={-1}>
         <div className="page-content">
           <Outlet />
@@ -128,6 +133,7 @@ function AdminLayout() {
         <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
           <AdminTopbar />
           <DemoBanner />
+          <PausedBanner />
           <main id="main-content" tabIndex={-1}>
             <div className="page-content">
               <Outlet />
@@ -240,6 +246,9 @@ export default function AppRoutes() {
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/register" element={<CounsellorSignupPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/security" element={<SecurityPage />} />
+            <Route path="/legal/subprocessors" element={<SubprocessorsPage />} />
             <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
             {/* Standalone — no navbar, own minimal header */}

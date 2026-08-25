@@ -22,9 +22,18 @@ function formatCutoffHours(hours: number): string {
 const useSessionCard = (session: Session) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
-  const { rescheduleCutoffHours } = useAuth();
+  const { rescheduleCutoffHours, isDemo } = useAuth();
 
+  // sessions IS covered by the DB's block_demo_write trigger, so a demo write
+  // was never actually going through — but these fired the dispatch and then
+  // unconditionally showed a "success" toast without waiting to see whether
+  // it actually succeeded, so a demo admin saw a false positive instead of
+  // the honest "nothing happened" the other guarded actions on this page show.
   const toggleNoShowOrPayment = (e: MouseEvent<HTMLButtonElement>) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     const actionType = e.currentTarget.getAttribute("data-action-type");
     if (actionType === "payment") {
       dispatch(updateSession({ id: session.id, paid: !session.paid }));
@@ -39,12 +48,20 @@ const useSessionCard = (session: Session) => {
   };
 
   const markAttended = () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     const next = session.attended === true ? null : true;
     dispatch(updateSession({ id: session.id, attended: next }));
     showToast(next === true ? "Marked as attended" : "Attendance cleared");
   };
 
   const markNoShow = () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     const next = session.attended === false ? null : false;
     dispatch(updateSession({ id: session.id, attended: next }));
     showToast(next === false ? "Marked as no show" : "Attendance cleared");
@@ -103,6 +120,10 @@ const useSessionCard = (session: Session) => {
   const rescheduleCutoffMessage = `Sessions cannot be changed within ${formatCutoffHours(cutoffHours ?? 48)} of the appointment`;
 
   const restoreSession = () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     dispatch(updateSession({ id: session.id, status: "scheduled" }));
     showToast("Session restored.", "success");
   };

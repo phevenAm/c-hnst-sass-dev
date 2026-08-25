@@ -133,3 +133,118 @@ describe("sessionsSlice ordering", () => {
     expect(result.sessions.map((s) => s.id)).toEqual(["a", "b", "c"]);
   });
 });
+
+// Regression coverage for "marking one session in a block as paid doesn't
+// mark the others" (2026-08-24): the DB's cascade_block_payment trigger
+// updates every sibling server-side, but this reducer only ever patched the
+// one session returned from the update call — the rest sat stale until a
+// realtime event happened to land. updateSession.fulfilled now mirrors that
+// cascade locally so the whole block reflects it immediately.
+describe("sessionsSlice block payment cascade", () => {
+  const blockMeta = (pos: number) => ({ block_id: "block-1", block_pos: pos, block_total: 3, block_start: "" });
+
+  it("marks every other session in the same block as paid when one is confirmed paid", () => {
+    const state: SessionsState = {
+      ...initialState,
+      sessions: [
+        makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z", metadata: blockMeta(1) }),
+        makeSession({ id: "b", scheduled_at: "2026-06-02T09:00:00.000Z", metadata: blockMeta(2) }),
+        makeSession({ id: "c", scheduled_at: "2026-06-03T09:00:00.000Z", metadata: blockMeta(3) }),
+      ],
+    };
+
+    const paidB = makeSession({
+      id: "b",
+      scheduled_at: "2026-06-02T09:00:00.000Z",
+      metadata: blockMeta(2),
+      paid: true,
+      paid_at: "2026-08-24T12:00:00.000Z",
+    });
+
+    const result = sessionsReducer(state, updateSession.fulfilled(paidB, "", { id: "b", paid: true }));
+
+    expect(result.sessions.map((s) => [s.id, s.paid])).toEqual([
+      ["a", true],
+      ["b", true],
+      ["c", true],
+    ]);
+  });
+
+  it("marks every other session in the same block as unpaid when one is reverted", () => {
+    const state: SessionsState = {
+      ...initialState,
+      sessions: [
+        makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z", metadata: blockMeta(1), paid: true }),
+        makeSession({ id: "b", scheduled_at: "2026-06-02T09:00:00.000Z", metadata: blockMeta(2), paid: true }),
+      ],
+    };
+
+    const unpaidA = makeSession({
+      id: "a",
+      scheduled_at: "2026-06-01T09:00:00.000Z",
+      metadata: blockMeta(1),
+      paid: false,
+      paid_at: null,
+    });
+
+    const result = sessionsReducer(state, updateSession.fulfilled(unpaidA, "", { id: "a", paid: false }));
+
+    expect(result.sessions.map((s) => [s.id, s.paid])).toEqual([
+      ["a", false],
+      ["b", false],
+    ]);
+  });
+
+  it("does not touch a same-client session outside the block", () => {
+    const state: SessionsState = {
+      ...initialState,
+      sessions: [
+        makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z", metadata: blockMeta(1) }),
+        makeSession({ id: "solo", scheduled_at: "2026-06-05T09:00:00.000Z", metadata: null }),
+      ],
+    };
+
+    const paidA = makeSession({
+      id: "a",
+      scheduled_at: "2026-06-01T09:00:00.000Z",
+      metadata: blockMeta(1),
+      paid: true,
+    });
+
+    const result = sessionsReducer(state, updateSession.fulfilled(paidA, "", { id: "a", paid: true }));
+
+    expect(result.sessions.find((s) => s.id === "solo")?.paid).toBe(false);
+  });
+
+  it("does not touch a different client's session sharing the same block_id", () => {
+    const state: SessionsState = {
+      ...initialState,
+      sessions: [
+        makeSession({
+          id: "a",
+          scheduled_at: "2026-06-01T09:00:00.000Z",
+          metadata: blockMeta(1),
+          client_id: "client-1",
+        }),
+        makeSession({
+          id: "other-client",
+          scheduled_at: "2026-06-01T09:00:00.000Z",
+          metadata: blockMeta(1),
+          client_id: "client-2",
+        }),
+      ],
+    };
+
+    const paidA = makeSession({
+      id: "a",
+      scheduled_at: "2026-06-01T09:00:00.000Z",
+      metadata: blockMeta(1),
+      client_id: "client-1",
+      paid: true,
+    });
+
+    const result = sessionsReducer(state, updateSession.fulfilled(paidA, "", { id: "a", paid: true }));
+
+    expect(result.sessions.find((s) => s.id === "other-client")?.paid).toBe(false);
+  });
+});

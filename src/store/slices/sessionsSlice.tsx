@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
 
 import { supabase } from "@/lib/supabase.js";
-import type { Session, SessionStatus } from "@/models/globalTypes.js";
+import type { Session, SessionBlockMeta, SessionStatus } from "@/models/globalTypes.js";
 import type { RootState } from "@/store/store";
 
 type SessionsState = {
@@ -166,6 +166,31 @@ const sessionsSlice = createSlice({
           // the session stays at its old list position instead of moving to
           // reflect the new date/time.
           state.sessions.sort(byScheduledAt);
+        }
+
+        // The DB's cascade_block_payment trigger propagates a paid-status
+        // change to every sibling in the block server-side, but that only
+        // reaches this client's Redux state via N separate realtime events
+        // landing later — meanwhile every tab in a BlockSessionCard derives
+        // its "all paid" state from what's in here right now, so without
+        // this the other tabs would sit stale until realtime catches up (or
+        // never visibly resolve if it doesn't). Mirror the trigger's own
+        // logic locally so the UI is correct immediately; the realtime
+        // events that follow are then just harmless no-op confirmations.
+        const blockId = (action.payload.metadata as SessionBlockMeta | null)?.block_id;
+        if (blockId && action.payload.client_id) {
+          for (const s of state.sessions) {
+            if (
+              s.id !== action.payload.id &&
+              s.client_id === action.payload.client_id &&
+              (s.metadata as SessionBlockMeta | null)?.block_id === blockId
+            ) {
+              s.paid = action.payload.paid;
+              s.paid_at = action.payload.paid_at;
+              if (action.payload.paid && s.manual_payment_status === "pending") s.manual_payment_status = "approved";
+              if (!action.payload.paid && s.manual_payment_status === "approved") s.manual_payment_status = "none";
+            }
+          }
         }
 
         state.status = "succeeded";

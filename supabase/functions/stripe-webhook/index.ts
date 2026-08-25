@@ -45,7 +45,14 @@ Deno.serve(async (req) => {
     const sub = event.data.object as Stripe.Subscription;
     await supabase
       .from("practice_settings")
-      .update({ subscription_status: sub.status, stripe_subscription_id: sub.id })
+      .update({
+        subscription_status: sub.status,
+        stripe_subscription_id: sub.id,
+        subscription_cancel_at_period_end: sub.cancel_at_period_end,
+        subscription_current_period_end: sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null,
+      })
       .eq("billing_customer_id", sub.customer as string);
   }
 
@@ -53,7 +60,12 @@ Deno.serve(async (req) => {
     const sub = event.data.object as Stripe.Subscription;
     await supabase
       .from("practice_settings")
-      .update({ subscription_status: "canceled", stripe_subscription_id: null })
+      .update({
+        subscription_status: "canceled",
+        stripe_subscription_id: null,
+        subscription_cancel_at_period_end: false,
+        subscription_current_period_end: null,
+      })
       .eq("billing_customer_id", sub.customer as string);
   }
 

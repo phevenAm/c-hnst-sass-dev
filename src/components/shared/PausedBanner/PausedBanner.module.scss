@@ -1,0 +1,18 @@
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--color-danger);
+  background-color: var(--color-danger);
+  color: var(--text-inverse) !important;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--color-danger);
+  font-size: 0.8rem;
+}
+
+.icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}

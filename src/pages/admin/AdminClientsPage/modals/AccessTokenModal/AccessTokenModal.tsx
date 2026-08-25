@@ -9,7 +9,7 @@ import { generateAccessToken } from "../../../utils/AdminClientsPageUtils";
 import styles from "../../AdminClientsPage.module.scss";
 
 export default function AccessTokenModal({ onClose }: { onClose: () => void }) {
-  const { authUser } = useAuth();
+  const { authUser, isDemo } = useAuth();
   const [token, setToken] = useState(generateAccessToken());
   const [createdToken, setCreatedToken] = useState("");
   const [error, setError] = useState("");
@@ -20,6 +20,11 @@ export default function AccessTokenModal({ onClose }: { onClose: () => void }) {
     const cleanedToken = token.trim();
     setError("");
     setCopied(false);
+
+    if (isDemo) {
+      setError("Demo mode — tokens can't actually be created.");
+      return;
+    }
 
     if (!cleanedToken) {
       setError("Token cannot be empty");
