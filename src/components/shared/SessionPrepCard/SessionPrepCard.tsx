@@ -36,11 +36,14 @@ export default function SessionPrepCard({
   if (lastNote) {
     noteBlock = (
       <p className={styles.noteText}>
-        &ldquo;{notePreview}&rdquo; <span className={styles.noteDate}>— {dayjs(lastNote.createdAt).format("D MMM")}</span>
+        &ldquo;{notePreview}&rdquo;{" "}
+        <span className={styles.noteDate}>— {dayjs(lastNote.createdAt).format("D MMM")}</span>
       </p>
     );
   } else if (notesLocked) {
-    noteBlock = <p className={styles.noteMuted}>Unlock encryption (open any session's notes) to see the last note here.</p>;
+    noteBlock = (
+      <p className={styles.noteMuted}>Unlock encryption (open any session's notes) to see the last note here.</p>
+    );
   } else {
     noteBlock = <p className={styles.noteMuted}>No notes yet.</p>;
   }
