@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   const location = useLocation();
 
   // Wait for session check to finish
-  if (loading) return <AuthLoadingState variant="plain" />;
+  if (loading) return <AuthLoadingState variant="splash" />;
 
   // Not logged in → send to login
   if (!isAuthenticated) {
