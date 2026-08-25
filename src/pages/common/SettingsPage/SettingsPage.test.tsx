@@ -296,7 +296,7 @@ async function openEmailsTab() {
 async function openInterfaceTab() {
   render(<SettingsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Interface" }));
-  await screen.findByText("Use codenames");
+  await screen.findByText("Hide search bar");
 }
 
 function getEmailRowToggle(templateLabel: string) {
@@ -314,9 +314,12 @@ function getFieldInput(labelText: string): HTMLInputElement {
 }
 
 // Several Practice-tab cards each have their own plain "Save" button — scope
-// to the card under its <h2> so we click the right one.
+// to the card under its heading so we click the right one. SettingsCard
+// renders the heading inside the collapse-toggle <button>, itself a direct
+// child of the card wrapper alongside the content section — so the card
+// boundary is the heading's toggle button's parent, not a <section> ancestor.
 function getCardByHeading(headingText: string): HTMLElement {
-  const card = screen.getByRole("heading", { name: headingText }).closest("section")?.parentElement;
+  const card = screen.getByRole("heading", { name: headingText }).closest("button")?.parentElement;
   if (!card) throw new Error(`Could not find the card for heading "${headingText}"`);
   return card as HTMLElement;
 }
@@ -728,10 +731,10 @@ describe("SettingsPage — demo mode blocks every save action", () => {
 
 describe("SettingsPage — interface preferences", () => {
   it("saves the client codenames setting", async () => {
-    await openInterfaceTab();
+    await openPracticeTab();
 
     fireEvent.click(screen.getByRole("checkbox", { name: /use codenames/i }));
-    fireEvent.click(within(getCardByHeading("Clients")).getByRole("button", { name: "Save" }));
+    fireEvent.click(within(getCardByHeading("Client codenames")).getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ use_client_codenames: true }));

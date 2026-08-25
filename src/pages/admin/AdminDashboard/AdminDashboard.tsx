@@ -202,21 +202,17 @@ export default function AdminDashboard() {
             </CollapsibleSection>
           </Card>
 
-          <Card className={styles.sectionCard}>
-            <CollapsibleSection
-              title={`Needs attention${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ""}`}
-              storageKey="dash:attention"
-              headerRight={
-                pendingRequests.length > 0 ? (
+          {pendingRequests.length > 0 && (
+            <Card className={styles.sectionCard}>
+              <CollapsibleSection
+                title={`Needs attention (${pendingRequests.length})`}
+                storageKey="dash:attention"
+                headerRight={
                   <Link to="/admin/clients" className={styles.sectionLink}>
                     View all →
                   </Link>
-                ) : undefined
-              }
-            >
-              {pendingRequests.length === 0 ? (
-                <p className={styles.empty}>Nothing needs your attention right now.</p>
-              ) : (
+                }
+              >
                 <div className={styles.recentList}>
                   {pendingRequests.map((r) => {
                     const name = getClientName(r.client_id);
@@ -243,9 +239,9 @@ export default function AdminDashboard() {
                     );
                   })}
                 </div>
-              )}
-            </CollapsibleSection>
-          </Card>
+              </CollapsibleSection>
+            </Card>
+          )}
         </div>
 
         {/* ── Outstanding payments ── */}

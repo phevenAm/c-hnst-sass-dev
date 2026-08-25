@@ -7,8 +7,14 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
-  margin-bottom: var(--sp-3);
   flex-wrap: wrap;
+}
+
+// Spacing lives here, not on .header, so a collapsed section (no .body
+// rendered at all) doesn't leave a trailing gap between the title and the
+// card's own bottom padding with nothing to separate.
+.body {
+  margin-top: var(--sp-3);
 }
 
 .toggle {

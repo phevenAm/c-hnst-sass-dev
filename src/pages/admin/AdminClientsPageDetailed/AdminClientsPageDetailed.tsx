@@ -20,6 +20,7 @@ import RcadsResultsCard from "@components/shared/RcadsResultsCard/RcadsResultsCa
 import CancelSessionModal from "@components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
+import SessionPrepCard from "@components/shared/SessionPrepCard/SessionPrepCard";
 import type { CancellationRequest, RescheduleRequest, Response, Session, UserProfile } from "@models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -163,6 +164,8 @@ export default function AdminClientsPageDetailed() {
   // encryption never set up) so the UI can say so instead of the line just
   // silently not appearing, which was indistinguishable from no summary.
   const [summaryLocked, setSummaryLocked] = useState(false);
+  const [lastSessionNote, setLastSessionNote] = useState<{ content: string; createdAt: string } | null>(null);
+  const [lastNoteLocked, setLastNoteLocked] = useState(false);
 
   // RCADS answers live in rcads_assessments, not `responses` — needed so
   // "Prompt again" and "View details" for it don't rely on formResultGroups,
@@ -310,6 +313,45 @@ export default function AdminClientsPageDetailed() {
       });
   }, [clientId, encStatus, decryptNote]);
 
+  // Session-prep card: the most recent note actually tied to a session (as
+  // opposed to the account-summary note above, which has session_id null).
+  useEffect(() => {
+    if (!clientId) return;
+    supabase
+      .from("session_notes")
+      .select("content, is_encrypted, note_iv, created_at")
+      .eq("user_id", clientId)
+      .not("session_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        if (!data?.content) {
+          setLastSessionNote(null);
+          setLastNoteLocked(false);
+          return;
+        }
+        if (!data.is_encrypted) {
+          setLastSessionNote({ content: data.content as string, createdAt: data.created_at });
+          setLastNoteLocked(false);
+          return;
+        }
+        if (data.note_iv && encStatus === "unlocked") {
+          try {
+            const plain = await decryptNote(data.content as string, data.note_iv as string);
+            setLastSessionNote({ content: plain, createdAt: data.created_at });
+            setLastNoteLocked(false);
+          } catch {
+            setLastSessionNote(null);
+            setLastNoteLocked(true);
+          }
+        } else {
+          setLastSessionNote(null);
+          setLastNoteLocked(true);
+        }
+      });
+  }, [clientId, encStatus, decryptNote]);
+
   const handleAcceptReschedule = async (req: RescheduleRequest) => {
     setResolvingId(req.id);
     const { error: sessionErr } = await supabase
@@ -448,6 +490,17 @@ export default function AdminClientsPageDetailed() {
   );
 
   const clientSessions = useAppSelector((state) => state.sessions.sessions);
+
+  // Prep card: soonest still-scheduled session, and the most recent completed
+  // one (for "last seen").
+  const nextSession = [...clientSessions]
+    .filter((s) => s.status === "scheduled" && new Date(s.scheduled_at) > new Date())
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+  const totalSessionsCount = clientSessions.length;
+  const attendedSessionsCount = clientSessions.filter((s) => s.status === "completed").length;
+  const lastSeenSession = [...clientSessions]
+    .filter((s) => s.status === "completed")
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())[0];
 
   const [reminderMuted, setReminderMuted] = useState(false);
   const [muteRowId, setMuteRowId] = useState<string | null>(null);
@@ -706,6 +759,18 @@ export default function AdminClientsPageDetailed() {
         <Button variant="ghost" size="sm" onClick={() => navigate("/admin/clients")}>
           ← Back to clients
         </Button>
+
+        {nextSession && (
+          <SessionPrepCard
+            nextSessionAt={nextSession.scheduled_at}
+            totalSessions={totalSessionsCount}
+            attendedSessions={attendedSessionsCount}
+            lastSeenAt={lastSeenSession?.scheduled_at ?? null}
+            lastNote={lastSessionNote}
+            notesLocked={lastNoteLocked}
+            onViewNotes={() => setNotesOpen(true)}
+          />
+        )}
 
         {pendingRequests.length > 0 && (
           <div className={styles.pendingRequests}>

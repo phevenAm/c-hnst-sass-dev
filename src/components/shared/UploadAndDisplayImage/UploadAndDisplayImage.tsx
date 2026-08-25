@@ -10,6 +10,11 @@ interface Props {
   bucket?: string;
 }
 
+// Guards against the browser hanging trying to decode a pathologically large
+// file into an <img>/canvas before compression even gets a chance to shrink
+// it — compression only runs after this check passes.
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
 function compressImage(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -36,6 +41,10 @@ export default function UploadAndDisplayImage({ userId, onUpload, bucket = "avat
 
   const handleFile = async (file: File) => {
     setError(null);
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError("Image is too large — please choose one under 2MB.");
+      return;
+    }
     setUploading(true);
     try {
       const compressed = await compressImage(file);
@@ -45,7 +54,11 @@ export default function UploadAndDisplayImage({ userId, onUpload, bucket = "avat
         .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      onUpload(data.publicUrl);
+      // path is fixed per user, so getPublicUrl returns the exact same string
+      // on every re-upload — without a cache-busting param, callers' <img
+      // src> never changes and the browser (or React's DOM diff) never
+      // re-fetches, so the old photo just keeps showing.
+      onUpload(`${data.publicUrl}?t=${Date.now()}`);
     } catch {
       setError("Upload failed. Please try again.");
     } finally {

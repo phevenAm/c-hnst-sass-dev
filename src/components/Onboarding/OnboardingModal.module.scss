@@ -10,8 +10,12 @@
   // Was 200 — tied with AdminSidebar's own z-index, and since this isn't
   // portaled (renders inline near the app root, before <Routes>), the
   // sidebar mounts later in the DOM and won the tie, showing on top of the
-  // modal instead of under it.
-  z-index: 1000;
+  // modal instead of under it. Then 1000 — still lost to WalkthroughOverlay
+  // (spotlight/card/tour-offer all 9010-9020), since OnboardingGate and
+  // WalkthroughOverlay both mount unconditionally and can be visible at the
+  // same time. Above the highest of those settles it regardless of which
+  // walkthrough element is showing.
+  z-index: 9100;
 }
 
 .modal {

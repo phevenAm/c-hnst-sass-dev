@@ -241,7 +241,7 @@ export default function LoginPage() {
           {resetMode ? <ResetPasswordForm /> : null}
 
           <div className={styles.card} style={resetMode ? { display: "none" } : undefined}>
-            <h2 className={styles.heading}>Hello,</h2>
+            <h2 className={styles.heading}>Welcome back</h2>
 
             {error && (
               <div role="alert" className={styles.error}>
