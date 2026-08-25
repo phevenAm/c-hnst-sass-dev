@@ -145,6 +145,24 @@ function SettingsCard({
   );
 }
 
+// A plain (non-card) label above a cluster of related SettingsCards. Hides
+// itself under an active search unless at least one card it introduces
+// would still match — same substring rule SettingsCard uses for its own
+// title, so a heading never sits above an empty, fully-filtered-out group.
+function GroupHeading({
+  title,
+  searchQuery,
+  cardTitles,
+}: {
+  title: string;
+  searchQuery: string;
+  cardTitles: string[];
+}) {
+  const query = searchQuery.trim().toLowerCase();
+  if (query && !cardTitles.some((t) => t.toLowerCase().includes(query))) return null;
+  return <h3 className={styles.groupHeading}>{title}</h3>;
+}
+
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
   const { status: encStatus, encryptPII, decryptPII } = useEncryption();
@@ -941,6 +959,12 @@ const SettingsPage = () => {
               </div>
             )}
 
+            <GroupHeading
+              title="Business details"
+              searchQuery={practiceSearch}
+              cardTitles={["Business information", "Client codenames"]}
+            />
+
             {/* Business info */}
             <SettingsCard
               title="Business information"
@@ -1026,6 +1050,12 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </SettingsCard>
+
+            <GroupHeading
+              title="Billing & payments"
+              searchQuery={practiceSearch}
+              cardTitles={["Session types & prices", "Bank details", "Card payments", "Subscription", "Refer a friend"]}
+            />
 
             {/* Session types & prices */}
             <SettingsCard
@@ -1170,6 +1200,94 @@ const SettingsPage = () => {
                 )}
               </section>
             </SettingsCard>
+
+            {/* Subscription */}
+            {practiceSettings && (
+              <SettingsCard
+                title="Subscription"
+                storageKey="settings:practice:subscription"
+                searchQuery={practiceSearch}
+              >
+                <section className={styles.businessSection}>
+                  <p>
+                    Status:{" "}
+                    <strong
+                      style={{
+                        color: subscriptionStatusColor(
+                          practiceSettings.subscription_status,
+                          practiceSettings.subscription_cancel_at_period_end,
+                        ),
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {practiceSettings.subscription_status}
+                    </strong>
+                    {practiceSettings.subscription_cancel_at_period_end && (
+                      <>
+                        {" "}
+                        — cancels{" "}
+                        {practiceSettings.subscription_current_period_end
+                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                          : "at the end of the current billing period"}
+                      </>
+                    )}
+                  </p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
+                  </p>
+                </section>
+                {billingCustomerId && (
+                  <div className={styles.actions}>
+                    <Button
+                      variant="primary"
+                      className={styles.saveButton}
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                    >
+                      {loadingPortal ? "Opening…" : "Manage subscription"}
+                    </Button>
+                  </div>
+                )}
+              </SettingsCard>
+            )}
+
+            {/* Refer a friend */}
+            {practiceSettings?.referral_code && (
+              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
+                <section className={styles.businessSection}>
+                  <p>
+                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
+                    credited to your account automatically.
+                  </p>
+                  <div className={styles.field}>
+                    <label htmlFor="referral-link">Your referral link</label>
+                    <input
+                      id="referral-link"
+                      readOnly
+                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </section>
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
+                    {referralCopied ? "Copied!" : "Copy link"}
+                  </Button>
+                </div>
+              </SettingsCard>
+            )}
+
+            <GroupHeading
+              title="Scheduling"
+              searchQuery={practiceSearch}
+              cardTitles={[
+                "Calendar sync",
+                "Session automation",
+                "Reschedule & cancellation cutoff",
+                "Session-prep reminders",
+                "Block booking cancellations",
+              ]}
+            />
 
             {/* Calendar sync */}
             <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={practiceSearch}>
@@ -1538,6 +1656,8 @@ const SettingsPage = () => {
               </div>
             </SettingsCard>
 
+            <GroupHeading title="Client compliance" searchQuery={practiceSearch} cardTitles={["Client consent"]} />
+
             {/* Client consent */}
             <SettingsCard title="Client consent" storageKey="settings:practice:consent" searchQuery={practiceSearch}>
               <section className={styles.businessSection}>
@@ -1565,85 +1685,98 @@ const SettingsPage = () => {
                   </span>
                 </label>
 
-                <div className={styles.field} style={{ marginTop: "var(--sp-5)" }}>
-                  <label htmlFor="consentForm">Use one of your Forms instead (optional)</label>
-                  <select
-                    id="consentForm"
-                    value={consentQuestionnaireId}
-                    onChange={(e) => setConsentQuestionnaireId(e.target.value)}
-                  >
-                    <option value="">— Use the text below instead —</option>
-                    {onboardingForms.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.title}
-                      </option>
-                    ))}
-                  </select>
-                  <p className={styles.toggleHint}>
-                    {consentQuestionnaireId
-                      ? "Its title and PDF link (if any) are shown to clients instead of the fields below. Build or edit onboarding forms under Forms."
-                      : "Create an onboarding form under Forms (with a PDF link, if you want one) to manage your consent document there instead of typing it in below."}
-                  </p>
-                </div>
+                {consentEnabled && (
+                  <div className={styles.consentConfig}>
+                    <div className={styles.field}>
+                      <label htmlFor="consentForm">Use one of your Forms instead (optional)</label>
+                      <select
+                        id="consentForm"
+                        className={styles.select}
+                        value={consentQuestionnaireId}
+                        onChange={(e) => setConsentQuestionnaireId(e.target.value)}
+                      >
+                        <option value="">— Use the text below instead —</option>
+                        {onboardingForms.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.title}
+                          </option>
+                        ))}
+                      </select>
+                      <p className={styles.toggleHint}>
+                        {consentQuestionnaireId
+                          ? "Its title and PDF link (if any) are shown to clients instead of the fields below."
+                          : "Create an onboarding form under Forms (with a PDF link, if you want one) to manage your consent document there instead of typing it in below."}
+                      </p>
+                    </div>
 
-                <div className={styles.field}>
-                  <label htmlFor="consentTitle">Heading</label>
-                  <input
-                    id="consentTitle"
-                    value={consentTitle}
-                    onChange={(e) => setConsentTitle(e.target.value)}
-                    placeholder="Before you continue"
-                    disabled={!!consentQuestionnaireId}
-                  />
-                </div>
+                    {consentQuestionnaireId ? (
+                      <p className={styles.toggleHint}>
+                        Using <strong>{onboardingForms.find((f) => f.id === consentQuestionnaireId)?.title}</strong> —
+                        edit its content under Forms. Switch back to "— Use the text below instead —" above to write the
+                        agreement here.
+                      </p>
+                    ) : (
+                      <>
+                        <div className={styles.field}>
+                          <label htmlFor="consentTitle">Heading</label>
+                          <input
+                            id="consentTitle"
+                            value={consentTitle}
+                            onChange={(e) => setConsentTitle(e.target.value)}
+                            placeholder="Before you continue"
+                          />
+                        </div>
 
-                <div className={styles.field}>
-                  <label htmlFor="consentBody">Agreement text</label>
-                  <textarea
-                    id="consentBody"
-                    className={styles.textarea}
-                    rows={6}
-                    value={consentBody}
-                    onChange={(e) => setConsentBody(e.target.value)}
-                    placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
-                    disabled={!!consentQuestionnaireId}
-                  />
-                </div>
+                        <div className={styles.field}>
+                          <label htmlFor="consentBody">Agreement text</label>
+                          <textarea
+                            id="consentBody"
+                            className={styles.textarea}
+                            rows={6}
+                            value={consentBody}
+                            onChange={(e) => setConsentBody(e.target.value)}
+                            placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                          />
+                        </div>
 
-                <div className={styles.field}>
-                  <label htmlFor="consentPdfUrl">
-                    PDF link <small>(optional — must end in .pdf — clients can read this document in-app)</small>
-                  </label>
-                  <input
-                    id="consentPdfUrl"
-                    type="url"
-                    value={consentPdfUrl}
-                    onChange={(e) => {
-                      setConsentPdfUrl(e.target.value);
-                      if (consentPdfUrlError) setConsentPdfUrlError("");
-                    }}
-                    placeholder="https://example.com/document.pdf"
-                    aria-invalid={!!consentPdfUrlError}
-                    disabled={!!consentQuestionnaireId}
-                  />
-                  {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
-                  <p className={styles.toggleHint}>
-                    Must be a direct link ending in .pdf (a Dropbox share link works if it points at the file itself; a
-                    Google Drive "view" link will not). Clients will see it embedded in-app alongside your agreement
-                    text.
-                  </p>
-                </div>
+                        <div className={styles.field}>
+                          <label htmlFor="consentPdfUrl">
+                            PDF link{" "}
+                            <small>(optional — must end in .pdf — clients can read this document in-app)</small>
+                          </label>
+                          <input
+                            id="consentPdfUrl"
+                            type="url"
+                            value={consentPdfUrl}
+                            onChange={(e) => {
+                              setConsentPdfUrl(e.target.value);
+                              if (consentPdfUrlError) setConsentPdfUrlError("");
+                            }}
+                            placeholder="https://example.com/document.pdf"
+                            aria-invalid={!!consentPdfUrlError}
+                          />
+                          {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
+                          <p className={styles.toggleHint}>
+                            Must be a direct link ending in .pdf (a Dropbox share link works if it points at the file
+                            itself; a Google Drive "view" link will not). Clients will see it embedded in-app alongside
+                            your agreement text.
+                          </p>
+                        </div>
+                      </>
+                    )}
 
-                <div className={styles.field}>
-                  <label htmlFor="consentCta">Footer message</label>
-                  <input
-                    id="consentCta"
-                    value={consentCounsellorCta}
-                    onChange={(e) => setConsentCounsellorCta(e.target.value)}
-                    placeholder="If you have any questions, speak to your counsellor."
-                  />
-                  <p className={styles.toggleHint}>Shown below the agree button as a soft prompt.</p>
-                </div>
+                    <div className={styles.field}>
+                      <label htmlFor="consentCta">Footer message</label>
+                      <input
+                        id="consentCta"
+                        value={consentCounsellorCta}
+                        onChange={(e) => setConsentCounsellorCta(e.target.value)}
+                        placeholder="If you have any questions, speak to your counsellor."
+                      />
+                      <p className={styles.toggleHint}>Shown below the agree button as a soft prompt.</p>
+                    </div>
+                  </div>
+                )}
               </section>
               <div className={styles.actions}>
                 <Button
@@ -1657,82 +1790,6 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </SettingsCard>
-
-            {/* Subscription */}
-            {practiceSettings && (
-              <SettingsCard
-                title="Subscription"
-                storageKey="settings:practice:subscription"
-                searchQuery={practiceSearch}
-              >
-                <section className={styles.businessSection}>
-                  <p>
-                    Status:{" "}
-                    <strong
-                      style={{
-                        color: subscriptionStatusColor(
-                          practiceSettings.subscription_status,
-                          practiceSettings.subscription_cancel_at_period_end,
-                        ),
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {practiceSettings.subscription_status}
-                    </strong>
-                    {practiceSettings.subscription_cancel_at_period_end && (
-                      <>
-                        {" "}
-                        — cancels{" "}
-                        {practiceSettings.subscription_current_period_end
-                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                          : "at the end of the current billing period"}
-                      </>
-                    )}
-                  </p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
-                  </p>
-                </section>
-                {billingCustomerId && (
-                  <div className={styles.actions}>
-                    <Button
-                      variant="primary"
-                      className={styles.saveButton}
-                      onClick={handleManageSubscription}
-                      disabled={loadingPortal}
-                    >
-                      {loadingPortal ? "Opening…" : "Manage subscription"}
-                    </Button>
-                  </div>
-                )}
-              </SettingsCard>
-            )}
-
-            {/* Refer a friend */}
-            {practiceSettings?.referral_code && (
-              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
-                <section className={styles.businessSection}>
-                  <p>
-                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
-                    credited to your account automatically.
-                  </p>
-                  <div className={styles.field}>
-                    <label htmlFor="referral-link">Your referral link</label>
-                    <input
-                      id="referral-link"
-                      readOnly
-                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
-                      onFocus={(e) => e.target.select()}
-                    />
-                  </div>
-                </section>
-                <div className={styles.actions}>
-                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
-                    {referralCopied ? "Copied!" : "Copy link"}
-                  </Button>
-                </div>
-              </SettingsCard>
-            )}
           </>
         )}
 

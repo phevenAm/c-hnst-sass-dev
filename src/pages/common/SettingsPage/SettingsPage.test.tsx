@@ -467,18 +467,19 @@ describe("SettingsPage — client consent", () => {
     });
   });
 
-  it("picking an onboarding form disables the free-text fields and saves its id instead", async () => {
+  it("picking an onboarding form hides the free-text fields and saves its id instead", async () => {
     setOnboardingFormsRows([{ id: "form-1", title: "New client welcome pack" }]);
     await openPracticeTab();
+    fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
 
-    await screen.findByRole("option", { name: "New client welcome pack" });
     fireEvent.change(screen.getByLabelText(/use one of your forms instead/i), {
       target: { value: "form-1" },
     });
 
-    expect(screen.getByLabelText(/^heading$/i)).toBeDisabled();
-    expect(screen.getByLabelText(/agreement text/i)).toBeDisabled();
-    expect(screen.getByLabelText(/pdf link/i)).toBeDisabled();
+    expect(screen.queryByLabelText(/^heading$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/agreement text/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/pdf link/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/using/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
 
@@ -490,6 +491,7 @@ describe("SettingsPage — client consent", () => {
   it("clearing the picked form falls back to saving the typed-in text", async () => {
     setOnboardingFormsRows([{ id: "form-1", title: "New client welcome pack" }]);
     await openPracticeTab();
+    fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
 
     expect(screen.getByLabelText(/^heading$/i)).not.toBeDisabled();
 
