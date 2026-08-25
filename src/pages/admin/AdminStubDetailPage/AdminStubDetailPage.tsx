@@ -252,10 +252,17 @@ export default function AdminStubDetailPage() {
   const realClients = allUsers.filter((u) => u.role === "client");
   const linkedUser = stub?.linked_user_id ? allUsers.find((u) => u.id === stub.linked_user_id) : null;
 
+  // paid and amount_paid are independent signals (see StubSessionCard) —
+  // either one alone counts as paid, and amount_paid is the actual figure
+  // when set.
+  const isSessionPaid = (s: StubSession) => s.paid || (s.amount_paid != null && s.amount_paid > 0);
+  const sessionPaidAmount = (s: StubSession) =>
+    s.amount_paid != null && s.amount_paid > 0 ? s.amount_paid : (s.price_pence ?? 0) / 100;
+
   const totalSessions = sessions.length;
   const attendedCount = sessions.filter((s) => s.status === "attended").length;
-  const totalPaid = sessions.reduce((sum, s) => sum + (s.paid ? (s.price_pence ?? 0) / 100 : 0), 0);
-  const currency = sessions.find((s) => s.paid)?.currency ?? "GBP";
+  const totalPaid = sessions.reduce((sum, s) => sum + (isSessionPaid(s) ? sessionPaidAmount(s) : 0), 0);
+  const currency = sessions.find((s) => isSessionPaid(s))?.currency ?? "GBP";
 
   // Prep card: soonest still-scheduled session, and the most recent past one
   // (sessions load newest-first, so a simple find/filter+[0] works off that).
@@ -603,7 +610,7 @@ export default function AdminStubDetailPage() {
                             stubId={stubId!}
                             adminId={userProfile?.id ?? ""}
                             isDemo={isDemo}
-                            onUpdated={(updated) => handleSessionSaved([updated])}
+                            onUpdated={handleSessionSaved}
                             onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
                             initialActiveId={highlightSessionId ?? undefined}
                           />
@@ -623,7 +630,7 @@ export default function AdminStubDetailPage() {
                           stubId={stubId!}
                           adminId={userProfile?.id ?? ""}
                           isDemo={isDemo}
-                          onUpdated={(updated) => handleSessionSaved([updated])}
+                          onUpdated={handleSessionSaved}
                           onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
                         />
                       </div>

@@ -18,7 +18,7 @@ interface Props {
   stubId: string;
   adminId: string;
   isDemo?: boolean;
-  onUpdated: (updated: StubSession) => void;
+  onUpdated: (updated: StubSession[]) => void;
   onDeleted: (id: string) => void;
 }
 
@@ -70,21 +70,36 @@ export default function StubSessionCard({
   const isCancelled = session.status === "cancelled";
   const isAttended = session.status === "attended";
   const isNoShow = session.status === "no_show";
-  const isPaid = session.paid;
+  // `paid` (this toggle, or set at creation/import) and amount_paid (set via
+  // the Payments page's own "Mark paid" flow) are independent signals —
+  // either one alone means paid. See payment_ledger_rows / AdminPaymentsPage
+  // for the same unification; without it, a session imported or created with
+  // only one of the two set showed paid on one page and unpaid on the other.
+  const hasAmountPaid = session.amount_paid != null && session.amount_paid > 0;
+  const isPaid = session.paid || hasAmountPaid;
+  const paidAmount = hasAmountPaid ? (session.amount_paid as number) : (session.price_pence ?? 0) / 100;
   const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
 
   const handleTogglePaid = async () => {
     if (demoGuard()) return;
     setSaving(true);
-    const { data, error } = await supabase
-      .from("stub_sessions")
-      .update({ paid: !isPaid })
-      .eq("id", session.id)
-      .select()
-      .single();
+    // Marking unpaid clears both signals — leaving amount_paid set would
+    // otherwise make the session look paid again immediately.
+    const update = isPaid ? { paid: false, amount_paid: null } : { paid: true };
+    // A block is paid for as one unit — a DB trigger (cascade_stub_block_payment)
+    // propagates this update to every sibling sharing the same block_id server-side,
+    // but that only reaches this page via realtime later. Scoping the update itself
+    // to the whole block and re-selecting it means the UI reflects every sibling's
+    // new status immediately, same session this update triggers.
+    const blockId = (session.metadata as { block_id?: string } | null)?.block_id;
+    const query = supabase.from("stub_sessions").update(update);
+    const scoped = blockId
+      ? query.eq("stub_id", stubId).filter("metadata->>block_id", "eq", blockId)
+      : query.eq("id", session.id);
+    const { data, error } = await scoped.select();
     setSaving(false);
     if (error) showToast("Failed to update.", "danger");
-    else onUpdated(data as StubSession);
+    else onUpdated(data as StubSession[]);
   };
 
   const demoGuard = () => {
@@ -104,7 +119,7 @@ export default function StubSessionCard({
       .select()
       .single();
     if (error) showToast("Failed to update session.", "danger");
-    else onUpdated(data as StubSession);
+    else onUpdated([data as StubSession]);
   };
 
   const handleConfirmCancel = async () => {
@@ -120,7 +135,7 @@ export default function StubSessionCard({
       showToast("Failed to update session.", "danger");
       return;
     }
-    onUpdated(data as StubSession);
+    onUpdated([data as StubSession]);
     if (notifyClient) {
       supabase.functions.invoke("notify-stub-session-cancelled", { body: { stub_session_id: session.id } });
     }
@@ -152,7 +167,7 @@ export default function StubSessionCard({
       .select()
       .single();
     if (error) showToast("Failed to save notes.", "danger");
-    else onUpdated(data as StubSession);
+    else onUpdated([data as StubSession]);
     setEditingNotes(false);
   };
 
@@ -169,7 +184,7 @@ export default function StubSessionCard({
       .select()
       .single();
     if (error) showToast("Failed to save code.", "danger");
-    else onUpdated(data as StubSession);
+    else onUpdated([data as StubSession]);
     setEditingCode(false);
   };
 
@@ -206,7 +221,7 @@ export default function StubSessionCard({
         <span className={`${styles.badge} ${badgeClass}`}>{statusLabel}</span>
         <span
           className={isPaid ? styles.paidPill : styles.unpaidPill}
-          title={isPaid ? formatAmount(session.amount_paid!, session.currency) : "Unpaid"}
+          title={isPaid ? formatAmount(paidAmount, session.currency) : "Unpaid"}
         >
           {currencySymbol(session.currency)}
         </span>
@@ -437,7 +452,7 @@ export default function StubSessionCard({
               .select()
               .single();
             if (error) throw new Error("Failed to update session.");
-            onUpdated(data as StubSession);
+            onUpdated([data as StubSession]);
           }}
         />
       )}
