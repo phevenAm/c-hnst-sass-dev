@@ -84,7 +84,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "sessions-view",
         order: 2,
         title: "List or Calendar View",
-        body: "Use these buttons, top-right, to switch between a calendar view (your sessions laid out on a weekly calendar, alongside your counsellor's available slots) and a list view (past and upcoming sessions sorted by date).",
+        body: "Use these buttons to switch between a calendar view (your sessions laid out on a weekly calendar, alongside your counsellor's available slots) and a list view (past and upcoming sessions sorted by date).",
         target: "#sessions-view-toggle",
       },
     ],
@@ -176,7 +176,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "admin-quick-actions",
         order: 2,
         title: "Quick Actions",
-        body: "These icon buttons, top-right, take you straight to creating a session, inviting a client, building a new form, or adjusting your availability — each one lands you on the right page with that action already open, so you're not hunting for it once you get there.",
+        body: "These icon buttons take you straight to creating a session, inviting a client, building a new form, or adjusting your availability — each one lands you on the right page with that action already open, so you're not hunting for it once you get there.",
         target: "#dash-quick-actions",
       },
       {
@@ -202,7 +202,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "clients-actions",
         order: 2,
         title: "Invite a Client",
-        body: "'Invite a client', top-right, emails them a one-time sign-up link directly — it's consumed automatically once they register. Its dropdown covers everything else: generate a token to share yourself instead of emailing it, manage outstanding tokens, bulk-import clients from a CSV, or create an offline client record.",
+        body: "'Invite a client' emails them a one-time sign-up link directly — it's consumed automatically once they register. Its dropdown covers everything else: generate a token to share yourself instead of emailing it, manage outstanding tokens, bulk-import clients from a CSV, or create an offline client record.",
         target: "#clients-header",
       },
       {
@@ -228,7 +228,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "client-detail-actions",
         order: 2,
         title: "Configure Client",
-        body: "'Configure client', top-right, sets an optional codename to show instead of their real name across your admin, and has a shortcut to their Account summary. Its dropdown exports their record as a PDF, and mutes or unmutes your session reminders for them.",
+        body: "'Configure client' sets an optional codename to show instead of their real name across your admin, and has a shortcut to their Account summary. Its dropdown exports their record as a PDF, and mutes or unmutes your session reminders for them.",
       },
       {
         id: "client-detail-sessions",
@@ -259,7 +259,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "stub-actions",
         order: 2,
         title: "Edit or Invite This Client",
-        body: "'Edit client', top-right, updates their stored details. When they're ready to join properly, open its dropdown and choose 'Invite to platform' to generate a personal sign-up link — once they register, their offline history carries over automatically.",
+        body: "'Edit client' updates their stored details. When they're ready to join properly, open its dropdown and choose 'Invite to platform' to generate a personal sign-up link — once they register, their offline history carries over automatically.",
       },
       {
         id: "stub-sections",
@@ -284,7 +284,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "admin-forms-new",
         order: 2,
         title: "New Form & Tags",
-        body: "'+ New form', top-right, starts one from scratch. Its dropdown also has 'Manage tags' — used to categorise and filter your forms as your list grows.",
+        body: "'+ New form' starts one from scratch. Its dropdown also has 'Manage tags' — used to categorise and filter your forms as your list grows.",
       },
       {
         id: "admin-forms-cards",
@@ -315,7 +315,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "scheduler-actions",
         order: 2,
         title: "Create New Session",
-        body: "'Create new session', top-right, books a session — pick a client (or an offline one) first, then confirm the time and details. Its dropdown has two more shortcuts: 'Add private event' for blocking out time on the calendar, and 'Manage availability' to set your regular working hours and one-off exceptions like holidays.",
+        body: "'Create new session' books a session — pick a client (or an offline one) first, then confirm the time and details. Its dropdown has two more shortcuts: 'Add private event' for blocking out time on the calendar, and 'Manage availability' to set your regular working hours and one-off exceptions like holidays.",
       },
       {
         id: "scheduler-booking",
@@ -340,7 +340,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "payments-actions",
         order: 2,
         title: "Add Payment & Filter by Client",
-        body: "'Add payment', top-right, manually records a bank transfer or cash payment — pick the linked session, enter the amount, and the session's status updates everywhere automatically. The dropdown beside it filters the table down to one client.",
+        body: "'Add payment' manually records a bank transfer or cash payment — pick the linked session, enter the amount, and the session's status updates everywhere automatically. The dropdown beside it filters the table down to one client.",
       },
       {
         id: "payments-pending",
@@ -365,7 +365,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "admin-resources-add",
         order: 2,
         title: "Add Resource",
-        body: "'+ Add resource', top-right, uploads or links articles, PDFs, worksheets, or YouTube videos.",
+        body: "'+ Add resource' uploads or links articles, PDFs, worksheets, or YouTube videos.",
       },
       {
         id: "admin-resources-visibility",
@@ -392,7 +392,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "cpd-add",
         order: 2,
         title: "Add Entry & Export",
-        body: "'Add entry', top-right, logs a new CPD activity. Its dropdown's 'Export…' opens a picker for a CSV or PDF download of your full log.",
+        body: "'Add entry' logs a new CPD activity. Its dropdown's 'Export…' opens a picker for a CSV or PDF download of your full log.",
         target: "#cpd-header",
       },
       {
@@ -428,7 +428,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "supervision-add",
         order: 2,
         title: "Add Session & Export",
-        body: "'Add session', top-right, logs a new entry — date, supervisor, duration, and optional cost. Its dropdown exports the log as a PDF.",
+        body: "'Add session' logs a new entry — date, supervisor, duration, and optional cost. Its dropdown exports the log as a PDF.",
         target: "#supervision-header",
       },
       {
@@ -464,7 +464,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "audit-refresh",
         order: 2,
         title: "Refresh",
-        body: "This top-right button pulls in the latest activity if you've been on the page for a while.",
+        body: "This button pulls in the latest activity if you've been on the page for a while.",
         target: "#audit-header",
       },
       {
