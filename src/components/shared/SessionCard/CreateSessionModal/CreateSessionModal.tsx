@@ -420,30 +420,36 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
           </fieldset>
 
           {!session && (
-            <div className={styles.checkboxGroup}>
-              <input
-                id="recurring"
-                type="checkbox"
-                checked={isRecurring}
-                onChange={(e) => {
-                  setIsRecurring(e.target.checked);
-                  setPricePounds((prev) => {
-                    if (e.target.checked && prev === "60.00") return "55.00";
-                    if (!e.target.checked && prev === "55.00") return "60.00";
-                    return prev;
-                  });
-                }}
-              />
-              <label htmlFor="recurring" className={styles.checkboxLabel}>
-                Repeat weekly
-              </label>
+            <div className={styles.fieldGroup}>
+              <div className={styles.checkboxGroup}>
+                <input
+                  id="recurring"
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => {
+                    setIsRecurring(e.target.checked);
+                    setPricePounds((prev) => {
+                      if (e.target.checked && prev === "60.00") return "55.00";
+                      if (!e.target.checked && prev === "55.00") return "60.00";
+                      return prev;
+                    });
+                  }}
+                />
+                <label htmlFor="recurring" className={styles.checkboxLabel}>
+                  Book as a recurring block
+                </label>
+              </div>
+              <p className={styles.hint}>
+                Creates several sessions, one week apart starting from the date above. They're tracked and paid together
+                — marking any one of them as paid marks the whole block as paid.
+              </p>
             </div>
           )}
 
           {isRecurring && !session && (
             <div className={styles.fieldGroup}>
               <label className={styles.label} htmlFor="recurring-weeks">
-                Additional weeks
+                Additional weekly sessions
               </label>
               <input
                 id="recurring-weeks"
@@ -454,6 +460,9 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
                 value={recurringWeeks}
                 onChange={(e) => setRecurringWeeks(Number(e.target.value))}
               />
+              <p className={styles.hint}>
+                {recurringWeeks + 1} sessions total — the one above plus {recurringWeeks} more, weekly.
+              </p>
             </div>
           )}
 

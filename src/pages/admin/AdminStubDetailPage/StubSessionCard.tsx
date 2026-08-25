@@ -78,7 +78,6 @@ export default function StubSessionCard({
   const hasAmountPaid = session.amount_paid != null && session.amount_paid > 0;
   const isPaid = session.paid || hasAmountPaid;
   const paidAmount = hasAmountPaid ? (session.amount_paid as number) : (session.price_pence ?? 0) / 100;
-  const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
 
   const handleTogglePaid = async () => {
     if (demoGuard()) return;
@@ -381,11 +380,9 @@ export default function StubSessionCard({
                 <Button size="sm" variant="secondary" onClick={handleTogglePaid} disabled={saving}>
                   {isPaid ? "Mark as unpaid" : "Mark as paid"}
                 </Button>
-                {!isPast && (
-                  <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
-                    Reschedule
-                  </Button>
-                )}
+                <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
+                  Edit
+                </Button>
                 <Button size="sm" variant="ghost-danger" onClick={() => !demoGuard() && setConfirmAction("cancel")}>
                   Cancel
                 </Button>
@@ -400,7 +397,7 @@ export default function StubSessionCard({
                   primaryLabel={isPaid ? "Mark as unpaid" : "Mark as paid"}
                   primaryAction={handleTogglePaid}
                   options={[
-                    ...(!isPast ? [{ label: "Reschedule", onClick: () => setEditOpen(true) }] : []),
+                    { label: "Edit", onClick: () => setEditOpen(true) },
                     { label: "Cancel", onClick: () => !demoGuard() && setConfirmAction("cancel") },
                     { label: "Delete", onClick: () => !demoGuard() && setConfirmAction("delete") },
                   ]}
