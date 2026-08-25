@@ -576,6 +576,57 @@ describe("SettingsPage — subscription", () => {
       expect(invokeSpy).toHaveBeenCalledWith("create-billing-portal-session");
     });
   });
+
+  // Regression coverage (2026-08-25): the demo account's billing_customer_id
+  // is a real Stripe customer — clicking this in demo mode used to open a
+  // real Stripe portal session for anyone browsing the public demo.
+  it("never calls Stripe when the account is a demo account", async () => {
+    currentRow.billing_customer_id = "cus_123";
+    mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
+    await openPracticeTab();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
+
+    expect(invokeSpy).not.toHaveBeenCalledWith("create-billing-portal-session");
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+  });
+});
+
+// Regression coverage (2026-08-25): practice_settings itself isn't covered by
+// the DB's block_demo_write trigger — it has to stay writable for real admins
+// saving their own settings — so nothing stopped a demo visitor from actually
+// persisting changes here (and, for Manage subscription/Stripe Connect/Google
+// Calendar, from triggering a real external side effect) unless every save
+// handler checked isDemo itself. One representative case per external system
+// this page touches — the rest all go through the same guardDemo() helper.
+describe("SettingsPage — demo mode blocks every save action", () => {
+  beforeEach(() => {
+    mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
+  });
+
+  it("does not save bank details", async () => {
+    await openPracticeTab();
+    fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+  });
+
+  it("does not save business information", async () => {
+    await openPracticeTab();
+    fireEvent.change(getFieldInput("Business name"), { target: { value: "New Name" } });
+    fireEvent.click(
+      within(getCardByHeading("Business information")).getByRole("button", { name: "Save business info" }),
+    );
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not disconnect Stripe Connect", async () => {
+    currentRow.stripe_connect_onboarded = true;
+    await openPracticeTab();
+    fireEvent.click(await screen.findByRole("button", { name: /disconnect/i }));
+    expect(invokeSpy).not.toHaveBeenCalledWith("disconnect-stripe");
+  });
 });
 
 describe("SettingsPage — interface preferences", () => {

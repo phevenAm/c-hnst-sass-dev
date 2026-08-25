@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
+import { useAuth } from "@context/AuthContext";
 import { supabase } from "@lib/supabase";
 import type { Database } from "@models/database.types";
 
@@ -12,6 +13,7 @@ const TOKEN_TABLE_NAME = "platform_access_token";
 type AccessToken = Database["public"]["Tables"][TOKEN_TABLE_NAME]["Row"];
 
 export default function ManageTokensModal({ onClose }: { onClose: () => void }) {
+  const { isDemo } = useAuth();
   const [allTokens, setAllTokens] = useState<AccessToken[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,10 @@ export default function ManageTokensModal({ onClose }: { onClose: () => void }) 
   }, []);
 
   const handleDeleteToken = async (id: number) => {
+    if (isDemo) {
+      setError("Demo mode — changes are not saved.");
+      return;
+    }
     setDeletingId(id);
     const { error } = await supabase.from(TOKEN_TABLE_NAME).delete().eq("id", id);
 
@@ -55,6 +61,10 @@ export default function ManageTokensModal({ onClose }: { onClose: () => void }) 
   };
 
   const handleUpdateToken = async (id: number) => {
+    if (isDemo) {
+      setError("Demo mode — changes are not saved.");
+      return;
+    }
     setUpdatingId(id);
     const { error } = await supabase.from(TOKEN_TABLE_NAME).update({ is_used: false }).eq("id", id);
 
@@ -67,6 +77,10 @@ export default function ManageTokensModal({ onClose }: { onClose: () => void }) 
   };
 
   const handleBatchDelete = async () => {
+    if (isDemo) {
+      setError("Demo mode — changes are not saved.");
+      return;
+    }
     const ids = Array.from(selectedIds);
     const { error } = await supabase.from(TOKEN_TABLE_NAME).delete().in("id", ids);
 

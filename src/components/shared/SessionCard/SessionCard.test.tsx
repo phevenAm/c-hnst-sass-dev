@@ -1,8 +1,8 @@
 import { Provider } from "react-redux";
 
 import { configureStore } from "@reduxjs/toolkit";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import sessionsReducer from "@store/slices/sessionsSlice";
 
@@ -14,10 +14,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const mockUseAuth = vi.fn(() => ({ practiceSettings: null, rescheduleCutoffHours: null, isDemo: false }));
 vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({ practiceSettings: null, rescheduleCutoffHours: null }),
+  useAuth: () => mockUseAuth(),
 }));
-vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+
+beforeEach(() => {
+  mockUseAuth.mockReturnValue({ practiceSettings: null, rescheduleCutoffHours: null, isDemo: false });
+});
+
+const mockShowToast = vi.fn();
+vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: mockShowToast }) }));
 vi.mock("@/lib/supabase.js", () => ({ supabase: { functions: { invoke: vi.fn() }, from: vi.fn() } }));
 
 const baseSession: Session = {
@@ -65,5 +72,41 @@ describe("SessionCard — client name header", () => {
   it("does not show a name to the client themselves even if clientLabel were somehow passed (sad path)", () => {
     renderWithStore(<SessionCard session={baseSession} clientLabel="Ada Lovelace" />);
     expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+  });
+});
+
+// Regression coverage (2026-08-25): "Mark as paid" dispatched the update and
+// then showed "Updated payment status" unconditionally — sessions IS covered
+// by the DB's block_demo_write trigger, so the write itself never actually
+// went through in demo mode, but the toast lied and claimed it had.
+describe("SessionCard — demo mode", () => {
+  // Both the desktop button and the mobile SplitButton render simultaneously
+  // in jsdom (no real CSS media query to hide either) — the desktop one
+  // carries data-action-type="payment", which is a more direct, unambiguous
+  // target than matching on the "Mark as paid" label shared by both.
+  function clickDesktopMarkAsPaid(container: HTMLElement) {
+    const btn = container.querySelector('button[data-action-type="payment"]');
+    if (!btn) throw new Error("Could not find the desktop Mark as paid button");
+    fireEvent.click(btn);
+  }
+
+  it("does not toggle paid status, and says so instead of claiming success (happy path)", () => {
+    // toggleNoShowOrPayment lives in useSessionCard, which reads isDemo from
+    // useAuth() directly — not from the isDemo prop SessionCard itself takes.
+    mockUseAuth.mockReturnValue({ practiceSettings: null, rescheduleCutoffHours: null, isDemo: true });
+    const { container } = renderWithStore(<SessionCard session={{ ...baseSession, paid: false }} isAdmin isDemo />);
+
+    clickDesktopMarkAsPaid(container);
+
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+    expect(mockShowToast).not.toHaveBeenCalledWith("Updated payment status");
+  });
+
+  it("does toggle paid status for a real (non-demo) admin (sad path — confirms the guard isn't just always-on)", () => {
+    const { container } = renderWithStore(<SessionCard session={{ ...baseSession, paid: false }} isAdmin />);
+
+    clickDesktopMarkAsPaid(container);
+
+    expect(mockShowToast).toHaveBeenCalledWith("Updated payment status");
   });
 });

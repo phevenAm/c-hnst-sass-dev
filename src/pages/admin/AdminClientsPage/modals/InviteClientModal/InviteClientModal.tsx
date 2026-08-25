@@ -9,7 +9,7 @@ import { generateAccessToken } from "../../../utils/AdminClientsPageUtils";
 import styles from "../../AdminClientsPage.module.scss";
 
 export default function InviteClientModal({ onClose }: { onClose: () => void }) {
-  const { authUser } = useAuth();
+  const { authUser, isDemo } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,6 +23,10 @@ export default function InviteClientModal({ onClose }: { onClose: () => void }) 
 
   const handleInvite = async () => {
     if (!canSend || !authUser) return;
+    if (isDemo) {
+      setError("Demo mode — invites can't actually be sent.");
+      return;
+    }
     setError("");
     setSending(true);
 

@@ -72,7 +72,7 @@ function totalHours(logs: CpdLog[]): number {
 }
 
 export default function AdminCpdPage() {
-  const { userProfile } = useAuth();
+  const { userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
   const [logs, setLogs] = useState<CpdLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,6 +132,10 @@ export default function AdminCpdPage() {
   }, [cachedTargetHours]);
 
   const handleDelete = async (log: CpdLog) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     if (log._source === "private_event") {
       // Calendar entries aren't in cpd_logs — just unmark is_cpd so the event
       // stays on the calendar but is removed from the CPD log.
@@ -152,6 +156,10 @@ export default function AdminCpdPage() {
   };
 
   const handleSaveTarget = async (hours: number) => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      return;
+    }
     if (!userProfile?.id) return;
     await supabase.from("practice_settings").update({ cpd_annual_target_hours: hours }).eq("admin_id", userProfile.id);
     setTarget(hours);

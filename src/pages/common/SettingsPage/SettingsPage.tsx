@@ -93,6 +93,17 @@ const SettingsPage = () => {
   const { hiddenSections, toggleSection, reduceMotion, setReduceMotion } = useInterfacePrefs();
   const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
   const { showToast } = useToast();
+
+  // Every save/action handler on this page starts with this — practice_settings
+  // itself isn't covered by the DB's block_demo_write trigger (it has to stay
+  // writable for real admins saving their own settings), so nothing stops a
+  // demo visitor from actually saving here unless each handler checks first.
+  const guardDemo = () => {
+    if (!isDemo) return false;
+    showToast("Demo mode — changes are not saved.");
+    return true;
+  };
+
   const [name, setName] = useState(userProfile?.display_name ?? "");
   const [imageUrl, setImageUrl] = useState(userProfile?.avatar_url ?? "");
   const [keywords, setKeywords] = useState<string[]>(userProfile?.focus_keywords ?? []);
@@ -330,10 +341,7 @@ const SettingsPage = () => {
     setKeywords((prev) => (prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]));
 
   const handleUpdateProfile = async () => {
-    if (isDemo) {
-      showToast("Demo mode — changes are not saved.");
-      return;
-    }
+    if (guardDemo()) return;
     setSaving(true);
     await updateProfile({
       display_name: name,
@@ -344,6 +352,7 @@ const SettingsPage = () => {
   };
 
   const handleUpdateBank = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingBank(true);
     const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
@@ -360,6 +369,7 @@ const SettingsPage = () => {
   };
 
   const handleUpdateBusiness = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingBusiness(true);
     const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
@@ -376,6 +386,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveCodenames = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingCodenames(true);
     await supabase
@@ -388,6 +399,7 @@ const SettingsPage = () => {
   };
 
   const handleSendTest = async (type: string) => {
+    if (guardDemo()) return;
     setSendingTest(type);
     try {
       const { error: fnError } = await supabase.functions.invoke("send-test-email", {
@@ -405,6 +417,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveReminderSettings = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingReminders(true);
     await supabase
@@ -422,6 +435,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveAutoCancel = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingAutoCancel(true);
     await supabase
@@ -436,6 +450,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveRescheduleCutoff = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingRescheduleCutoff(true);
     await supabase
@@ -449,6 +464,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveBlockCancellation = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingBlockCancellation(true);
     await supabase
@@ -460,6 +476,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveAdminReminders = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     setSavingAdminReminders(true);
     await supabase
@@ -474,6 +491,7 @@ const SettingsPage = () => {
   };
 
   const handleAddMute = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id || !selectedMuteCandidate) return;
     const [kind, id] = selectedMuteCandidate.split(":");
     setSavingMute(true);
@@ -498,6 +516,7 @@ const SettingsPage = () => {
   };
 
   const handleRemoveMute = async (id: string) => {
+    if (guardDemo()) return;
     const { error } = await supabase.from("admin_reminder_mutes").delete().eq("id", id);
     if (error) {
       showToast("Failed to unmute client.", "danger");
@@ -515,6 +534,7 @@ const SettingsPage = () => {
   };
 
   const handleSaveConsent = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     if (!consentQuestionnaireId && consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
       setConsentPdfUrlError("This must be a direct link to a .pdf file.");
@@ -539,6 +559,7 @@ const SettingsPage = () => {
   };
 
   const handleManageSubscription = async () => {
+    if (guardDemo()) return;
     setLoadingPortal(true);
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-billing-portal-session");
@@ -562,6 +583,7 @@ const SettingsPage = () => {
   };
 
   const handleConnectGoogleCalendar = () => {
+    if (guardDemo()) return;
     const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
     const redirect = `${window.location.origin}/settings/google-callback`;
     const scope = "https://www.googleapis.com/auth/calendar.events";
@@ -571,6 +593,7 @@ const SettingsPage = () => {
   };
 
   const handleToggleCardPayments = async () => {
+    if (guardDemo()) return;
     if (!userProfile?.id) return;
     const next = !cardPaymentsEnabled;
     setSavingCardPayments(true);
@@ -588,6 +611,7 @@ const SettingsPage = () => {
   };
 
   const handleDisconnectStripe = async () => {
+    if (guardDemo()) return;
     setDisconnectingStripe(true);
     try {
       const { error: fnError } = await supabase.functions.invoke("disconnect-stripe");
@@ -603,6 +627,7 @@ const SettingsPage = () => {
   };
 
   const handleToggleGoogleSync = async () => {
+    if (guardDemo()) return;
     if (!googleStatus) return;
     const nextEnabled = !googleStatus.sync_enabled;
     setSavingGoogleSync(true);
@@ -617,6 +642,7 @@ const SettingsPage = () => {
   };
 
   const handleDisconnectGoogleCalendar = async () => {
+    if (guardDemo()) return;
     setDisconnectingGoogle(true);
     try {
       const { error: fnError } = await supabase.functions.invoke("google-calendar-disconnect");

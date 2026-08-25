@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
 import DateInput from "@components/shared/DateInput/DateInput";
+import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
@@ -38,6 +39,7 @@ const MODES = [
 
 export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onClose, onSaved }: Props) {
   const { showToast } = useToast();
+  const { isDemo } = useAuth();
   const [saving, setSaving] = useState(false);
   const mouseDownTarget = useRef<EventTarget | null>(null);
 
@@ -72,6 +74,11 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
   const isSupervision = activityType === "supervision";
 
   const handleSave = async () => {
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.");
+      onClose();
+      return;
+    }
     if (!date) {
       showToast("Date is required", "error");
       return;
