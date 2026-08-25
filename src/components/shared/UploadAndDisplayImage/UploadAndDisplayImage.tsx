@@ -13,7 +13,7 @@ interface Props {
 // Guards against the browser hanging trying to decode a pathologically large
 // file into an <img>/canvas before compression even gets a chance to shrink
 // it — compression only runs after this check passes.
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
 function compressImage(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -42,7 +42,7 @@ export default function UploadAndDisplayImage({ userId, onUpload, bucket = "avat
   const handleFile = async (file: File) => {
     setError(null);
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError("Image is too large — please choose one under 10MB.");
+      setError("Image is too large — please choose one under 2MB.");
       return;
     }
     setUploading(true);
