@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
+import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { Resource } from "@models/globalTypes";
 
 import styles from "./AdminResourcesPage.module.scss";
@@ -10,10 +11,12 @@ import styles from "./AdminResourcesPage.module.scss";
 const CATEGORIES = ["Psychoeducation", "Coping Skills", "Breathwork", "Self-Compassion", "Relationships", "General"];
 
 export function ResourceForm({
+  adminId,
   onSave,
   onClose,
   resource,
 }: {
+  adminId: string;
   // biome-ignore lint/suspicious/noExplicitAny: resource form data shape varies based on resource type
   onSave: (data: any) => void;
   onClose: () => void;
@@ -154,13 +157,18 @@ export function ResourceForm({
 
         {(form.type === "document" || form.type === "link") && (
           <div className={`${styles.formField} ${styles.fullCol}`}>
-            <label htmlFor="r-url">{form.type === "document" ? "Document URL *" : "Website URL *"}</label>
+            <label htmlFor="r-url">
+              {form.type === "document" ? "Document URL — or upload a PDF below *" : "Website URL *"}
+            </label>
             <input
               id="r-url"
               value={form.url}
               onChange={(e) => set("url", e.target.value)}
               placeholder={form.type === "document" ? "https://docs.google.com/document/..." : "https://example.com"}
             />
+            {form.type === "document" && (
+              <PdfUpload adminId={adminId} value={form.url} onChange={(url) => set("url", url)} />
+            )}
           </div>
         )}
       </div>

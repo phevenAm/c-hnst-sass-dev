@@ -1,0 +1,79 @@
+@use "../../../styles/spacing" as *;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $sp-2;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $sp-3;
+}
+
+.btn {
+  padding: $sp-2 $sp-4;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover:not(:disabled) {
+    background: var(--bg-muted);
+    border-color: var(--border-focus);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.viewLink {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.removeBtn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.hidden {
+  display: none;
+}
+
+.hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.error {
+  font-size: 0.8rem;
+  color: var(--danger);
+  margin: 0;
+}
