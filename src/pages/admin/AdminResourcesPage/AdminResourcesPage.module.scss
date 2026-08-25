@@ -262,6 +262,10 @@
   textarea {
     resize: vertical;
   }
+
+  input.pdfUrl {
+    margin-bottom: var(--sp-2);
+  }
 }
 
 .colourPicker {

@@ -16,7 +16,11 @@
     margin: 0 0 $sp-1;
   }
 
-  p { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
+  p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
 }
 
 // ── Tabs ───────────────────────────────────────────────────
@@ -27,7 +31,10 @@
   margin-bottom: $sp-6;
   overflow-x: auto;
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tab {
@@ -72,7 +79,9 @@
   gap: $sp-4;
 }
 
-.qInfo { flex: 1; }
+.qInfo {
+  flex: 1;
+}
 
 .qTitleRow {
   display: flex;
@@ -98,13 +107,25 @@
   padding: 2px 9px;
   border-radius: var(--r-full);
 
-  &.active   { background: var(--accent-light); color: var(--accent-dark); }
-  &.inactive { background: var(--bg-muted);     color: var(--text-muted); }
-  &.default  { background: var(--bg-muted);     color: var(--text-secondary); border: 1px solid var(--border); }
+  &.active {
+    background: var(--accent-light);
+    color: var(--accent-dark);
+  }
 
-:global(.dark) & {
-  color: var(--text-muted);
-}
+  &.inactive {
+    background: var(--bg-muted);
+    color: var(--text-muted);
+  }
+
+  &.default {
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  :global(.dark) & {
+    color: var(--text-muted);
+  }
 }
 
 .qDesc {
@@ -132,13 +153,17 @@
   gap: $sp-2;
   flex-wrap: wrap;
 
-  @include until-md { display: none; }
+  @include until-md {
+    display: none;
+  }
 }
 
 .mobileActions {
   display: none;
 
-  @include until-md { display: flex; }
+  @include until-md {
+    display: flex;
+  }
 }
 
 .empty {
@@ -182,7 +207,9 @@
   margin-bottom: $sp-5;
 }
 
-.fullCol { grid-column: 1 / -1; }
+.fullCol {
+  grid-column: 1 / -1;
+}
 
 .formField {
   label {
@@ -193,7 +220,8 @@
     margin-bottom: $sp-2;
   }
 
-  input, select {
+  input,
+  select {
     width: 100%;
     padding: $sp-3 $sp-4;
     border: 1.5px solid var(--border);
@@ -206,7 +234,13 @@
     box-sizing: border-box;
     transition: border-color var(--transition-base);
 
-    &:focus { border-color: var(--border-focus); }
+    &:focus {
+      border-color: var(--border-focus);
+    }
+  }
+
+  input.pdfUrl {
+    margin-bottom: var(--sp-2);
   }
 }
 
@@ -227,7 +261,12 @@
   align-items: center;
   margin-bottom: $sp-3;
 
-  h3 { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
 }
 
 .questionBlock {
@@ -271,7 +310,8 @@
   gap: $sp-3;
   flex-wrap: wrap;
 
-  input, select {
+  input,
+  select {
     flex: 1;
     min-width: 120px;
     padding: $sp-2 $sp-3;
@@ -284,7 +324,9 @@
     outline: none;
     box-sizing: border-box;
 
-    &:focus { border-color: var(--border-focus); }
+    &:focus {
+      border-color: var(--border-focus);
+    }
   }
 }
 
@@ -301,7 +343,9 @@
   box-sizing: border-box;
   margin-bottom: $sp-3;
 
-  &:focus { border-color: var(--border-focus); }
+  &:focus {
+    border-color: var(--border-focus);
+  }
 }
 
 .modalActions {
@@ -324,7 +368,10 @@
   margin: 0 0 $sp-5;
   line-height: 1.5;
 
-  strong { color: var(--text-primary); font-weight: 600; }
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
 }
 
 .sectionLabel {
@@ -359,7 +406,10 @@
   transition: border-color var(--transition-base), background var(--transition-base);
   user-select: none;
 
-  &:hover { border-color: var(--border-focus); background: var(--bg-muted); }
+  &:hover {
+    border-color: var(--border-focus);
+    background: var(--bg-muted);
+  }
 
   &.clientRowAssigned {
     border-color: var(--accent);
@@ -408,7 +458,7 @@
   flex: 1;
   min-width: 150px;
 
-  > span {
+  >span {
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -428,7 +478,9 @@
     box-sizing: border-box;
     width: 100%;
 
-    &:focus { border-color: var(--border-focus); }
+    &:focus {
+      border-color: var(--border-focus);
+    }
   }
 }
 
@@ -464,13 +516,19 @@
     &:first-of-type {
       background: var(--accent);
       color: #fff;
-      &:hover { opacity: 0.88; }
+
+      &:hover {
+        opacity: 0.88;
+      }
     }
 
     &:last-of-type {
       background: var(--bg-muted);
       color: var(--text-secondary);
-      &:hover { background: var(--border); }
+
+      &:hover {
+        background: var(--border);
+      }
     }
   }
 }
@@ -533,7 +591,9 @@
     outline: none;
     box-sizing: border-box;
 
-    &:focus { border-color: var(--border-focus); }
+    &:focus {
+      border-color: var(--border-focus);
+    }
   }
 }
 
@@ -552,7 +612,7 @@
   align-items: center;
   margin-bottom: $sp-3;
 
-  > span {
+  >span {
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -571,7 +631,9 @@
   cursor: pointer;
   padding: 0;
 
-  &:hover { opacity: 0.8; }
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 .optionsHint {
@@ -598,7 +660,9 @@
     outline: none;
     box-sizing: border-box;
 
-    &:focus { border-color: var(--border-focus); }
+    &:focus {
+      border-color: var(--border-focus);
+    }
   }
 }
 

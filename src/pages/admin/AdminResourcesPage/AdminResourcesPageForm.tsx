@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import Button from "@components/shared/Button/Button";
-import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { Resource } from "@models/globalTypes";
@@ -163,6 +162,7 @@ export function ResourceForm({
             <input
               id="r-url"
               value={form.url}
+              className={styles.pdfUrl}
               onChange={(e) => set("url", e.target.value)}
               placeholder={form.type === "document" ? "https://docs.google.com/document/..." : "https://example.com"}
             />
