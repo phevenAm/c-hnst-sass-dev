@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
+import { captureReferralCode, getReferralCode } from "@/Helpers/referral";
 import { supabase } from "@/lib/supabase";
 
 import styles from "./SubscribePage.module.scss";
@@ -118,6 +119,7 @@ export default function SubscribePage() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [plan, setPlan] = useState<Plan>("app");
   const [billing, setBilling] = useState<Billing>("monthly");
+  const [referralCode, setReferralCode] = useState<string | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -126,6 +128,14 @@ export default function SubscribePage() {
       showToast("Checkout cancelled — you can try again any time.", "warning");
     }
   }, [searchParams, showToast]);
+
+  // Normally captured earlier, on /register — this is a fallback for anyone
+  // who lands straight on /subscribe with the ?ref= param (e.g. a link
+  // shared for an existing-account edge case, or opening it directly).
+  useEffect(() => {
+    captureReferralCode(window.location.search);
+    setReferralCode(getReferralCode());
+  }, []);
 
   const startAutoAdvance = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -159,7 +169,7 @@ export default function SubscribePage() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-subscription-checkout", {
-        body: { plan, billing },
+        body: { plan, billing, ...(referralCode ? { referral_code: referralCode } : {}) },
       });
 
       if (fnError) throw new Error(fnError.message);
@@ -309,6 +319,10 @@ export default function SubscribePage() {
               )}
 
               {error && <p className={styles.error}>{error}</p>}
+
+              {referralCode && (
+                <p className={styles.billingNote}>Referred by a colleague — their code will be applied.</p>
+              )}
 
               <Button onClick={handleSubscribe} disabled={loading || !agreed} className={styles.subscribeBtn}>
                 {loading ? "Redirecting to payment…" : "Start subscription"}

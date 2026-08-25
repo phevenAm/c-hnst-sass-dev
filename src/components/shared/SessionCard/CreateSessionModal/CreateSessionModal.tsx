@@ -66,12 +66,41 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
   const [error, setError] = useState("");
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
+  const [sessionPackages, setSessionPackages] = useState<
+    { id: string; name: string; price_pence: number; duration_minutes: number }[]
+  >([]);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
 
   useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
   const cachedSavedLocations = useAppSelector((state) => state.practiceSettings.data?.saved_locations);
   useEffect(() => {
     if (cachedSavedLocations) setSavedLocations(cachedSavedLocations as string[]);
   }, [cachedSavedLocations]);
+
+  // Session types configured in Settings — picking one just prefills duration
+  // and price below; both stay freely editable after, since not every booking
+  // fits a preset (sliding scale, one-off rate, etc).
+  useEffect(() => {
+    if (!authUser?.id) return;
+    supabase
+      .from("session_packages")
+      .select("id, name, price_pence, duration_minutes")
+      .eq("admin_id", authUser.id)
+      .eq("archived", false)
+      .order("sort_order")
+      .then(({ data }) => {
+        if (data) setSessionPackages(data);
+      });
+  }, [authUser?.id]);
+
+  const handleSelectPackage = (id: string) => {
+    setSelectedPackageId(id);
+    const pkg = sessionPackages.find((p) => p.id === id);
+    if (pkg) {
+      setSessionDuration(pkg.duration_minutes);
+      setPricePounds((pkg.price_pence / 100).toFixed(2));
+    }
+  };
 
   const handleSaveLocation = async () => {
     if (!sessionAddress.trim() || !authUser) return;
@@ -310,6 +339,27 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
             <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
           </fieldset>
 
+          {sessionPackages.length > 0 && (
+            <fieldset className={styles.fieldGroup}>
+              <legend className={styles.label}>Session type</legend>
+              <div className={styles.inputWrapper}>
+                <select
+                  id="session-package"
+                  className={styles.input}
+                  value={selectedPackageId}
+                  onChange={(e) => handleSelectPackage(e.target.value)}
+                >
+                  <option value="">Custom — set below</option>
+                  {sessionPackages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — £{(p.price_pence / 100).toFixed(2)} · {p.duration_minutes} min
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </fieldset>
+          )}
+
           <fieldset className={styles.fieldGroup}>
             <legend className={styles.label}>Session duration</legend>
             <div className={styles.inputWrapper}>
@@ -400,7 +450,7 @@ const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onS
                 className={styles.input}
                 type="number"
                 min={1}
-                max={3}
+                max={11}
                 value={recurringWeeks}
                 onChange={(e) => setRecurringWeeks(Number(e.target.value))}
               />

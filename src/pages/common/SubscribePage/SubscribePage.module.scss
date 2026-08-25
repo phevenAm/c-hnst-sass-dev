@@ -30,15 +30,14 @@
 // ── Logo ──────────────────────────────────────────────────────────────────────
 
 .logoWrap {
-  text-align: center;
+  text-align: left;
   margin-bottom: $sp-8;
 }
 
 .logoMark {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto $sp-4;
+  margin: 0 0 $sp-4;
 }
 
 .logoTitle {

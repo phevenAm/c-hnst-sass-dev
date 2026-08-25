@@ -7,10 +7,8 @@
 .wrapper {
   display: grid;
   place-items: center;
-  gap: 1rem;
   width: 100%;
   height: 100vh;
-  text-align: center;
   padding: 0 1.5rem;
 }
 
@@ -24,24 +22,33 @@
   box-sizing: border-box;
 }
 
-.hint {
-  max-width: 320px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.resetButton {
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: var(--r-full);
-  border: 1.5px solid var(--border);
-  background: transparent;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.resetButton:hover {
+.splash {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100vh;
   background: var(--bg-muted);
+}
+
+@keyframes brandCycle {
+  0%   { color: var(--accent);       opacity: 1; }
+  12%  { opacity: 0.6; }
+  25%  { color: var(--accent-dark);  opacity: 1; }
+  37%  { opacity: 0.6; }
+  50%  { color: var(--highlight);    opacity: 1; }
+  62%  { opacity: 0.6; }
+  75%  { color: var(--accent-hover); opacity: 1; }
+  87%  { opacity: 0.6; }
+  100% { color: var(--accent);       opacity: 1; }
+}
+
+.splashLogo {
+  animation: brandCycle 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splashLogo {
+    animation: none;
+    color: var(--accent);
+  }
 }

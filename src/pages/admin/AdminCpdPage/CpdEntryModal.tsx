@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import dayjs from "dayjs";
 
@@ -15,29 +15,18 @@ import styles from "./CpdEntryModal.module.scss";
 type Props = {
   initial: CpdLog | null;
   adminId: string;
-  nextSessionNumber: number;
   onClose: () => void;
   onSaved: () => void;
 };
 
 const ACTIVITY_TYPES: { value: CpdActivityType; label: string }[] = [
-  { value: "supervision", label: "Supervision" },
   { value: "training", label: "Training" },
   { value: "reading", label: "Reading" },
   { value: "conference", label: "Conference" },
-  { value: "peer_consultation", label: "Peer Consultation" },
-  // { value: "personal_therapy", label: "Personal Therapy" },
   { value: "other", label: "Other" },
 ];
 
-const NEW_ACTIVITY_TYPES = ACTIVITY_TYPES.filter((t) => t.value !== "supervision");
-
-const MODES = [
-  { value: "remote", label: "Remote" },
-  { value: "in_person", label: "In person" },
-];
-
-export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onClose, onSaved }: Props) {
+export default function CpdEntryModal({ initial, adminId, onClose, onSaved }: Props) {
   const { showToast } = useToast();
   const { isDemo } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -45,14 +34,6 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
 
   const [activityType, setActivityType] = useState<CpdActivityType>(initial?.activity_type ?? "training");
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().split("T")[0]);
-  const [sessionNumber, setSessionNumber] = useState<string>(
-    initial?.session_number != null ? String(initial.session_number) : String(nextSessionNumber),
-  );
-  const [contractCode, setContractCode] = useState(initial?.contract_code ?? "");
-  const [mode, setMode] = useState(initial?.mode ?? "remote");
-  const [venue, setVenue] = useState(initial?.venue ?? "");
-  const [issuesRaised, setIssuesRaised] = useState(initial?.issues_raised ?? "");
-  const [supervisorName, setSupervisorName] = useState(initial?.supervisor_name ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [provider, setProvider] = useState(initial?.provider ?? "");
   const [durationHours, setDurationHours] = useState<string>(
@@ -64,15 +45,6 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [customCategory, setCustomCategory] = useState(initial?.custom_category ?? "");
 
-  // Reset session number suggestion when switching to supervision
-  useEffect(() => {
-    if (!initial && activityType === "supervision") {
-      setSessionNumber(String(nextSessionNumber));
-    }
-  }, [activityType, initial, nextSessionNumber]);
-
-  const isSupervision = activityType === "supervision";
-
   const handleSave = async () => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
@@ -83,11 +55,7 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
       showToast("Date is required", "error");
       return;
     }
-    if (isSupervision && !supervisorName.trim()) {
-      showToast("Supervisor name is required", "error");
-      return;
-    }
-    if (!isSupervision && !title.trim()) {
+    if (!title.trim()) {
       showToast("Title is required", "error");
       return;
     }
@@ -99,14 +67,8 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
       admin_id: adminId,
       date,
       activity_type: activityType,
-      session_number: isSupervision && sessionNumber ? Number(sessionNumber) : null,
-      contract_code: isSupervision ? contractCode || null : null,
-      mode: isSupervision ? mode || null : null,
-      venue: isSupervision ? venue || null : null,
-      issues_raised: isSupervision ? issuesRaised || null : null,
-      supervisor_name: isSupervision ? supervisorName || null : null,
-      title: !isSupervision ? title || null : null,
-      provider: !isSupervision ? provider || null : null,
+      title: title || null,
+      provider: provider || null,
       duration_minutes: totalMins || null,
       notes: notes || null,
       custom_category: activityType === "other" ? customCategory.trim() || null : null,
@@ -159,7 +121,7 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
                 value={activityType}
                 onChange={(e) => setActivityType(e.target.value as CpdActivityType)}
               >
-                {(initial ? ACTIVITY_TYPES : NEW_ACTIVITY_TYPES).map((t) => (
+                {ACTIVITY_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>
@@ -200,122 +162,42 @@ export default function CpdEntryModal({ initial, adminId, nextSessionNumber, onC
             </div>
           </div>
 
-          {isSupervision ? (
-            <>
-              <div className={styles.row}>
-                <div className={styles.field}>
-                  <label htmlFor="cpd-session-no">Session number</label>
-                  <input
-                    id="cpd-session-no"
-                    type="number"
-                    min={1}
-                    value={sessionNumber}
-                    onChange={(e) => setSessionNumber(e.target.value)}
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="cpd-contract">
-                    Contract code <span className={styles.optional}>(optional)</span>
-                  </label>
-                  <input
-                    id="cpd-contract"
-                    type="text"
-                    value={contractCode}
-                    onChange={(e) => setContractCode(e.target.value)}
-                    placeholder="e.g. SUP-2026-01"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.row}>
-                <div className={styles.field}>
-                  <label htmlFor="cpd-mode">Mode</label>
-                  <select id="cpd-mode" value={mode} onChange={(e) => setMode(e.target.value)}>
-                    {MODES.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="cpd-venue">
-                    Venue <span className={styles.optional}>(optional)</span>
-                  </label>
-                  <input
-                    id="cpd-venue"
-                    type="text"
-                    value={venue}
-                    onChange={(e) => setVenue(e.target.value)}
-                    placeholder="e.g. Supervisor's practice"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="cpd-supervisor">Supervisor name</label>
-                <input
-                  id="cpd-supervisor"
-                  type="text"
-                  value={supervisorName}
-                  onChange={(e) => setSupervisorName(e.target.value)}
-                  placeholder="e.g. Dr. Jane Smith"
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="cpd-issues">
-                  Issues raised <span className={styles.optional}>(optional)</span>
-                </label>
-                <textarea
-                  id="cpd-issues"
-                  rows={3}
-                  value={issuesRaised}
-                  onChange={(e) => setIssuesRaised(e.target.value)}
-                  placeholder="Brief description of what was brought to supervision…"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              {activityType === "other" && (
-                <div className={styles.field}>
-                  <label htmlFor="cpd-custom-cat">
-                    Category name <span className={styles.optional}>(optional — e.g. "Yoga Therapy")</span>
-                  </label>
-                  <input
-                    id="cpd-custom-cat"
-                    type="text"
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Leave blank to keep as 'Other'…"
-                  />
-                </div>
-              )}
-              <div className={styles.field}>
-                <label htmlFor="cpd-title">Title</label>
-                <input
-                  id="cpd-title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Trauma-Informed Practice (BACP)"
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="cpd-provider">
-                  Provider <span className={styles.optional}>(optional)</span>
-                </label>
-                <input
-                  id="cpd-provider"
-                  type="text"
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
-                  placeholder="e.g. BACP, Coursera"
-                />
-              </div>
-            </>
+          {activityType === "other" && (
+            <div className={styles.field}>
+              <label htmlFor="cpd-custom-cat">
+                Category name <span className={styles.optional}>(optional — e.g. "Yoga Therapy")</span>
+              </label>
+              <input
+                id="cpd-custom-cat"
+                type="text"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Leave blank to keep as 'Other'…"
+              />
+            </div>
           )}
+          <div className={styles.field}>
+            <label htmlFor="cpd-title">Title</label>
+            <input
+              id="cpd-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Trauma-Informed Practice (BACP)"
+            />
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="cpd-provider">
+              Provider <span className={styles.optional}>(optional)</span>
+            </label>
+            <input
+              id="cpd-provider"
+              type="text"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              placeholder="e.g. BACP, Coursera"
+            />
+          </div>
 
           <div className={styles.field}>
             <label htmlFor="cpd-notes">

@@ -56,10 +56,12 @@
   gap: $sp-4;
   padding: $sp-4 $sp-5;
   border-bottom: 1px solid var(--border);
-  border-radius: var(--r-md);
+  // border-radius: var(--r-md);
   flex-wrap: wrap;
   cursor: pointer;
   transition: background-color var(--transition-base);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 
   &:hover {
     background: var(--bg-muted);
@@ -602,10 +604,12 @@
   gap: $sp-4;
   padding: $sp-4 $sp-5;
   border-bottom: 1px solid var(--border);
-  border-radius: var(--r-md);
+  // border-radius: var(--r-md);
   flex-wrap: wrap;
   cursor: pointer;
   transition: background-color var(--transition-base);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 
   &:hover {
     background: var(--bg-muted);

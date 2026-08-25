@@ -8,10 +8,10 @@ import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import AuthLoadingState from "../components/shared/AuthLoadingState/AuthLoadingState";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Navbar from "../components/shared/Navbar/Navbar";
+import PastDueBanner from "../components/shared/PastDueBanner/PastDueBanner";
 import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
-import Spinner from "../components/shared/Spinner/Spinner";
 import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
@@ -66,7 +66,7 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 
 function RootRedirect() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState />;
+  if (loading) return <AuthLoadingState variant="splash" />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
@@ -134,6 +134,7 @@ function AdminLayout() {
           <AdminTopbar />
           <DemoBanner />
           <PausedBanner />
+          <PastDueBanner />
           <main id="main-content" tabIndex={-1}>
             <div className="page-content">
               <Outlet />
@@ -174,14 +175,21 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading || verifying) return <Spinner />;
+  if (loading || verifying) return <AuthLoadingState variant="splash" />;
 
+  // past_due is deliberately let through, not redirected to /subscribe —
+  // that starts a brand-new checkout instead of fixing the existing
+  // subscription. PastDueBanner (rendered in AdminLayout) nags the admin
+  // to update their payment method via the billing portal instead; only a
+  // subscription that's actually lapsed (canceled, unpaid, etc.) blocks
+  // access and sends them to /subscribe.
   if (
     isAdmin &&
     !isDemo &&
     practiceSettings &&
     practiceSettings.subscription_status !== "active" &&
-    practiceSettings.subscription_status !== "trialing"
+    practiceSettings.subscription_status !== "trialing" &&
+    practiceSettings.subscription_status !== "past_due"
   ) {
     return <Navigate to="/subscribe" replace />;
   }
@@ -190,7 +198,7 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 
 function AdminSetupGate({ children }: { children: React.ReactNode }) {
   const { isAdmin, isDemo, practiceSettings, loading } = useAuth();
-  if (loading) return <Spinner />;
+  if (loading) return <AuthLoadingState variant="splash" />;
   if (isAdmin && !isDemo && practiceSettings?.onboarding_required) {
     return <Navigate to="/admin/setup" replace />;
   }

@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe";
+import { emailTemplate, logEmail, para, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,6 +82,52 @@ Deno.serve(async (req) => {
       })
       .eq("admin_id", admin_id);
     if (updateError) throw new Error(updateError.message);
+
+    // Tell the admin — otherwise the only way they'd find out is noticing
+    // the read-only banner next time they happen to load the app.
+    const { data: adminUser } = await supabase.from("users").select("email").eq("id", admin_id).single();
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+    const emailType = paused ? "practice_paused" : "practice_resumed";
+    const subject = paused ? "Your Clarity account has been paused" : "Your Clarity account has been reactivated";
+
+    if (adminUser?.email && resendKey && fromEmail) {
+      const html = emailTemplate({
+        label: paused ? "Account Paused" : "Account Reactivated",
+        title: paused ? "Your account has been paused" : "Your account is active again",
+        body: paused
+          ? para(
+              "Your Clarity account has been paused by an administrator. The app is now read-only for you and your clients — no data will be lost, and nothing can be changed until it's resumed.",
+            ) +
+            (reason ? para(`Reason given: <strong style="color:#2d2926;">${reason}</strong>`) : "") +
+            para("Billing has also been paused for as long as your account stays paused.")
+          : para(
+              "Your Clarity account has been reactivated. You and your clients can use the app normally again, and billing has resumed.",
+            ),
+        footerNote: "This email was sent because a superadmin changed your account's pause status.",
+      });
+
+      try {
+        const resendId = await sendEmail({ to: adminUser.email, subject, html, resendKey, fromEmail });
+        await logEmail(supabase, {
+          adminId: admin_id,
+          emailType,
+          recipientEmail: adminUser.email,
+          subject,
+          resendEmailId: resendId,
+          status: "sent",
+        });
+      } catch (sendErr: any) {
+        await logEmail(supabase, {
+          adminId: admin_id,
+          emailType,
+          recipientEmail: adminUser.email,
+          subject,
+          status: "failed",
+          errorMessage: sendErr.message,
+        });
+      }
+    }
 
     return new Response(JSON.stringify({ success: true, stripeErrors }), { headers: corsHeaders });
   } catch (err: any) {

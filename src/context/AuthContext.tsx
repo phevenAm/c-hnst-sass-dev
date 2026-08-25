@@ -38,6 +38,7 @@ type PracticeSettings = {
   subscription_plan: string;
   stripe_connect_onboarded: boolean;
   use_client_codenames: boolean;
+  referral_code: string | null;
 };
 
 type AuthContextType = {

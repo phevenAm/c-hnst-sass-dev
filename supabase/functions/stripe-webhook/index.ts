@@ -40,6 +40,24 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+  // Idempotency guard — Stripe can and does redeliver events (retries on a
+  // non-2xx response, manual resends from the dashboard). A genuine
+  // duplicate of an event we already finished processing short-circuits
+  // here; stripe_webhook_events is only written to at the very end, after
+  // processing succeeds, so a failed attempt (which never reaches that
+  // insert) still gets reprocessed on Stripe's automatic retry.
+  const { data: alreadyProcessed } = await supabase
+    .from("stripe_webhook_events")
+    .select("event_id")
+    .eq("event_id", event.id)
+    .maybeSingle();
+
+  if (alreadyProcessed) {
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // ── Subscription billing events (platform account, no event.account) ──────────
   if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
     const sub = event.data.object as Stripe.Subscription;
@@ -58,7 +76,7 @@ Deno.serve(async (req) => {
 
   if (event.type === "customer.subscription.deleted") {
     const sub = event.data.object as Stripe.Subscription;
-    await supabase
+    const { data: cancelledSettings } = await supabase
       .from("practice_settings")
       .update({
         subscription_status: "canceled",
@@ -66,7 +84,64 @@ Deno.serve(async (req) => {
         subscription_cancel_at_period_end: false,
         subscription_current_period_end: null,
       })
-      .eq("billing_customer_id", sub.customer as string);
+      .eq("billing_customer_id", sub.customer as string)
+      .select("admin_id")
+      .maybeSingle();
+
+    // Tell the admin their subscription actually ended — previously this
+    // update happened silently and the only way to notice was the app
+    // locking you out next time you tried to use it.
+    if (cancelledSettings?.admin_id) {
+      const { data: cancelledAdmin } = await supabase
+        .from("users")
+        .select("email")
+        .eq("id", cancelledSettings.admin_id)
+        .single();
+
+      const resendKey = Deno.env.get("RESEND_API_KEY");
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+      const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+      const subject = "Your Clarity subscription has ended";
+
+      await supabase.from("notifications").insert({
+        user_id: cancelledSettings.admin_id,
+        type: "subscription_cancelled",
+        message: "Your Clarity subscription has ended. Resubscribe any time to regain access.",
+      });
+
+      if (cancelledAdmin?.email && resendKey && fromEmail) {
+        const html = emailTemplate({
+          label: "Subscription Ended",
+          title: "Your subscription has ended",
+          body:
+            para("Your Clarity subscription is now cancelled and billing has stopped.") +
+            para("Your account and data are still here — resubscribe any time to pick up right where you left off."),
+          cta: { label: "Resubscribe", url: `${appUrl}/subscribe` },
+          footerNote: "This email was sent because your Clarity subscription ended.",
+        });
+
+        try {
+          const resendId = await sendEmail({ to: cancelledAdmin.email, subject, html, resendKey, fromEmail });
+          await logEmail(supabase, {
+            adminId: cancelledSettings.admin_id,
+            emailType: "subscription_cancelled",
+            recipientEmail: cancelledAdmin.email,
+            subject,
+            resendEmailId: resendId,
+            status: "sent",
+          });
+        } catch (sendErr: any) {
+          await logEmail(supabase, {
+            adminId: cancelledSettings.admin_id,
+            emailType: "subscription_cancelled",
+            recipientEmail: cancelledAdmin.email,
+            subject,
+            status: "failed",
+            errorMessage: sendErr.message,
+          });
+        }
+      }
+    }
   }
 
   // ── Subscription checkout completed — activate account immediately ───────────
@@ -110,7 +185,54 @@ Deno.serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });
+      // Welcome/confirmation email — the only signal a new subscriber gets
+      // that the payment actually went through.
+      const { data: newAdminUser } = await supabase
+        .from("users")
+        .select("email")
+        .eq("id", cs.metadata.admin_id)
+        .single();
+
+      const resendKey = Deno.env.get("RESEND_API_KEY");
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+      const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+
+      if (newAdminUser?.email && resendKey && fromEmail) {
+        const planLabel =
+          ({ app: "App", website: "Website", bundle: "Bundle" } as Record<string, string>)[plan] ?? plan;
+        const subject = "Welcome to Clarity — your subscription is active";
+        const html = emailTemplate({
+          label: "Subscription Confirmed",
+          title: "Welcome to Clarity!",
+          body:
+            para(
+              `Your subscription is now active on the <strong style="color:#2d2926;">${planLabel}</strong> plan, billed ${billing}.`,
+            ) + para("You're all set up — head to your dashboard to start managing your practice."),
+          cta: { label: "Go to dashboard", url: `${appUrl}/admin` },
+          footerNote: "This email was sent because you subscribed to Clarity.",
+        });
+
+        try {
+          const resendId = await sendEmail({ to: newAdminUser.email, subject, html, resendKey, fromEmail });
+          await logEmail(supabase, {
+            adminId: cs.metadata.admin_id,
+            emailType: "subscription_started",
+            recipientEmail: newAdminUser.email,
+            subject,
+            resendEmailId: resendId,
+            status: "sent",
+          });
+        } catch (sendErr: any) {
+          await logEmail(supabase, {
+            adminId: cs.metadata.admin_id,
+            emailType: "subscription_started",
+            recipientEmail: newAdminUser.email,
+            subject,
+            status: "failed",
+            errorMessage: sendErr.message,
+          });
+        }
+      }
     }
   }
 
@@ -326,6 +448,149 @@ Deno.serve(async (req) => {
       }
     }
   }
+
+  // ── Payment failed — tell the admin their card was declined. A declined
+  // card otherwise fails silently: customer.subscription.updated flips the
+  // status to past_due in the DB, but nothing ever tells the admin why.
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = invoice.customer as string | null;
+
+    if (customerId) {
+      const { data: settings } = await supabase
+        .from("practice_settings")
+        .select("admin_id")
+        .eq("billing_customer_id", customerId)
+        .maybeSingle();
+
+      if (settings?.admin_id) {
+        const { data: adminUser } = await supabase.from("users").select("email").eq("id", settings.admin_id).single();
+
+        const amountPounds = ((invoice.amount_due ?? 0) / 100).toFixed(2);
+        const willRetry = !!invoice.next_payment_attempt;
+        const subject = "Action needed — your Clarity payment failed";
+
+        await supabase.from("notifications").insert({
+          user_id: settings.admin_id,
+          type: "payment_failed",
+          message: `A payment of £${amountPounds} failed. Update your payment method to avoid losing access.`,
+        });
+
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+        const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+
+        if (adminUser?.email && resendKey && fromEmail) {
+          const html = emailTemplate({
+            label: "Payment Failed",
+            title: "We couldn't take payment for your subscription",
+            body:
+              para(
+                `A payment of <strong style="color:#2d2926;">£${amountPounds}</strong> for your Clarity subscription didn't go through — your card may have expired or been declined.`,
+              ) +
+              para(
+                willRetry
+                  ? "Stripe will automatically retry the payment in a few days. To avoid any interruption to your account, please update your payment method now."
+                  : "This was the final retry attempt. Please update your payment method now to keep your account active.",
+              ),
+            cta: { label: "Update payment method", url: `${appUrl}/settings` },
+            footerNote: "This email was sent because a subscription payment for your Clarity account failed.",
+          });
+
+          try {
+            const resendId = await sendEmail({ to: adminUser.email, subject, html, resendKey, fromEmail });
+            await logEmail(supabase, {
+              adminId: settings.admin_id,
+              emailType: "payment_failed",
+              recipientEmail: adminUser.email,
+              subject,
+              resendEmailId: resendId,
+              status: "sent",
+            });
+          } catch (sendErr: any) {
+            await logEmail(supabase, {
+              adminId: settings.admin_id,
+              emailType: "payment_failed",
+              recipientEmail: adminUser.email,
+              subject,
+              status: "failed",
+              errorMessage: sendErr.message,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // ── Recurring payment succeeded — a receipt for renewal charges. Scoped to
+  // billing_reason "subscription_cycle" so this doesn't double up with the
+  // welcome email checkout.session.completed already sends for the first
+  // payment (that one has its own invoice.payment_succeeded event too, with
+  // billing_reason "subscription_create").
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = invoice.customer as string | null;
+
+    if (customerId && invoice.billing_reason === "subscription_cycle") {
+      const { data: settings } = await supabase
+        .from("practice_settings")
+        .select("admin_id")
+        .eq("billing_customer_id", customerId)
+        .maybeSingle();
+
+      if (settings?.admin_id) {
+        const { data: adminUser } = await supabase.from("users").select("email").eq("id", settings.admin_id).single();
+
+        const amountPounds = ((invoice.amount_paid ?? 0) / 100).toFixed(2);
+        const subject = `Payment receipt — £${amountPounds}`;
+
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+        const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+
+        if (adminUser?.email && resendKey && fromEmail) {
+          const html = emailTemplate({
+            label: "Payment Receipt",
+            title: "Your Clarity subscription renewed",
+            body:
+              para(
+                `A payment of <strong style="color:#2d2926;">£${amountPounds}</strong> was taken for your Clarity subscription.`,
+              ) +
+              (invoice.hosted_invoice_url
+                ? para(`<a href="${invoice.hosted_invoice_url}" style="color:#5a8a6a;">View invoice</a>`)
+                : ""),
+            cta: { label: "Manage billing", url: `${appUrl}/settings` },
+            footerNote: "This email was sent because your Clarity subscription renewed.",
+          });
+
+          try {
+            const resendId = await sendEmail({ to: adminUser.email, subject, html, resendKey, fromEmail });
+            await logEmail(supabase, {
+              adminId: settings.admin_id,
+              emailType: "subscription_payment_succeeded",
+              recipientEmail: adminUser.email,
+              subject,
+              resendEmailId: resendId,
+              status: "sent",
+            });
+          } catch (sendErr: any) {
+            await logEmail(supabase, {
+              adminId: settings.admin_id,
+              emailType: "subscription_payment_succeeded",
+              recipientEmail: adminUser.email,
+              subject,
+              status: "failed",
+              errorMessage: sendErr.message,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Mark this event processed only now that every branch above has
+  // completed without throwing — see the idempotency guard at the top.
+  await supabase.from("stripe_webhook_events").insert({ event_id: event.id, event_type: event.type });
 
   return new Response(JSON.stringify({ received: true }), {
     headers: { "Content-Type": "application/json" },

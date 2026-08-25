@@ -148,7 +148,7 @@ export default function AdminDashboard() {
       <div className="inner">
         <div className={styles.header} id="dash-header">
           <div>
-            <h1>Welcome back, {userProfile?.first_name}</h1>
+            <h1>Welcome, {userProfile?.first_name}</h1>
             <p>Here's how your practice is doing</p>
           </div>
           <Card className={styles.quickActionsCard} id="dash-quick-actions">

@@ -4,15 +4,10 @@
   justify-content: center;
   gap: 8px;
   padding: 8px 20px;
-  background: var(--color-danger);
-  background-color: var(--color-danger);
+  background: var(--warning);
+  background-color: var(--warning);
   color: var(--text-inverse) !important;
   border-bottom: 1px solid var(--border);
-  border-left: 3px solid var(--color-danger);
+  border-left: 3px solid var(--warning);
   font-size: 0.8rem;
-}
-
-.icon {
-  font-size: 0.9rem;
-  line-height: 1;
 }

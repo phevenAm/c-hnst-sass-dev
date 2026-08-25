@@ -63,6 +63,21 @@
   border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
+// ── Section card (white card background for chunking, matches AdminDashboard) ──
+.sectionCard {
+  padding: var(--sp-5) var(--sp-6);
+  margin-bottom: var(--sp-5);
+
+  // Collapse the CollapsibleSection's own bottom margin since the card provides spacing.
+  section {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 480px) {
+    padding: var(--sp-4) var(--sp-5);
+  }
+}
+
 .pendingHeading {
   display: flex;
   align-items: center;
@@ -186,7 +201,7 @@
 // ── Table card ────────────────────────────────────────────────────────────────
 
 .tableCard {
-  padding: 0;
+  padding: var(--sp-5);
   overflow: hidden;
 }
 
