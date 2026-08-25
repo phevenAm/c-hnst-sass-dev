@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
+import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -158,7 +159,7 @@ function QuestionnaireBuilder({
       qs.map((q) => (q.id === questionId ? { ...q, options: q.options.filter((_, i) => i !== idx) } : q)),
     );
 
-  const { isDemo } = useAuth();
+  const { isDemo, userProfile } = useAuth();
   const { showToast } = useToast();
 
   const handleCreateTag = async (questionId: string) => {
@@ -264,6 +265,7 @@ function QuestionnaireBuilder({
               onChange={(e) => setPdfUrl(e.target.value)}
               placeholder="https://example.com/document.pdf"
             />
+            <PdfUpload adminId={userProfile?.id ?? ""} value={pdfUrl} onChange={setPdfUrl} />
             <p className={styles.fieldHint}>
               A form linked as your client consent document (Settings → Practice) shows this alongside its title —
               useful for terms, an info sheet, or anything clients should read before agreeing.

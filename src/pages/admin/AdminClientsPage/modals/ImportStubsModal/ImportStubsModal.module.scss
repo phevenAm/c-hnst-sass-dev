@@ -1,0 +1,150 @@
+// ── Upload step ──────────────────────────────────────────────
+// The file pickers + template downloads are the only interactive part of
+// this step — set apart in their own shaded panel rather than sitting flush
+// against the instructions text above them.
+.uploadPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  background: var(--bg-muted);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+
+.templateRow {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.fileField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+
+  &:not(:last-child) {
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.fileFieldLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.optional {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.fileFieldRow {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.fileReady {
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+// ── Preview step ─────────────────────────────────────────────
+.previewGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.previewLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-2);
+}
+
+// No max-height/row cap here on purpose — a CSV import can be any size, so
+// this scrolls (both axes) inside the modal's own scroll area rather than
+// truncating rows or fighting for a fixed box of its own.
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+
+  th,
+  td {
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    text-align: left;
+
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  th {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  td {
+    vertical-align: top;
+    color: var(--text-secondary);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.primaryCell {
+  color: var(--text-primary);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.mono {
+  font-family: monospace;
+}
+
+.noWrap {
+  white-space: nowrap;
+}
+
+.truncate {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// The merged "Client ID" cell spanning every session row for that client —
+// shaded and centered so it reads as a grouping label, not just another
+// data cell.
+.groupCell {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: monospace;
+  text-align: center;
+  vertical-align: middle;
+}

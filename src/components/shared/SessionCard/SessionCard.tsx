@@ -159,7 +159,6 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
   } = useSessionCard(session);
 
   const isCancelled = session.status === "cancelled";
-  const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
 
   return (
     <div className={[styles.sessionItem, getCardClass(session.status, session.attended)].filter(Boolean).join(" ")}>
@@ -358,11 +357,9 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                     Notes
                   </Button>
                 )}
-                {!isPast && (
-                  <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
-                    Reschedule
-                  </Button>
-                )}
+                <Button size="sm" variant="secondary" onClick={() => setOpenEditSession(true)}>
+                  Edit
+                </Button>
                 <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>
                   Add to calendar
                 </Button>
@@ -388,7 +385,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                   }}
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
-                    ...(!isPast ? [{ label: "Reschedule", onClick: () => setOpenEditSession(true) }] : []),
+                    { label: "Edit", onClick: () => setOpenEditSession(true) },
                     { label: "Add to calendar", onClick: handleAddToCalendar },
                     {
                       label: "Cancel",

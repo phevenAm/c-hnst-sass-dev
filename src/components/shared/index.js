@@ -49,6 +49,7 @@ export { default as Lookup } from "./Lookup/Lookup";
 export { default as Modal } from "./Modal/Modal";
 export { default as Navbar } from "./Navbar/Navbar";
 export { default as NextSessionCard } from "./NextSessionCard/NextSessionCard";
+export { default as PdfUpload } from "./PdfUpload/PdfUpload";
 export { default as ProgressChart } from "./ProgressChart/ProgressChart";
 export { default as ProtectedRoute } from "./ProtectedRoute/ProtectedRoute";
 export { default as Search } from "./Search/Search";

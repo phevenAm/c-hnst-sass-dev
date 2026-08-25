@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { csvToIso } from "@Helpers/sessionDate";
 import Button from "@components/shared/Button/Button";
@@ -9,7 +9,9 @@ import { supabase } from "@lib/supabase";
 import { useAppDispatch } from "@store/hooks";
 import { fetchClientStubs } from "@store/slices/clientStubsSlice";
 
-import styles from "../../AdminClientsPage.module.scss";
+import sharedStyles from "../../AdminClientsPage.module.scss";
+
+import styles from "./ImportStubsModal.module.scss";
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -90,6 +92,14 @@ const SESSION_ROWS = [
   ["1", "2026-05-15", "10:00", "60", "no_show", "", "false", "", "GBP", "Cancelled last minute.", "", ""],
   ["2", "2026-05-10", "14:00", "50", "attended", "7000", "true", "", "GBP", "", "S-001", "15 London Rd"],
 ];
+
+function formatSessionAmount(s: ParsedSession): string {
+  let amount = "—";
+  if (s.price_pence) amount = `£${(Number(s.price_pence) / 100).toFixed(2)}`;
+  else if (s.amount_paid) amount = `£${s.amount_paid}`;
+  const isPaid = s.paid && ["true", "1", "yes"].includes(s.paid.toLowerCase());
+  return isPaid ? `${amount} ✓` : amount;
+}
 
 function csvEscape(v: string) {
   return v.includes(",") || v.includes('"') || v.includes("\n") ? `"${v.replace(/"/g, '""')}"` : v;
@@ -185,6 +195,24 @@ type ImportResult = {
   errors: string[];
 };
 
+type SessionGroup = { csvClientId: string; rows: ParsedSession[] };
+
+// Groups consecutive rows sharing a client_id so the preview table can merge
+// them under one spanning cell instead of repeating it on every row — CSVs
+// exported from a spreadsheet are already sorted this way in practice.
+function groupSessionsByClient(rows: ParsedSession[]): SessionGroup[] {
+  const groups: SessionGroup[] = [];
+  for (const row of rows) {
+    const current = groups[groups.length - 1];
+    if (current && current.csvClientId === row.csvClientId) {
+      current.rows.push(row);
+    } else {
+      groups.push({ csvClientId: row.csvClientId, rows: [row] });
+    }
+  }
+  return groups;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
@@ -201,6 +229,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<"upload" | "preview">("upload");
+
+  const sessionGroups = useMemo(() => groupSessionsByClient(sessions), [sessions]);
 
   const parseClientsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -360,11 +390,9 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         ? session.status
         : "attended";
 
-      const pricePence = session.price_pence
-        ? Number(session.price_pence)
-        : session.amount_paid
-          ? Math.round(Number(session.amount_paid) * 100)
-          : null;
+      let pricePence: number | null = null;
+      if (session.price_pence) pricePence = Number(session.price_pence);
+      else if (session.amount_paid) pricePence = Math.round(Number(session.amount_paid) * 100);
       const isPaid = ["true", "1", "yes"].includes((session.paid || "").toLowerCase());
 
       const { error: sessErr } = await supabase.from("stub_sessions").insert({
@@ -399,7 +427,7 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
   if (result) {
     return (
       <Modal title="Import complete" size="sm" onClose={onClose} actions={<Button onClick={onClose}>Done</Button>}>
-        <p className={styles.modalText}>
+        <p className={sharedStyles.modalText}>
           <strong>{result.clientsCreated}</strong> offline {result.clientsCreated === 1 ? "client" : "clients"} created,{" "}
           <strong>{result.sessionsCreated}</strong> {result.sessionsCreated === 1 ? "session" : "sessions"} added.
         </p>
@@ -409,8 +437,8 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
               {result.errors.length} {result.errors.length === 1 ? "error" : "errors"}:
             </p>
             <ul style={{ margin: 0, paddingLeft: "1.2em", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              {result.errors.map((e, i) => (
-                <li key={i}>{e}</li>
+              {result.errors.map((e) => (
+                <li key={e}>{e}</li>
               ))}
             </ul>
           </div>
@@ -440,134 +468,75 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
           </>
         }
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-5)" }}>
+        <div className={styles.previewGroup}>
           {/* Clients preview */}
           <div>
-            <p
-              style={{
-                fontSize: "0.82rem",
-                fontWeight: 600,
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--sp-2)",
-              }}
-            >
+            <p className={styles.previewLabel}>
               {clients.length} {clients.length === 1 ? "client" : "clients"}
             </p>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
                 <thead>
                   <tr>
                     {["ID", "Name", "Email", "Codename"].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          textAlign: "left",
-                          padding: "5px 10px",
-                          borderBottom: "1px solid var(--border)",
-                          color: "var(--text-muted)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {h}
-                      </th>
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.slice(0, 20).map((c, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: "5px 10px", fontFamily: "monospace", color: "var(--text-muted)" }}>
-                        {c.csvId || "—"}
-                      </td>
-                      <td style={{ padding: "5px 10px" }}>
+                  {clients.map((c, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: CSV preview rows have no stable id and are re-derived from the file on every parse
+                    <tr key={`${c.csvId}-${c.first_name}-${c.last_name}-${i}`}>
+                      <td className={`${styles.mono} ${styles.muted}`}>{c.csvId || "—"}</td>
+                      <td className={styles.primaryCell}>
                         {c.first_name} {c.last_name}
                       </td>
-                      <td style={{ padding: "5px 10px", color: "var(--text-muted)" }}>{c.email || "—"}</td>
-                      <td style={{ padding: "5px 10px", color: "var(--text-muted)" }}>{c.codename || "—"}</td>
+                      <td className={styles.muted}>{c.email || "—"}</td>
+                      <td className={styles.muted}>{c.codename || "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {clients.length > 20 && (
-                <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "var(--sp-1)" }}>
-                  Showing 20 of {clients.length}
-                </p>
-              )}
             </div>
           </div>
 
-          {/* Sessions preview */}
+          {/* Sessions preview — grouped by client_id, with a merged cell
+              spanning each client's rows instead of repeating their ID. */}
           {sessions.length > 0 && (
             <div>
-              <p
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 600,
-                  color: "var(--text-secondary)",
-                  margin: "0 0 var(--sp-2)",
-                }}
-              >
+              <p className={styles.previewLabel}>
                 {sessions.length} {sessions.length === 1 ? "session" : "sessions"}
               </p>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
                   <thead>
                     <tr>
                       {["Client ID", "Date", "Status", "Amount", "Notes"].map((h) => (
-                        <th
-                          key={h}
-                          style={{
-                            textAlign: "left",
-                            padding: "5px 10px",
-                            borderBottom: "1px solid var(--border)",
-                            color: "var(--text-muted)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {h}
-                        </th>
+                        <th key={h}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {sessions.slice(0, 30).map((s, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "5px 10px", fontFamily: "monospace", color: "var(--text-muted)" }}>
-                          {s.csvClientId}
-                        </td>
-                        <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
-                          {s.session_date} {s.session_time || "09:00"}
-                        </td>
-                        <td style={{ padding: "5px 10px" }}>{s.status || "attended"}</td>
-                        <td style={{ padding: "5px 10px" }}>
-                          {s.price_pence
-                            ? `£${(Number(s.price_pence) / 100).toFixed(2)}`
-                            : s.amount_paid
-                              ? `£${s.amount_paid}`
-                              : "—"}
-                          {s.paid && ["true", "1", "yes"].includes(s.paid.toLowerCase()) ? " ✓" : ""}
-                        </td>
-                        <td
-                          style={{
-                            padding: "5px 10px",
-                            color: "var(--text-muted)",
-                            maxWidth: "180px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {s.session_notes || "—"}
-                        </td>
-                      </tr>
-                    ))}
+                    {sessionGroups.map((group) =>
+                      group.rows.map((s, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: CSV preview rows have no stable id and are re-derived from the file on every parse
+                        <tr key={`${group.csvClientId}-${s.session_date}-${s.session_time}-${i}`}>
+                          {i === 0 && (
+                            <td className={styles.groupCell} rowSpan={group.rows.length}>
+                              {group.csvClientId}
+                            </td>
+                          )}
+                          <td className={`${styles.primaryCell} ${styles.noWrap}`}>
+                            {s.session_date} {s.session_time || "09:00"}
+                          </td>
+                          <td className={styles.primaryCell}>{s.status || "attended"}</td>
+                          <td className={styles.primaryCell}>{formatSessionAmount(s)}</td>
+                          <td className={`${styles.muted} ${styles.truncate}`}>{s.session_notes || "—"}</td>
+                        </tr>
+                      )),
+                    )}
                   </tbody>
                 </table>
-                {sessions.length > 30 && (
-                  <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "var(--sp-1)" }}>
-                    Showing 30 of {sessions.length}
-                  </p>
-                )}
               </div>
             </div>
           )}
@@ -594,41 +563,32 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <p className={styles.modalText}>
+      <p className={sharedStyles.modalText}>
         Use two CSVs: one for clients (name, email, codename) and one for their sessions (date, amount, notes). The
         client_id column links them together.
       </p>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--sp-2)",
-          marginBottom: "var(--sp-5)",
-          flexWrap: "wrap",
-        }}
-      >
-        <Button variant="secondary" size="sm" onClick={downloadClientsTemplate}>
-          Clients template ↓
-        </Button>
-        <Button variant="secondary" size="sm" onClick={downloadSessionsTemplate}>
-          Sessions template ↓
-        </Button>
-      </div>
+      <div className={styles.uploadPanel}>
+        <div className={styles.templateRow}>
+          <Button variant="secondary" size="sm" onClick={downloadClientsTemplate}>
+            Clients template ↓
+          </Button>
+          <Button variant="secondary" size="sm" onClick={downloadSessionsTemplate}>
+            Sessions template ↓
+          </Button>
+        </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-4)" }}>
         {/* Clients file */}
-        <div>
-          <p
-            style={{ fontSize: "0.82rem", fontWeight: 600, margin: "0 0 var(--sp-2)", color: "var(--text-secondary)" }}
-          >
-            Clients CSV <span style={{ color: "var(--danger)", marginLeft: 2 }}>*</span>
+        <div className={styles.fileField}>
+          <p className={styles.fileFieldLabel}>
+            Clients CSV <span className={styles.required}>*</span>
           </p>
-          <div style={{ display: "flex", gap: "var(--sp-2)", alignItems: "center" }}>
+          <div className={styles.fileFieldRow}>
             <Button size="sm" variant="secondary" onClick={() => clientsFileRef.current?.click()}>
               Choose file
             </Button>
             {clients.length > 0 && (
-              <span style={{ fontSize: "0.8rem", color: "var(--accent)" }}>
+              <span className={styles.fileReady}>
                 {clients.length} {clients.length === 1 ? "client" : "clients"} ready
               </span>
             )}
@@ -643,19 +603,16 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Sessions file */}
-        <div>
-          <p
-            style={{ fontSize: "0.82rem", fontWeight: 600, margin: "0 0 var(--sp-2)", color: "var(--text-secondary)" }}
-          >
-            Sessions CSV{" "}
-            <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
+        <div className={styles.fileField}>
+          <p className={styles.fileFieldLabel}>
+            Sessions CSV <span className={styles.optional}>(optional)</span>
           </p>
-          <div style={{ display: "flex", gap: "var(--sp-2)", alignItems: "center" }}>
+          <div className={styles.fileFieldRow}>
             <Button size="sm" variant="secondary" onClick={() => sessionsFileRef.current?.click()}>
               Choose file
             </Button>
             {sessions.length > 0 && (
-              <span style={{ fontSize: "0.8rem", color: "var(--accent)" }}>
+              <span className={styles.fileReady}>
                 {sessions.length} {sessions.length === 1 ? "session" : "sessions"} ready
               </span>
             )}
@@ -670,7 +627,7 @@ export default function ImportStubsModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {parseError && <p className={styles.modalError}>{parseError}</p>}
+      {parseError && <p className={sharedStyles.modalError}>{parseError}</p>}
     </Modal>
   );
 }

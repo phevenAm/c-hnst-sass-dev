@@ -10,6 +10,7 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { ChevronDown } from "@components/shared/Icons/Icons";
+import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
@@ -1756,10 +1757,18 @@ const SettingsPage = () => {
                             aria-invalid={!!consentPdfUrlError}
                           />
                           {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
+                          <PdfUpload
+                            adminId={userProfile?.id ?? ""}
+                            value={consentPdfUrl}
+                            onChange={(url) => {
+                              setConsentPdfUrl(url);
+                              if (consentPdfUrlError) setConsentPdfUrlError("");
+                            }}
+                          />
                           <p className={styles.toggleHint}>
-                            Must be a direct link ending in .pdf (a Dropbox share link works if it points at the file
-                            itself; a Google Drive "view" link will not). Clients will see it embedded in-app alongside
-                            your agreement text.
+                            Upload a PDF, or paste a direct link ending in .pdf (a Dropbox share link works if it points
+                            at the file itself; a Google Drive "view" link will not). Clients will see it embedded
+                            in-app alongside your agreement text.
                           </p>
                         </div>
                       </>

@@ -117,6 +117,13 @@
   letter-spacing: 0;
 }
 
+.hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
 .error {
   font-size: 0.82rem;
   color: var(--danger, #c0392b);

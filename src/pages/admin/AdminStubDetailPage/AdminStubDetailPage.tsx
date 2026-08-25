@@ -66,7 +66,7 @@ export default function AdminStubDetailPage() {
   const highlightSessionId = searchParams.get("session");
   const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
   const dispatch = useAppDispatch();
-  const { userProfile, isDemo } = useAuth();
+  const { userProfile, isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
 
   const stubFromRedux = useAppSelector(selectStubById(stubId ?? ""));
@@ -238,14 +238,31 @@ export default function AdminStubDetailPage() {
       });
   }, [stubId]);
 
-  const displayName = stub ? stub.codename || `${stub.first_name} ${stub.last_name}` : "";
+  // Codenames only apply while the practice-wide toggle is on — matches
+  // clientDisplayName() (used for real clients), which stubs never actually
+  // went through despite showing a codename whenever the stub happened to
+  // have one, on or off. With the toggle off, showing a real name up top
+  // and then the exact same real name again as the italic "real identity"
+  // subtitle below it was also redundant, not just wrong when off.
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
+  const stubRealName = stub ? `${stub.first_name} ${stub.last_name}` : "";
+  const showingCodename = useCodenames && !!stub?.codename;
+  let displayName = "";
+  if (stub) displayName = showingCodename ? (stub.codename as string) : stubRealName;
   const realClients = allUsers.filter((u) => u.role === "client");
   const linkedUser = stub?.linked_user_id ? allUsers.find((u) => u.id === stub.linked_user_id) : null;
 
+  // paid and amount_paid are independent signals (see StubSessionCard) —
+  // either one alone counts as paid, and amount_paid is the actual figure
+  // when set.
+  const isSessionPaid = (s: StubSession) => s.paid || (s.amount_paid != null && s.amount_paid > 0);
+  const sessionPaidAmount = (s: StubSession) =>
+    s.amount_paid != null && s.amount_paid > 0 ? s.amount_paid : (s.price_pence ?? 0) / 100;
+
   const totalSessions = sessions.length;
   const attendedCount = sessions.filter((s) => s.status === "attended").length;
-  const totalPaid = sessions.reduce((sum, s) => sum + (s.paid ? (s.price_pence ?? 0) / 100 : 0), 0);
-  const currency = sessions.find((s) => s.paid)?.currency ?? "GBP";
+  const totalPaid = sessions.reduce((sum, s) => sum + (isSessionPaid(s) ? sessionPaidAmount(s) : 0), 0);
+  const currency = sessions.find((s) => isSessionPaid(s))?.currency ?? "GBP";
 
   // Prep card: soonest still-scheduled session, and the most recent past one
   // (sessions load newest-first, so a simple find/filter+[0] works off that).
@@ -513,11 +530,7 @@ export default function AdminStubDetailPage() {
                 {stub.linked_user_id ? "Linked · Offline client" : "Offline client"}
               </span>
               <h1 className={styles.heroName}>{displayName}</h1>
-              {stub.codename && (
-                <p className={styles.heroRealName}>
-                  {stub.first_name} {stub.last_name}
-                </p>
-              )}
+              {showingCodename && <p className={styles.heroRealName}>{stubRealName}</p>}
               {stub.email && <p className={styles.heroEmail}>{stub.email}</p>}
               <p className={styles.heroSince}>Added {dayjs(stub.created_at).format("D MMM YYYY")}</p>
               {linkedUser && (
@@ -597,7 +610,7 @@ export default function AdminStubDetailPage() {
                             stubId={stubId!}
                             adminId={userProfile?.id ?? ""}
                             isDemo={isDemo}
-                            onUpdated={(updated) => handleSessionSaved([updated])}
+                            onUpdated={handleSessionSaved}
                             onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
                             initialActiveId={highlightSessionId ?? undefined}
                           />
@@ -617,7 +630,7 @@ export default function AdminStubDetailPage() {
                           stubId={stubId!}
                           adminId={userProfile?.id ?? ""}
                           isDemo={isDemo}
-                          onUpdated={(updated) => handleSessionSaved([updated])}
+                          onUpdated={handleSessionSaved}
                           onDeleted={(id) => setSessions((prev) => prev.filter((x) => x.id !== id))}
                         />
                       </div>

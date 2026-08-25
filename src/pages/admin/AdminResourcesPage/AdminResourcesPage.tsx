@@ -55,7 +55,7 @@ const getResourceIcon = (type: Resource["type"]) => {
 
 export default function AdminResourcesPage() {
   const dispatch = useAppDispatch();
-  const { isDemo } = useAuth();
+  const { isDemo, userProfile } = useAuth();
   const { showToast } = useToast();
   const resources: Resource[] = useAppSelector(selectAllResources);
 
@@ -199,11 +199,16 @@ export default function AdminResourcesPage() {
       </div>
 
       {showForm && (
-        <ResourceForm onSave={(data) => dispatch(createResource(data))} onClose={() => setShowForm(false)} />
+        <ResourceForm
+          adminId={userProfile?.id ?? ""}
+          onSave={(data) => dispatch(createResource(data))}
+          onClose={() => setShowForm(false)}
+        />
       )}
 
       {editingResource && (
         <ResourceForm
+          adminId={userProfile?.id ?? ""}
           resource={editingResource}
           onSave={(data) => dispatch(updateResource({ id: editingResource.id, ...data }))}
           onClose={() => setEditingResource(null)}

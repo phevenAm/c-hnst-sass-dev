@@ -62,20 +62,48 @@ describe("revenueByMonth", () => {
   });
 });
 
+function stubSession(overrides: {
+  scheduled_at?: string;
+  amount_paid?: number | null;
+  paid?: boolean;
+  price_pence?: number | null;
+}) {
+  return {
+    scheduled_at: thisMonthIso(),
+    amount_paid: null,
+    paid: false,
+    price_pence: null,
+    ...overrides,
+  };
+}
+
 describe("revenueByMonthFromStubSessions", () => {
   it("counts a paid stub session, treating amount_paid as pounds", () => {
-    const points = revenueByMonthFromStubSessions([{ scheduled_at: thisMonthIso(), amount_paid: 42.5 }], 6);
+    const points = revenueByMonthFromStubSessions([stubSession({ amount_paid: 42.5 })], 6);
     expect(points.at(-1)!.value).toBe(42.5);
   });
 
-  it("excludes stub sessions with no amount recorded", () => {
-    const points = revenueByMonthFromStubSessions([{ scheduled_at: thisMonthIso(), amount_paid: null }], 6);
+  it("excludes stub sessions with no amount recorded and paid still false", () => {
+    const points = revenueByMonthFromStubSessions([stubSession({ amount_paid: null })], 6);
     expect(points.at(-1)!.value).toBe(0);
   });
 
-  it("excludes stub sessions with a zero amount", () => {
-    const points = revenueByMonthFromStubSessions([{ scheduled_at: thisMonthIso(), amount_paid: 0 }], 6);
+  it("excludes stub sessions with a zero amount and paid still false", () => {
+    const points = revenueByMonthFromStubSessions([stubSession({ amount_paid: 0 })], 6);
     expect(points.at(-1)!.value).toBe(0);
+  });
+
+  // Regression: creating a session already marked paid sets `paid: true` but
+  // never touches amount_paid — that used to make it vanish from revenue
+  // entirely despite showing as paid on the client's own detail page.
+  it("counts a session marked paid at creation, falling back to price_pence with no amount_paid set", () => {
+    const points = revenueByMonthFromStubSessions([stubSession({ paid: true, price_pence: 8500 })], 6);
+    expect(points.at(-1)!.value).toBe(85);
+  });
+
+  it("prefers amount_paid over price_pence when both are set", () => {
+    const points = revenueByMonthFromStubSessions([stubSession({ paid: true, price_pence: 8500, amount_paid: 70 })], 6);
+    expect(points.at(-1)!.value).toBe(70);
   });
 });
 
@@ -119,7 +147,7 @@ describe("mergeTrendPoints", () => {
 
   it("matches what AdminPaymentsPage/AdminDashboard actually combine — sessions + stub sessions + manual payments", () => {
     const sessions = revenueByMonth([session({ price_pence: 5000, paid: true })], 3);
-    const stubs = revenueByMonthFromStubSessions([{ scheduled_at: thisMonthIso(), amount_paid: 10 }], 3);
+    const stubs = revenueByMonthFromStubSessions([stubSession({ amount_paid: 10 })], 3);
     const manual = revenueByMonthFromPayments([{ paid_at: thisMonthIso(), amount_pence: 1500 }], 3);
     const merged = mergeTrendPoints(sessions, stubs, manual);
     expect(merged.at(-1)!.value).toBe(50 + 10 + 15);

@@ -15,7 +15,7 @@ type Props = {
   stubId: string;
   adminId: string;
   isDemo?: boolean;
-  onUpdated: (updated: StubSession) => void;
+  onUpdated: (updated: StubSession[]) => void;
   onDeleted: (id: string) => void;
   initialActiveId?: string;
   id?: string;
@@ -54,7 +54,9 @@ export default function StubBlockSessionCard({
 
   const blockTotal =
     (sortedSessions[0]?.metadata as { block_total?: number } | null)?.block_total ?? sortedSessions.length;
-  const allPaid = sortedSessions.every((s) => s.paid);
+  // paid and amount_paid are independent signals (see StubSessionCard) —
+  // either one alone means paid.
+  const allPaid = sortedSessions.every((s) => s.paid || (s.amount_paid != null && s.amount_paid > 0));
 
   return (
     <div id={id} className={[styles.blockCard, className].filter(Boolean).join(" ")}>

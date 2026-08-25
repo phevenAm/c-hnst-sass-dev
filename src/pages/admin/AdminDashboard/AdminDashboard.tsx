@@ -65,7 +65,9 @@ export default function AdminDashboard() {
   // `allSessions`, or offline-client and manually-recorded (cash/bank
   // transfer) payments silently don't count towards revenue — see the same
   // fix on AdminPaymentsPage.
-  const [stubSessions, setStubSessions] = useState<{ scheduled_at: string; amount_paid: number | null }[]>([]);
+  const [stubSessions, setStubSessions] = useState<
+    { scheduled_at: string; amount_paid: number | null; paid: boolean; price_pence: number | null }[]
+  >([]);
   const [manualPayments, setManualPayments] = useState<{ paid_at: string; amount_pence: number }[]>([]);
 
   useFetchOnIdle(
@@ -91,7 +93,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     supabase
       .from("stub_sessions")
-      .select("scheduled_at, amount_paid")
+      .select("scheduled_at, amount_paid, paid, price_pence")
       .neq("status", "cancelled")
       .then(({ data }) => data && setStubSessions(data));
     supabase
