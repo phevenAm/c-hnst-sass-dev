@@ -27,13 +27,64 @@ export function checkForServiceWorkerUpdate() {
   registration?.update().catch(() => {});
 }
 
+const WAIT_FOR_WORKER_MS = 8000;
+
+// registration.update() (checkForServiceWorkerUpdate, called when
+// useVersionCheck first detects a mismatch) only kicks off the fetch/install
+// — it doesn't wait for it to finish. If "Update now" gets clicked before
+// the new worker reaches the waiting state, updateSW() below has nothing to
+// activate and silently no-ops: no reload, no error, and the banner just
+// reappears on the next check — reading as the button "doing nothing" or
+// the banner "persisting". This waits (bounded) for a worker to actually be
+// ready, handling both an install already in flight and one that hasn't
+// started yet.
+function waitForWaitingWorker(timeoutMs = WAIT_FOR_WORKER_MS): Promise<boolean> {
+  if (!registration) return Promise.resolve(false);
+  if (registration.waiting) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      registration?.removeEventListener("updatefound", onUpdateFound);
+      resolve(result);
+    };
+
+    const watchInstalling = (worker: ServiceWorker) => {
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "installed" && registration?.waiting) finish(true);
+        if (worker.state === "redundant") finish(false);
+      });
+    };
+
+    const onUpdateFound = () => {
+      if (registration?.installing) watchInstalling(registration.installing);
+    };
+
+    if (registration.installing) watchInstalling(registration.installing);
+    registration.addEventListener("updatefound", onUpdateFound);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
 // Tells the waiting service worker (installed via registerType: "prompt")
 // to activate, then reloads once it's actually in control — the deliberate,
 // one-step version of what registerType: "autoUpdate" used to do silently
 // mid-session for every open tab.
 export async function applyServiceWorkerUpdate() {
-  if (updateSW) {
-    await updateSW(true);
+  if (updateSW && registration) {
+    const ready = registration.waiting ? true : await waitForWaitingWorker();
+    if (ready) {
+      await updateSW(true);
+      return;
+    }
+    // Timed out without a worker ever reaching "waiting" — nothing to
+    // activate. A plain reload at least picks up a fresh index.html and
+    // version.json rather than leaving the user stuck on a banner that
+    // does nothing when they click it.
+    window.location.reload();
     return;
   }
   // No SW registered yet (e.g. dev mode) — a plain reload is the correct fallback.

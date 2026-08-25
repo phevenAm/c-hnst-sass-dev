@@ -16,6 +16,7 @@ export default function UpdateBanner() {
   const isOutdated = useVersionCheck();
   const [dismissed, setDismissed] = useState(false);
   const [inPWA, setInPWA] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     setInPWA(isPWA());
@@ -39,18 +40,24 @@ export default function UpdateBanner() {
         A new version is available.
       </span>
       <div className={styles.actions}>
-        <button type="button" className={styles.btnLater} onClick={() => setDismissed(true)}>
+        <button type="button" className={styles.btnLater} onClick={() => setDismissed(true)} disabled={updating}>
           Later
         </button>
         <button
           type="button"
           className={styles.btnUpdate}
+          disabled={updating}
           onClick={() => {
-            hardRefresh();
-            setDismissed(true);
+            // Left showing (not dismissed) while this runs — dismissing
+            // immediately used to make the click look handled even when the
+            // new service worker wasn't ready yet and the update silently
+            // no-op'd. hardRefresh() now always ends in a reload one way or
+            // another, so there's nothing to reset this to afterward.
+            setUpdating(true);
+            void hardRefresh();
           }}
         >
-          Update now
+          {updating ? "Updating…" : "Update now"}
         </button>
       </div>
     </div>
