@@ -494,7 +494,6 @@ export default function AdminStubDetailPage() {
 
         {nextSession && (
           <SessionPrepCard
-            clientName={displayName}
             nextSessionAt={nextSession.scheduled_at}
             totalSessions={totalSessions}
             attendedSessions={attendedCount}

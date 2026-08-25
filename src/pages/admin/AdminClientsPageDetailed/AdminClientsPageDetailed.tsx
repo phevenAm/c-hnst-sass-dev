@@ -762,7 +762,6 @@ export default function AdminClientsPageDetailed() {
 
         {nextSession && (
           <SessionPrepCard
-            clientName={displayedClientName}
             nextSessionAt={nextSession.scheduled_at}
             totalSessions={totalSessionsCount}
             attendedSessions={attendedSessionsCount}
