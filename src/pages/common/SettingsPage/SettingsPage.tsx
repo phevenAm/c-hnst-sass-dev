@@ -137,6 +137,7 @@ const SettingsPage = () => {
   const [disconnectingStripe, setDisconnectingStripe] = useState(false);
   const [confirmDisconnectStripe, setConfirmDisconnectStripe] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
   const [billingCustomerId, setBillingCustomerId] = useState<string | null>(null);
 
   const [googleStatus, setGoogleStatus] = useState<{
@@ -174,6 +175,13 @@ const SettingsPage = () => {
   const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
   const [consentQuestionnaireId, setConsentQuestionnaireId] = useState("");
   const [onboardingForms, setOnboardingForms] = useState<{ id: string; title: string }[]>([]);
+  const [sessionPackages, setSessionPackages] = useState<
+    { id: string; name: string; price_pence: number; duration_minutes: number }[]
+  >([]);
+  const [newPackageName, setNewPackageName] = useState("");
+  const [newPackagePrice, setNewPackagePrice] = useState("");
+  const [newPackageDuration, setNewPackageDuration] = useState("50");
+  const [addingPackage, setAddingPackage] = useState(false);
   const [consentCounsellorCta, setConsentCounsellorCta] = useState(
     "If you have any questions, speak to your counsellor.",
   );
@@ -309,6 +317,19 @@ const SettingsPage = () => {
       const row = data?.[0];
       if (row) setGoogleStatus(row);
     });
+  }, [isAdmin, userProfile?.id]);
+
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    supabase
+      .from("session_packages")
+      .select("id, name, price_pence, duration_minutes")
+      .eq("admin_id", userProfile.id)
+      .eq("archived", false)
+      .order("sort_order")
+      .then(({ data }) => {
+        if (data) setSessionPackages(data);
+      });
   }, [isAdmin, userProfile?.id]);
 
   useEffect(() => {
@@ -556,6 +577,54 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingConsent(false);
     showToast("Consent settings saved.");
+  };
+
+  const handleAddPackage = async () => {
+    if (guardDemo()) return;
+    if (!userProfile?.id || !newPackageName.trim() || !newPackagePrice) return;
+    setAddingPackage(true);
+    const { data, error } = await supabase
+      .from("session_packages")
+      .insert({
+        admin_id: userProfile.id,
+        name: newPackageName.trim(),
+        price_pence: Math.round(parseFloat(newPackagePrice) * 100),
+        duration_minutes: Number(newPackageDuration) || 50,
+        sort_order: sessionPackages.length,
+      })
+      .select("id, name, price_pence, duration_minutes")
+      .single();
+    if (error) {
+      showToast("Failed to add session type.", "danger");
+    } else {
+      setSessionPackages((prev) => (prev.some((p) => p.id === data.id) ? prev : [...prev, data]));
+      setNewPackageName("");
+      setNewPackagePrice("");
+      setNewPackageDuration("50");
+    }
+    setAddingPackage(false);
+  };
+
+  const handleRemovePackage = async (id: string) => {
+    if (guardDemo()) return;
+    const { error } = await supabase.from("session_packages").update({ archived: true }).eq("id", id);
+    if (error) {
+      showToast("Failed to remove session type.", "danger");
+      return;
+    }
+    setSessionPackages((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleCopyReferralLink = async () => {
+    if (!practiceSettings?.referral_code) return;
+    const link = `${window.location.origin}/register?ref=${practiceSettings.referral_code}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch {
+      showToast("Couldn't copy — try selecting and copying the code manually.", "error");
+    }
   };
 
   const handleManageSubscription = async () => {
@@ -843,6 +912,72 @@ const SettingsPage = () => {
                   {savingBusiness ? "Saving…" : "Save business info"}
                 </Button>
               </div>
+            </Card>
+
+            {/* Session types & prices */}
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Session types & prices</h2>
+                <p>These are what you'll pick from when booking a client's session.</p>
+                {sessionPackages.length > 0 && (
+                  <ul className={styles.packageList}>
+                    {sessionPackages.map((p) => (
+                      <li key={p.id} className={styles.packageItem}>
+                        <span>
+                          {p.name}
+                          <span className={styles.packageMeta}>
+                            {" "}
+                            — £{(p.price_pence / 100).toFixed(2)} · {p.duration_minutes} min
+                          </span>
+                        </span>
+                        <Button variant="ghost" size="sm" onClick={() => handleRemovePackage(p.id)}>
+                          Remove
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className={styles.packageRow}>
+                  <div className={styles.field}>
+                    <label htmlFor="settings-pkg-name">Name</label>
+                    <input
+                      id="settings-pkg-name"
+                      value={newPackageName}
+                      onChange={(e) => setNewPackageName(e.target.value)}
+                      placeholder="e.g. Standard session"
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="settings-pkg-price">Price (£)</label>
+                    <input
+                      id="settings-pkg-price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newPackagePrice}
+                      onChange={(e) => setNewPackagePrice(e.target.value)}
+                      placeholder="60.00"
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="settings-pkg-duration">Duration (min)</label>
+                    <input
+                      id="settings-pkg-duration"
+                      type="number"
+                      min="5"
+                      value={newPackageDuration}
+                      onChange={(e) => setNewPackageDuration(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleAddPackage}
+                    disabled={!newPackageName.trim() || !newPackagePrice || addingPackage}
+                  >
+                    {addingPackage ? "Adding…" : "+ Add"}
+                  </Button>
+                </div>
+              </section>
             </Card>
 
             {/* Bank details */}
@@ -1439,6 +1574,33 @@ const SettingsPage = () => {
                     </Button>
                   </div>
                 )}
+              </Card>
+            )}
+
+            {/* Refer a friend */}
+            {practiceSettings?.referral_code && (
+              <Card className={styles.card}>
+                <section className={styles.businessSection}>
+                  <h2>Refer a friend</h2>
+                  <p>
+                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
+                    credited to your account automatically.
+                  </p>
+                  <div className={styles.field}>
+                    <label htmlFor="referral-link">Your referral link</label>
+                    <input
+                      id="referral-link"
+                      readOnly
+                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </section>
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
+                    {referralCopied ? "Copied!" : "Copy link"}
+                  </Button>
+                </div>
               </Card>
             )}
           </>

@@ -5,6 +5,7 @@ import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import { useAuth } from "@context/AuthContext";
 
+import { captureReferralCode } from "@/Helpers/referral";
 import { supabase } from "@/lib/supabase";
 import styles from "../SignUpPage/SignUpPage.module.scss";
 
@@ -54,6 +55,10 @@ export default function CounsellorSignupPage() {
   useEffect(() => {
     if (!loading && isAuthenticated) navigate("/admin", { replace: true });
   }, [loading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    captureReferralCode(window.location.search);
+  }, []);
 
   const set = (id: FieldId, value: string) => setForm((prev) => ({ ...prev, [id]: value }));
 

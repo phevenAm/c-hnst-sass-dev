@@ -528,3 +528,39 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.packageRow {
+  display: flex;
+  gap: $sp-2;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: $sp-3;
+
+  .field {
+    margin-bottom: 0;
+    flex: 1 1 120px;
+  }
+}
+
+.packageList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 $sp-3;
+}
+
+.packageItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $sp-2 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.packageMeta {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}

@@ -50,6 +50,7 @@ beforeEach(() => {
   setGoogleStatusRow(null);
   setOnboardingFormsRows([]);
   reminderMutesRows.length = 0;
+  sessionPackagesRows.length = 0;
 });
 
 vi.mock("@context/EncryptionContext", () => ({
@@ -87,6 +88,7 @@ const {
   setGoogleStatusRow,
   setOnboardingFormsRows,
   reminderMutesRows,
+  sessionPackagesRows,
   clientOptionsRows,
   stubOptionsRows,
 } = vi.hoisted(() => {
@@ -126,6 +128,7 @@ const {
   let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
   const onboardingFormsRows: { id: string; title: string }[] = [];
   const reminderMutesRows: { id: string; client_id: string | null; stub_id: string | null }[] = [];
+  const sessionPackagesRows: { id: string; name: string; price_pence: number; duration_minutes: number }[] = [];
   const clientOptionsRows: { id: string; first_name: string; last_name: string }[] = [
     { id: "client-1", first_name: "Ada", last_name: "Lovelace" },
   ];
@@ -152,6 +155,38 @@ const {
                 order: () => Promise.resolve({ data: onboardingFormsRows, error: null }),
               }),
             }),
+          }),
+        };
+      }
+      if (table === "session_packages") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                order: () => Promise.resolve({ data: sessionPackagesRows, error: null }),
+              }),
+            }),
+          }),
+          insert: (payload: { name: string; price_pence: number; duration_minutes: number }) => ({
+            select: () => ({
+              single: () => {
+                const row = {
+                  id: `pkg-${sessionPackagesRows.length + 1}`,
+                  name: payload.name,
+                  price_pence: payload.price_pence,
+                  duration_minutes: payload.duration_minutes,
+                };
+                sessionPackagesRows.push(row);
+                return Promise.resolve({ data: row, error: null });
+              },
+            }),
+          }),
+          update: () => ({
+            eq: (_col: string, id: string) => {
+              const idx = sessionPackagesRows.findIndex((p) => p.id === id);
+              if (idx !== -1) sessionPackagesRows.splice(idx, 1);
+              return Promise.resolve({ data: null, error: null });
+            },
           }),
         };
       }
@@ -227,6 +262,7 @@ const {
       onboardingFormsRows.splice(0, onboardingFormsRows.length, ...rows);
     },
     reminderMutesRows,
+    sessionPackagesRows,
     clientOptionsRows,
     stubOptionsRows,
   };
@@ -589,6 +625,67 @@ describe("SettingsPage — subscription", () => {
 
     expect(invokeSpy).not.toHaveBeenCalledWith("create-billing-portal-session");
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+  });
+});
+
+describe("SettingsPage — session types & prices", () => {
+  it("adds a session type and lists it with price and duration (happy path)", async () => {
+    await openPracticeTab();
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
+    fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "65" } });
+    fireEvent.change(screen.getByLabelText("Duration (min)"), { target: { value: "50" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+
+    expect(await screen.findByText(/Standard session/)).toBeInTheDocument();
+    expect(screen.getByText(/£65\.00.*50 min/)).toBeInTheDocument();
+  });
+
+  it("does not add a session type in demo mode (sad path)", async () => {
+    mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
+    await openPracticeTab();
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
+    fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "65" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+    expect(screen.queryByText(/Standard session/)).not.toBeInTheDocument();
+  });
+
+  it("removes a session type (happy path)", async () => {
+    sessionPackagesRows.push({ id: "pkg-existing", name: "Extended session", price_pence: 9000, duration_minutes: 80 });
+    await openPracticeTab();
+
+    expect(await screen.findByText(/Extended session/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    await waitFor(() => expect(screen.queryByText(/Extended session/)).not.toBeInTheDocument());
+  });
+});
+
+describe("SettingsPage — refer a friend", () => {
+  it("shows the referral link and copies it to the clipboard (happy path)", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    mockUseAuth.mockImplementation(() => ({
+      ...defaultAuthValue,
+      practiceSettings: { ...defaultAuthValue.practiceSettings, referral_code: "ABC12345" },
+    }));
+    await openPracticeTab();
+
+    const link = (await screen.findByLabelText("Your referral link")) as HTMLInputElement;
+    expect(link.value).toContain("ABC12345");
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("ABC12345")));
+    expect(await screen.findByRole("button", { name: "Copied!" })).toBeInTheDocument();
+  });
+
+  it("does not show the card when the admin has no referral code yet (sad path)", async () => {
+    await openPracticeTab();
+    expect(screen.queryByText("Refer a friend")).not.toBeInTheDocument();
   });
 });
 
