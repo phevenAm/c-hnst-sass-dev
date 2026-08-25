@@ -42,10 +42,10 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
 ];
 
 function subscriptionStatusColor(status: string | null | undefined, cancelAtPeriodEnd: boolean): string {
-  if (cancelAtPeriodEnd) return "var(--color-warning, #f59e0b)";
-  if (status === "active" || status === "trialing") return "var(--color-success)";
-  if (status === "paused") return "var(--color-warning, #f59e0b)";
-  return "var(--color-danger)";
+  if (cancelAtPeriodEnd) return "var(--warning)";
+  if (status === "active" || status === "trialing") return "var(--success)";
+  if (status === "paused") return "var(--warning)";
+  return "var(--danger)";
 }
 
 function subscriptionHintText(cancelAtPeriodEnd: boolean, hasBillingCustomer: boolean): string {

@@ -12,9 +12,6 @@ export default function PausedBanner() {
 
   return (
     <div className={styles.banner} role="status">
-      <p className={styles.icon} aria-hidden="true">
-        ⏸
-      </p>
       <p>
         <strong>This account is paused</strong> — everything is read-only until it's resumed. Contact support with any
         questions.

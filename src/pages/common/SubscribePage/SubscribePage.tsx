@@ -321,7 +321,7 @@ export default function SubscribePage() {
               {error && <p className={styles.error}>{error}</p>}
 
               {referralCode && (
-                <p className={styles.billingNote}>🎁 Referred by a colleague — their code will be applied.</p>
+                <p className={styles.billingNote}>Referred by a colleague — their code will be applied.</p>
               )}
 
               <Button onClick={handleSubscribe} disabled={loading || !agreed} className={styles.subscribeBtn}>
