@@ -329,9 +329,14 @@ const AdminPaymentsPage = () => {
     const withStubs = scopedStubSessions
       .filter((s) => s.status !== "cancelled")
       .reduce((acc, s) => {
-        const amountPence = Math.round((s.amount_paid ?? 0) * 100);
-        if (s.amount_paid != null && s.amount_paid > 0) {
-          acc.collectedPence += amountPence;
+        // `paid` (set at creation, or toggled on StubSessionCard) and
+        // amount_paid (set via this page's own "Mark paid" flow) are
+        // independent signals — either one alone means paid. amount_paid is
+        // the more specific figure when set (it can differ from the listed
+        // price), falling back to price_pence when only the boolean is on.
+        const hasAmountPaid = s.amount_paid != null && s.amount_paid > 0;
+        if (s.paid || hasAmountPaid) {
+          acc.collectedPence += hasAmountPaid ? Math.round((s.amount_paid as number) * 100) : (s.price_pence ?? 0);
           acc.paidCount += 1;
         } else {
           acc.unpaidCount += 1;
@@ -400,6 +405,38 @@ const AdminPaymentsPage = () => {
     await dispatch(updateSession({ id: sessionId, paid: true })).unwrap();
     await loadLedgerPage();
     showToast("Session marked as paid.");
+  };
+
+  const handleMarkUnpaid = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    await dispatch(updateSession({ id: sessionId, paid: false })).unwrap();
+    await loadLedgerPage();
+    showToast("Session marked as unpaid.");
+  };
+
+  const handleMarkStubUnpaid = async (e: React.MouseEvent, stubSessionId: string) => {
+    e.stopPropagation();
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    // Clear both paid signals — see the payment_ledger_rows fix for why
+    // a stub session can be "paid" via either one independently.
+    const { error } = await supabase
+      .from("stub_sessions")
+      .update({ paid: false, amount_paid: null })
+      .eq("id", stubSessionId);
+    if (error) {
+      showToast("Failed to update payment.", "danger");
+      return;
+    }
+    setStubSessions((prev) => prev.map((s) => (s.id === stubSessionId ? { ...s, paid: false, amount_paid: null } : s)));
+    await loadLedgerPage();
+    showToast("Session marked as unpaid.");
   };
 
   const handleConfirmMarkStubPaid = async () => {
@@ -541,6 +578,11 @@ const AdminPaymentsPage = () => {
               Mark paid
             </Button>
           )}
+          {r.isPaid && r.source === "session" && (
+            <Button size="sm" variant="ghost" onClick={(e) => handleMarkUnpaid(e, r.id)}>
+              Mark unpaid
+            </Button>
+          )}
           {!r.isPaid && r.source === "stub-session" && (
             <Button
               size="sm"
@@ -552,6 +594,11 @@ const AdminPaymentsPage = () => {
               }}
             >
               Mark paid
+            </Button>
+          )}
+          {r.isPaid && r.source === "stub-session" && (
+            <Button size="sm" variant="ghost" onClick={(e) => handleMarkStubUnpaid(e, r.id)}>
+              Mark unpaid
             </Button>
           )}
           {r.source === "manual" && (

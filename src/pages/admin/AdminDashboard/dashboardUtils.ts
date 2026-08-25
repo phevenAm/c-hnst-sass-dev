@@ -58,17 +58,29 @@ export function revenueByMonth(sessions: Session[], months = 6): TrendPoint[] {
 }
 
 // Revenue from paid offline (stub) sessions — same shape, different table.
+//
+// stub_sessions carries two separate "is this paid" signals that can each be
+// set independently: `paid` (a plain boolean, set at creation time or via
+// StubSessionCard's Mark as paid/unpaid toggle) and `amount_paid` (a specific
+// amount recorded via the Payments page's own "Mark paid" flow, which can
+// differ from the session's listed price — e.g. a discount or partial
+// payment). Either one alone means the session is paid; amount_paid is the
+// more specific figure when both are set, since it's what was actually
+// entered as received, falling back to the listed price_pence when only the
+// plain boolean was flipped on.
 export function revenueByMonthFromStubSessions(
-  stubSessions: { scheduled_at: string; amount_paid: number | null }[],
+  stubSessions: { scheduled_at: string; amount_paid: number | null; paid: boolean; price_pence: number | null }[],
   months = 6,
 ): TrendPoint[] {
   return revenueByMonthGeneric(
     stubSessions,
-    (s) => ({
-      dateIso: s.scheduled_at,
-      amountPence: Math.round((s.amount_paid ?? 0) * 100),
-      isPaid: (s.amount_paid ?? 0) > 0,
-    }),
+    (s) => {
+      const hasAmountPaid = s.amount_paid != null && s.amount_paid > 0;
+      let amountPence = 0;
+      if (hasAmountPaid) amountPence = Math.round((s.amount_paid as number) * 100);
+      else if (s.paid) amountPence = s.price_pence ?? 0;
+      return { dateIso: s.scheduled_at, amountPence, isPaid: s.paid || hasAmountPaid };
+    },
     months,
   );
 }
