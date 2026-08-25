@@ -14,6 +14,20 @@
   flex-direction: column;
 }
 
+// Groups related cards under a plain label — no card of its own, spacing
+// comes from .columns' own gap like every other direct child. Same
+// uppercase/muted treatment as AdminDashboard's .quickActionsLabel, not a
+// new pattern.
+.groupHeading {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 // ── Two-column top row ─────────────────────────────────────
 .topRow {
   display: flex;
@@ -160,6 +174,19 @@
 
   input {
     @include input-base;
+  }
+}
+
+// ── Client consent config block ─────────────────────────────
+// Only rendered while the toggle above is on — visually set apart from it
+// with a divider rather than sitting in the same flat run of fields.
+.consentConfig {
+  margin-top: $sp-5;
+  padding-top: $sp-5;
+  border-top: 1px solid var(--border);
+
+  > * + * {
+    margin-top: $sp-4;
   }
 }
 

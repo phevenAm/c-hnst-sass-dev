@@ -31,6 +31,20 @@ export default function SessionPrepCard({
       ? `${lastNote.content.slice(0, NOTE_PREVIEW_LENGTH)}…`
       : lastNote?.content;
 
+  let noteBlock;
+
+  if (lastNote) {
+    noteBlock = (
+      <p className={styles.noteText}>
+        &ldquo;{notePreview}&rdquo; <span className={styles.noteDate}>— {dayjs(lastNote.createdAt).format("D MMM")}</span>
+      </p>
+    );
+  } else if (notesLocked) {
+    noteBlock = <p className={styles.noteMuted}>Unlock encryption (open any session's notes) to see the last note here.</p>;
+  } else {
+    noteBlock = <p className={styles.noteMuted}>No notes yet.</p>;
+  }
+
   return (
     <Card className={styles.card}>
       <span className={styles.badge}>Session prep</span>
@@ -40,16 +54,7 @@ export default function SessionPrepCard({
         {lastSeenAt ? ` · last session ${dayjs(lastSeenAt).format("D MMM")}` : ""}
       </p>
 
-      {lastNote ? (
-        <p className={styles.noteText}>
-          &ldquo;{notePreview}&rdquo;{" "}
-          <span className={styles.noteDate}>— {dayjs(lastNote.createdAt).format("D MMM")}</span>
-        </p>
-      ) : notesLocked ? (
-        <p className={styles.noteMuted}>Unlock encryption (open any session's notes) to see the last note here.</p>
-      ) : (
-        <p className={styles.noteMuted}>No notes yet.</p>
-      )}
+      {noteBlock}
 
       <button type="button" className={styles.viewNotes} onClick={onViewNotes}>
         View all notes →
