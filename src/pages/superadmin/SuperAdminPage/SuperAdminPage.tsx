@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import Button from "@components/shared/Button/Button";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
@@ -14,6 +16,8 @@ type Practice = {
   subscription_plan: string;
   stripe_subscription_id: string | null;
   billing_customer_id: string | null;
+  is_paused: boolean;
+  paused_reason: string | null;
   updated_at: string;
   users: {
     first_name: string | null;
@@ -57,21 +61,47 @@ export default function SuperAdminPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
+  const [pausingPractice, setPausingPractice] = useState<Practice | null>(null);
+  const [resumingPractice, setResumingPractice] = useState<Practice | null>(null);
+  const [pauseReason, setPauseReason] = useState("");
+  const [togglingPause, setTogglingPause] = useState(false);
+
+  const loadPractices = useCallback(async () => {
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("get-all-practices");
+      if (fnError) throw new Error(fnError.message);
+      setPractices(data.practices ?? []);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load practices");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const { data, error: fnError } = await supabase.functions.invoke("get-all-practices");
-        if (fnError) throw new Error(fnError.message);
-        setPractices(data.practices ?? []);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load practices");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    loadPractices();
+  }, [loadPractices]);
+
+  // Pausing also pauses Stripe billing (see the edge function) — charging for
+  // an account that's just been made read-only doesn't make sense, so the
+  // two always move together rather than being separate toggles.
+  const handleTogglePause = async (practice: Practice, paused: boolean) => {
+    setTogglingPause(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("superadmin-set-practice-paused", {
+        body: { admin_id: practice.admin_id, paused, reason: paused ? pauseReason.trim() || null : null },
+      });
+      if (fnError) throw new Error(fnError.message);
+      await loadPractices();
+      setPausingPractice(null);
+      setResumingPractice(null);
+      setPauseReason("");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update pause status");
+    } finally {
+      setTogglingPause(false);
+    }
+  };
 
   // Feedback inbox (RLS: superadmin reads all rows).
   useEffect(() => {
@@ -159,12 +189,13 @@ export default function SuperAdminPage() {
                 <th>Plan</th>
                 <th>Status</th>
                 <th>Registered</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={styles.empty}>
+                  <td colSpan={6} className={styles.empty}>
                     No practices found.
                   </td>
                 </tr>
@@ -189,6 +220,7 @@ export default function SuperAdminPage() {
                     </td>
                     <td>
                       <span className={`${styles.statusBadge} ${status.cls}`}>{status.label}</span>
+                      {p.is_paused && <span className={`${styles.statusBadge} ${styles.statusPaused}`}>Paused</span>}
                     </td>
                     <td className={styles.dateCell}>
                       {new Date(p.users?.created_at ?? p.updated_at).toLocaleDateString("en-GB", {
@@ -197,12 +229,60 @@ export default function SuperAdminPage() {
                         year: "numeric",
                       })}
                     </td>
+                    <td>
+                      {p.is_paused ? (
+                        <Button variant="secondary" size="sm" onClick={() => setResumingPractice(p)}>
+                          Resume
+                        </Button>
+                      ) : (
+                        <Button variant="ghost-danger" size="sm" onClick={() => setPausingPractice(p)}>
+                          Pause
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+      )}
+
+      {pausingPractice && (
+        <ConfirmModal
+          title={`Pause ${pausingPractice.business_name || "this practice"}?`}
+          confirmLabel="Pause practice"
+          confirming={togglingPause}
+          onConfirm={() => handleTogglePause(pausingPractice, true)}
+          onClose={() => {
+            setPausingPractice(null);
+            setPauseReason("");
+          }}
+        >
+          <p>
+            This makes the practice read-only for the admin and every client — nothing can be created, edited, or
+            deleted until resumed. Their Stripe subscription is also paused, so they won't be charged while paused.
+          </p>
+          <textarea
+            className={styles.pauseReasonInput}
+            placeholder="Reason (optional, internal only)"
+            value={pauseReason}
+            onChange={(e) => setPauseReason(e.target.value)}
+          />
+        </ConfirmModal>
+      )}
+
+      {resumingPractice && (
+        <ConfirmModal
+          title={`Resume ${resumingPractice.business_name || "this practice"}?`}
+          confirmLabel="Resume practice"
+          danger={false}
+          confirming={togglingPause}
+          onConfirm={() => handleTogglePause(resumingPractice, false)}
+          onClose={() => setResumingPractice(null)}
+        >
+          <p>This restores normal read/write access and resumes their Stripe billing on its usual cycle.</p>
+        </ConfirmModal>
       )}
 
       {/* ── Feedback inbox ── */}

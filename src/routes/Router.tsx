@@ -8,6 +8,7 @@ import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import AuthLoadingState from "../components/shared/AuthLoadingState/AuthLoadingState";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Navbar from "../components/shared/Navbar/Navbar";
+import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
 import Spinner from "../components/shared/Spinner/Spinner";
@@ -82,6 +83,7 @@ function AppLayout() {
       <div ref={topRef} tabIndex={-1} aria-hidden="true" />
       <Navbar />
       <DemoBanner />
+      <PausedBanner />
       <main id="main-content" tabIndex={-1}>
         <div className="page-content">
           <Outlet />
@@ -131,6 +133,7 @@ function AdminLayout() {
         <div className={`adminBody${sidebarCollapsed ? " adminBodyCollapsed" : ""}`}>
           <AdminTopbar />
           <DemoBanner />
+          <PausedBanner />
           <main id="main-content" tabIndex={-1}>
             <div className="page-content">
               <Outlet />

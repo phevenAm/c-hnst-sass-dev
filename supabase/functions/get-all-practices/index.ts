@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
         subscription_plan,
         stripe_subscription_id,
         billing_customer_id,
+        is_paused,
+        paused_reason,
         updated_at
       `)
       .order("updated_at", { ascending: false });
