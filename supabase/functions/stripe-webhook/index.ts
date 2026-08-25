@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 
   if (event.type === "customer.subscription.deleted") {
     const sub = event.data.object as Stripe.Subscription;
-    await supabase
+    const { data: cancelledSettings } = await supabase
       .from("practice_settings")
       .update({
         subscription_status: "canceled",
@@ -84,7 +84,64 @@ Deno.serve(async (req) => {
         subscription_cancel_at_period_end: false,
         subscription_current_period_end: null,
       })
-      .eq("billing_customer_id", sub.customer as string);
+      .eq("billing_customer_id", sub.customer as string)
+      .select("admin_id")
+      .maybeSingle();
+
+    // Tell the admin their subscription actually ended — previously this
+    // update happened silently and the only way to notice was the app
+    // locking you out next time you tried to use it.
+    if (cancelledSettings?.admin_id) {
+      const { data: cancelledAdmin } = await supabase
+        .from("users")
+        .select("email")
+        .eq("id", cancelledSettings.admin_id)
+        .single();
+
+      const resendKey = Deno.env.get("RESEND_API_KEY");
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+      const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+      const subject = "Your Clarity subscription has ended";
+
+      await supabase.from("notifications").insert({
+        user_id: cancelledSettings.admin_id,
+        type: "subscription_cancelled",
+        message: "Your Clarity subscription has ended. Resubscribe any time to regain access.",
+      });
+
+      if (cancelledAdmin?.email && resendKey && fromEmail) {
+        const html = emailTemplate({
+          label: "Subscription Ended",
+          title: "Your subscription has ended",
+          body:
+            para("Your Clarity subscription is now cancelled and billing has stopped.") +
+            para("Your account and data are still here — resubscribe any time to pick up right where you left off."),
+          cta: { label: "Resubscribe", url: `${appUrl}/subscribe` },
+          footerNote: "This email was sent because your Clarity subscription ended.",
+        });
+
+        try {
+          const resendId = await sendEmail({ to: cancelledAdmin.email, subject, html, resendKey, fromEmail });
+          await logEmail(supabase, {
+            adminId: cancelledSettings.admin_id,
+            emailType: "subscription_cancelled",
+            recipientEmail: cancelledAdmin.email,
+            subject,
+            resendEmailId: resendId,
+            status: "sent",
+          });
+        } catch (sendErr: any) {
+          await logEmail(supabase, {
+            adminId: cancelledSettings.admin_id,
+            emailType: "subscription_cancelled",
+            recipientEmail: cancelledAdmin.email,
+            subject,
+            status: "failed",
+            errorMessage: sendErr.message,
+          });
+        }
+      }
+    }
   }
 
   // ── Subscription checkout completed — activate account immediately ───────────
@@ -454,6 +511,72 @@ Deno.serve(async (req) => {
             await logEmail(supabase, {
               adminId: settings.admin_id,
               emailType: "payment_failed",
+              recipientEmail: adminUser.email,
+              subject,
+              status: "failed",
+              errorMessage: sendErr.message,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // ── Recurring payment succeeded — a receipt for renewal charges. Scoped to
+  // billing_reason "subscription_cycle" so this doesn't double up with the
+  // welcome email checkout.session.completed already sends for the first
+  // payment (that one has its own invoice.payment_succeeded event too, with
+  // billing_reason "subscription_create").
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = invoice.customer as string | null;
+
+    if (customerId && invoice.billing_reason === "subscription_cycle") {
+      const { data: settings } = await supabase
+        .from("practice_settings")
+        .select("admin_id")
+        .eq("billing_customer_id", customerId)
+        .maybeSingle();
+
+      if (settings?.admin_id) {
+        const { data: adminUser } = await supabase.from("users").select("email").eq("id", settings.admin_id).single();
+
+        const amountPounds = ((invoice.amount_paid ?? 0) / 100).toFixed(2);
+        const subject = `Payment receipt — £${amountPounds}`;
+
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        const fromEmail = Deno.env.get("RESEND_FROM_EMAIL");
+        const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
+
+        if (adminUser?.email && resendKey && fromEmail) {
+          const html = emailTemplate({
+            label: "Payment Receipt",
+            title: "Your Clarity subscription renewed",
+            body:
+              para(
+                `A payment of <strong style="color:#2d2926;">£${amountPounds}</strong> was taken for your Clarity subscription.`,
+              ) +
+              (invoice.hosted_invoice_url
+                ? para(`<a href="${invoice.hosted_invoice_url}" style="color:#5a8a6a;">View invoice</a>`)
+                : ""),
+            cta: { label: "Manage billing", url: `${appUrl}/settings` },
+            footerNote: "This email was sent because your Clarity subscription renewed.",
+          });
+
+          try {
+            const resendId = await sendEmail({ to: adminUser.email, subject, html, resendKey, fromEmail });
+            await logEmail(supabase, {
+              adminId: settings.admin_id,
+              emailType: "subscription_payment_succeeded",
+              recipientEmail: adminUser.email,
+              subject,
+              resendEmailId: resendId,
+              status: "sent",
+            });
+          } catch (sendErr: any) {
+            await logEmail(supabase, {
+              adminId: settings.admin_id,
+              emailType: "subscription_payment_succeeded",
               recipientEmail: adminUser.email,
               subject,
               status: "failed",
