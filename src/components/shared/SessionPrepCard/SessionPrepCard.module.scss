@@ -1,0 +1,69 @@
+.card {
+  border-left: 3px solid var(--accent);
+  margin-bottom: var(--sp-4);
+}
+
+.title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin: 0 0 var(--sp-2);
+}
+
+.nextSession {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-1);
+}
+
+.stats {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-3);
+}
+
+.noteBlock {
+  background: var(--bg-muted);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.noteLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-1);
+}
+
+.noteText {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-style: italic;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.noteMuted {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-3);
+}
+
+.viewNotes {
+  display: inline-flex;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

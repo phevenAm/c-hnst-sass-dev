@@ -70,6 +70,7 @@ const { makeChain, supabaseMock, mockShowToast } = vi.hoisted(() => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       is: vi.fn().mockReturnThis(),
+      not: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),

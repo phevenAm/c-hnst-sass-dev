@@ -9,6 +9,7 @@ import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import Modal from "@components/shared/Modal/Modal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
+import SessionPrepCard from "@components/shared/SessionPrepCard/SessionPrepCard";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import type { ToggleButtonTabsTypes } from "@components/shared/ToggleButtonTabs/ToggleButtonTabs";
 import ToggleButtonTabs from "@components/shared/ToggleButtonTabs/ToggleButtonTabs";
@@ -245,6 +246,14 @@ export default function AdminStubDetailPage() {
   const attendedCount = sessions.filter((s) => s.status === "attended").length;
   const totalPaid = sessions.reduce((sum, s) => sum + (s.paid ? (s.price_pence ?? 0) / 100 : 0), 0);
   const currency = sessions.find((s) => s.paid)?.currency ?? "GBP";
+
+  // Prep card: soonest still-scheduled session, and the most recent past one
+  // (sessions load newest-first, so a simple find/filter+[0] works off that).
+  const nextSession = [...sessions]
+    .filter((s) => s.status === "scheduled" && new Date(s.scheduled_at) > new Date())
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+  const lastSeenSession = sessions.find((s) => s.status === "attended");
+  const lastNote = notes[0] ?? null;
 
   const assignedFormIds = useMemo(
     () => new Set(assignedForms.map((f) => f.questionnaires?.id).filter(Boolean)),
@@ -483,6 +492,19 @@ export default function AdminStubDetailPage() {
           ← Back to clients
         </Button>
 
+        {nextSession && (
+          <SessionPrepCard
+            clientName={displayName}
+            nextSessionAt={nextSession.scheduled_at}
+            totalSessions={totalSessions}
+            attendedSessions={attendedCount}
+            lastSeenAt={lastSeenSession?.scheduled_at ?? null}
+            lastNote={lastNote ? { content: lastNote.content, createdAt: lastNote.created_at } : null}
+            notesLocked={false}
+            onViewNotes={() => document.getElementById("notes-section")?.scrollIntoView({ behavior: "smooth" })}
+          />
+        )}
+
         {/* Hero */}
         <div className={styles.hero}>
           <div className={styles.heroLeft}>
@@ -669,7 +691,7 @@ export default function AdminStubDetailPage() {
         </Card>
 
         {/* Notes */}
-        <Card className={styles.section}>
+        <Card className={styles.section} id="notes-section">
           <div className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>Notes</h2>
           </div>

@@ -221,6 +221,13 @@
     // height: 100%;
   }
 
+  // "Needs attention" doesn't render at all when there's nothing in it —
+  // let "Upcoming sessions" take the full row instead of leaving the second
+  // column blank.
+  >*:only-child {
+    grid-column: 1 / -1;
+  }
+
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
 
