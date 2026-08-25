@@ -1,5 +1,15 @@
+@use "../../../styles/mixins" as *;
+
+// Card has no built-in padding — every consumer supplies its own. Matches
+// AdminStubDetailPage/AdminClientsPageDetailed's own .section card padding
+// exactly, since this card sits directly among them on the same pages.
 .card {
-  margin-bottom: var(--sp-4);
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-6);
+
+  @include until-md {
+    padding: var(--sp-4);
+  }
 }
 
 // Matches AdminStubDetailPage's .heroBadge pill treatment.
