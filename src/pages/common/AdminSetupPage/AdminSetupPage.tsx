@@ -235,7 +235,12 @@ export default function AdminSetupPage() {
         consent_title: consentTitle || "Before you continue",
         consent_body: consentBody,
         consent_pdf_url: consentPdfUrl || null,
-        consent_counsellor_cta: consentCounsellorCta || null,
+        // consent_counsellor_cta is NOT NULL (default: the same fallback
+        // sentence used here) — sending null when the field is left blank
+        // violates that constraint. Empty string would technically satisfy
+        // NOT NULL too, but the sentence is a more useful default than a
+        // blank footer.
+        consent_counsellor_cta: consentCounsellorCta || "If you have any questions, speak to your counsellor.",
         ...bankPayload,
       })
       .eq("admin_id", userProfile.id);

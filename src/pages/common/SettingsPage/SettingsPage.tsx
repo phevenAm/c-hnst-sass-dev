@@ -642,7 +642,12 @@ const SettingsPage = () => {
         consent_title: consentTitle || "Before you continue",
         consent_body: consentBody,
         consent_pdf_url: consentPdfUrl || null,
-        consent_counsellor_cta: consentCounsellorCta || null,
+        // consent_counsellor_cta is NOT NULL (default: the same fallback
+        // sentence used here) — sending null when the field is cleared
+        // violates that constraint and fails the whole save with a raw
+        // Postgres error (found via live testing of AdminSetupPage's copy of
+        // this same field, which hit it immediately since it starts blank).
+        consent_counsellor_cta: consentCounsellorCta || "If you have any questions, speak to your counsellor.",
         consent_questionnaire_id: consentQuestionnaireId || null,
       })
       .eq("admin_id", userProfile.id);
