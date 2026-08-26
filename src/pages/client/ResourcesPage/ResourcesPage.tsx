@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import dayjs from "dayjs";
 
 import { isAdultFromDob, isPageStatusLoading } from "@Helpers/Helpers";
 import Card from "@components/shared/Card/Card";
 import { ArticleIcon, VideoIcon } from "@components/shared/Icons/Icons";
+import PdfViewer from "@components/shared/PdfViewer/PdfViewer";
+import Spinner from "@components/shared/Spinner/Spinner";
 import { useAuth } from "@context/AuthContext";
 import type { Resource } from "@models/globalTypes";
 import { getResourceTypeLabel } from "@pages/admin/AdminResourcesPage/AdminResourcesPage";
@@ -10,7 +14,70 @@ import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchPublishedResources, selectPublishedResources } from "@store/slices/resourcesSlice";
 
+import { supabase } from "@/lib/supabase";
+
 import styles from "./ResourcesPage.module.scss";
+
+type ConsentSettings = {
+  consent_title: string;
+  consent_body: string;
+  consent_pdf_url: string | null;
+};
+
+// Unlike useConsentPending, this doesn't gate on has_consented being false —
+// the whole point is showing an already-signed agreement back to the client
+// who signed it, any time after the fact.
+function AgreementView({ signedName, signedAt }: { signedName: string | null; signedAt: string | null }) {
+  const [settings, setSettings] = useState<ConsentSettings | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    supabase.rpc("get_my_admin_consent_settings").then(({ data }) => {
+      setSettings(data?.[0] ?? null);
+      setLoaded(true);
+    });
+  }, []);
+
+  if (!loaded) return <Spinner />;
+
+  if (!settings) {
+    return <p className={styles.empty}>Your agreement details aren't available right now.</p>;
+  }
+
+  return (
+    <Card>
+      <div className={styles.agreementBody}>
+        <h2 className={styles.agreementTitle}>{settings.consent_title}</h2>
+
+        {settings.consent_body && (
+          <div className={styles.agreementText}>
+            {settings.consent_body.split("\n").map((line, i) =>
+              line.trim() === "" ? (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
+                <br key={i} />
+              ) : (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
+                <p key={i}>{line}</p>
+              ),
+            )}
+          </div>
+        )}
+
+        {settings.consent_pdf_url && <PdfViewer url={settings.consent_pdf_url} title={settings.consent_title} />}
+
+        <p className={styles.agreementSigned}>
+          {signedName ? `Signed by ${signedName}` : "Signed"}
+          {signedAt ? ` on ${dayjs(signedAt).format("D MMM YYYY")}` : ""}
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+function getTabLabel(type: string): string {
+  if (type === "onboarding") return "Onboarding";
+  return getResourceTypeLabel(type);
+}
 
 function getResourceButtonLabel(type: string): string {
   if (type === "video") return "Watch";
@@ -64,14 +131,7 @@ function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () 
         )}
 
         {resource.type === "document" && resource.url.toLowerCase().endsWith(".pdf") && (
-          <>
-            <iframe src={resource.url} className={styles.pdfFrame} title={resource.title} />
-            <div className={styles.pdfActions}>
-              <a href={resource.url} target="_blank" rel="noopener noreferrer" className={styles.pdfOpenLink}>
-                Open in new tab ↗
-              </a>
-            </div>
-          </>
+          <PdfViewer url={resource.url} title={resource.title} />
         )}
 
         {resource.type === "document" && !resource.url.toLowerCase().endsWith(".pdf") && (
@@ -141,7 +201,11 @@ export default function ResourcesPage() {
   const resourcesStatus = useAppSelector((State) => State.resources.status);
 
   const contentToRender = isAdultFromDob(userProfile?.dob ?? "") ? resources : nonSensitiveResources;
-  const types = ["all", ...new Set(contentToRender.map((r) => r.type))];
+  const types = [
+    "all",
+    ...new Set(contentToRender.map((r) => r.type)),
+    ...(userProfile?.has_consented ? ["onboarding"] : []),
+  ];
 
   const byType = filter === "all" ? contentToRender : contentToRender.filter((r) => r.type === filter);
   const term = search.toLowerCase().trim();
@@ -165,7 +229,11 @@ export default function ResourcesPage() {
           <p>Curated by your practitioner — take your time with these.</p>
         </div>
 
-        <div className={styles.searchWrap} id="resources-search">
+        <div
+          className={styles.searchWrap}
+          id="resources-search"
+          style={filter === "onboarding" ? { display: "none" } : undefined}
+        >
           <input
             placeholder="Search for resource..."
             type="search"
@@ -186,19 +254,28 @@ export default function ResourcesPage() {
               onClick={() => setFilter(type)}
               className={filter === type ? styles.filterBtnActive : styles.filterBtn}
             >
-              {getResourceTypeLabel(type)}
+              {getTabLabel(type)}
             </button>
           ))}
         </div>
 
-        <div className={styles.grid}>
-          {filtered.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} onOpen={setSelectedResource} />
-          ))}
-        </div>
+        {filter === "onboarding" ? (
+          <AgreementView
+            signedName={userProfile?.consent_signed_name ?? null}
+            signedAt={userProfile?.consented_at ?? null}
+          />
+        ) : (
+          <>
+            <div className={styles.grid}>
+              {filtered.map((resource) => (
+                <ResourceCard key={resource.id} resource={resource} onOpen={setSelectedResource} />
+              ))}
+            </div>
 
-        {filtered.length === 0 && (
-          <p className={styles.empty}>{term ? `No resources match "${search}".` : "No resources available yet."}</p>
+            {filtered.length === 0 && (
+              <p className={styles.empty}>{term ? `No resources match "${search}".` : "No resources available yet."}</p>
+            )}
+          </>
         )}
       </div>
 

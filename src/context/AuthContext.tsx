@@ -28,7 +28,16 @@ const AUTH_INIT_TIMEOUT_MS = REQUEST_TIMEOUT_MS + LOCK_OVERHEAD_MS;
 const HANDLE_SESSION_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 2 + LOCK_OVERHEAD_MS;
 
 type ProfileUpdates = Partial<
-  Pick<UserProfile, "display_name" | "avatar_url" | "focus_keywords" | "onboarding_completed">
+  Pick<
+    UserProfile,
+    | "display_name"
+    | "avatar_url"
+    | "focus_keywords"
+    | "onboarding_completed"
+    | "has_consented"
+    | "consented_at"
+    | "consent_signed_name"
+  >
 >;
 
 type PracticeSettings = {

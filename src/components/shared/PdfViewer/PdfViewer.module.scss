@@ -1,0 +1,74 @@
+@use "../../../styles/spacing" as *;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+// Single scrollbar for the whole stack of pages — the old iframe approach
+// nested the browser's own PDF-viewer scrollbar inside a short fixed-height
+// box, forcing the reader to scroll two independent things at once.
+.preview {
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-muted);
+  padding: $sp-3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-3;
+}
+
+.fullPage {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-4;
+}
+
+.page {
+  box-shadow: var(--shadow-md);
+
+  canvas {
+    border-radius: var(--r-sm);
+  }
+}
+
+.error {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: $sp-6 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-4;
+}
+
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-1;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
+
+  svg {
+    font-size: 1em;
+  }
+
+  &:hover {
+    color: var(--accent);
+  }
+}

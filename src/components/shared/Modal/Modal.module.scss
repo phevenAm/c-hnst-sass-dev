@@ -38,6 +38,11 @@
     max-width: 720px;
   }
 
+  &.full {
+    max-width: 95vw;
+    height: 90vh;
+  }
+
   .modalHeader {
     display: flex;
     justify-content: space-between;

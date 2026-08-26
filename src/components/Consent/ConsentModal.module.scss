@@ -54,11 +54,36 @@
   }
 }
 
-.pdfFrame {
-  width: 100%;
-  height: 45vh;
-  border: 1px solid var(--border);
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.nameInput {
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--border);
   border-radius: var(--r-md);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition-base);
+
+  &:focus {
+    border-color: var(--border-focus);
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
 }
 
 .checkRow {
