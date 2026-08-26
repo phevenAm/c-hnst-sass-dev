@@ -242,6 +242,25 @@
   margin-bottom: $sp-4;
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-direction: column;
+
+  p {
+    margin: 0;
+    margin-top: 1px;
+  }
+
+  a {
+    text-decoration: underline;
+
+    @media (max-width: 800px) {
+      color: white;
+      stroke: white;
+
+    }
+  }
 }
 
 .demoDivider {
@@ -301,8 +320,10 @@
 
 .logoSub,
 .demoDivider,
+.logoWrap svg,
 .logoTitle {
-  @media (max-width: 1000px) {
+  @media (max-width: 800px) {
     color: white;
+    stroke: white;
   }
 }

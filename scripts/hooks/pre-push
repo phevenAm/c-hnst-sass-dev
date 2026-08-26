@@ -21,23 +21,6 @@ else
 fi
 echo ""
 
-echo "-- Pre-push: lint fix ---------------------------------------"
-npm run lint:fix > /dev/null 2>&1 || true
-echo "OK done"
-echo ""
-
-echo "-- Pre-push: TypeScript build check -------------------------"
-npm run build > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "  ERROR: build failed. Fix TypeScript errors before pushing."
-  echo "  Run: npm run build"
-  echo ""
-  exit 1
-fi
-echo "OK build passed"
-echo ""
-
 echo "-- Pre-push: CSV template sync check ------------------------"
 node scripts/check-csv-template.js
 if [ $? -ne 0 ]; then

@@ -4,10 +4,10 @@ import { Link } from "react-router-dom";
 import styles from "./ViewportWarningBanner.module.scss";
 
 const DISMISS_KEY = "viewport_warning_dismissed";
-// Matches $bp-sm in styles/_spacing.scss — by far the most-reused breakpoint
-// in this codebase already (the "until-sm" mixin), rather than inventing a
-// new bespoke cutoff for this one banner.
-const MIN_SUPPORTED_WIDTH = 640;
+// Below the narrowest mainstream phones (iPhone SE/mini class, ~375px) —
+// this should only fire for genuinely unusual/tiny viewports, not the
+// average phone in someone's pocket.
+const MIN_SUPPORTED_WIDTH = 350;
 
 function readDismissed(): boolean {
   try {
@@ -43,8 +43,8 @@ export default function ViewportWarningBanner() {
   return (
     <div className={styles.banner} role="status" aria-live="polite">
       <span className={styles.message}>
-        This app works best on a larger screen — some phones (e.g. iPhone 12) may not display everything well. You can
-        zoom out in <Link to="/settings">Settings → Interface</Link>.
+        This app works best on a larger screen — your screen is narrower than we support, so some things may not display
+        well. You can zoom out in <Link to="/settings">Settings → Interface</Link>.
       </span>
       <button type="button" className={styles.dismiss} onClick={handleDismiss}>
         Dismiss
