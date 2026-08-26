@@ -12,6 +12,8 @@ import PastDueBanner from "../components/shared/PastDueBanner/PastDueBanner";
 import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
+import UpdateBanner from "../components/shared/UpdateBanner/UpdateBanner";
+import ViewportWarningBanner from "../components/shared/ViewportWarningBanner/ViewportWarningBanner";
 import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
@@ -245,6 +247,8 @@ export default function AppRoutes() {
     <ThemeWrapper>
       <BrowserRouter>
         <WalkthroughProvider>
+          <UpdateBanner />
+          <ViewportWarningBanner />
           <ConsentGate />
           <OnboardingGate />
           <WalkthroughOverlay />
