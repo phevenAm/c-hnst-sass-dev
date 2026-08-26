@@ -76,6 +76,13 @@ const ClientSchedule = () => {
     .slice()
     .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
+  // Deliberately not filtering out cancelled here — the featured slot below
+  // shows whichever session is chronologically next, cancelled or not, so a
+  // client sees "your next session was cancelled" clearly instead of it just
+  // vanishing (NextSessionCard hides all actions and shows a Cancelled badge
+  // for it). A cancelled session never keeps its actionable slot for long in
+  // practice since the client's real next session then renders right below
+  // it in the list.
   const upcomingSessions = useMemo(
     () => mySessions.filter((s) => new Date(s.scheduled_at) >= new Date()),
     [mySessions],

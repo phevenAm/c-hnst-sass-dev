@@ -139,3 +139,22 @@ describe("ClientSchedule — clicking a calendar session", () => {
     expect(within(dialog).getByText(/cancelled/i)).toBeInTheDocument();
   });
 });
+
+describe("ClientSchedule — featured next-session strip", () => {
+  // Regression: a session auto-cancelled for non-payment kept a future
+  // scheduled_at, so it still rendered as the featured "next session" with a
+  // live Pay/Reschedule/Cancel strip, even though it no longer existed in any
+  // actionable sense. The fix isn't to hide it (a session silently vanishing
+  // is its own confusing UX) — it's to keep showing it as the next session,
+  // but clearly marked cancelled with no actions to take on it.
+  it("features a cancelled session clearly marked as cancelled instead of hiding it, with no Pay action", () => {
+    const cancelled = { ...baseSession, status: "cancelled" as const, paid: false };
+    seedStore([cancelled]);
+    renderPage();
+
+    expect(screen.queryByText("No upcoming sessions booked")).not.toBeInTheDocument();
+    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pay" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reschedule" })).not.toBeInTheDocument();
+  });
+});

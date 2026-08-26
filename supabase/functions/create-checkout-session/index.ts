@@ -80,7 +80,8 @@ Deno.serve(async (req) => {
       const { data: blockSessions } = await supabase
         .from("sessions")
         .select("id, price_pence")
-        .filter("metadata->>block_id", "eq", blockId);
+        .filter("metadata->>block_id", "eq", blockId)
+        .neq("status", "cancelled");
 
       if (blockSessions && blockSessions.length > 0) {
         amountPence = blockSessions.reduce((sum: number, s: { price_pence: number }) => sum + (s.price_pence ?? 0), 0);

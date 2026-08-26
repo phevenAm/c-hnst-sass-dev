@@ -80,6 +80,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
   } = useSessionCard(session);
 
   const isPast = dayjs(session.scheduled_at).isBefore(dayjs());
+  const isCancelled = session.status === "cancelled";
   const isCompleted = isPast && session.attended === true && session.paid === true;
   const isNoShow = session.attended === false;
   const isInPerson = session.location === "in_person";
@@ -246,7 +247,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
       )}
 
       {/* ── Client actions ────────────────────────────── */}
-      {!isAdmin && !isPast && (
+      {!isAdmin && !isPast && !isCancelled && (
         <div className={styles.clientActions}>
           <Button size="sm" variant="primary" disabled={isDemo || session.paid} onClick={() => setIsPayModalOpen(true)}>
             Pay

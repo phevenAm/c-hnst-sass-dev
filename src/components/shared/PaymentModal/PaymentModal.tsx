@@ -75,6 +75,11 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
 
   const meta = session.metadata as SessionBlockMeta | null;
   const isBlock = !!meta?.block_id;
+  // Defence in depth — callers are expected to never open this for a
+  // cancelled session, but if one slips through (stale prop, direct link),
+  // don't show payment instructions or a leftover manual-payment note for a
+  // session that no longer needs paying.
+  const isCancelled = session.status === "cancelled";
 
   const handleRequestManualPayment = async () => {
     if (isDemo) return;
@@ -143,6 +148,7 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
       .select("price_pence")
       .eq("client_id", session.client_id)
       .filter("metadata->>block_id", "eq", blockId)
+      .neq("status", "cancelled")
       .then(({ data }) => {
         const rows = data ?? [];
         setBlockTotalPence(rows.reduce((sum, row) => sum + (row.price_pence ?? 0), 0));
@@ -195,6 +201,21 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
       setIsRedirecting(false);
     }
   };
+
+  if (isCancelled) {
+    return (
+      <Modal title="Pay for session" onClose={onClose} size="sm">
+        <div className={styles.panel}>
+          <p className={styles.intro}>This session has been cancelled — there's nothing to pay.</p>
+          <div className={styles.actions}>
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal title={isBlock ? "Pay for session block" : "Pay for session"} onClose={onClose} size="sm">
