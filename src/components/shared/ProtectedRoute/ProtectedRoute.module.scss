@@ -1,0 +1,49 @@
+@use "../../../styles/spacing" as *;
+
+.wrapper {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100vh;
+  padding: $sp-4;
+  background: var(--bg-muted);
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $sp-2;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  padding: $sp-8 $sp-6;
+}
+
+.logo {
+  margin-bottom: $sp-2;
+}
+
+.heading {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.message {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 $sp-3;
+}
+
+.actions {
+  display: flex;
+  gap: $sp-3;
+}

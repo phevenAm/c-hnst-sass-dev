@@ -63,10 +63,29 @@ function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () 
           </div>
         )}
 
-        {(resource.type === "document" || resource.type === "link") && (
+        {resource.type === "document" && resource.url.toLowerCase().endsWith(".pdf") && (
+          <>
+            <iframe src={resource.url} className={styles.pdfFrame} title={resource.title} />
+            <div className={styles.pdfActions}>
+              <a href={resource.url} target="_blank" rel="noopener noreferrer" className={styles.pdfOpenLink}>
+                Open in new tab ↗
+              </a>
+            </div>
+          </>
+        )}
+
+        {resource.type === "document" && !resource.url.toLowerCase().endsWith(".pdf") && (
           <div className={styles.externalWrap}>
             <a href={resource.url} target="_blank" rel="noopener noreferrer" className={styles.externalBtn}>
-              {resource.type === "document" ? "Open document" : "Visit website"}
+              Open document
+            </a>
+          </div>
+        )}
+
+        {resource.type === "link" && (
+          <div className={styles.externalWrap}>
+            <a href={resource.url} target="_blank" rel="noopener noreferrer" className={styles.externalBtn}>
+              Visit website
             </a>
           </div>
         )}
@@ -77,7 +96,7 @@ function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () 
 
 function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: (resource: Resource) => void }) {
   const handleClick = () => {
-    if (resource.type === "document" || resource.type === "link") {
+    if (resource.type === "link") {
       window.open(resource.url, "_blank");
     } else {
       onOpen(resource);

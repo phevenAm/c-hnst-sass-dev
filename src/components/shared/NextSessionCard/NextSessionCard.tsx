@@ -72,6 +72,10 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
   const { isDemo } = useAuth();
 
   const isOnline = session.location !== "in_person";
+  // Defence in depth — callers are expected to filter cancelled sessions out
+  // before picking a "next session" to feature, but a cancelled session has
+  // no valid Pay/Reschedule/Cancel action regardless of how it got here.
+  const isCancelled = session.status === "cancelled";
 
   const guardAction = (fn: () => void) => {
     if (isWithinRescheduleCutoff) {
@@ -102,7 +106,11 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
         <div className={styles.stripLeft}>
           <div className={styles.stripDateRow}>
             <p className={styles.stripDate}>{formatSessionDate(session.scheduled_at)}</p>
-            <Badge variant={session.paid ? "success" : "warning"}>{session.paid ? "Paid" : "Unpaid"}</Badge>
+            {isCancelled ? (
+              <Badge variant="neutral">Cancelled</Badge>
+            ) : (
+              <Badge variant={session.paid ? "success" : "warning"}>{session.paid ? "Paid" : "Unpaid"}</Badge>
+            )}
           </div>
           <div className={styles.stripMeta}>
             <span>{session.duration_minutes} min</span>
@@ -147,48 +155,56 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
             <>
               {/* Desktop — every action gets its own button */}
               <div className={styles.fullActions}>
-                <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
-                  Add to calendar
-                </Button>
-                {!session.paid && (
+                {!isCancelled && (
+                  <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
+                    Add to calendar
+                  </Button>
+                )}
+                {!session.paid && !isCancelled && (
                   <Button size="sm" variant="primary" disabled={isDemo} onClick={() => setIsPayModalOpen(true)}>
                     Pay
                   </Button>
                 )}
-                <SplitButton
-                  size="sm"
-                  variant="secondary"
-                  primaryLabel="Reschedule"
-                  primaryAction={() => !isDemo && guardAction(() => setIsRescheduleModalOpen(true))}
-                  options={[{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]}
-                />
+                {!isCancelled && (
+                  <SplitButton
+                    size="sm"
+                    variant="secondary"
+                    primaryLabel="Reschedule"
+                    primaryAction={() => !isDemo && guardAction(() => setIsRescheduleModalOpen(true))}
+                    options={[{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]}
+                  />
+                )}
               </div>
 
               {/* Mobile / tablet — collapse Pay/Reschedule/Cancel into one split button */}
               <div className={styles.compactActions}>
-                <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
-                  Add to calendar
-                </Button>
-                <SplitButton
-                  size="sm"
-                  variant={session.paid ? "secondary" : "primary"}
-                  primaryLabel={session.paid ? "Reschedule" : "Pay"}
-                  primaryAction={() =>
-                    !isDemo &&
-                    (session.paid ? guardAction(() => setIsRescheduleModalOpen(true)) : setIsPayModalOpen(true))
-                  }
-                  options={
-                    session.paid
-                      ? [{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]
-                      : [
-                          {
-                            label: "Reschedule",
-                            onClick: () => !isDemo && guardAction(() => setIsRescheduleModalOpen(true)),
-                          },
-                          { label: "Cancel", onClick: () => !isDemo && handleCancelClick() },
-                        ]
-                  }
-                />
+                {!isCancelled && (
+                  <Button size="sm" variant="secondary" onClick={() => setIsCalendarModalOpen(true)}>
+                    Add to calendar
+                  </Button>
+                )}
+                {!isCancelled && (
+                  <SplitButton
+                    size="sm"
+                    variant={session.paid ? "secondary" : "primary"}
+                    primaryLabel={session.paid ? "Reschedule" : "Pay"}
+                    primaryAction={() =>
+                      !isDemo &&
+                      (session.paid ? guardAction(() => setIsRescheduleModalOpen(true)) : setIsPayModalOpen(true))
+                    }
+                    options={
+                      session.paid
+                        ? [{ label: "Cancel", onClick: () => !isDemo && handleCancelClick() }]
+                        : [
+                            {
+                              label: "Reschedule",
+                              onClick: () => !isDemo && guardAction(() => setIsRescheduleModalOpen(true)),
+                            },
+                            { label: "Cancel", onClick: () => !isDemo && handleCancelClick() },
+                          ]
+                    }
+                  />
+                )}
               </div>
             </>
           )}

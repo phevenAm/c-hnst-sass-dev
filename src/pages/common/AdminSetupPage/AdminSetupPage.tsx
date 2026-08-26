@@ -5,6 +5,7 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import { useAuth } from "@context/AuthContext";
 import { useEncryption } from "@context/EncryptionContext";
 import { useToast } from "@context/ToastContext";
@@ -34,16 +35,29 @@ const BANK_FIELDS: { key: BankField; label: string; placeholder: string }[] = [
   { key: "bank_payment_reference", label: "Payment reference", placeholder: "e.g. use your name as ref" },
 ];
 
-const STEP_TITLES = ["Business information", "Session types & prices", "Bank details"];
+const STEP_TITLES = [
+  "Business information",
+  "Session types & prices",
+  "Client codenames",
+  "Client onboarding form",
+  "Bank details",
+];
 const TOTAL_STEPS = STEP_TITLES.length;
+
+// Steps 1-2 are required to use the app at all; everything after that is a
+// nice-to-have the admin can turn on later from Settings, so each gets an
+// explicit Skip button rather than forcing a decision here.
+const SKIPPABLE_STEPS = new Set([3, 4, 5]);
 
 // First-run gate for admins who signed up after onboarding_required shipped
 // (20260824000003) — existing admins are grandfathered and never see this.
 // Blocks the rest of the app until business info + at least one session
 // package exist, then flips practice_settings.onboarding_required to false.
-// Staged into 3 steps (2026-08-25) — all three sections on one screen read
-// as one very tall wall of form, same problem CounsellorSignupPage already
-// solved with its own step-dots pattern, reused here.
+// Staged into steps (2026-08-25, extended 2026-08-26) — one section per
+// screen instead of one very tall wall of form, same problem
+// CounsellorSignupPage already solved with its own step-dots pattern, reused
+// here. Only business info + session types are required; codenames, the
+// onboarding form, and bank details are all optional and skippable.
 // Bank details are offered here too (same encrypted-at-rest fields Settings
 // uses) since a client can't be shown "how to pay" details for a payment
 // method that was never filled in — but they're optional, since Stripe
@@ -56,6 +70,7 @@ export default function AdminSetupPage() {
 
   const [step, setStep] = useState(1);
   const [businessName, setBusinessName] = useState(practiceSettings?.business_name ?? "");
+  const [enableCodenames, setEnableCodenames] = useState(practiceSettings?.use_client_codenames ?? false);
   const [bankDetails, setBankDetails] = useState<Record<BankField, string>>({
     bank_name: "",
     bank_account_name: "",
@@ -138,6 +153,15 @@ export default function AdminSetupPage() {
     setStep((s) => s - 1);
   };
 
+  const handleSkip = () => {
+    setError("");
+    if (step === TOTAL_STEPS) {
+      void handleFinish();
+    } else {
+      setStep((s) => s + 1);
+    }
+  };
+
   const handleFinish = async () => {
     if (!userProfile?.id) return;
     if (!businessName.trim()) {
@@ -164,7 +188,12 @@ export default function AdminSetupPage() {
 
     const { error: updateError } = await supabase
       .from("practice_settings")
-      .update({ business_name: businessName.trim(), onboarding_required: false, ...bankPayload })
+      .update({
+        business_name: businessName.trim(),
+        onboarding_required: false,
+        use_client_codenames: enableCodenames,
+        ...bankPayload,
+      })
       .eq("admin_id", userProfile.id);
     setFinishing(false);
     if (updateError) {
@@ -285,6 +314,50 @@ export default function AdminSetupPage() {
           {step === 3 && (
             <div className={styles.section}>
               <p className={styles.sectionHint}>
+                Optional — hides real client names in your admin UI in favour of codenames. You can turn this on or off
+                anytime in Settings → Practice → Client codenames.
+              </p>
+              <label className={styles.toggleRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>
+                    Use codenames{" "}
+                    <InfoTooltip text="Show codenames instead of real names in your admin UI. Set each client's codename from their profile page — if none is set, their real name is used as a fallback." />
+                  </strong>
+                </span>
+                <span className={`${styles.toggleSwitch} ${enableCodenames ? styles.toggleSwitchOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    aria-label="Use codenames"
+                    className={styles.toggleInput}
+                    checked={enableCodenames}
+                    onChange={(e) => setEnableCodenames(e.target.checked)}
+                  />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className={styles.section}>
+              <p className={styles.sectionHint}>
+                Optional —{" "}
+                <InfoTooltip
+                  variant="rich"
+                  title="What's a client onboarding form?"
+                  text={
+                    "An onboarding form is an optional consent or intake document new clients read and agree to before they can use the app — things like your confidentiality policy or terms of working together.\n\n" +
+                    "Build one anytime under Forms → Onboarding, then turn it on for new clients in Settings → Practice → Client consent. Both stay available after setup — nothing here is required right now."
+                  }
+                />{" "}
+                nothing to fill in on this screen.
+              </p>
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className={styles.section}>
+              <p className={styles.sectionHint}>
                 Optional — only needed if you want to offer bank transfer as a payment option. Skip this if you're using
                 Stripe card payments only.
               </p>
@@ -307,20 +380,29 @@ export default function AdminSetupPage() {
           {error && <p className={styles.error}>{error}</p>}
 
           <div className={styles.stepNav}>
-            {step > 1 && (
-              <button type="button" className={styles.backBtn} onClick={handleBack}>
-                Back
-              </button>
-            )}
-            {step < TOTAL_STEPS ? (
-              <Button onClick={handleContinue} className={styles.stepSubmitBtn}>
-                Continue
-              </Button>
-            ) : (
-              <Button onClick={handleFinish} disabled={finishing} className={styles.stepSubmitBtn}>
-                {finishing ? "Saving…" : "Finish setup"}
-              </Button>
-            )}
+            <div className={styles.stepNavLeft}>
+              {SKIPPABLE_STEPS.has(step) && (
+                <button type="button" className={styles.skipBtn} onClick={handleSkip}>
+                  Skip
+                </button>
+              )}
+            </div>
+            <div className={styles.stepNavRight}>
+              {step > 1 && (
+                <button type="button" className={styles.backBtn} onClick={handleBack}>
+                  Back
+                </button>
+              )}
+              {step < TOTAL_STEPS ? (
+                <Button onClick={handleContinue} className={styles.stepSubmitBtn}>
+                  Continue
+                </Button>
+              ) : (
+                <Button onClick={handleFinish} disabled={finishing} className={styles.stepSubmitBtn}>
+                  {finishing ? "Saving…" : "Finish setup"}
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
 

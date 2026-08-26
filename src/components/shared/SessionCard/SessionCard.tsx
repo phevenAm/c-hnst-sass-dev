@@ -406,7 +406,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
           </>
         )}
 
-        {!isAdmin && dayjs(session.scheduled_at).isAfter(dayjs()) && (
+        {!isAdmin && !isCancelled && dayjs(session.scheduled_at).isAfter(dayjs()) && (
           <div className={styles.actions_Icons}>
             {!isWithinRescheduleCutoff && (
               <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>

@@ -110,3 +110,25 @@ describe("SessionCard — demo mode", () => {
     expect(mockShowToast).toHaveBeenCalledWith("Updated payment status");
   });
 });
+
+// Regression: a client-facing session card only checked "!isAdmin && upcoming"
+// before showing Pay/Reschedule/Cancel — a session auto-cancelled for
+// non-payment (or cancelled any other way) still had a future scheduled_at,
+// so it kept showing a working Pay button after it had already been
+// cancelled. isCancelled was already computed for badge styling but never
+// used to gate these actions.
+describe("SessionCard — client actions on a cancelled session", () => {
+  it("hides Pay/Reschedule/Cancel for a cancelled upcoming session (happy path)", () => {
+    renderWithStore(<SessionCard session={{ ...baseSession, status: "cancelled", paid: false }} />);
+
+    expect(screen.queryByRole("button", { name: "Pay" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reschedule" })).not.toBeInTheDocument();
+  });
+
+  it("still shows Pay/Reschedule for a scheduled upcoming session (sad path — confirms the guard isn't just always-off)", () => {
+    renderWithStore(<SessionCard session={{ ...baseSession, status: "scheduled", paid: false }} />);
+
+    expect(screen.getByRole("button", { name: "Pay" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reschedule" })).toBeInTheDocument();
+  });
+});

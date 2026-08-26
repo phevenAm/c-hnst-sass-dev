@@ -110,8 +110,40 @@
 .stepNav {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: $sp-3;
   margin-top: $sp-4;
+}
+
+.stepNavLeft {
+  display: flex;
+  align-items: center;
+}
+
+.stepNavRight {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.skipBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: $sp-3 $sp-2;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-base);
+
+  &:hover {
+    color: var(--text-secondary);
+  }
 }
 
 .backBtn {
@@ -148,6 +180,72 @@
   font-size: 0.82rem;
   color: var(--text-muted);
   margin: 0 0 $sp-3;
+}
+
+// Client codenames toggle — same visual language as the Settings page toggle
+// (SettingsPage.module.scss .toggleRow/.toggleSwitch), copied locally since
+// this page doesn't otherwise share Settings' stylesheet.
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  cursor: pointer;
+}
+
+.toggleLabel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+
+  strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggleInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleThumb {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: var(--r-full);
+  transition: background 0.2s;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.toggleSwitchOn .toggleThumb {
+  background: var(--accent);
+
+  &::after {
+    transform: translateX(20px);
+  }
 }
 
 .field {

@@ -75,7 +75,9 @@ function mockSessionsTable(blockRows: { price_pence: number }[]) {
       return {
         select: () => ({
           eq: () => ({
-            filter: () => Promise.resolve({ data: blockRows, error: null }),
+            filter: () => ({
+              neq: () => Promise.resolve({ data: blockRows, error: null }),
+            }),
           }),
         }),
       };
@@ -249,5 +251,25 @@ describe("PaymentModal — card payment availability", () => {
     expect(await screen.findByText(/no payment method is set up yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark as paid/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Pay with Stripe" })).not.toBeInTheDocument();
+  });
+});
+
+// Regression: a cancelled session (e.g. auto-cancelled for non-payment) kept
+// whatever manual_payment_status it had before cancellation — including
+// 'declined' — so if this modal ever opened for one (a stale prop, a direct
+// link), it redisplayed the old admin-declined note as if it were current,
+// with a working "Mark as paid" button. This is defence in depth: the actual
+// callers now all refuse to open this modal for a cancelled session, but the
+// modal itself should never assume that's true.
+describe("PaymentModal — cancelled session", () => {
+  it("shows a cancelled message instead of payment instructions, even with a stale declined manual-payment status", () => {
+    renderPaymentModalWithData(
+      { ...singleSession, status: "cancelled", manual_payment_status: "declined" },
+      bankDetails,
+    );
+
+    expect(screen.getByText(/this session has been cancelled/i)).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't verify this transfer/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /mark as paid/i })).not.toBeInTheDocument();
   });
 });

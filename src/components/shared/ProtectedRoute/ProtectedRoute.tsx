@@ -3,10 +3,13 @@ import { Navigate, useLocation } from "react-router-dom";
 
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
+import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { Role } from "@models/globalTypes";
 
 import Spinner from "../Spinner/Spinner";
+
+import styles from "./ProtectedRoute.module.scss";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -32,15 +35,24 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   // page below just spun indefinitely with no network activity at all.
   if (!userProfile && profileError) {
     return (
-      <div className="page">
-        <p>{profileError}</p>
-        <div style={{ display: "flex", gap: "var(--sp-3)" }}>
-          <Button variant="secondary" onClick={retryProfile}>
-            Try again
-          </Button>
-          <Button variant="ghost" onClick={() => signOut()}>
-            Sign out
-          </Button>
+      <div className={styles.wrapper}>
+        <div className={styles.card}>
+          <div className={styles.logo}>
+            <LeafLogoMark size={40} color="var(--accent)" />
+          </div>
+          <h1 className={styles.heading}>{profileError}</h1>
+          <p className={styles.message}>Try refreshing, or sign in again to reset your session.</p>
+          <div className={styles.actions}>
+            <Button variant="secondary" onClick={retryProfile}>
+              Try again
+            </Button>
+            {/* Signs out under the hood, but from here that just lands the
+                user back on the sign-in screen — describe that outcome,
+                not the mechanism. */}
+            <Button variant="ghost" onClick={() => signOut()}>
+              Sign in
+            </Button>
+          </div>
         </div>
       </div>
     );
