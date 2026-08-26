@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useAuth } from "../../context/AuthContext";
 import Button from "../shared/Button/Button";
+import PdfViewer from "../shared/PdfViewer/PdfViewer";
 
 import styles from "./ConsentModal.module.scss";
 
@@ -20,16 +21,21 @@ interface Props {
 export default function ConsentModal({ settings, onComplete }: Props) {
   const { updateProfile } = useAuth();
   const [agreed, setAgreed] = useState(false);
+  const [printedName, setPrintedName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canContinue = agreed && printedName.trim().length > 0;
+
   const handleAgree = async () => {
+    if (!canContinue) return;
     setSaving(true);
     setError(null);
     try {
       await updateProfile({
         has_consented: true,
         consented_at: new Date().toISOString(),
+        consent_signed_name: printedName.trim(),
       });
       onComplete();
     } catch {
@@ -47,15 +53,19 @@ export default function ConsentModal({ settings, onComplete }: Props) {
 
         {settings.consent_body && (
           <div className={styles.body}>
-            {settings.consent_body
-              .split("\n")
-              .map((line, i) => (line.trim() === "" ? <br key={i} /> : <p key={i}>{line}</p>))}
+            {settings.consent_body.split("\n").map((line, i) =>
+              line.trim() === "" ? (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
+                <br key={i} />
+              ) : (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
+                <p key={i}>{line}</p>
+              ),
+            )}
           </div>
         )}
 
-        {settings.consent_pdf_url && (
-          <iframe src={settings.consent_pdf_url} className={styles.pdfFrame} title="Document" />
-        )}
+        {settings.consent_pdf_url && <PdfViewer url={settings.consent_pdf_url} title={settings.consent_title} />}
 
         <label className={styles.checkRow}>
           <input
@@ -67,10 +77,25 @@ export default function ConsentModal({ settings, onComplete }: Props) {
           <span>I confirm I have read and agree to the above</span>
         </label>
 
+        <div className={styles.field}>
+          <label htmlFor="consent-printed-name" className={styles.fieldLabel}>
+            Type your full name to sign
+          </label>
+          <input
+            id="consent-printed-name"
+            type="text"
+            value={printedName}
+            onChange={(e) => setPrintedName(e.target.value)}
+            placeholder="Full name"
+            className={styles.nameInput}
+            autoComplete="name"
+          />
+        </div>
+
         {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.actions}>
-          <Button variant="primary" onClick={handleAgree} disabled={!agreed || saving}>
+          <Button variant="primary" onClick={handleAgree} disabled={!canContinue || saving}>
             {saving ? "Saving…" : "Continue"}
           </Button>
         </div>

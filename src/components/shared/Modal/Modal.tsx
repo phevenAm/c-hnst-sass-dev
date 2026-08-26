@@ -12,7 +12,7 @@ export type ModalProps = {
   onClose: () => void;
   children?: React.ReactNode;
   actions?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "full";
 };
 
 export default function Modal({ title, onClose, children, actions, size = "md" }: ModalProps) {

@@ -1665,6 +1665,7 @@ export type Database = {
           admin_id: string | null
           age: number | null
           avatar_url: string | null
+          consent_signed_name: string | null
           consented_at: string | null
           created_at: string
           deleted_at: string | null
@@ -1690,6 +1691,7 @@ export type Database = {
           admin_id?: string | null
           age?: number | null
           avatar_url?: string | null
+          consent_signed_name?: string | null
           consented_at?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -1715,6 +1717,7 @@ export type Database = {
           admin_id?: string | null
           age?: number | null
           avatar_url?: string | null
+          consent_signed_name?: string | null
           consented_at?: string | null
           created_at?: string
           deleted_at?: string | null
