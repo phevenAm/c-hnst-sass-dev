@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { KEYWORDS } from "@constants/constants";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
-import { isPageStatusLoading, pickColor } from "@Helpers/Helpers";
+import { pickColor } from "@Helpers/Helpers";
 import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";

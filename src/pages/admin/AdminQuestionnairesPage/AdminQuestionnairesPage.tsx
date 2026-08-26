@@ -261,6 +261,7 @@ function QuestionnaireBuilder({
             <input
               id="q-pdf"
               type="url"
+              className={styles.pdfUrl}
               value={pdfUrl}
               onChange={(e) => setPdfUrl(e.target.value)}
               placeholder="https://example.com/document.pdf"
