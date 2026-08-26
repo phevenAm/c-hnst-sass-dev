@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import Button from "@components/shared/Button/Button";
+import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import Modal from "@components/shared/Modal/Modal";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { Resource } from "@models/globalTypes";
@@ -144,7 +145,17 @@ export function ResourceForm({
 
         {form.type === "video" && (
           <div className={`${styles.formField} ${styles.fullCol}`}>
-            <label htmlFor="r-video">YouTube embed URL *</label>
+            <label htmlFor="r-video">
+              YouTube embed URL *
+              <InfoTooltip
+                variant="rich"
+                title="Adding a YouTube video"
+                text={
+                  'On the YouTube video, click Share, then Embed. Copy just the URL inside the src="..." part of the code shown — it looks like https://www.youtube.com/embed/VIDEO_ID.\n\n' +
+                  "A normal watch link (youtube.com/watch?v=...) or share link (youtu.be/...) won't play here — it has to be the /embed/ link from the Embed dialog."
+                }
+              />
+            </label>
             <input
               id="r-video"
               value={form.videoUrl}

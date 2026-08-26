@@ -104,7 +104,7 @@ function goToStep2(businessName = "Sarah Smith Therapy") {
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
 
-// Step 2 -> adds one package and continues to step 3.
+// Step 2 -> adds one package and continues to step 3 (client codenames).
 async function addPackageAndGoToStep3(name = "Standard session", price = "60.00") {
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: name } });
   fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: price } });
@@ -113,12 +113,20 @@ async function addPackageAndGoToStep3(name = "Standard session", price = "60.00"
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
 
-// Full happy-path walk from step 1 to step 3 (bank details), business name +
+// Steps 3 (codenames) and 4 (onboarding form) have nothing required to fill
+// in — Continue through both to land on step 5 (bank details).
+function continueThroughOptionalSteps() {
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+}
+
+// Full happy-path walk from step 1 to step 5 (bank details), business name +
 // one package filled in, landing on the last step ready to Finish.
-async function walkToStep3() {
+async function walkToBankDetailsStep() {
   renderPage();
   goToStep2();
   await addPackageAndGoToStep3();
+  continueThroughOptionalSteps();
   await screen.findByLabelText("Bank name");
 }
 
@@ -129,26 +137,26 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
-  it("moves through all three steps and lands on Finish setup", async () => {
-    await walkToStep3();
+  it("moves through all five steps and lands on Finish setup", async () => {
+    await walkToBankDetailsStep();
     expect(screen.getByRole("button", { name: "Finish setup" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
   });
 
   it("Back returns to the previous step without losing what was entered", async () => {
-    renderPage();
-    goToStep2();
-    await addPackageAndGoToStep3();
+    await walkToBankDetailsStep();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 4, onboarding form
+    fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 3, codenames
+    fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 2, session types
     expect(await screen.findByText(/Standard session/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 1, business info
     expect(screen.getByLabelText("Business name")).toHaveValue("Sarah Smith Therapy");
   });
 
   it("completes setup once all steps are done, then redirects", async () => {
-    await walkToStep3();
+    await walkToBankDetailsStep();
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => {
@@ -161,14 +169,14 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
   });
 
   it("bank details are optional — completes setup fine when left blank", async () => {
-    await walkToStep3();
+    await walkToBankDetailsStep();
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/admin"));
   });
 
   it("saves bank details when filled in", async () => {
-    await walkToStep3();
+    await walkToBankDetailsStep();
     fireEvent.change(screen.getByLabelText("Bank name"), { target: { value: "Barclays" } });
     fireEvent.change(screen.getByLabelText("Account number"), { target: { value: "12345678" } });
 
@@ -179,6 +187,39 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
         expect.objectContaining({ bank_name: "Barclays", bank_account_number: "12345678" }),
       );
     });
+  });
+
+  it("client codenames toggle is off by default and saves the chosen value", async () => {
+    renderPage();
+    goToStep2();
+    await addPackageAndGoToStep3();
+
+    expect(screen.getByRole("checkbox", { name: /Use codenames/ })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Use codenames/ }));
+
+    continueThroughOptionalSteps();
+    await screen.findByLabelText("Bank name");
+    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ use_client_codenames: true }));
+    });
+  });
+
+  it("Skip on an optional step advances without requiring input", async () => {
+    renderPage();
+    goToStep2();
+    await addPackageAndGoToStep3();
+
+    fireEvent.click(screen.getByRole("button", { name: "Skip" })); // step 3 -> step 4
+    expect(screen.getByText("Client onboarding form")).toBeInTheDocument();
+  });
+
+  it("Skip on the last step finishes setup", async () => {
+    await walkToBankDetailsStep();
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/admin"));
   });
 
   it("removing a package on step 2 takes it out of the list", async () => {
