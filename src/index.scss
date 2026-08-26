@@ -173,7 +173,12 @@ html.no-motion *::after {
 }
 
 html {
-  font-size: 16px;
+  // --app-zoom is set inline on <html> by InterfacePrefsContext (a per-device
+  // display preference, Settings → Interface) — defaults to 1 so nothing
+  // changes for anyone who hasn't touched the setting. Scaling the root
+  // font-size scales the whole app consistently since everything else is
+  // already rem-based.
+  font-size: calc(16px * var(--app-zoom, 1));
   scroll-behavior: smooth;
   height: -webkit-fill-available;
 

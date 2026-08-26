@@ -171,6 +171,8 @@ function QuestionnaireBuilder({
     const result = await dispatch(createTag({ name: newTagName.trim() }));
     if (createTag.fulfilled.match(result)) {
       updateQuestion(questionId, "tag_id", result.payload.id);
+    } else {
+      showToast("Failed to create tag.", "danger");
     }
     setCreatingTagFor(null);
     setNewTagName("");
@@ -580,7 +582,12 @@ function TagsModal({ tags, onClose }: { tags: Tag[]; onClose: () => void }) {
       return;
     }
     if (!newName.trim()) return;
-    await dispatch(createTag({ name: newName.trim() }));
+    const result = await dispatch(createTag({ name: newName.trim() }));
+    if (createTag.rejected.match(result)) {
+      const duplicate = typeof result.payload === "string" && result.payload.includes("duplicate key");
+      showToast(duplicate ? "You already have a tag with that name." : "Failed to create tag.", "danger");
+      return;
+    }
     setNewName("");
   };
 

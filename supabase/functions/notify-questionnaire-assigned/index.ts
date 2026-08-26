@@ -98,14 +98,11 @@ Deno.serve(async (req) => {
       throw sendErr;
     }
 
-    await Promise.all([
-      logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" }),
-      supabase.from("notifications").insert({
-        user_id,
-        type: "questionnaire_assigned",
-        message: `A new check-in has been assigned to you: ${title}.`,
-      }),
-    ]);
+    // The in-app notification for this event is handled by the
+    // qa_notify_client_assigned DB trigger (fires on the
+    // questionnaire_assignments insert itself, reliably regardless of
+    // caller) — this function's job is only the email.
+    await logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" });
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -62,11 +62,14 @@ vi.mock("@context/EncryptionContext", () => ({
 }));
 
 vi.mock("@context/InterfacePrefsContext", () => ({
+  APP_ZOOM_LEVELS: [0.5, 0.75, 1, 1.25, 1.5],
   useInterfacePrefs: () => ({
     hiddenSections: [],
     toggleSection: vi.fn(),
     reduceMotion: false,
     setReduceMotion: vi.fn(),
+    appZoom: 1,
+    setAppZoom: vi.fn(),
   }),
 }));
 

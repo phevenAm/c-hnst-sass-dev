@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
 import OpenInFullOutlinedIcon from "@mui/icons-material/OpenInFullOutlined";
@@ -25,9 +25,15 @@ function usePageWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number>();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Measure synchronously, before paint, so the very first render already
+    // uses the container's real final width — waiting for ResizeObserver's
+    // first (async) callback risked capturing a width mid-layout (e.g. while
+    // a parent modal was still settling), which then never corrected itself
+    // since ResizeObserver only fires again on an actual subsequent change.
+    setWidth(el.getBoundingClientRect().width);
     const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     observer.observe(el);
     return () => observer.disconnect();

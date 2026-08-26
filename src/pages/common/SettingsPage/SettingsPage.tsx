@@ -15,7 +15,7 @@ import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/Uplo
 import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
 import { useEncryption } from "@context/EncryptionContext";
-import { useInterfacePrefs } from "@context/InterfacePrefsContext";
+import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
 
@@ -167,7 +167,7 @@ function GroupHeading({
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
   const { status: encStatus, encryptPII, decryptPII } = useEncryption();
-  const { hiddenSections, toggleSection, reduceMotion, setReduceMotion } = useInterfacePrefs();
+  const { hiddenSections, toggleSection, reduceMotion, setReduceMotion, appZoom, setAppZoom } = useInterfacePrefs();
   const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
   const { showToast } = useToast();
 
@@ -926,6 +926,29 @@ const SettingsPage = () => {
               <Button variant="ghost" size="sm" onClick={hardRefresh}>
                 Force app update
               </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* ── Interface (clients only — admins have their own tab below) ── */}
+        {!isAdmin && (
+          <Card className={styles.card}>
+            <h2>Interface</h2>
+            <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+              <label htmlFor="appZoomClient">App zoom</label>
+              <select
+                id="appZoomClient"
+                value={appZoom}
+                onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
+                className={styles.select}
+              >
+                {APP_ZOOM_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {Math.round(level * 100)}%
+                  </option>
+                ))}
+              </select>
+              <p className={styles.toggleHint}>Scales the whole app on this device — useful on smaller screens.</p>
             </div>
           </Card>
         )}
@@ -1904,6 +1927,25 @@ const SettingsPage = () => {
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
+                <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+                  <label htmlFor="appZoomAdmin">App zoom</label>
+                  <select
+                    id="appZoomAdmin"
+                    value={appZoom}
+                    onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
+                    className={styles.select}
+                  >
+                    {APP_ZOOM_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {Math.round(level * 100)}%
+                      </option>
+                    ))}
+                  </select>
+                  <p className={styles.toggleHint}>
+                    Scales the whole app on this device — useful on smaller screens. Only affects your own browser, not
+                    other admins.
+                  </p>
+                </div>
               </section>
             </SettingsCard>
 

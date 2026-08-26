@@ -1,0 +1,67 @@
+@use "../../../styles/mixins" as *;
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  // Same teal-800 UpdateBanner uses — ~16:1 contrast with white in both
+  // light and dark modes.
+  background: #1f4940;
+  color: #fff;
+  font-size: 0.875rem;
+  animation: viewportBannerSlideDown 0.3s ease both;
+
+  a {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  @include until-sm {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+}
+
+@keyframes viewportBannerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message {
+  font-weight: 500;
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  padding: var(--sp-1) var(--sp-3);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  transition: background var(--transition-fast);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
