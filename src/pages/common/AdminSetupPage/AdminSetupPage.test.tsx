@@ -113,21 +113,28 @@ async function addPackageAndGoToStep3(name = "Standard session", price = "60.00"
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
 
-// Steps 3 (codenames) and 4 (onboarding form) have nothing required to fill
-// in — Continue through both to land on step 5 (bank details).
+// Steps 3 (codenames) and 4 (onboarding contract) have nothing required to
+// fill in — Continue through both to land on step 5 (bank details).
 function continueThroughOptionalSteps() {
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
   fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 }
 
 // Full happy-path walk from step 1 to step 5 (bank details), business name +
-// one package filled in, landing on the last step ready to Finish.
+// one package filled in.
 async function walkToBankDetailsStep() {
   renderPage();
   goToStep2();
   await addPackageAndGoToStep3();
   continueThroughOptionalSteps();
   await screen.findByLabelText("Bank name");
+}
+
+// ...through to step 6 (add your first client), the actual last step.
+async function walkToLastStep() {
+  await walkToBankDetailsStep();
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  await screen.findByText("Invite a client");
 }
 
 describe("AdminSetupPage — staged flow (happy path)", () => {
@@ -137,8 +144,8 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
-  it("moves through all five steps and lands on Finish setup", async () => {
-    await walkToBankDetailsStep();
+  it("moves through all six steps and lands on Finish setup", async () => {
+    await walkToLastStep();
     expect(screen.getByRole("button", { name: "Finish setup" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
   });
@@ -146,7 +153,7 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
   it("Back returns to the previous step without losing what was entered", async () => {
     await walkToBankDetailsStep();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 4, onboarding form
+    fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 4, onboarding contract
     fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 3, codenames
     fireEvent.click(screen.getByRole("button", { name: "Back" })); // -> step 2, session types
     expect(await screen.findByText(/Standard session/)).toBeInTheDocument();
@@ -156,7 +163,7 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
   });
 
   it("completes setup once all steps are done, then redirects", async () => {
-    await walkToBankDetailsStep();
+    await walkToLastStep();
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => {
@@ -169,7 +176,7 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
   });
 
   it("bank details are optional — completes setup fine when left blank", async () => {
-    await walkToBankDetailsStep();
+    await walkToLastStep();
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/admin"));
@@ -179,6 +186,8 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
     await walkToBankDetailsStep();
     fireEvent.change(screen.getByLabelText("Bank name"), { target: { value: "Barclays" } });
     fireEvent.change(screen.getByLabelText("Account number"), { target: { value: "12345678" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Invite a client");
 
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
@@ -199,6 +208,8 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
 
     continueThroughOptionalSteps();
     await screen.findByLabelText("Bank name");
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Invite a client");
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
     await waitFor(() => {
@@ -216,10 +227,64 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
   });
 
   it("Skip on the last step finishes setup", async () => {
-    await walkToBankDetailsStep();
+    await walkToLastStep();
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/admin"));
+  });
+
+  it("onboarding contract is off by default; toggling it on reveals the fields and saves them", async () => {
+    renderPage();
+    goToStep2();
+    await addPackageAndGoToStep3(); // -> step 3
+    fireEvent.click(screen.getByRole("button", { name: "Continue" })); // -> step 4
+
+    expect(screen.queryByLabelText("Ask new clients to agree to a contract before using the app")).not.toBeChecked();
+    expect(screen.queryByLabelText("Heading")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Ask new clients to agree to a contract before using the app"));
+    expect(screen.getByLabelText("Heading")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Agreement text"), { target: { value: "Please be respectful." } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" })); // -> step 5
+    fireEvent.click(screen.getByRole("button", { name: "Continue" })); // -> step 6
+    await screen.findByText("Invite a client");
+    fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ consent_enabled: true, consent_body: "Please be respectful." }),
+      );
+    });
+  });
+
+  it("rejects a non-PDF link for the onboarding contract", async () => {
+    renderPage();
+    goToStep2();
+    await addPackageAndGoToStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" })); // -> step 4
+    fireEvent.click(screen.getByLabelText("Ask new clients to agree to a contract before using the app"));
+
+    fireEvent.change(screen.getByLabelText(/PDF link/), { target: { value: "https://example.com/not-a-pdf" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(screen.getByText("This must be a direct link to a .pdf file.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Heading")).toBeInTheDocument(); // still on step 4
+  });
+
+  it("step 6 opens the invite, offline-client, and CSV import modals", async () => {
+    await walkToLastStep();
+
+    fireEvent.click(screen.getByRole("button", { name: "Invite a client" }));
+    expect(await screen.findByRole("heading", { name: "Invite a client" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Add an offline client" }));
+    expect(await screen.findByRole("heading", { name: "Create offline client" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Import from CSV" }));
+    expect(await screen.findByRole("heading", { name: "Import offline clients" })).toBeInTheDocument();
   });
 
   it("removing a package on step 2 takes it out of the list", async () => {

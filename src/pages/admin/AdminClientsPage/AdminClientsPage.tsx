@@ -5,12 +5,15 @@ import dayjs from "dayjs";
 
 import Avatar from "@components/shared/Avatar/Avatar";
 import Card from "@components/shared/Card/Card";
+import FirstClientTipsModal from "@components/shared/FirstClientTipsModal/FirstClientTipsModal";
 import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
+import { supabase } from "@lib/supabase";
 import type { ClientStub, Questionnaire, Response, UserProfile } from "@models/globalTypes";
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { deleteClientStub, fetchClientStubs, selectAllStubs } from "@store/slices/clientStubsSlice";
+import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 import { fetchAllAssignments, selectPlottedAssignmentByUser } from "@store/slices/questionnaireAssignmentsSlice";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
@@ -325,6 +328,8 @@ function StubRow({ stub }: { stub: ClientStub }) {
 // ── Page ──────────────────────────────────────────────────────
 
 export default function AdminClientsPage() {
+  const { userProfile } = useAuth();
+  const dispatch = useAppDispatch();
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const allStubs = useAppSelector(selectAllStubs);
   const unlinkedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id), [allStubs]);
@@ -334,6 +339,7 @@ export default function AdminClientsPage() {
   const [createStubOpen, setCreateStubOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [tipsDismissed, setTipsDismissed] = useState(false);
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
 
@@ -341,6 +347,19 @@ export default function AdminClientsPage() {
     (state: RootState) => state.userDirectory.status,
     () => fetchAllUsers(),
     "Failed to fetch users:",
+  );
+  useFetchOnIdle(
+    (state: RootState) => state.practiceSettings.status,
+    fetchPracticeSettings,
+    "Failed to load practice settings:",
+  );
+  // Fires the first time this admin's client count goes from 0 to 1,
+  // whichever way that client was added — gated purely on
+  // first_client_milestone_shown plus a live count, not on the setup
+  // wizard. tipsDismissed gives an instant close with no flash while the
+  // DB write + refetch below settle in the background.
+  const firstClientMilestoneShown = useAppSelector(
+    (state: RootState) => state.practiceSettings.data?.first_client_milestone_shown,
   );
   useFetchOnIdle(
     (state: RootState) => state.responses.status,
@@ -381,6 +400,21 @@ export default function AdminClientsPage() {
       `${user.first_name} ${user.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
       user.email?.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const showFirstClientTips =
+    !tipsDismissed && firstClientMilestoneShown === false && allClients.length + unlinkedStubs.length >= 1;
+
+  const handleCloseTips = () => {
+    setTipsDismissed(true);
+    if (!userProfile?.id) return;
+    supabase
+      .from("practice_settings")
+      .update({ first_client_milestone_shown: true })
+      .eq("admin_id", userProfile.id)
+      .then(() => {
+        dispatch(fetchPracticeSettings());
+      });
+  };
 
   return (
     <div className="page">
@@ -424,10 +458,21 @@ export default function AdminClientsPage() {
           {allClients.length === 0 && unlinkedStubs.length === 0 ? (
             <div className={styles.freshAccount}>
               <h3>No clients yet</h3>
-              <p>Create an access token invite someone to your practice, or add an offline client below.</p>
-              <Button variant="ghost" onClick={() => setCreateStubOpen(true)}>
-                Add offline client
-              </Button>
+              <p>
+                Invite someone to sign up themselves, add an offline client you manage yourself, or bring over your
+                existing list all at once.
+              </p>
+              <div className={styles.freshAccountActions}>
+                <Button variant="primary" onClick={() => setShowInviteModal(true)}>
+                  Invite a client
+                </Button>
+                <Button variant="ghost" onClick={() => setCreateStubOpen(true)}>
+                  Add offline client
+                </Button>
+                <Button variant="ghost" onClick={() => setImportOpen(true)}>
+                  Import from CSV
+                </Button>
+              </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
@@ -462,6 +507,7 @@ export default function AdminClientsPage() {
       {manageTokensModal && <ManageTokensModal onClose={() => setManageTokensModal(false)} />}
       {createStubOpen && <CreateStubModal onClose={() => setCreateStubOpen(false)} />}
       {importOpen && <ImportStubsModal onClose={() => setImportOpen(false)} />}
+      {showFirstClientTips && <FirstClientTipsModal onClose={handleCloseTips} />}
     </div>
   );
 }

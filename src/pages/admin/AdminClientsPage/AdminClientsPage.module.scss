@@ -172,6 +172,12 @@
   }
 }
 
+.freshAccountActions {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
 
 // ── Add client modal ───────────────────────────────────────
 .overlay {

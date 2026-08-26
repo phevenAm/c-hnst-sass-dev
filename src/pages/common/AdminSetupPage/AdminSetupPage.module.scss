@@ -45,6 +45,12 @@
   margin: 0;
 }
 
+.logoSteps {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: $sp-1 0 0;
+}
+
 .card {
   width: 100%;
   background: var(--bg-card);
@@ -260,12 +266,23 @@
     color: var(--text-secondary);
   }
 
-  input {
+  input,
+  textarea {
     padding: $sp-2;
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     background: var(--bg-card);
     color: var(--text-primary);
+    font-family: var(--font-sans);
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  small {
+    font-weight: 400;
+    color: var(--text-muted);
   }
 }
 
@@ -277,6 +294,16 @@
   .field {
     margin-bottom: $sp-3;
   }
+}
+
+.consentFields {
+  margin-top: $sp-4;
+}
+
+.clientActionsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
 }
 
 .packageRow {

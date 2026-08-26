@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { KEYWORDS } from "@constants/constants";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
-import { pickColor } from "@Helpers/Helpers";
+import { isPdfUrl, pickColor } from "@Helpers/Helpers";
 import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
@@ -623,14 +623,6 @@ const SettingsPage = () => {
       return;
     }
     setReminderMutes((prev) => prev.filter((m) => m.id !== id));
-  };
-
-  const isPdfUrl = (url: string) => {
-    try {
-      return new URL(url).pathname.toLowerCase().endsWith(".pdf");
-    } catch {
-      return false;
-    }
   };
 
   const handleSaveConsent = async () => {
