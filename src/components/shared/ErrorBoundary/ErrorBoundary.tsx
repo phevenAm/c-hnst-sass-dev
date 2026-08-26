@@ -30,7 +30,30 @@ export default class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught render error:", error, info.componentStack);
   }
 
-  handleReload = () => window.location.reload();
+  // A plain reload isn't enough here: if the crash is being served by a
+  // stale service worker (the whole reason this boundary exists — e.g. the
+  // 2026-08-26 incident, where the fix wouldn't reach an already-stuck PWA
+  // until the old worker's cache was gone), a normal navigation just
+  // re-serves the same cached bundle from that worker. Unregistering the
+  // worker(s) and clearing the Cache Storage entries first forces the next
+  // load to hit the network for fresh code instead of looping on the crash.
+  handleReload = async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+      if ("caches" in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      }
+    } catch {
+      // Best-effort — a browser that blocks these APIs (private mode, an
+      // older Safari) shouldn't stop the reload from happening at all.
+    } finally {
+      window.location.reload();
+    }
+  };
 
   // Full navigation, not react-router — this component sits outside
   // <BrowserRouter>, so there's no router context to call useNavigate with.
