@@ -29,6 +29,14 @@ export const AVATAR_COLORS = ["teal", "sage", "stone", "sky", "clay"] as const;
 export type AvatarColor = (typeof AVATAR_COLORS)[number];
 export const pickColor = (userId: string): AvatarColor => AVATAR_COLORS[userId.charCodeAt(0) % AVATAR_COLORS.length];
 
+export const isPdfUrl = (url: string): boolean => {
+  try {
+    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
+  } catch {
+    return false;
+  }
+};
+
 export const isAdultFromDob = (dob: string | null | undefined): boolean => {
   if (!dob) return false;
   const birth = new Date(dob);

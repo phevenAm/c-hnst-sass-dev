@@ -1,14 +1,46 @@
 import { Provider } from "react-redux";
 import { BrowserRouter } from "react-router-dom";
 
-import { render, screen } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { store } from "../../../store";
+import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
 import { fetchQuestionnaires } from "../../../store/slices/questionnairesSlice";
 import { fetchAllResponses } from "../../../store/slices/responsesSlice";
 import { fetchAllUsers } from "../../../store/slices/userDirectorySlice";
 import AdminClientsPage from "./AdminClientsPage";
+
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ userProfile: { id: "admin-1" } }),
+}));
+
+const updateSpy = vi.fn();
+vi.mock("@lib/supabase", () => ({
+  supabase: {
+    from: () => ({
+      update: (payload: Record<string, unknown>) => {
+        updateSpy(payload);
+        return { eq: () => Promise.resolve({ data: null, error: null }) };
+      },
+    }),
+  },
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+
+function renderPage() {
+  return render(
+    <Provider store={store}>
+      <BrowserRouter>
+        <AdminClientsPage />
+      </BrowserRouter>
+    </Provider>,
+  );
+}
 
 test("renders AdminClientsPage component", () => {
   // The page shows a loading spinner while any of these slices is "idle" or
@@ -18,15 +50,53 @@ test("renders AdminClientsPage component", () => {
   store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
   store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
 
-  render(
-    <Provider store={store}>
-      <BrowserRouter>
-        <AdminClientsPage />
-      </BrowserRouter>
-    </Provider>,
-  );
+  renderPage();
 
   // level: 1 — the empty-state ("No clients yet") also renders a heading
   // matching /clients/i, so an unscoped query is ambiguous.
   expect(screen.getByRole("heading", { name: /clients/i, level: 1 })).toBeInTheDocument();
+});
+
+test("empty state offers all three ways to add a client", () => {
+  store.dispatch(fetchAllUsers.fulfilled([], "test", undefined));
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // Scoped to the empty state itself — the page header's SplitButton also has
+  // its own "Invite a client" button, so an unscoped query is ambiguous.
+  const emptyState = screen.getByText("No clients yet").closest("div") as HTMLElement;
+  expect(within(emptyState).getByRole("button", { name: "Invite a client" })).toBeInTheDocument();
+  expect(within(emptyState).getByRole("button", { name: "Add offline client" })).toBeInTheDocument();
+  expect(within(emptyState).getByRole("button", { name: "Import from CSV" })).toBeInTheDocument();
+});
+
+// Regression: fires once, the first time an admin's client count goes from 0
+// to 1 (gated on first_client_milestone_shown, not on the setup wizard), and
+// persists the flag so it never shows again.
+test("shows the first-client tips modal once the admin has their first client, and it doesn't reopen after closing", async () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [{ id: "client-1", role: "client", first_name: "Ada", last_name: "Lovelace", deleted_at: null }],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+  store.dispatch(
+    fetchPracticeSettings.fulfilled({ admin_id: "admin-1", first_client_milestone_shown: false }, "test", undefined),
+  );
+
+  renderPage();
+
+  expect(await screen.findByText("You've added your first client")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+
+  await waitFor(() => {
+    expect(updateSpy).toHaveBeenCalledWith({ first_client_milestone_shown: true });
+  });
+  expect(screen.queryByText("You've added your first client")).not.toBeInTheDocument();
 });

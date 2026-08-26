@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { isPdfUrl } from "@Helpers/Helpers";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
+import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { useAuth } from "@context/AuthContext";
 import { useEncryption } from "@context/EncryptionContext";
 import { useToast } from "@context/ToastContext";
 import { supabase } from "@lib/supabase";
+import CreateStubModal from "@pages/admin/AdminClientsPage/modals/CreateStubModal/CreateStubModal";
+import ImportStubsModal from "@pages/admin/AdminClientsPage/modals/ImportStubsModal/ImportStubsModal";
+import InviteClientModal from "@pages/admin/AdminClientsPage/modals/InviteClientModal/InviteClientModal";
 
 import styles from "./AdminSetupPage.module.scss";
 
@@ -41,13 +46,14 @@ const STEP_TITLES = [
   "Client codenames",
   "Client onboarding form",
   "Bank details",
+  "Add your first client",
 ];
 const TOTAL_STEPS = STEP_TITLES.length;
 
 // Steps 1-2 are required to use the app at all; everything after that is a
 // nice-to-have the admin can turn on later from Settings, so each gets an
 // explicit Skip button rather than forcing a decision here.
-const SKIPPABLE_STEPS = new Set([3, 4, 5]);
+const SKIPPABLE_STEPS = new Set([3, 4, 5, 6]);
 
 // First-run gate for admins who signed up after onboarding_required shipped
 // (20260824000003) — existing admins are grandfathered and never see this.
@@ -57,11 +63,25 @@ const SKIPPABLE_STEPS = new Set([3, 4, 5]);
 // screen instead of one very tall wall of form, same problem
 // CounsellorSignupPage already solved with its own step-dots pattern, reused
 // here. Only business info + session types are required; codenames, the
-// onboarding form, and bank details are all optional and skippable.
+// onboarding contract, bank details, and adding a first client are all
+// optional and skippable.
 // Bank details are offered here too (same encrypted-at-rest fields Settings
 // uses) since a client can't be shown "how to pay" details for a payment
 // method that was never filled in — but they're optional, since Stripe
 // Connect alone is a valid setup with no bank transfer support at all.
+//
+// Step 4 (onboarding contract) writes the same practice_settings consent_*
+// columns Settings' Client consent card does, directly — not a pointer to
+// Forms + Settings, which was confusing even to Stephen as the developer.
+// The "link a custom Forms-authored questionnaire" advanced path stays
+// exclusively in Settings; this step only covers the common case (static
+// text + an optional PDF).
+//
+// Step 6 renders InviteClientModal/CreateStubModal/ImportStubsModal inline
+// rather than navigating to /admin/clients?new=true — those are the same
+// self-contained modals AdminClientsPage renders, and rendering them here
+// avoids racing AdminSetupGate (which bounces back to /admin/setup as long
+// as onboarding_required is still true).
 export default function AdminSetupPage() {
   const { userProfile, practiceSettings, refreshPracticeSettings, signOut } = useAuth();
   const { status: encStatus, encryptPII } = useEncryption();
@@ -71,6 +91,15 @@ export default function AdminSetupPage() {
   const [step, setStep] = useState(1);
   const [businessName, setBusinessName] = useState(practiceSettings?.business_name ?? "");
   const [enableCodenames, setEnableCodenames] = useState(practiceSettings?.use_client_codenames ?? false);
+  const [consentEnabled, setConsentEnabled] = useState(false);
+  const [consentTitle, setConsentTitle] = useState("Before you continue");
+  const [consentBody, setConsentBody] = useState("");
+  const [consentPdfUrl, setConsentPdfUrl] = useState("");
+  const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
+  const [consentCounsellorCta, setConsentCounsellorCta] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [createStubOpen, setCreateStubOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [bankDetails, setBankDetails] = useState<Record<BankField, string>>({
     bank_name: "",
     bank_account_name: "",
@@ -144,6 +173,10 @@ export default function AdminSetupPage() {
       setError("Add at least one session type with a price before continuing.");
       return;
     }
+    if (step === 4 && consentEnabled && consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
+      setConsentPdfUrlError("This must be a direct link to a .pdf file.");
+      return;
+    }
     setError("");
     setStep((s) => s + 1);
   };
@@ -174,6 +207,12 @@ export default function AdminSetupPage() {
       setStep(2);
       return;
     }
+    if (consentEnabled && consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
+      setConsentPdfUrlError("This must be a direct link to a .pdf file.");
+      setError("Fix the onboarding contract's PDF link before continuing.");
+      setStep(4);
+      return;
+    }
     setError("");
     setFinishing(true);
 
@@ -192,6 +231,11 @@ export default function AdminSetupPage() {
         business_name: businessName.trim(),
         onboarding_required: false,
         use_client_codenames: enableCodenames,
+        consent_enabled: consentEnabled,
+        consent_title: consentTitle || "Before you continue",
+        consent_body: consentBody,
+        consent_pdf_url: consentPdfUrl || null,
+        consent_counsellor_cta: consentCounsellorCta || null,
         ...bankPayload,
       })
       .eq("admin_id", userProfile.id);
@@ -221,6 +265,10 @@ export default function AdminSetupPage() {
             <h1 className={styles.logoTitle}>Clarity</h1>
             <p className={styles.logoSub}>
               {firstName ? `Welcome, ${firstName} — let's get set up` : "Set up your practice"}
+            </p>
+            <p className={styles.logoSteps}>
+              {TOTAL_STEPS} quick steps — skip anything and set it up later in Settings, but we'd recommend doing it now
+              while you're here.
             </p>
           </div>
         </div>
@@ -341,17 +389,90 @@ export default function AdminSetupPage() {
           {step === 4 && (
             <div className={styles.section}>
               <p className={styles.sectionHint}>
-                Optional —{" "}
+                Optional — not everyone will want this. You can turn it on or off anytime in Settings → Practice →
+                Client consent.{" "}
                 <InfoTooltip
                   variant="rich"
-                  title="What's a client onboarding form?"
+                  title="What's a client onboarding contract?"
                   text={
-                    "An onboarding form is an optional consent or intake document new clients read and agree to before they can use the app — things like your confidentiality policy or terms of working together.\n\n" +
-                    "Build one anytime under Forms → Onboarding, then turn it on for new clients in Settings → Practice → Client consent. Both stay available after setup — nothing here is required right now."
+                    "An onboarding contract is an optional agreement new clients read and confirm before they can use the app — things like your confidentiality policy or terms of working together.\n\n" +
+                    "This sets up the simple version (text + an optional PDF). If you'd rather build a more custom multi-question intake form, that's still available under Forms → Onboarding, linked from Settings → Practice → Client consent."
                   }
-                />{" "}
-                nothing to fill in on this screen.
+                />
               </p>
+              <label className={styles.toggleRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Ask new clients to agree to a contract before using the app</strong>
+                </span>
+                <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    aria-label="Ask new clients to agree to a contract before using the app"
+                    className={styles.toggleInput}
+                    checked={consentEnabled}
+                    onChange={(e) => setConsentEnabled(e.target.checked)}
+                  />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
+
+              {consentEnabled && (
+                <div className={styles.consentFields}>
+                  <div className={styles.field}>
+                    <label htmlFor="setup-consent-title">Heading</label>
+                    <input
+                      id="setup-consent-title"
+                      value={consentTitle}
+                      onChange={(e) => setConsentTitle(e.target.value)}
+                      placeholder="Before you continue"
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="setup-consent-body">Agreement text</label>
+                    <textarea
+                      id="setup-consent-body"
+                      rows={5}
+                      value={consentBody}
+                      onChange={(e) => setConsentBody(e.target.value)}
+                      placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="setup-consent-pdf">
+                      PDF link <small>(optional — must end in .pdf)</small>
+                    </label>
+                    <input
+                      id="setup-consent-pdf"
+                      type="url"
+                      value={consentPdfUrl}
+                      onChange={(e) => {
+                        setConsentPdfUrl(e.target.value);
+                        if (consentPdfUrlError) setConsentPdfUrlError("");
+                      }}
+                      placeholder="https://example.com/document.pdf"
+                      aria-invalid={!!consentPdfUrlError}
+                    />
+                    {consentPdfUrlError && <p className={styles.error}>{consentPdfUrlError}</p>}
+                    <PdfUpload
+                      adminId={userProfile?.id ?? ""}
+                      value={consentPdfUrl}
+                      onChange={(url) => {
+                        setConsentPdfUrl(url);
+                        if (consentPdfUrlError) setConsentPdfUrlError("");
+                      }}
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="setup-consent-cta">Footer message</label>
+                    <input
+                      id="setup-consent-cta"
+                      value={consentCounsellorCta}
+                      onChange={(e) => setConsentCounsellorCta(e.target.value)}
+                      placeholder="If you have any questions, speak to your counsellor."
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -373,6 +494,25 @@ export default function AdminSetupPage() {
                     />
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {step === 6 && (
+            <div className={styles.section}>
+              <p className={styles.sectionHint}>
+                Optional — however fits how you work. You can always add clients later from the Clients page.
+              </p>
+              <div className={styles.clientActionsGrid}>
+                <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+                  Invite a client
+                </Button>
+                <Button variant="secondary" onClick={() => setCreateStubOpen(true)}>
+                  Add an offline client
+                </Button>
+                <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                  Import from CSV
+                </Button>
               </div>
             </div>
           )}
@@ -413,6 +553,10 @@ export default function AdminSetupPage() {
           </button>
         </p>
       </div>
+
+      {inviteOpen && <InviteClientModal onClose={() => setInviteOpen(false)} />}
+      {createStubOpen && <CreateStubModal onClose={() => setCreateStubOpen(false)} />}
+      {importOpen && <ImportStubsModal onClose={() => setImportOpen(false)} />}
     </div>
   );
 }
