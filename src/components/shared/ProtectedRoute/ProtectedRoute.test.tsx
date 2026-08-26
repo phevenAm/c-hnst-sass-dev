@@ -18,6 +18,12 @@ vi.mock("react-router-dom", () => ({
   Navigate: ({ to }: { to: string }) => <div data-testid="navigate">{to}</div>,
 }));
 
+// LeafLogoMark reads the Redux theme slice even when a color prop is passed —
+// stub it out rather than wire up a store just for a decorative icon.
+vi.mock("@components/shared/Icons/Icons", () => ({
+  LeafLogoMark: () => <div data-testid="logo" />,
+}));
+
 const baseAuth = {
   isAuthenticated: true,
   isAdmin: true,
@@ -30,7 +36,7 @@ const baseAuth = {
 };
 
 describe("ProtectedRoute — profile load failure", () => {
-  it("shows the error with both Try again and Sign out (happy path: both actions work)", () => {
+  it("shows the error with both Try again and Sign in (happy path: both actions work)", () => {
     mockUseAuth.mockReturnValue({ ...baseAuth, profileError: "Couldn't load your profile." });
 
     render(
@@ -44,7 +50,10 @@ describe("ProtectedRoute — profile load failure", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(mockRetryProfile).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    // Labelled "Sign in" — that's where this actually lands the user — but
+    // still just calls signOut() under the hood (ProtectedRoute redirects
+    // to /login once isAuthenticated flips false).
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     expect(mockSignOut).toHaveBeenCalled();
   });
 
