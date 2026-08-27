@@ -14,6 +14,7 @@ import {
   deleteResource,
   fetchResources,
   selectAllResources,
+  togglePinned,
   togglePublished,
   updateResource,
 } from "@store/slices/resourcesSlice";
@@ -85,7 +86,10 @@ export default function AdminResourcesPage() {
   const guard = isPageStatusLoading(resourcesStatus);
   if (guard) return guard;
 
-  const filtered = typeFilter === "all" ? resources : resources.filter((resource) => resource.type === typeFilter);
+  const filtered = (typeFilter === "all" ? resources : resources.filter((resource) => resource.type === typeFilter))
+    .slice()
+    // Pinned resources first, then keep the existing order.
+    .sort((a, b) => Number(!!b.is_pinned) - Number(!!a.is_pinned));
 
   const publishedCount = resources.filter((resource) => resource.is_published).length;
   const draftCount = resources.filter((resource) => !resource.is_published).length;
@@ -137,6 +141,7 @@ export default function AdminResourcesPage() {
                   <div className={styles.resourceTitleRow}>
                     <p className={styles.resourceTitle}>{resource.title}</p>
                     <div className={styles.resourceBadges}>
+                      {resource.is_pinned && <span className={`${styles.badge} ${styles.pinned}`}>Pinned</span>}
                       {resource.is_sensitive && (
                         <span className={`${styles.badge} ${styles.sensitive}`}>Sensitive</span>
                       )}
@@ -169,6 +174,20 @@ export default function AdminResourcesPage() {
                     }}
                   >
                     {resource.is_published ? "Unpublish" : "Publish"}
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (isDemo) {
+                        showToast("Demo mode — changes are not saved.");
+                        return;
+                      }
+                      dispatch(togglePinned({ id: resource.id, is_pinned: !resource.is_pinned }));
+                    }}
+                  >
+                    {resource.is_pinned ? "Unpin" : "Pin"}
                   </Button>
 
                   <Button

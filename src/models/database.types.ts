@@ -452,42 +452,6 @@ export type Database = {
         }
         Relationships: []
       }
-      document_signatures: {
-        Row: {
-          document_id: string
-          signed_at: string
-          signed_name: string
-          user_id: string
-        }
-        Insert: {
-          document_id: string
-          signed_at?: string
-          signed_name: string
-          user_id?: string
-        }
-        Update: {
-          document_id?: string
-          signed_at?: string
-          signed_name?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "document_signatures_document_id_fkey"
-            columns: ["document_id"]
-            isOneToOne: false
-            referencedRelation: "practice_documents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "document_signatures_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       email_logs: {
         Row: {
           admin_id: string | null
@@ -747,56 +711,6 @@ export type Database = {
           },
         ]
       }
-      practice_documents: {
-        Row: {
-          admin_id: string
-          created_at: string
-          description: string | null
-          id: string
-          is_active: boolean
-          pdf_url: string | null
-          requires_signature: boolean
-          sort_order: number
-          source_questionnaire_id: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          admin_id?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          pdf_url?: string | null
-          requires_signature?: boolean
-          sort_order?: number
-          source_questionnaire_id?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          admin_id?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          pdf_url?: string | null
-          requires_signature?: boolean
-          sort_order?: number
-          source_questionnaire_id?: string | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "practice_documents_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       practice_settings: {
         Row: {
           address: string | null
@@ -817,10 +731,8 @@ export type Database = {
           card_payments_enabled: boolean
           consent_body: string
           consent_counsellor_cta: string
-          consent_document_id: string | null
           consent_enabled: boolean
           consent_pdf_url: string | null
-          consent_questionnaire_id: string | null
           consent_title: string
           counsellor_name: string | null
           cpd_annual_target_hours: number
@@ -879,10 +791,8 @@ export type Database = {
           card_payments_enabled?: boolean
           consent_body?: string
           consent_counsellor_cta?: string
-          consent_document_id?: string | null
           consent_enabled?: boolean
           consent_pdf_url?: string | null
-          consent_questionnaire_id?: string | null
           consent_title?: string
           counsellor_name?: string | null
           cpd_annual_target_hours?: number
@@ -941,10 +851,8 @@ export type Database = {
           card_payments_enabled?: boolean
           consent_body?: string
           consent_counsellor_cta?: string
-          consent_document_id?: string | null
           consent_enabled?: boolean
           consent_pdf_url?: string | null
-          consent_questionnaire_id?: string | null
           consent_title?: string
           counsellor_name?: string | null
           cpd_annual_target_hours?: number
@@ -984,22 +892,7 @@ export type Database = {
           updated_at?: string
           use_client_codenames?: boolean
         }
-        Relationships: [
-          {
-            foreignKeyName: "practice_settings_consent_document_id_fkey"
-            columns: ["consent_document_id"]
-            isOneToOne: false
-            referencedRelation: "practice_documents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "practice_settings_consent_questionnaire_id_fkey"
-            columns: ["consent_questionnaire_id"]
-            isOneToOne: false
-            referencedRelation: "questionnaires"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       questionnaire_assignments: {
         Row: {
@@ -1282,6 +1175,7 @@ export type Database = {
           created_at: string
           id: string
           is_demo: boolean
+          is_pinned: boolean
           is_published: boolean | null
           is_sensitive: boolean
           summary: string | null
@@ -1299,6 +1193,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_demo?: boolean
+          is_pinned?: boolean
           is_published?: boolean | null
           is_sensitive?: boolean
           summary?: string | null
@@ -1316,6 +1211,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_demo?: boolean
+          is_pinned?: boolean
           is_published?: boolean | null
           is_sensitive?: boolean
           summary?: string | null
@@ -1892,17 +1788,6 @@ export type Database = {
           start_time: string
         }[]
       }
-      get_document_signature_summary: {
-        Args: never
-        Returns: {
-          client_name: string
-          document_id: string
-          document_title: string
-          signed_at: string
-          signed_name: string
-          user_id: string
-        }[]
-      }
       get_google_calendar_status: {
         Args: never
         Returns: {
@@ -1916,7 +1801,6 @@ export type Database = {
         Returns: {
           consent_body: string
           consent_counsellor_cta: string
-          consent_document_id: string
           consent_enabled: boolean
           consent_pdf_url: string
           consent_title: string
@@ -1981,10 +1865,6 @@ export type Database = {
       }
       set_plotted_assignment: {
         Args: { p_assignment_id: string }
-        Returns: undefined
-      }
-      sign_document: {
-        Args: { p_document_id: string; p_signed_name: string }
         Returns: undefined
       }
       validate_platform_access_token: {

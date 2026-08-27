@@ -9,10 +9,6 @@ vi.mock("react-router-dom", () => ({
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
-// Onboarding documents get their own dedicated test; here they'd only drag
-// the redux store into a Provider-less render.
-vi.mock("./OnboardingDocumentsManager", () => ({ default: () => null }));
-
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -463,12 +459,11 @@ describe("SettingsPage — client consent", () => {
     });
   });
 
-  it("no longer offers a form picker — the signature document is managed under Onboarding documents", async () => {
+  it("shows the plain heading / agreement text / PDF fields (no form picker)", async () => {
     await openPracticeTab();
     fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
 
     expect(screen.queryByLabelText(/use one of your forms instead/i)).not.toBeInTheDocument();
-    // The fallback fields are always available now.
     expect(screen.getByLabelText(/^heading$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/agreement text/i)).toBeInTheDocument();
   });

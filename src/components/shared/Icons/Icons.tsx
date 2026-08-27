@@ -20,7 +20,11 @@ import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import PollOutlinedIcon from "@mui/icons-material/PollOutlined";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
 import Lottie from "lottie-react";
@@ -473,6 +477,11 @@ export const LockIcon = () => <LockOutlinedIcon fontSize="inherit" />;
 export const LockOpenIcon = () => <LockOpenOutlinedIcon fontSize="inherit" />;
 
 export const DocumentIcon = () => <ArticleOutlinedIcon />;
+
+export const StarIconFilled = () => <StarIcon fontSize="inherit" />;
+export const StarIconOutline = () => <StarBorderIcon fontSize="inherit" />;
+export const PinIconFilled = () => <PushPinIcon fontSize="inherit" />;
+export const PinIconOutline = () => <PushPinOutlinedIcon fontSize="inherit" />;
 
 export const Settingsicon = () => <SettingsIcon />;
 export const ChevronDown = () => <KeyboardArrowDownIcon />;

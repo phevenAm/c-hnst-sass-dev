@@ -31,7 +31,6 @@ import {
 import { supabase } from "@/lib/supabase";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
-import OnboardingDocumentsManager from "./OnboardingDocumentsManager";
 import RegenerateCodeModal from "./RegenerateCodeModal/RegenerateCodeModal";
 
 import styles from "./SettingsPage.module.scss";
@@ -1770,19 +1769,7 @@ const SettingsPage = () => {
               </div>
             </SettingsCard>
 
-            <GroupHeading
-              title="Client compliance"
-              searchQuery={practiceSearch}
-              cardTitles={["Onboarding documents", "Client consent"]}
-            />
-
-            <SettingsCard
-              title="Onboarding documents"
-              storageKey="settings:practice:onboarding-docs"
-              searchQuery={practiceSearch}
-            >
-              <OnboardingDocumentsManager />
-            </SettingsCard>
+            <GroupHeading title="Client compliance" searchQuery={practiceSearch} cardTitles={["Client consent"]} />
 
             {/* Client consent */}
             <SettingsCard title="Client consent" storageKey="settings:practice:consent" searchQuery={practiceSearch}>
@@ -1814,9 +1801,8 @@ const SettingsPage = () => {
                 {consentEnabled && (
                   <div className={styles.consentConfig}>
                     <p className={styles.toggleHint}>
-                      The <strong>signature document</strong> is whichever Onboarding document you mark as “Requires
-                      signature” above. The heading, text and PDF below are only used as a fallback when no document is
-                      marked.
+                      This is the agreement new clients must read and sign (typing their name) before they can use the
+                      app. Add a heading, the agreement text, and optionally a PDF.
                     </p>
 
                     <div className={styles.field}>

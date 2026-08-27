@@ -94,6 +94,20 @@ export const togglePublished = createAsyncThunk<
   return { id, is_published: newValue };
 });
 
+// Pinned resources sort first within their tab, on both the admin and client
+// Resources pages.
+export const togglePinned = createAsyncThunk<{ id: string; is_pinned: boolean }, { id: string; is_pinned: boolean }>(
+  "resources/togglePinned",
+  async ({ id, is_pinned }, { rejectWithValue }) => {
+    const { error } = await supabase
+      .from("resources")
+      .update({ is_pinned, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) return rejectWithValue(error.message);
+    return { id, is_pinned };
+  },
+);
+
 // ─── Slice ─────────────────────────────────────────────────
 
 const resourcesSlice = createSlice({
@@ -152,6 +166,13 @@ const resourcesSlice = createSlice({
         if (r) r.is_published = action.payload.is_published;
       })
       .addCase(togglePublished.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      .addCase(togglePinned.fulfilled, (state, action) => {
+        const r = state.resources.find((r) => r.id === action.payload.id);
+        if (r) r.is_pinned = action.payload.is_pinned;
+      })
+      .addCase(togglePinned.rejected, (state, action) => {
         state.error = action.payload as string;
       })
       .addCase("RESET_ALL", () => initialState);

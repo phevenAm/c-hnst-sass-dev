@@ -15,10 +15,10 @@ import adminPrivateEventsReducer from "./slices/adminPrivateEventsSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
 import availabilityReducer from "./slices/availabilitySlice";
 import clientStubsReducer from "./slices/clientStubsSlice";
-import practiceDocumentsReducer from "./slices/practiceDocumentsSlice";
 import practiceSettingsReducer from "./slices/practiceSettingsSlice";
 import assignmentsReducer from "./slices/questionnaireAssignmentsSlice";
 import questionnairesReducer from "./slices/questionnairesSlice";
+import resourceFavouritesReducer from "./slices/resourceFavouritesSlice";
 import resourcesReducer from "./slices/resourcesSlice";
 import responsesReducer from "./slices/responsesSlice";
 import sessionsReducer from "./slices/sessionsSlice";
@@ -34,6 +34,7 @@ export const store = configureStore({
     assignments: assignmentsReducer,
     responses: responsesReducer,
     resources: resourcesReducer,
+    resourceFavourites: resourceFavouritesReducer,
     sessions: sessionsReducer,
     availability: availabilityReducer,
     adminPrivateEvents: adminPrivateEventsReducer,
@@ -42,7 +43,6 @@ export const store = configureStore({
     auditLogs: auditLogsReducer,
     todos: todoReducer,
     clientStubs: clientStubsReducer,
-    practiceDocuments: practiceDocumentsReducer,
     practiceSettings: practiceSettingsReducer,
     [inspirationalQuotesApi.reducerPath]: inspirationalQuotesApi.reducer,
   },
