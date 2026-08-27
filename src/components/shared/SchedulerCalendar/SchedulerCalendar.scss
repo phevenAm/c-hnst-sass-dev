@@ -111,6 +111,13 @@
     background: color-mix(in srgb, var(--text-muted) 22%, transparent);
   }
 
+  // We only act on a single click of an empty slot (not a drag-select), so
+  // don't paint the drag-to-select range box — it would imply a duration the
+  // new-session / private-event flow doesn't actually take.
+  .rbc-slot-selection {
+    display: none !important;
+  }
+
   // ─── react-big-calendar theme overrides ─────────────────
   // RBC ships light-theme CSS; remap its greys onto our tokens for dark mode.
   .rbc-calendar {

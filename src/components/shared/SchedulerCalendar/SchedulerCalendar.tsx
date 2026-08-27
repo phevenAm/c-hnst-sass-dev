@@ -46,11 +46,13 @@ type SchedulerCalendarProps = {
   onSelectEvent?: (event: SchedulerEvent) => void;
   onEventDrop?: (args: EventInteractionArgs<SchedulerEvent>) => void;
   slotPropGetter?: (date: Date) => { className?: string; style?: CSSProperties };
-  // When set, clicking (or click-dragging) an empty area of the grid fires
-  // onSelectSlot with the picked range — used by the admin scheduler to start
-  // a new session / private event at that date and time.
+  // When set, a single click on an empty area of the grid fires onSelectSlot
+  // with that slot's time — used by the admin scheduler to start a new session
+  // / private event there. Drag-to-select a range is deliberately ignored: the
+  // create modals don't take a duration from it, so offering the gesture would
+  // be misleading.
   selectable?: boolean;
-  onSelectSlot?: (slot: { start: Date; end: Date }) => void;
+  onSelectSlot?: (slot: { start: Date }) => void;
   height?: string;
 };
 
@@ -126,7 +128,13 @@ export default function SchedulerCalendar({
         selectable={selectable}
         onSelectSlot={
           onSelectSlot
-            ? (slotInfo) => onSelectSlot({ start: slotInfo.start as Date, end: slotInfo.end as Date })
+            ? (slotInfo) => {
+                // Only a plain click — never a drag-select ("select") — so the
+                // grid doesn't imply a range the create flow can't use.
+                if (slotInfo.action === "click" || slotInfo.action === "doubleClick") {
+                  onSelectSlot({ start: slotInfo.start as Date });
+                }
+              }
             : undefined
         }
         draggableAccessor={(event: SchedulerEvent) =>

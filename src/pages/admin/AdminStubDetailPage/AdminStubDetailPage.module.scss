@@ -25,6 +25,12 @@
   }
 }
 
+// Space between "← Back to clients" and whatever follows it (the Session prep
+// card, or the hero when there's no upcoming session) — they were flush.
+.backButton {
+  margin-bottom: $sp-4;
+}
+
 // ── Hero ─────────────────────────────────────────────────────
 .hero {
   display: flex;

@@ -58,8 +58,16 @@
   margin: 0 0 var(--sp-3);
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
 // Matches NextSessionCard's .joinLink.
-.viewNotes {
+.viewNotes,
+.manageSession {
   display: inline-flex;
   background: none;
   border: none;
@@ -71,4 +79,8 @@
   &:hover {
     text-decoration: underline;
   }
+}
+
+.manageSession {
+  font-weight: 600;
 }

@@ -13,6 +13,8 @@ type Props = {
   /** Notes are client-side encrypted and the admin hasn't unlocked them this session. */
   notesLocked: boolean;
   onViewNotes: () => void;
+  /** Jump to the next session's card (where mark-paid / edit / attendance live). */
+  onManageSession?: () => void;
 };
 
 const NOTE_PREVIEW_LENGTH = 220;
@@ -25,6 +27,7 @@ export default function SessionPrepCard({
   lastNote,
   notesLocked,
   onViewNotes,
+  onManageSession,
 }: Props) {
   const notePreview =
     lastNote?.content && lastNote.content.length > NOTE_PREVIEW_LENGTH
@@ -59,9 +62,16 @@ export default function SessionPrepCard({
 
       {noteBlock}
 
-      <button type="button" className={styles.viewNotes} onClick={onViewNotes}>
-        View all notes →
-      </button>
+      <div className={styles.actions}>
+        {onManageSession && (
+          <button type="button" className={styles.manageSession} onClick={onManageSession}>
+            Manage this session →
+          </button>
+        )}
+        <button type="button" className={styles.viewNotes} onClick={onViewNotes}>
+          View all notes →
+        </button>
+      </div>
     </Card>
   );
 }

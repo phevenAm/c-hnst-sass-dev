@@ -183,32 +183,6 @@ export default function AdminClientsPageDetailed() {
       .then(({ count }) => setHasRcadsAssessment(!!count));
   }, [clientId]);
 
-  // The onboarding document this client has signed (RLS scopes it to the
-  // admin's own documents), shown alongside the consent line in the hero.
-  const [signedDoc, setSignedDoc] = useState<{ title: string; signed_name: string | null; signed_at: string } | null>(
-    null,
-  );
-  useEffect(() => {
-    if (!clientId) return;
-    supabase
-      .from("document_signatures")
-      .select("signed_name, signed_at, practice_documents(title)")
-      .eq("user_id", clientId)
-      .maybeSingle()
-      .then(({ data }) => {
-        const d = data as {
-          signed_name: string | null;
-          signed_at: string;
-          practice_documents: { title: string } | null;
-        } | null;
-        setSignedDoc(
-          d
-            ? { title: d.practice_documents?.title ?? "agreement", signed_name: d.signed_name, signed_at: d.signed_at }
-            : null,
-        );
-      });
-  }, [clientId]);
-
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   // React Router reuses this component across /admin/clients/:clientId
   // navigations (same route, different param) rather than remounting it, so
@@ -814,6 +788,12 @@ export default function AdminClientsPageDetailed() {
             lastSeenAt={lastSeenSession?.scheduled_at ?? null}
             lastNote={lastSessionNote}
             notesLocked={lastNoteLocked}
+            onManageSession={() => {
+              // Reuse the ?session=<id> deep-link machinery — it switches the
+              // tab, pages to the right slice, scrolls and flash-highlights.
+              handledHighlightRef.current = null;
+              setSearchParams({ session: nextSession.id });
+            }}
             onViewNotes={() => setNotesOpen(true)}
           />
         )}
@@ -906,14 +886,9 @@ export default function AdminClientsPageDetailed() {
               )}
               {practiceSettings?.consent_enabled && (
                 <p className={client.has_consented ? styles.consentYes : styles.consentNo}>
-                  {(() => {
-                    if (!client.has_consented) return "Has not agreed to consent terms yet";
-                    if (signedDoc) {
-                      const who = signedDoc.signed_name ? ` as ${signedDoc.signed_name}` : "";
-                      return `Signed “${signedDoc.title}”${who} on ${dayjs(signedDoc.signed_at).format("DD/MM/YYYY")}`;
-                    }
-                    return `Consented${client.consented_at ? ` on ${dayjs(client.consented_at).format("DD/MM/YYYY")}` : ""}`;
-                  })()}
+                  {client.has_consented
+                    ? `Signed${client.consent_signed_name ? ` by ${client.consent_signed_name}` : ""}${client.consented_at ? ` on ${dayjs(client.consented_at).format("DD/MM/YYYY")}` : ""}`
+                    : "Has not agreed to consent terms yet"}
                 </p>
               )}
               {accountSummaryPreview && <p className={styles.accountSummary}>{accountSummaryPreview}</p>}
