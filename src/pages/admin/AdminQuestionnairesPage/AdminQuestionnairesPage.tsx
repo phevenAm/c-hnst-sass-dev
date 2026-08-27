@@ -4,7 +4,6 @@ import { useSearchParams } from "react-router-dom";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
-import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -35,12 +34,11 @@ import { supabase } from "@/lib/supabase.js";
 
 import styles from "./AdminQuestionnairesPage.module.scss";
 
-type FormTab = "outcome_measure" | "feedback" | "onboarding";
+type FormTab = "outcome_measure" | "feedback";
 
 const TABS: { id: FormTab; label: string }[] = [
   { id: "outcome_measure", label: "Outcome Measures" },
   { id: "feedback", label: "Feedback Forms" },
-  { id: "onboarding", label: "Onboarding" },
 ];
 
 type OptionDraft = { label: string; value: number };
@@ -64,7 +62,6 @@ type QuestionnaireFormData = {
   description: string;
   frequency: QuestionnaireFrequency | null;
   form_type: string;
-  pdf_url: string | null;
   questions: QuestionDraft[];
 };
 
@@ -108,7 +105,6 @@ function QuestionnaireBuilder({
   const [description, setDesc] = useState(initial?.description ?? "");
   const [formType, setFormType] = useState<string>((initial as any)?.form_type ?? defaultFormType ?? "outcome_measure");
   const [frequency, setFrequency] = useState<QuestionnaireFrequency | null>(initial?.frequency ?? "weekly");
-  const [pdfUrl, setPdfUrl] = useState((initial as any)?.pdf_url ?? "");
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     initial?.questions?.map((q) => ({
       id: q.id,
@@ -159,7 +155,7 @@ function QuestionnaireBuilder({
       qs.map((q) => (q.id === questionId ? { ...q, options: q.options.filter((_, i) => i !== idx) } : q)),
     );
 
-  const { isDemo, userProfile } = useAuth();
+  const { isDemo } = useAuth();
   const { showToast } = useToast();
 
   const handleCreateTag = async (questionId: string) => {
@@ -184,8 +180,7 @@ function QuestionnaireBuilder({
       onClose();
       return;
     }
-    const isOnboarding = formType === "onboarding";
-    if (!title.trim() || (!isOnboarding && questions.some((q) => !q.text.trim()))) {
+    if (!title.trim() || questions.some((q) => !q.text.trim())) {
       alert("Please fill in a title and all question texts");
       return;
     }
@@ -194,10 +189,7 @@ function QuestionnaireBuilder({
       description,
       frequency: frequency ?? null,
       form_type: formType,
-      pdf_url: isOnboarding ? pdfUrl.trim() || null : null,
-      // Onboarding forms are document-only — a title + optional PDF the client
-      // reads and signs. They never collect answers, so no questions are kept.
-      questions: isOnboarding ? [] : questions,
+      questions,
     });
     onClose();
   };
@@ -242,7 +234,6 @@ function QuestionnaireBuilder({
           <select id="q-type" value={formType} onChange={(e) => setFormType(e.target.value)} disabled={isEdit}>
             <option value="outcome_measure">Outcome Measure</option>
             <option value="feedback">Feedback Form</option>
-            <option value="onboarding">Onboarding</option>
           </select>
         </div>
         {formType === "outcome_measure" && (
@@ -260,168 +251,142 @@ function QuestionnaireBuilder({
             </select>
           </div>
         )}
-        {formType === "onboarding" && (
-          <div className={`${styles.formField} ${styles.fullCol}`}>
-            <label htmlFor="q-pdf">PDF link (optional)</label>
-            <input
-              id="q-pdf"
-              type="url"
-              className={styles.pdfUrl}
-              value={pdfUrl}
-              onChange={(e) => setPdfUrl(e.target.value)}
-              placeholder="https://example.com/document.pdf"
-            />
-            <PdfUpload adminId={userProfile?.id ?? ""} value={pdfUrl} onChange={setPdfUrl} />
-            <p className={styles.fieldHint}>
-              A form linked as your client consent document (Settings → Practice) shows this alongside its title —
-              useful for terms, an info sheet, or anything clients should read before agreeing.
-            </p>
-          </div>
-        )}
       </div>
-
-      {formType === "onboarding" ? (
-        <p className={styles.fieldHint} style={{ marginTop: "var(--sp-4)" }}>
-          Onboarding forms are document-only — clients read the title and PDF above and sign to agree. They don't
-          collect answers, so there are no questions.
-        </p>
-      ) : (
-        <div className={styles.questionsSection}>
-          <div className={styles.questionsSectionHeader}>
-            <h3>Questions</h3>
-            <Button variant="secondary" size="sm" onClick={addQuestion}>
-              + Add question
-            </Button>
-          </div>
-          {questions.map((q, i) => (
-            <div key={q.id} className={styles.questionBlock}>
-              <div className={styles.questionBlockHeader}>
-                <span className={styles.questionNum}>Q{i + 1}</span>
-                {questions.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeQuestion(q.id)}
-                    aria-label={`Remove question ${i + 1}`}
-                    className={styles.removeBtn}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              <input
-                value={q.text}
-                onChange={(e) => updateQuestion(q.id, "text", e.target.value)}
-                placeholder="Question text…"
-                className={styles.questionTextInput}
-              />
-              <div className={styles.questionInputs}>
-                <select
-                  aria-label="Question type"
-                  value={q.type}
-                  onChange={(e) => updateQuestion(q.id, "type", e.target.value)}
+      <div className={styles.questionsSection}>
+        <div className={styles.questionsSectionHeader}>
+          <h3>Questions</h3>
+          <Button variant="secondary" size="sm" onClick={addQuestion}>
+            + Add question
+          </Button>
+        </div>
+        {questions.map((q, i) => (
+          <div key={q.id} className={styles.questionBlock}>
+            <div className={styles.questionBlockHeader}>
+              <span className={styles.questionNum}>Q{i + 1}</span>
+              {questions.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeQuestion(q.id)}
+                  aria-label={`Remove question ${i + 1}`}
+                  className={styles.removeBtn}
                 >
-                  {QUESTION_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t === "scale" ? "Scale (numeric)" : t === "text" ? "Free text" : "Multiple choice"}
-                    </option>
-                  ))}
-                </select>
-                {q.type === "scale" && (
-                  <>
-                    <input
-                      value={q.minLabel}
-                      onChange={(e) => updateQuestion(q.id, "minLabel", e.target.value)}
-                      placeholder="Low label"
-                    />
-                    <input
-                      value={q.maxLabel}
-                      onChange={(e) => updateQuestion(q.id, "maxLabel", e.target.value)}
-                      placeholder="High label"
-                    />
-                    <div className={styles.tagField}>
-                      <span>Chart tag</span>
-                      {creatingTagFor === q.id ? (
-                        <div className={styles.newTagInline}>
-                          <input
-                            // biome-ignore lint/a11y/noAutofocus: intentional focus when user requests new tag
-                            autoFocus
-                            value={newTagName}
-                            onChange={(e) => setNewTagName(e.target.value)}
-                            placeholder="Tag name (e.g. Sleep)"
-                            onKeyDown={(e) => e.key === "Enter" && handleCreateTag(q.id)}
-                          />
-                          <button type="button" onClick={() => handleCreateTag(q.id)}>
-                            Add
-                          </button>
-                          <button type="button" onClick={() => setCreatingTagFor(null)}>
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <select
-                          aria-label="Chart tag"
-                          value={q.tag_id ?? ""}
-                          onChange={(e) => {
-                            if (e.target.value === "__new__") {
-                              setCreatingTagFor(q.id);
-                            } else {
-                              updateQuestion(q.id, "tag_id", e.target.value || null);
-                            }
-                          }}
-                        >
-                          <option value="">No tag</option>
-                          {tags.map((tag) => (
-                            <option key={tag.id} value={tag.id}>
-                              {tag.name}
-                            </option>
-                          ))}
-                          <option value="__new__">+ Create new tag…</option>
-                        </select>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-              {q.type === "multiple_choice" && (
-                <div className={styles.optionsEditor}>
-                  <div className={styles.optionsEditorHeader}>
-                    <span>Options</span>
-                    <button type="button" className={styles.addOptionBtn} onClick={() => addOption(q.id)}>
-                      + Add option
-                    </button>
-                  </div>
-                  {q.options.length === 0 && <p className={styles.optionsHint}>Add the choices a client will see.</p>}
-                  {q.options.map((opt, oi) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
-                    <div key={oi} className={styles.optionRow}>
-                      <input
-                        placeholder="Label (e.g. Not at all)"
-                        value={opt.label}
-                        onChange={(e) => updateOption(q.id, oi, "label", e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        placeholder="Score"
-                        value={opt.value}
-                        onChange={(e) => updateOption(q.id, oi, "value", Number(e.target.value))}
-                        className={styles.optionValueInput}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeOption(q.id, oi)}
-                        aria-label="Remove option"
-                        className={styles.removeBtn}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                  ×
+                </button>
               )}
             </div>
-          ))}
-        </div>
-      )}
+            <input
+              value={q.text}
+              onChange={(e) => updateQuestion(q.id, "text", e.target.value)}
+              placeholder="Question text…"
+              className={styles.questionTextInput}
+            />
+            <div className={styles.questionInputs}>
+              <select
+                aria-label="Question type"
+                value={q.type}
+                onChange={(e) => updateQuestion(q.id, "type", e.target.value)}
+              >
+                {QUESTION_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t === "scale" ? "Scale (numeric)" : t === "text" ? "Free text" : "Multiple choice"}
+                  </option>
+                ))}
+              </select>
+              {q.type === "scale" && (
+                <>
+                  <input
+                    value={q.minLabel}
+                    onChange={(e) => updateQuestion(q.id, "minLabel", e.target.value)}
+                    placeholder="Low label"
+                  />
+                  <input
+                    value={q.maxLabel}
+                    onChange={(e) => updateQuestion(q.id, "maxLabel", e.target.value)}
+                    placeholder="High label"
+                  />
+                  <div className={styles.tagField}>
+                    <span>Chart tag</span>
+                    {creatingTagFor === q.id ? (
+                      <div className={styles.newTagInline}>
+                        <input
+                          // biome-ignore lint/a11y/noAutofocus: intentional focus when user requests new tag
+                          autoFocus
+                          value={newTagName}
+                          onChange={(e) => setNewTagName(e.target.value)}
+                          placeholder="Tag name (e.g. Sleep)"
+                          onKeyDown={(e) => e.key === "Enter" && handleCreateTag(q.id)}
+                        />
+                        <button type="button" onClick={() => handleCreateTag(q.id)}>
+                          Add
+                        </button>
+                        <button type="button" onClick={() => setCreatingTagFor(null)}>
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        aria-label="Chart tag"
+                        value={q.tag_id ?? ""}
+                        onChange={(e) => {
+                          if (e.target.value === "__new__") {
+                            setCreatingTagFor(q.id);
+                          } else {
+                            updateQuestion(q.id, "tag_id", e.target.value || null);
+                          }
+                        }}
+                      >
+                        <option value="">No tag</option>
+                        {tags.map((tag) => (
+                          <option key={tag.id} value={tag.id}>
+                            {tag.name}
+                          </option>
+                        ))}
+                        <option value="__new__">+ Create new tag…</option>
+                      </select>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+            {q.type === "multiple_choice" && (
+              <div className={styles.optionsEditor}>
+                <div className={styles.optionsEditorHeader}>
+                  <span>Options</span>
+                  <button type="button" className={styles.addOptionBtn} onClick={() => addOption(q.id)}>
+                    + Add option
+                  </button>
+                </div>
+                {q.options.length === 0 && <p className={styles.optionsHint}>Add the choices a client will see.</p>}
+                {q.options.map((opt, oi) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
+                  <div key={oi} className={styles.optionRow}>
+                    <input
+                      placeholder="Label (e.g. Not at all)"
+                      value={opt.label}
+                      onChange={(e) => updateOption(q.id, oi, "label", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Score"
+                      value={opt.value}
+                      onChange={(e) => updateOption(q.id, oi, "value", Number(e.target.value))}
+                      className={styles.optionValueInput}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOption(q.id, oi)}
+                      aria-label="Remove option"
+                      className={styles.removeBtn}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </Modal>
   );
 }
@@ -830,7 +795,6 @@ export default function AdminQuestionnairesPage() {
         <div className={styles.list}>
           {tabQuestionnaires.map((q) => {
             const isDefault = !!(q as any).source_default_id;
-            const formType = (q as any).form_type ?? "outcome_measure";
             // RCADS has fixed, clinically-validated content and its own
             // dedicated fill-in/scoring flow (src/Helpers/rcadsScoring.ts) —
             // there's nothing here to edit, and "reset to default" makes no
@@ -838,7 +802,6 @@ export default function AdminQuestionnairesPage() {
             const isRcads = !!(q as any).is_rcads;
             let itemSummary: string;
             if (isRcads) itemSummary = "47 items · scored automatically";
-            else if (formType === "onboarding") itemSummary = "Document only";
             else itemSummary = `${q.questions.length} question${q.questions.length !== 1 ? "s" : ""}`;
             return (
               <Card key={q.id}>
@@ -855,7 +818,7 @@ export default function AdminQuestionnairesPage() {
                       <p className={styles.qDesc}>{q.description}</p>
                       <p className={styles.qMeta}>
                         {itemSummary}
-                        {formType === "outcome_measure" && q.frequency ? ` · ${q.frequency}` : ""}
+                        {q.frequency ? ` · ${q.frequency}` : ""}
                         {` · ${q.assignedTo?.length ?? 0} client${(q.assignedTo?.length ?? 0) !== 1 ? "s" : ""} assigned`}
                       </p>
                     </div>

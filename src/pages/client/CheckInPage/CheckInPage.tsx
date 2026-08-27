@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import AgreementView from "../../../components/Consent/AgreementView";
 import Button from "../../../components/shared/Button/Button";
 import Card from "../../../components/shared/Card/Card";
 import { useAuth } from "../../../context/AuthContext";
@@ -16,12 +15,11 @@ import { fetchResponsesByUser, selectUserResponses, submitResponse } from "../..
 
 import styles from "./CheckInPage.module.scss";
 
-type FormTab = "outcome_measure" | "feedback" | "onboarding";
+type FormTab = "outcome_measure" | "feedback";
 
 const TABS: { id: FormTab; label: string }[] = [
   { id: "outcome_measure", label: "Outcome Measures" },
   { id: "feedback", label: "Feedback" },
-  { id: "onboarding", label: "Onboarding" },
 ];
 
 const CheckIcon = () => (
@@ -192,7 +190,7 @@ export default function CheckInPage() {
       if (!latest) return true;
       return isQuestionnaireCheckInDue(getResponseDate(latest), q.frequency);
     }
-    // feedback and onboarding: show once (if never submitted)
+    // feedback: show once (if never submitted)
     return !latest;
   });
 
@@ -221,7 +219,6 @@ export default function CheckInPage() {
   const emptyMessages: Record<FormTab, string> = {
     outcome_measure: "You have no outcome measure forms due right now.",
     feedback: "No feedback forms to complete.",
-    onboarding: "No onboarding forms pending.",
   };
 
   const isRcads = !!(questionnaire as any)?.is_rcads;
@@ -286,17 +283,7 @@ export default function CheckInPage() {
           ))}
         </div>
 
-        {/* Onboarding tab, nothing pending: instead of a dead end, show the
-            client the agreement they signed (consent doc / onboarding form)
-            back to them for reference. */}
-        {!questionnaire && activeTab === "onboarding" && userProfile?.has_consented && (
-          <AgreementView
-            signedName={userProfile.consent_signed_name ?? null}
-            signedAt={userProfile.consented_at ?? null}
-          />
-        )}
-
-        {!questionnaire && !(activeTab === "onboarding" && userProfile?.has_consented) && (
+        {!questionnaire && (
           <div className={styles.emptyState}>
             <p>{emptyMessages[activeTab]}</p>
             <Button onClick={() => navigate("/dashboard")}>Back to dashboard</Button>

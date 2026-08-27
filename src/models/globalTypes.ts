@@ -140,6 +140,22 @@ export type Resource = Omit<Tables<"resources">, "title" | "category" | "type" |
   updated_at: string;
 };
 
+// Practice documents — PDF housekeeping material shared with clients
+// (working agreement, house rules…). One may be flagged requires_signature,
+// which drives the client-consent gate.
+export type PracticeDocument = Tables<"practice_documents">;
+export type DocumentSignature = Tables<"document_signatures">;
+
+// One row per (client, signature document) from get_document_signature_summary.
+export type DocumentSignatureSummaryRow = {
+  document_id: string;
+  document_title: string;
+  user_id: string;
+  client_name: string;
+  signed_name: string | null;
+  signed_at: string | null;
+};
+
 // ─── Utility types ─────────────────────────────────────────
 
 export type ResponseScores = Record<string, number | string>;
@@ -151,6 +167,9 @@ export type UpdateUser = Partial<Omit<UserProfile, "id" | "created_at">> & {
   id: string;
 };
 export type UpdateResource = Partial<Omit<Resource, "id" | "created_at">> & {
+  id: string;
+};
+export type UpdatePracticeDocument = Partial<Omit<PracticeDocument, "id" | "admin_id" | "created_at">> & {
   id: string;
 };
 
