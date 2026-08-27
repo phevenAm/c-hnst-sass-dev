@@ -696,22 +696,24 @@ export default function AdminSupervisionPage() {
                         {entry.source === "calendar" ? "Calendar" : "Manual"}
                       </span>
                     </td>
-                    <td className={styles.actionsCell}>
-                      {entry.source === "manual" && (
-                        <button
-                          type="button"
-                          className={styles.editBtn}
-                          onClick={() => {
-                            setEditing(entry.raw as ManualRow);
-                            setModalOpen(true);
-                          }}
-                        >
-                          Edit
+                    <td>
+                      <div className={styles.actionsCell}>
+                        {entry.source === "manual" && (
+                          <button
+                            type="button"
+                            className={styles.editBtn}
+                            onClick={() => {
+                              setEditing(entry.raw as ManualRow);
+                              setModalOpen(true);
+                            }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(entry)}>
+                          {entry.source === "calendar" ? "Remove" : "Delete"}
                         </button>
-                      )}
-                      <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(entry)}>
-                        {entry.source === "calendar" ? "Remove" : "Delete"}
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

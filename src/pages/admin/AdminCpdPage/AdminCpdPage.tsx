@@ -377,28 +377,30 @@ export default function AdminCpdPage() {
                     <td className={styles.textCell}>{log.title}</td>
                     <td className={styles.textCell}>{log.provider}</td>
                     <td className={styles.durationCell}>{minutesToHours(log.duration_minutes)}</td>
-                    <td className={styles.actionsCell}>
-                      {log._source === "private_event" ? (
-                        <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log)}>
-                          Remove
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className={styles.editBtn}
-                            onClick={() => {
-                              setEditing(log);
-                              setModalOpen(true);
-                            }}
-                          >
-                            Edit
-                          </button>
+                    <td>
+                      <div className={styles.actionsCell}>
+                        {log._source === "private_event" ? (
                           <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log)}>
-                            Delete
+                            Remove
                           </button>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.editBtn}
+                              onClick={() => {
+                                setEditing(log);
+                                setModalOpen(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button type="button" className={styles.deleteBtn} onClick={() => handleDelete(log)}>
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

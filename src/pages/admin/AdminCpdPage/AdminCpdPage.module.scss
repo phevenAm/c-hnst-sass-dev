@@ -179,7 +179,6 @@
 .actionsCell {
   display: flex;
   gap: $sp-2;
-  justify-content: flex-end;
   width: 8rem;
 }
 
@@ -191,7 +190,9 @@
   cursor: pointer;
   padding: 0;
 
-  &:hover { text-decoration: underline; }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .deleteBtn {
@@ -202,7 +203,9 @@
   cursor: pointer;
   padding: 0;
 
-  &:hover { text-decoration: underline; }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .privateTag {
@@ -223,16 +226,42 @@
   color: var(--text-secondary);
 }
 
-.badge_training       { background: #e8f0fe; color: #1a56a0; }
-.badge_reading        { background: #fef9e7; color: #7d5a00; }
-.badge_conference     { background: #fce8d5; color: #7a3210; }
-.badge_other          { background: var(--bg-muted); color: var(--text-muted); }
+.badge_training {
+  background: #e8f0fe;
+  color: #1a56a0;
+}
+
+.badge_reading {
+  background: #fef9e7;
+  color: #7d5a00;
+}
+
+.badge_conference {
+  background: #fce8d5;
+  color: #7a3210;
+}
+
+.badge_other {
+  background: var(--bg-muted);
+  color: var(--text-muted);
+}
 
 // Dark mode badge overrides
 :global(.dark) {
-  .badge_training       { background: #1e3a5f; color: #93c5fd; }
-  .badge_reading        { background: #3d2e00; color: #fcd34d; }
-  .badge_conference     { background: #3d1a00; color: #fdba74; }
+  .badge_training {
+    background: #1e3a5f;
+    color: #93c5fd;
+  }
+
+  .badge_reading {
+    background: #3d2e00;
+    color: #fcd34d;
+  }
+
+  .badge_conference {
+    background: #3d1a00;
+    color: #fdba74;
+  }
 }
 
 // ── Empty state ────────────────────────────────────────────
