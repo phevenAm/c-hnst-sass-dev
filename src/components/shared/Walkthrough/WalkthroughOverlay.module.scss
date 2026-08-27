@@ -221,6 +221,36 @@ $card-width: 440;
   margin: 0;
 }
 
+// ── Step CTA buttons ─────────────────────────────────────────────────────────
+
+.stepActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.btnAction {
+  @extend %btn-base;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-weight: 600;
+
+  &:hover {
+    background: var(--accent);
+    color: var(--text-inverse);
+  }
+
+  .dark & {
+    background: var(--accent);
+    color: var(--bg-base);
+
+    &:hover {
+      opacity: 0.88;
+    }
+  }
+}
+
 // ── Footer (expanded) ─────────────────────────────────────────────────────────
 
 .footer {

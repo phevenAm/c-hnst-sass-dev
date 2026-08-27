@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useWalkthrough } from "@context/WalkthroughContext";
 
@@ -79,6 +80,13 @@ function DeclineMessage() {
 export default function WalkthroughOverlay() {
   const { isActive, currentStep, currentPage, currentStepIndex, totalSteps, nextStep, prevStep, skipPage, dismissAll } =
     useWalkthrough();
+  const navigate = useNavigate();
+
+  // A step's CTA button: end this page's tour, then go do the thing.
+  const runStepAction = (to: string) => {
+    skipPage();
+    navigate(to);
+  };
 
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
   const [cardPos, setCardPos] = useState<CardPos | null>(null);
@@ -243,6 +251,20 @@ export default function WalkthroughOverlay() {
             {isExpanded && (
               <>
                 <p className={styles.stepBody}>{currentStep.body}</p>
+                {currentStep.actions && currentStep.actions.length > 0 && (
+                  <div className={styles.stepActions}>
+                    {currentStep.actions.slice(0, 2).map((action) => (
+                      <button
+                        key={`${action.to}|${action.label}`}
+                        type="button"
+                        className={styles.btnAction}
+                        onClick={() => runStepAction(action.to)}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className={styles.footer}>
                   <button className={styles.btnDismiss} onClick={dismissAll} title="Turn off all walkthroughs">
                     Don't show again

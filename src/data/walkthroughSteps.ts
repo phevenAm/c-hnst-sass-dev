@@ -1,9 +1,15 @@
+export interface WalkthroughStepAction {
+  label: string;
+  to: string; // internal route — clicking ends this page's tour and navigates
+}
+
 export interface WalkthroughStep {
   id: string;
   title: string;
   body: string;
   target?: string; // CSS selector — element to spotlight
   order: number;
+  actions?: WalkthroughStepAction[]; // up to 2 CTA buttons shown in the step card
 }
 
 export interface WalkthroughPage {
@@ -195,8 +201,12 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "clients-directory",
         order: 1,
         title: "Your client list",
-        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. If it's empty, start with 'Invite a client' at the top right.",
+        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. Nothing here yet? Add your first client below.",
         target: "#clients-header",
+        actions: [
+          { label: "Invite a client", to: "/admin/clients?new=true" },
+          { label: "Add offline client", to: "/admin/clients?newStub=true" },
+        ],
       },
       {
         id: "clients-actions",
