@@ -54,7 +54,18 @@ function PageStack({ url, width, onLoadError }: { url: string; width?: number; o
       onLoadError={onLoadError}
     >
       {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNumber) => (
-        <Page key={pageNumber} pageNumber={pageNumber} width={width} className={styles.page} />
+        <Page
+          key={pageNumber}
+          pageNumber={pageNumber}
+          width={width}
+          className={styles.page}
+          // We only need the rendered image. The text + annotation layers
+          // need their own CSS (which we don't ship) — without it they spill
+          // as mispositioned overlay text on top of / below the canvas, which
+          // is what made multi-page docs look broken.
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+        />
       ))}
     </Document>
   );
