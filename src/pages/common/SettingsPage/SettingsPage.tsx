@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { KEYWORDS } from "@constants/constants";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -191,6 +192,16 @@ const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
   const [practiceSearch, setPracticeSearch] = useState("");
   const [interfaceSearch, setInterfaceSearch] = useState("");
+
+  // Deep-link to a tab via ?tab=practice (used by FirstClientTipsModal, etc.).
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && ADMIN_TABS.some((tab) => tab.id === t)) {
+      setActiveTab(t as AdminTab);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
     business_name: "",

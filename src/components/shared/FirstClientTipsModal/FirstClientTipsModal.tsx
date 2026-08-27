@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
 
@@ -10,25 +12,25 @@ type Props = {
 const TIPS = [
   {
     title: "Session-prep reminders",
-    body: "Get an in-app notification before your own sessions so you can review a client's history first.",
-    location: "Settings → Practice → Session-prep reminders",
+    body: "A nudge before each of your sessions, so you can glance over the client's history first.",
+    cta: "Practice settings",
   },
   {
     title: "Auto-cancel unpaid sessions",
-    body: "Automatically cancel a session if it isn't paid by a deadline you choose.",
-    location: "Settings → Practice → Session automation",
+    body: "Let a session fall away on its own if it hasn't been paid by a deadline you set.",
+    cta: "Practice settings",
   },
   {
     title: "Client onboarding contract",
-    body: "Only if you want one — not everyone will. Ask new clients to agree to a contract before using the app.",
-    location: "Settings → Practice → Client consent",
+    body: "Ask new clients to agree to your terms before they can use the app. Skip it if that's not your thing.",
+    cta: "Practice settings",
   },
 ];
 
 export default function FirstClientTipsModal({ onClose }: Props) {
   return (
     <Modal
-      title="You've added your first client"
+      title="Your first client is set up"
       onClose={onClose}
       size="sm"
       actions={
@@ -37,16 +39,26 @@ export default function FirstClientTipsModal({ onClose }: Props) {
         </Button>
       }
     >
-      <p className={styles.intro}>
-        A few things worth a look now that you're up and running — all optional, all live in Settings whenever you want
-        them.
-      </p>
+      <div className={styles.celebrate}>
+        <span className={styles.badge} aria-hidden="true">
+          🎉
+        </span>
+        <p>
+          Nice work — that's the setup done. You're ready to book sessions, keep notes, track payments, and send
+          check-in forms.
+        </p>
+      </div>
+
+      <p className={styles.intro}>A few optional extras you can switch on whenever they'd help — tap one to open it.</p>
+
       <ul className={styles.tipList}>
         {TIPS.map((tip) => (
-          <li key={tip.title} className={styles.tip}>
-            <strong>{tip.title}</strong>
-            <p>{tip.body}</p>
-            <span className={styles.location}>{tip.location}</span>
+          <li key={tip.title}>
+            <Link to="/settings?tab=practice" onClick={onClose} className={styles.tip}>
+              <strong>{tip.title}</strong>
+              <p>{tip.body}</p>
+              <span className={styles.location}>{tip.cta} →</span>
+            </Link>
           </li>
         ))}
       </ul>
