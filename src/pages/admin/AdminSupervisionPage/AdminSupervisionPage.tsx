@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 import jsPDF from "jspdf";
@@ -372,6 +373,15 @@ export default function AdminSupervisionPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ManualRow | null>(null);
+
+  // ?new=true (from the page walkthrough's CTA) opens the Add session modal.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setModalOpen(true);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const currentYear = new Date().getFullYear();
 

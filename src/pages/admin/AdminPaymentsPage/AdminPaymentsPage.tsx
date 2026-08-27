@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -131,6 +131,15 @@ const AdminPaymentsPage = () => {
   const [selectedClientId, setSelectedClientId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
+
+  // ?new=true (from the page walkthrough's CTA) opens the Add payment modal.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setAddPaymentOpen(true);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
   const [stubSessions, setStubSessions] = useState<StubSession[]>([]);
   const [manualPayments, setManualPayments] = useState<ManualPayment[]>([]);
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);

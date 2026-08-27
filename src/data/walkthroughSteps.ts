@@ -52,6 +52,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Check-ins to complete",
         body: "Any forms your counsellor has asked you to fill in appear here when they're due. Press 'Start' to open one. Once you send it back, it disappears until it's due again.",
         target: "#client-checkins",
+        actions: [{ label: "Go to my check-ins", to: "/check-in" }],
       },
     ],
   },
@@ -184,6 +185,10 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Quick actions",
         body: "These buttons jump straight to booking a session, inviting a client, building a form, or setting your availability — each one opens on the right page with that task ready to go.",
         target: "#dash-quick-actions",
+        actions: [
+          { label: "Book a session", to: "/admin/scheduler?newSession=1" },
+          { label: "Invite a client", to: "/admin/clients?new=true" },
+        ],
       },
       {
         id: "admin-alerts",
@@ -295,6 +300,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         order: 2,
         title: "New form and tags",
         body: "'+ New form' starts one from scratch. The dropdown also has 'Manage tags', which help you group and filter forms once you have a few.",
+        actions: [{ label: "Create a form", to: "/admin/forms?new=true" }],
       },
       {
         id: "admin-forms-cards",
@@ -326,6 +332,10 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         order: 2,
         title: "Booking a session",
         body: "'Create new session' books one — pick a client (offline clients included), then set the time and details. The dropdown adds two shortcuts: 'Add private event' to block out time, and 'Manage availability' to set your regular hours and one-off changes like holidays.",
+        actions: [
+          { label: "Book a session", to: "/admin/scheduler?newSession=1" },
+          { label: "Set availability", to: "/admin/scheduler?availability=1" },
+        ],
       },
       {
         id: "scheduler-booking",
@@ -351,6 +361,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         order: 2,
         title: "Add payment and filter",
         body: "'Add payment' records a cash or bank transfer by hand — choose the session, enter the amount, and its status updates everywhere. The dropdown next to it narrows the list to one client.",
+        actions: [{ label: "Add a payment", to: "/admin/payments?new=true" }],
       },
       {
         id: "payments-pending",
@@ -376,6 +387,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         order: 2,
         title: "Add resource",
         body: "'+ Add resource' lets you upload or link an article, PDF, worksheet, or YouTube video.",
+        actions: [{ label: "Add a resource", to: "/admin/resources?new=true" }],
       },
       {
         id: "admin-resources-visibility",
@@ -404,6 +416,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Add entry and export",
         body: "'Add entry' logs a new activity. The dropdown's 'Export…' lets you download your full log as a spreadsheet or PDF.",
         target: "#cpd-header",
+        actions: [{ label: "Add an entry", to: "/admin/cpd?new=true" }],
       },
       {
         id: "cpd-progress",
@@ -440,6 +453,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Add session and export",
         body: "'Add session' logs an entry — date, supervisor, length, and optional cost. The dropdown exports the log as a PDF.",
         target: "#supervision-header",
+        actions: [{ label: "Log a session", to: "/admin/supervision?new=true" }],
       },
       {
         id: "supervision-stats",
