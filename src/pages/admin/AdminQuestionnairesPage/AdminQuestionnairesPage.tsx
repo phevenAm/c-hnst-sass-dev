@@ -184,7 +184,8 @@ function QuestionnaireBuilder({
       onClose();
       return;
     }
-    if (!title.trim() || questions.some((q) => !q.text.trim())) {
+    const isOnboarding = formType === "onboarding";
+    if (!title.trim() || (!isOnboarding && questions.some((q) => !q.text.trim()))) {
       alert("Please fill in a title and all question texts");
       return;
     }
@@ -193,8 +194,10 @@ function QuestionnaireBuilder({
       description,
       frequency: frequency ?? null,
       form_type: formType,
-      pdf_url: formType === "onboarding" ? pdfUrl.trim() || null : null,
-      questions,
+      pdf_url: isOnboarding ? pdfUrl.trim() || null : null,
+      // Onboarding forms are document-only — a title + optional PDF the client
+      // reads and signs. They never collect answers, so no questions are kept.
+      questions: isOnboarding ? [] : questions,
     });
     onClose();
   };
@@ -277,141 +280,148 @@ function QuestionnaireBuilder({
         )}
       </div>
 
-      <div className={styles.questionsSection}>
-        <div className={styles.questionsSectionHeader}>
-          <h3>Questions</h3>
-          <Button variant="secondary" size="sm" onClick={addQuestion}>
-            + Add question
-          </Button>
-        </div>
-        {questions.map((q, i) => (
-          <div key={q.id} className={styles.questionBlock}>
-            <div className={styles.questionBlockHeader}>
-              <span className={styles.questionNum}>Q{i + 1}</span>
-              {questions.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeQuestion(q.id)}
-                  aria-label={`Remove question ${i + 1}`}
-                  className={styles.removeBtn}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-            <input
-              value={q.text}
-              onChange={(e) => updateQuestion(q.id, "text", e.target.value)}
-              placeholder="Question text…"
-              className={styles.questionTextInput}
-            />
-            <div className={styles.questionInputs}>
-              <select
-                aria-label="Question type"
-                value={q.type}
-                onChange={(e) => updateQuestion(q.id, "type", e.target.value)}
-              >
-                {QUESTION_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t === "scale" ? "Scale (numeric)" : t === "text" ? "Free text" : "Multiple choice"}
-                  </option>
-                ))}
-              </select>
-              {q.type === "scale" && (
-                <>
-                  <input
-                    value={q.minLabel}
-                    onChange={(e) => updateQuestion(q.id, "minLabel", e.target.value)}
-                    placeholder="Low label"
-                  />
-                  <input
-                    value={q.maxLabel}
-                    onChange={(e) => updateQuestion(q.id, "maxLabel", e.target.value)}
-                    placeholder="High label"
-                  />
-                  <div className={styles.tagField}>
-                    <span>Chart tag</span>
-                    {creatingTagFor === q.id ? (
-                      <div className={styles.newTagInline}>
-                        <input
-                          // biome-ignore lint/a11y/noAutofocus: intentional focus when user requests new tag
-                          autoFocus
-                          value={newTagName}
-                          onChange={(e) => setNewTagName(e.target.value)}
-                          placeholder="Tag name (e.g. Sleep)"
-                          onKeyDown={(e) => e.key === "Enter" && handleCreateTag(q.id)}
-                        />
-                        <button type="button" onClick={() => handleCreateTag(q.id)}>
-                          Add
-                        </button>
-                        <button type="button" onClick={() => setCreatingTagFor(null)}>
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <select
-                        aria-label="Chart tag"
-                        value={q.tag_id ?? ""}
-                        onChange={(e) => {
-                          if (e.target.value === "__new__") {
-                            setCreatingTagFor(q.id);
-                          } else {
-                            updateQuestion(q.id, "tag_id", e.target.value || null);
-                          }
-                        }}
-                      >
-                        <option value="">No tag</option>
-                        {tags.map((tag) => (
-                          <option key={tag.id} value={tag.id}>
-                            {tag.name}
-                          </option>
-                        ))}
-                        <option value="__new__">+ Create new tag…</option>
-                      </select>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-            {q.type === "multiple_choice" && (
-              <div className={styles.optionsEditor}>
-                <div className={styles.optionsEditorHeader}>
-                  <span>Options</span>
-                  <button type="button" className={styles.addOptionBtn} onClick={() => addOption(q.id)}>
-                    + Add option
+      {formType === "onboarding" ? (
+        <p className={styles.fieldHint} style={{ marginTop: "var(--sp-4)" }}>
+          Onboarding forms are document-only — clients read the title and PDF above and sign to agree. They don't
+          collect answers, so there are no questions.
+        </p>
+      ) : (
+        <div className={styles.questionsSection}>
+          <div className={styles.questionsSectionHeader}>
+            <h3>Questions</h3>
+            <Button variant="secondary" size="sm" onClick={addQuestion}>
+              + Add question
+            </Button>
+          </div>
+          {questions.map((q, i) => (
+            <div key={q.id} className={styles.questionBlock}>
+              <div className={styles.questionBlockHeader}>
+                <span className={styles.questionNum}>Q{i + 1}</span>
+                {questions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeQuestion(q.id)}
+                    aria-label={`Remove question ${i + 1}`}
+                    className={styles.removeBtn}
+                  >
+                    ×
                   </button>
-                </div>
-                {q.options.length === 0 && <p className={styles.optionsHint}>Add the choices a client will see.</p>}
-                {q.options.map((opt, oi) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
-                  <div key={oi} className={styles.optionRow}>
+                )}
+              </div>
+              <input
+                value={q.text}
+                onChange={(e) => updateQuestion(q.id, "text", e.target.value)}
+                placeholder="Question text…"
+                className={styles.questionTextInput}
+              />
+              <div className={styles.questionInputs}>
+                <select
+                  aria-label="Question type"
+                  value={q.type}
+                  onChange={(e) => updateQuestion(q.id, "type", e.target.value)}
+                >
+                  {QUESTION_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t === "scale" ? "Scale (numeric)" : t === "text" ? "Free text" : "Multiple choice"}
+                    </option>
+                  ))}
+                </select>
+                {q.type === "scale" && (
+                  <>
                     <input
-                      placeholder="Label (e.g. Not at all)"
-                      value={opt.label}
-                      onChange={(e) => updateOption(q.id, oi, "label", e.target.value)}
+                      value={q.minLabel}
+                      onChange={(e) => updateQuestion(q.id, "minLabel", e.target.value)}
+                      placeholder="Low label"
                     />
                     <input
-                      type="number"
-                      placeholder="Score"
-                      value={opt.value}
-                      onChange={(e) => updateOption(q.id, oi, "value", Number(e.target.value))}
-                      className={styles.optionValueInput}
+                      value={q.maxLabel}
+                      onChange={(e) => updateQuestion(q.id, "maxLabel", e.target.value)}
+                      placeholder="High label"
                     />
-                    <button
-                      type="button"
-                      onClick={() => removeOption(q.id, oi)}
-                      aria-label="Remove option"
-                      className={styles.removeBtn}
-                    >
-                      ×
+                    <div className={styles.tagField}>
+                      <span>Chart tag</span>
+                      {creatingTagFor === q.id ? (
+                        <div className={styles.newTagInline}>
+                          <input
+                            // biome-ignore lint/a11y/noAutofocus: intentional focus when user requests new tag
+                            autoFocus
+                            value={newTagName}
+                            onChange={(e) => setNewTagName(e.target.value)}
+                            placeholder="Tag name (e.g. Sleep)"
+                            onKeyDown={(e) => e.key === "Enter" && handleCreateTag(q.id)}
+                          />
+                          <button type="button" onClick={() => handleCreateTag(q.id)}>
+                            Add
+                          </button>
+                          <button type="button" onClick={() => setCreatingTagFor(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <select
+                          aria-label="Chart tag"
+                          value={q.tag_id ?? ""}
+                          onChange={(e) => {
+                            if (e.target.value === "__new__") {
+                              setCreatingTagFor(q.id);
+                            } else {
+                              updateQuestion(q.id, "tag_id", e.target.value || null);
+                            }
+                          }}
+                        >
+                          <option value="">No tag</option>
+                          {tags.map((tag) => (
+                            <option key={tag.id} value={tag.id}>
+                              {tag.name}
+                            </option>
+                          ))}
+                          <option value="__new__">+ Create new tag…</option>
+                        </select>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              {q.type === "multiple_choice" && (
+                <div className={styles.optionsEditor}>
+                  <div className={styles.optionsEditorHeader}>
+                    <span>Options</span>
+                    <button type="button" className={styles.addOptionBtn} onClick={() => addOption(q.id)}>
+                      + Add option
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+                  {q.options.length === 0 && <p className={styles.optionsHint}>Add the choices a client will see.</p>}
+                  {q.options.map((opt, oi) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: options have no stable id
+                    <div key={oi} className={styles.optionRow}>
+                      <input
+                        placeholder="Label (e.g. Not at all)"
+                        value={opt.label}
+                        onChange={(e) => updateOption(q.id, oi, "label", e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Score"
+                        value={opt.value}
+                        onChange={(e) => updateOption(q.id, oi, "value", Number(e.target.value))}
+                        className={styles.optionValueInput}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeOption(q.id, oi)}
+                        aria-label="Remove option"
+                        className={styles.removeBtn}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </Modal>
   );
 }
@@ -826,6 +836,10 @@ export default function AdminQuestionnairesPage() {
             // there's nothing here to edit, and "reset to default" makes no
             // sense for something that was never customised.
             const isRcads = !!(q as any).is_rcads;
+            let itemSummary: string;
+            if (isRcads) itemSummary = "47 items · scored automatically";
+            else if (formType === "onboarding") itemSummary = "Document only";
+            else itemSummary = `${q.questions.length} question${q.questions.length !== 1 ? "s" : ""}`;
             return (
               <Card key={q.id}>
                 <div className={styles.qCard}>
@@ -840,9 +854,7 @@ export default function AdminQuestionnairesPage() {
                       </div>
                       <p className={styles.qDesc}>{q.description}</p>
                       <p className={styles.qMeta}>
-                        {isRcads
-                          ? "47 items · scored automatically"
-                          : `${q.questions.length} question${q.questions.length !== 1 ? "s" : ""}`}
+                        {itemSummary}
                         {formType === "outcome_measure" && q.frequency ? ` · ${q.frequency}` : ""}
                         {` · ${q.assignedTo?.length ?? 0} client${(q.assignedTo?.length ?? 0) !== 1 ? "s" : ""} assigned`}
                       </p>
