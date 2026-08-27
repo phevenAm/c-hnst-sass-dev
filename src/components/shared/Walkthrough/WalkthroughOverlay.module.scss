@@ -57,7 +57,10 @@ $card-width: 440;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
+  // Lift the card clearly off the dimmed page: a thin accent ring plus a
+  // deeper shadow so it reads as the focused surface, not part of the backdrop.
   box-shadow:
+    0 0 0 2px var(--accent),
     var(--shadow-xl),
     0 0 0 1px rgba(0, 0, 0, 0.04);
   padding: var(--sp-4) var(--sp-4) var(--sp-3);
@@ -163,7 +166,7 @@ $card-width: 440;
   width: 5px;
   height: 5px;
   border-radius: var(--r-full);
-  background: var(--border);
+  background: var(--text-muted);
   transition: background var(--transition-base), transform var(--transition-base);
   flex-shrink: 0;
 }
@@ -177,7 +180,7 @@ $card-width: 440;
   @include flex-center;
   border: none;
   background: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   border-radius: var(--r-sm);
   cursor: pointer;
   padding: 3px;
@@ -204,16 +207,16 @@ $card-width: 440;
 // ── Content ──────────────────────────────────────────────────────────────────
 
 .stepTitle {
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 var(--sp-2);
   line-height: 1.35;
 }
 
 .stepBody {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.9rem;
+  color: var(--text-primary);
   line-height: 1.6;
   margin: 0;
 }
@@ -269,9 +272,11 @@ $card-width: 440;
 .btnDismiss {
   @extend %btn-base;
   background: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   padding-left: 0;
-  font-size: 0.775rem;
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 
   &:hover {
     color: var(--text-primary);

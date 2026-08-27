@@ -15,10 +15,10 @@ import { fetchAllUsers, selectClientUsers } from "@store/slices/userDirectorySli
 
 import { clientDisplayName, isPageStatusLoading, pickColor } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
-import { fetchClientStubs } from "@/store/slices/clientStubsSlice";
+import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import TodoListCard from "../Blocks/TodoList/TodoListCard";
 import TrendChart from "./Blocks/TrendChart/TrendChart";
-import UpcomingSessions from "./Blocks/UpcomingSessions/UpcomingSessions";
+import UpcomingSessions, { type UpcomingStubSession } from "./Blocks/UpcomingSessions/UpcomingSessions";
 import {
   mergeTrendPoints,
   revenueByMonth,
@@ -53,6 +53,7 @@ function timeAgo(iso: string): string {
 export default function AdminDashboard() {
   const { userProfile, practiceSettings } = useAuth();
   const allClients = useAppSelector(selectClientUsers);
+  const allStubs = useAppSelector(selectAllStubs);
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
@@ -66,7 +67,7 @@ export default function AdminDashboard() {
   // transfer) payments silently don't count towards revenue — see the same
   // fix on AdminPaymentsPage.
   const [stubSessions, setStubSessions] = useState<
-    { scheduled_at: string; amount_paid: number | null; paid: boolean; price_pence: number | null }[]
+    (UpcomingStubSession & { amount_paid: number | null; price_pence: number | null })[]
   >([]);
   const [manualPayments, setManualPayments] = useState<{ paid_at: string; amount_pence: number }[]>([]);
 
@@ -93,7 +94,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     supabase
       .from("stub_sessions")
-      .select("scheduled_at, amount_paid, paid, price_pence")
+      .select("id, stub_id, scheduled_at, duration_minutes, status, location, amount_paid, paid, price_pence")
       .neq("status", "cancelled")
       .then(({ data }) => data && setStubSessions(data));
     supabase
@@ -198,6 +199,8 @@ export default function AdminDashboard() {
               <UpcomingSessions
                 sessions={allSessions}
                 clients={allClients}
+                stubSessions={stubSessions}
+                stubs={allStubs}
                 useCodenames={practiceSettings?.use_client_codenames ?? false}
                 limit={5}
               />

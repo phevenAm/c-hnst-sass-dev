@@ -436,8 +436,8 @@ export const MoonIcon = () => (
 
 export const MenuIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="1.25rem"
+    height="1.25rem"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -453,8 +453,8 @@ export const MenuIcon = () => (
 
 export const CloseIcon = () => (
   <svg
-    width="20"
-    height="20"
+    width="1.25rem"
+    height="1.25rem"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"

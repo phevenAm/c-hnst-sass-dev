@@ -40,8 +40,10 @@ $max-width-sm: 640px;
 $max-width-md: 768px;
 $max-width-lg: 1024px;
 $max-width-xl: 1200px;
-$navbar-height: 68px;
-$footer-height: 52px;
+// rem, not px, so the chrome grows with the Settings → app-zoom preference
+// (root font-size is scaled by --app-zoom; everything else here is already rem)
+$navbar-height: 4.25rem; // 68px at 100%
+$footer-height: 3.25rem; // 52px at 100%
 
 // ── Breakpoints ────────────────────────────────────────────
 $bp-sm: 640px;

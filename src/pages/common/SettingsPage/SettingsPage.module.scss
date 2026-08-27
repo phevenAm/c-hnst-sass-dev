@@ -230,6 +230,25 @@
   gap: $sp-2;
 }
 
+// ── Client Interface card ──────────────────────────────────
+// The admin Interface tab wraps every section in .businessSection (padding
+// comes from there + the collapsible header). The client card has no
+// header, so it carries its own inset like .keywords / .left do.
+.clientPrefs {
+  padding: $sp-5 $sp-6 $sp-6;
+
+  h2 {
+    @extend .sectionTitle;
+  }
+
+  > p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
 .chip {
   padding: 0.4rem 1rem;
   border-radius: var(--r-full);
@@ -447,6 +466,13 @@
   align-items: flex-start;
   gap: $sp-3;
   padding: $sp-4 0;
+
+  // a bare <select> here would stretch full-bleed — keep it to a sane width
+  .select {
+    width: auto;
+    min-width: 12rem;
+    max-width: 100%;
+  }
 }
 
 // ── Segmented control ──────────────────────────────────────

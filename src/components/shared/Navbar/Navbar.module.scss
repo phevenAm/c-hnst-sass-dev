@@ -64,6 +64,13 @@
   display: flex;
   align-items: center;
   color: var(--text-primary);
+
+  // rem, not the px size prop, so the mark scales with the app-zoom preference
+  svg,
+  img {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
 }
 
 .logoText {
@@ -294,8 +301,8 @@
     color: var(--accent-light);
 
     svg {
-      width: 14px;
-      height: 14px;
+      width: 0.875rem; // 14px at 100%, scales with app-zoom
+      height: 0.875rem;
     }
   }
 }

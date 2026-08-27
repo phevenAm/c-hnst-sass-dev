@@ -933,23 +933,67 @@ const SettingsPage = () => {
         {/* ── Interface (clients only — admins have their own tab below) ── */}
         {!isAdmin && (
           <Card className={styles.card}>
-            <h2>Interface</h2>
-            <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
-              <label htmlFor="appZoomClient">App zoom</label>
-              <select
-                id="appZoomClient"
-                value={appZoom}
-                onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
-                className={styles.select}
-              >
-                {APP_ZOOM_LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {Math.round(level * 100)}%
-                  </option>
-                ))}
-              </select>
-              <p className={styles.toggleHint}>Scales the whole app on this device — useful on smaller screens.</p>
-            </div>
+            <section className={styles.clientPrefs}>
+              <h2>Interface</h2>
+              <p>These settings only affect this device.</p>
+
+              <label className={styles.toggleRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Stop animations</strong>
+                  <span>Disables all transitions and animations across the app</span>
+                </span>
+                <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
+                  <input
+                    type="checkbox"
+                    className={styles.toggleInput}
+                    checked={reduceMotion}
+                    onChange={(e) => setReduceMotion(e.target.checked)}
+                  />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
+
+              <div className={styles.settingRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>App zoom</strong>
+                  <span>Scales the whole app — useful on smaller screens</span>
+                </span>
+                <select
+                  id="appZoomClient"
+                  aria-label="App zoom"
+                  value={appZoom}
+                  onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
+                  className={styles.select}
+                >
+                  {APP_ZOOM_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {Math.round(level * 100)}%
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.settingRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Guided tours</strong>
+                  <span>
+                    {walkthroughOff
+                      ? "Walkthroughs are turned off."
+                      : "Walkthroughs play the first time you open each page."}
+                  </span>
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    resetWalkthrough();
+                    showToast("Walkthroughs reset — they'll play again on each page.", "success");
+                  }}
+                >
+                  Reset walkthroughs
+                </Button>
+              </div>
+            </section>
           </Card>
         )}
 
@@ -1911,7 +1955,7 @@ const SettingsPage = () => {
               searchQuery={interfaceSearch}
             >
               <section className={styles.businessSection}>
-                <p>Adjust the app's visual behaviour.</p>
+                <p>Adjust how the app looks and moves. These settings only affect your own browser.</p>
                 <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
                     <strong>Stop animations</strong>
@@ -1927,10 +1971,15 @@ const SettingsPage = () => {
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
-                <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
-                  <label htmlFor="appZoomAdmin">App zoom</label>
+
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>App zoom</strong>
+                    <span>Scales the whole app on this device — useful on smaller screens</span>
+                  </span>
                   <select
                     id="appZoomAdmin"
+                    aria-label="App zoom"
                     value={appZoom}
                     onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
                     className={styles.select}
@@ -1941,10 +1990,29 @@ const SettingsPage = () => {
                       </option>
                     ))}
                   </select>
-                  <p className={styles.toggleHint}>
-                    Scales the whole app on this device — useful on smaller screens. Only affects your own browser, not
-                    other admins.
-                  </p>
+                </div>
+
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Sidebar expand button</strong>
+                    <span>Where the sidebar's open/close toggle sits vertically</span>
+                  </span>
+                  <div className={styles.segmented}>
+                    {(["top", "middle", "bottom"] as const).map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
+                        onClick={() => {
+                          setSidebarBtnPos(pos);
+                          localStorage.setItem("adminSidebarBtnPos", pos);
+                          window.dispatchEvent(new CustomEvent("adminBtnPosChange", { detail: pos }));
+                        }}
+                      >
+                        {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </section>
             </SettingsCard>
@@ -1974,35 +2042,6 @@ const SettingsPage = () => {
                   >
                     Reset walkthroughs
                   </Button>
-                </div>
-              </section>
-            </SettingsCard>
-
-            {/* Sidebar */}
-            <SettingsCard title="Sidebar" storageKey="settings:interface:sidebar" searchQuery={interfaceSearch}>
-              <section className={styles.businessSection}>
-                <p>Customise the position of the sidebar expand button.</p>
-                <div className={styles.settingRow}>
-                  <span className={styles.toggleLabel}>
-                    <strong>Expand button position</strong>
-                    <span>Where the sidebar toggle sits vertically</span>
-                  </span>
-                  <div className={styles.segmented}>
-                    {(["top", "middle", "bottom"] as const).map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
-                        onClick={() => {
-                          setSidebarBtnPos(pos);
-                          localStorage.setItem("adminSidebarBtnPos", pos);
-                          window.dispatchEvent(new CustomEvent("adminBtnPosChange", { detail: pos }));
-                        }}
-                      >
-                        {pos.charAt(0).toUpperCase() + pos.slice(1)}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </section>
             </SettingsCard>

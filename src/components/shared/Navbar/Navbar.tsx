@@ -114,7 +114,11 @@ export default function Navbar() {
         >
           <div className={styles.logoMark}>
             {practiceLogoUrl ? (
-              <img src={practiceLogoUrl} alt="Logo" style={{ width: 20, height: 20, objectFit: "contain" }} />
+              <img
+                src={practiceLogoUrl}
+                alt="Logo"
+                style={{ width: "1.25rem", height: "1.25rem", objectFit: "contain" }}
+              />
             ) : (
               <LeafLogoMark size={20} />
             )}
