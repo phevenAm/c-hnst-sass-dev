@@ -4,7 +4,11 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  // Above the admin sidebar + its flyouts (200/201/300) and the full-app
+  // ConsentModal gate (210), so a Modal opened from inside any of those
+  // (e.g. PdfViewer's "Open full page" within ConsentModal) isn't hidden
+  // behind them. Still well below toasts (9999) and the walkthrough (9010+).
+  z-index: 500;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);

@@ -71,8 +71,13 @@ export default function PdfViewer({ url, title }: Props) {
 
   return (
     <div className={styles.wrapper}>
-      <div ref={previewRef} className={styles.preview}>
-        <PageStack url={url} width={previewWidth} onLoadError={() => setLoadFailed(true)} />
+      {/* Scroll container is padded; the ref sits on an unpadded inner column
+          so the measured width is the real space a <Page> canvas can fill —
+          measuring the padded box made every canvas overflow its own padding. */}
+      <div className={styles.preview}>
+        <div ref={previewRef} className={styles.pageCol}>
+          <PageStack url={url} width={previewWidth} onLoadError={() => setLoadFailed(true)} />
+        </div>
       </div>
 
       <div className={styles.actions}>
@@ -90,8 +95,10 @@ export default function PdfViewer({ url, title }: Props) {
 
       {fullPageOpen && (
         <Modal title={title} onClose={() => setFullPageOpen(false)} size="full">
-          <div ref={fullRef} className={styles.fullPage}>
-            <PageStack url={url} width={fullWidth} onLoadError={() => setFullPageOpen(false)} />
+          <div className={styles.fullPage}>
+            <div ref={fullRef} className={styles.pageCol}>
+              <PageStack url={url} width={fullWidth} onLoadError={() => setFullPageOpen(false)} />
+            </div>
           </div>
         </Modal>
       )}
