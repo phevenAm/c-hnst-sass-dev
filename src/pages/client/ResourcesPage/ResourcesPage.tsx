@@ -28,7 +28,9 @@ function getResourceButtonLabel(type: string): string {
 
 //TODO: could do with a search to find things by words and even have a favourites. (add a star icon to the card to favourite it, and then have a filter for favourites)
 
-function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () => void }) {
+// Exported so the admin Resources page can reuse it for a client's-eye
+// "Preview" of a resource before it's published.
+export function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () => void }) {
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — close button provides keyboard path
     <div className={styles.modalOverlay} onClick={onClose} role="presentation">

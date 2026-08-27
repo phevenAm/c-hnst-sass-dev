@@ -19,6 +19,7 @@ import {
 } from "@store/slices/resourcesSlice";
 
 import { isPageStatusLoading } from "@/Helpers/Helpers";
+import { ResourceModal } from "@/pages/client/ResourcesPage/ResourcesPage";
 import { ResourceForm } from "./AdminResourcesPageForm";
 
 import styles from "./AdminResourcesPage.module.scss";
@@ -61,6 +62,7 @@ export default function AdminResourcesPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [previewResource, setPreviewResource] = useState<Resource | null>(null);
   const [typeFilter, setTypeFilter] = useState<(typeof RESOURCE_TYPES)[number]>("all");
 
   const resourcesStatus = useAppSelector((state: RootState) => state.resources.status);
@@ -151,6 +153,10 @@ export default function AdminResourcesPage() {
                 </div>
 
                 <div className={styles.resourceActions}>
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewResource(resource)}>
+                    Preview
+                  </Button>
+
                   <Button
                     variant="secondary"
                     size="sm"
@@ -214,6 +220,8 @@ export default function AdminResourcesPage() {
           onClose={() => setEditingResource(null)}
         />
       )}
+
+      {previewResource && <ResourceModal resource={previewResource} onClose={() => setPreviewResource(null)} />}
     </div>
   );
 }
