@@ -19,8 +19,8 @@
 }
 
 .fullPage {
-  height: 100%;
-  overflow-y: auto;
+  // The modal body already scrolls; this is just the width context + padding.
+  width: 100%;
   padding: $sp-5;
 }
 

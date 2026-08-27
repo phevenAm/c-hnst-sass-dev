@@ -28,15 +28,30 @@ function usePageWidth() {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Measure synchronously, before paint, so the very first render already
-    // uses the container's real final width — waiting for ResizeObserver's
-    // first (async) callback risked capturing a width mid-layout (e.g. while
-    // a parent modal was still settling), which then never corrected itself
-    // since ResizeObserver only fires again on an actual subsequent change.
-    setWidth(el.getBoundingClientRect().width);
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+
+    // clientWidth is the untransformed layout width (unlike
+    // getBoundingClientRect, which is affected by any scale animation on a
+    // parent modal). Measure now, then keep re-measuring for a handful of
+    // frames — the container is often still settling when this first runs
+    // (modal opening, flex layout resolving, a scrollbar appearing), and
+    // "Open full page" in particular mounts into a container that hasn't
+    // reached its final size yet.
+    const measure = () => setWidth(el.clientWidth || undefined);
+    measure();
+
+    let frame = 0;
+    let raf = requestAnimationFrame(function tick() {
+      measure();
+      if (++frame < 12) raf = requestAnimationFrame(tick);
+    });
+
+    const observer = new ResizeObserver(() => measure());
     observer.observe(el);
-    return () => observer.disconnect();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
   }, []);
 
   return [ref, width] as const;
@@ -53,20 +68,28 @@ function PageStack({ url, width, onLoadError }: { url: string; width?: number; o
       onLoadSuccess={({ numPages: n }) => setNumPages(n)}
       onLoadError={onLoadError}
     >
-      {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNumber) => (
-        <Page
-          key={pageNumber}
-          pageNumber={pageNumber}
-          width={width}
-          className={styles.page}
-          // We only need the rendered image. The text + annotation layers
-          // need their own CSS (which we don't ship) — without it they spill
-          // as mispositioned overlay text on top of / below the canvas, which
-          // is what made multi-page docs look broken.
-          renderTextLayer={false}
-          renderAnnotationLayer={false}
-        />
-      ))}
+      {/* Don't render the pages until the container has a real measured
+          width — rendering at react-pdf's native size first (and hoping a
+          later re-measure fixes it) is what left the full-page view stuck
+          small. Wait for the width, then render every page at that size. */}
+      {!width || numPages === 0 ? (
+        <Spinner />
+      ) : (
+        Array.from({ length: numPages }, (_, i) => i + 1).map((pageNumber) => (
+          <Page
+            key={pageNumber}
+            pageNumber={pageNumber}
+            width={width}
+            className={styles.page}
+            // We only need the rendered image. The text + annotation layers
+            // need their own CSS (which we don't ship) — without it they spill
+            // as mispositioned overlay text around the canvas, which is what
+            // made multi-page docs look broken.
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+          />
+        ))
+      )}
     </Document>
   );
 }
