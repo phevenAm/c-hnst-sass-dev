@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useWalkthrough } from "@context/WalkthroughContext";
 
@@ -21,6 +22,18 @@ const SPOTLIGHT_PAD = 10;
 const CARD_GAP = 14;
 const CARD_WIDTH = 440;
 const VIEWPORT_PAD = 16;
+
+// Viewport-relative rect of a target element, padded, ready for the fixed
+// spotlight div.
+function measureTarget(el: HTMLElement): SpotlightRect {
+  const r = el.getBoundingClientRect();
+  return {
+    top: r.top - SPOTLIGHT_PAD,
+    left: r.left - SPOTLIGHT_PAD,
+    width: r.width + SPOTLIGHT_PAD * 2,
+    height: r.height + SPOTLIGHT_PAD * 2,
+  };
+}
 
 function calcCardPos(sl: SpotlightRect, cardHeight: number): CardPos {
   const idealLeft = sl.left + sl.width / 2 - CARD_WIDTH / 2;
@@ -79,13 +92,19 @@ function DeclineMessage() {
 export default function WalkthroughOverlay() {
   const { isActive, currentStep, currentPage, currentStepIndex, totalSteps, nextStep, prevStep, skipPage, dismissAll } =
     useWalkthrough();
+  const navigate = useNavigate();
+
+  // A step's CTA button: end this page's tour, then go do the thing.
+  const runStepAction = (to: string) => {
+    skipPage();
+    navigate(to);
+  };
 
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
   const [cardPos, setCardPos] = useState<CardPos | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
 
   const cardRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reposition = useCallback(
     (sl: SpotlightRect) => {
@@ -95,66 +114,95 @@ export default function WalkthroughOverlay() {
     [isExpanded],
   );
 
+  const stepTarget = currentStep?.target;
+
+  // Acquire the target for the current step and settle the spotlight over it.
+  // The previous version measured once, 350ms after kicking off a smooth
+  // scroll — a fixed guess that lost the target on longer pages, slower
+  // devices, or when the element hadn't rendered yet (data still loading).
+  // Now: retry until the element exists, then rAF-poll getBoundingClientRect
+  // until it stops moving (scroll finished) or a hard cap is hit.
   useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    if (!isActive || !currentStep?.target) {
+    if (!isActive || !stepTarget) {
       setSpotlight(null);
       setCardPos(null);
       setIsExpanded(true);
       return;
     }
 
-    const el = document.querySelector<HTMLElement>(currentStep.target);
-    if (!el) {
-      setSpotlight(null);
-      setCardPos(null);
-      setIsExpanded(true);
-      return;
-    }
+    let rafId = 0;
+    let cancelled = false;
+    let didScroll = false;
+    let stableFrames = 0;
+    let lastTop = Number.NaN;
+    const startedAt = performance.now();
 
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const tick = () => {
+      if (cancelled) return;
+      const el = document.querySelector<HTMLElement>(stepTarget);
 
-    timerRef.current = setTimeout(() => {
-      const rect = el.getBoundingClientRect();
-      const sl: SpotlightRect = {
-        top: rect.top - SPOTLIGHT_PAD,
-        left: rect.left - SPOTLIGHT_PAD,
-        width: rect.width + SPOTLIGHT_PAD * 2,
-        height: rect.height + SPOTLIGHT_PAD * 2,
-      };
+      if (!el) {
+        // not in the DOM yet — keep looking for up to 2s, then give up
+        if (performance.now() - startedAt < 2000) rafId = requestAnimationFrame(tick);
+        else setSpotlight(null);
+        return;
+      }
+
+      if (!didScroll) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        didScroll = true;
+      }
+
+      const sl = measureTarget(el);
       setSpotlight(sl);
-    }, 350);
 
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      const settled = Math.abs(sl.top - lastTop) < 0.5;
+      lastTop = sl.top;
+      stableFrames = settled ? stableFrames + 1 : 0;
+
+      // commit once the position holds for 3 frames, or after 800ms
+      if (stableFrames < 3 && performance.now() - startedAt < 800) {
+        rafId = requestAnimationFrame(tick);
+      }
     };
-  }, [isActive, currentStepIndex]); // index (primitive) is more reliable than object reference
+
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
+  }, [isActive, currentStepIndex, stepTarget]); // index (primitive) is more reliable than object reference
 
   useLayoutEffect(() => {
     if (spotlight) reposition(spotlight);
   }, [spotlight, isExpanded, reposition]);
 
+  // Keep the spotlight glued to its target through scrolling, resizes and
+  // late layout shifts (images, async content) for as long as the step is up.
   useEffect(() => {
-    if (!isActive || !currentStep?.target) return;
+    if (!isActive || !stepTarget) return;
 
-    function handleResize() {
-      const el = document.querySelector<HTMLElement>(currentStep!.target!);
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const sl: SpotlightRect = {
-        top: rect.top - SPOTLIGHT_PAD,
-        left: rect.left - SPOTLIGHT_PAD,
-        width: rect.width + SPOTLIGHT_PAD * 2,
-        height: rect.height + SPOTLIGHT_PAD * 2,
-      };
-      setSpotlight(sl);
-      reposition(sl);
-    }
+    let rafId = 0;
+    const remeasure = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLElement>(stepTarget);
+        if (el) setSpotlight(measureTarget(el));
+      });
+    };
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isActive, currentStep, reposition]);
+    window.addEventListener("scroll", remeasure, { passive: true, capture: true });
+    window.addEventListener("resize", remeasure);
+    const ro = new ResizeObserver(remeasure);
+    ro.observe(document.body);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", remeasure, { capture: true } as EventListenerOptions);
+      window.removeEventListener("resize", remeasure);
+      ro.disconnect();
+    };
+  }, [isActive, stepTarget]);
 
   const hasTarget = !!currentStep?.target;
   const isLastStep = currentStepIndex === totalSteps - 1;
@@ -243,6 +291,20 @@ export default function WalkthroughOverlay() {
             {isExpanded && (
               <>
                 <p className={styles.stepBody}>{currentStep.body}</p>
+                {currentStep.actions && currentStep.actions.length > 0 && (
+                  <div className={styles.stepActions}>
+                    {currentStep.actions.slice(0, 2).map((action) => (
+                      <button
+                        key={`${action.to}|${action.label}`}
+                        type="button"
+                        className={styles.btnAction}
+                        onClick={() => runStepAction(action.to)}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className={styles.footer}>
                   <button className={styles.btnDismiss} onClick={dismissAll} title="Turn off all walkthroughs">
                     Don't show again

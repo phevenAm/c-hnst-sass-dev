@@ -274,8 +274,10 @@ textarea {
 }
 
 // ── Admin shell layout ─────────────────────────────────────
-$admin-sidebar-w: 220px;
-$admin-sidebar-collapsed-w: 60px;
+// rem so the body offset tracks the sidebar width when the app is zoomed
+// (must stay in sync with $w / $w-collapsed in AdminSidebar.module.scss)
+$admin-sidebar-w: 13.75rem; // 220px at 100%
+$admin-sidebar-collapsed-w: 3.75rem; // 60px at 100%
 
 .adminShell {
   display: flex;

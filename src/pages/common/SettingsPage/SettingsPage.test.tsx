@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SettingsPage from "./SettingsPage";
 
+// SettingsPage reads ?tab= via useSearchParams; the page is rendered here
+// without a Router, so stub the hook.
+vi.mock("react-router-dom", () => ({
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
+}));
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();

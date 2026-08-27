@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -69,6 +70,15 @@ export default function AdminCpdPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [editing, setEditing] = useState<CpdLog | null>(null);
+
+  // ?new=true (from the page walkthrough's CTA) opens the Add entry modal.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setModalOpen(true);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
   const [target, setTarget] = useState(30);
   const [filterType, setFilterType] = useState<string>("all");
 

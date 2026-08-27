@@ -387,6 +387,9 @@ export default function AdminClientsPage() {
     if (searchParams.get("new") === "true") {
       setShowInviteModal(true);
       setSearchParams({}); // clear it so back/refresh doesn't re-open
+    } else if (searchParams.get("newStub") === "true") {
+      setCreateStubOpen(true);
+      setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
 

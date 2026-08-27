@@ -35,6 +35,12 @@ import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices
 import StubSessionCard from "../AdminStubDetailPage/StubSessionCard";
 import AvailabilityEditor from "./AvailabilityEditor";
 import PrivateEventModal from "./PrivateEventModal";
+import {
+  computeOverviewStats,
+  filterAndSortByScope,
+  type ListScope,
+  toOverviewSessions,
+} from "./schedulerOverviewUtils";
 
 import styles from "./AdminScheduler.module.scss";
 
@@ -59,6 +65,12 @@ import styles from "./AdminScheduler.module.scss";
 // ============================================================
 
 type SchedulerPeriod = "all" | "day" | "week" | "month" | "year";
+
+const SCOPES: { value: ListScope; label: string }[] = [
+  { value: "upcoming", label: "Upcoming" },
+  { value: "past", label: "Past" },
+  { value: "all", label: "All" },
+];
 
 const PERIODS: { value: SchedulerPeriod; label: string }[] = [
   { value: "all", label: "All" },
@@ -128,6 +140,8 @@ const AdminScheduler = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   // Session-totals period filter.
   const [period, setPeriod] = useState<SchedulerPeriod>("all");
+  // Session list scope: past (default), upcoming, or everything.
+  const [scope, setScope] = useState<ListScope>("past");
   // Whether to email the client when confirming a drag-and-drop reschedule.
   const [notifyOnDrop, setNotifyOnDrop] = useState(true);
 
@@ -245,82 +259,44 @@ const AdminScheduler = () => {
     [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, filteredStubSessions, allStubs],
   );
 
-  // Aggregate counts + payment totals in a single pass. Semantics match the
-  // SessionCard: no-show is strictly attended===false (null = unmarked, not
-  // counted as skipped); revenue/outstanding split on the `paid` flag.
-  const stats = useMemo(() => {
-    const now = Date.now();
-    return filteredSessions.reduce(
-      (acc, s) => {
-        acc.total += 1;
-        if (s.attended === true) acc.attended += 1;
-        if (s.attended === false) acc.skipped += 1;
-        if (s.status === "cancelled") acc.cancelled += 1;
-        if (s.status === "completed") acc.statusCompleted += 1;
-        if (s.status === "rescheduled") acc.statusRescheduled += 1;
-        if (s.status === "scheduled") acc.statusScheduled += 1;
-        if (s.status === "scheduled" && new Date(s.scheduled_at).getTime() > now) acc.upcoming += 1;
-        if (s.paid) {
-          acc.paidCount += 1;
-          acc.revenuePence += s.price_pence ?? 0;
-        } else {
-          acc.outstandingPence += s.price_pence ?? 0;
-        }
-        return acc;
-      },
-      {
-        total: 0,
-        attended: 0,
-        skipped: 0,
-        cancelled: 0,
-        upcoming: 0,
-        paidCount: 0,
-        revenuePence: 0,
-        outstandingPence: 0,
-        statusScheduled: 0,
-        statusCompleted: 0,
-        statusRescheduled: 0,
-      },
-    );
-  }, [filteredSessions]);
+  // Real sessions + offline-client (stub) sessions on one shape, so the donuts
+  // and totals below count both whenever the client filter isn't narrowed to a
+  // single real client. See schedulerOverviewUtils for the normalisation.
+  const overviewSessions = useMemo(
+    () => toOverviewSessions(filteredSessions, filteredStubSessions),
+    [filteredSessions, filteredStubSessions],
+  );
 
-  // Most-recent-first history for the session list below the calendar.
-  // "History" means already happened — future sessions belong on the
-  // calendar/upcoming view, not here.
+  const stats = useMemo(() => computeOverviewStats(overviewSessions), [overviewSessions]);
+
+  // Session list below the calendar. `scope` decides which slice shows:
+  //   past     — already happened, most recent first (the old "history" view)
+  //   upcoming — still to come, soonest first
+  //   all      — everything, soonest first
   const HISTORY_PAGE_SIZE = 10;
   const [historyPage, setHistoryPage] = useState(1);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset the page only when the client filter changes, not on every realtime session update
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset the page only when the client filter or scope changes, not on every realtime session update
   useEffect(() => {
     setHistoryPage(1);
-  }, [selectedClientId]);
+  }, [selectedClientId, scope]);
 
-  const pastSessions = useMemo(
-    () =>
-      filteredSessions
-        .filter((s) => new Date(s.scheduled_at) <= new Date())
-        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()),
-    [filteredSessions],
+  const scopedSessions = useMemo(() => filterAndSortByScope(filteredSessions, scope), [filteredSessions, scope]);
+  const scopedStubSessions = useMemo(
+    () => filterAndSortByScope(filteredStubSessions, scope),
+    [filteredStubSessions, scope],
   );
 
-  const pastStubSessions = useMemo(
-    () =>
-      filteredStubSessions
-        .filter((s) => new Date(s.scheduled_at) <= new Date())
-        .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()),
-    [filteredStubSessions],
-  );
-
-  const historyTotal = isStubSelected ? pastStubSessions.length : pastSessions.length;
+  const historyTotal = isStubSelected ? scopedStubSessions.length : scopedSessions.length;
   const historyPageCount = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE));
 
   const recentSessions = useMemo(
-    () => pastSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
-    [pastSessions, historyPage],
+    () => scopedSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
+    [scopedSessions, historyPage],
   );
 
   const recentStubSessions = useMemo(
-    () => pastStubSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
-    [pastStubSessions, historyPage],
+    () => scopedStubSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
+    [scopedStubSessions, historyPage],
   );
 
   const handleStubSessionUpdated = (updated: StubSession) =>
@@ -333,7 +309,7 @@ const AdminScheduler = () => {
   // Remote = anything not explicitly "in_person" (online/null), per SessionCard.
   const periodStats = useMemo(() => {
     const range = periodRange(period);
-    return filteredSessions.reduce(
+    return overviewSessions.reduce(
       (acc, s) => {
         if (s.status === "cancelled") return acc;
         if (range) {
@@ -347,7 +323,7 @@ const AdminScheduler = () => {
       },
       { minutes: 0, remote: 0, inPerson: 0 },
     );
-  }, [filteredSessions, period]);
+  }, [overviewSessions, period]);
 
   const totalCards = [
     { label: "Total hours", value: `${(periodStats.minutes / 60).toFixed(1)}h`, tone: styles.toneAccent },
@@ -474,21 +450,22 @@ const AdminScheduler = () => {
     setNotifyOnDrop(true);
   };
 
-  // Session-history header — names who "this client" actually is instead of
+  // Session-list header — names who "this client" actually is instead of
   // leaving it generic, so switching the filter visibly changes the label.
   const selectedClientLabel = useMemo(() => {
-    if (selectedClientId === "all") return "Recent across all clients";
+    const prefix = { upcoming: "Upcoming", all: "All", past: "Recent" }[scope];
+    if (selectedClientId === "all") return `${prefix} across all clients`;
     if (isStubSelected) {
       const stub = allStubs.find((s) => s.id === selectedStubId);
-      if (!stub) return "Recent for this client";
+      if (!stub) return `${prefix} for this client`;
       const name = useCodenames
         ? stub.codename || `${stub.first_name} ${stub.last_name}`
         : `${stub.first_name} ${stub.last_name}`;
-      return `Recent for ${name}`;
+      return `${prefix} for ${name}`;
     }
     const client = clients.find((c) => c.id === selectedClientId);
-    return client ? `Recent for ${clientDisplayName(client, useCodenames)}` : "Recent for this client";
-  }, [selectedClientId, isStubSelected, selectedStubId, allStubs, clients, useCodenames]);
+    return client ? `${prefix} for ${clientDisplayName(client, useCodenames)}` : `${prefix} for this client`;
+  }, [scope, selectedClientId, isStubSelected, selectedStubId, allStubs, clients, useCodenames]);
 
   const guard = isPageStatusLoading(sessionsStatus);
   if (guard) return guard;
@@ -641,10 +618,24 @@ const AdminScheduler = () => {
 
         <Card className={styles.sectionCard}>
           <CollapsibleSection
-            title="Session history"
+            title="Sessions"
             storageKey="scheduler:history"
             headerRight={<span className={styles.historyMeta}>{selectedClientLabel}</span>}
           >
+            <div className={styles.totalsHeader}>
+              <div className={styles.periodToggle}>
+                {SCOPES.map((sc) => (
+                  <button
+                    key={sc.value}
+                    type="button"
+                    className={`${styles.periodBtn} ${scope === sc.value ? styles.periodActive : ""}`}
+                    onClick={() => setScope(sc.value)}
+                  >
+                    {sc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {isStubSelected ? (
               recentStubSessions.length > 0 ? (
                 <div className={styles.historyList}>
@@ -652,7 +643,11 @@ const AdminScheduler = () => {
                     <StubSessionCard
                       key={session.id}
                       session={session}
-                      sessionNumber={historyTotal - ((historyPage - 1) * HISTORY_PAGE_SIZE + idx)}
+                      sessionNumber={
+                        scope === "past"
+                          ? historyTotal - ((historyPage - 1) * HISTORY_PAGE_SIZE + idx)
+                          : (historyPage - 1) * HISTORY_PAGE_SIZE + idx + 1
+                      }
                       stubId={selectedStubId!}
                       adminId={userProfile!.id}
                       isDemo={isDemo}
@@ -680,7 +675,7 @@ const AdminScheduler = () => {
                 })}
               </div>
             ) : (
-              <p className={styles.empty}>No past sessions.</p>
+              <p className={styles.empty}>No {scope === "all" ? "" : `${scope} `}sessions.</p>
             )}
             {historyPageCount > 1 && (
               <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-2)", marginTop: "var(--sp-3)" }}>

@@ -14,6 +14,11 @@ import { useAuth } from "./AuthContext";
 export const APP_ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5] as const;
 export type AppZoom = (typeof APP_ZOOM_LEVELS)[number];
 const APP_ZOOM_STORAGE_KEY = "app_zoom";
+// Clients have no practice_settings row, so their reduce-motion preference
+// also lives in localStorage (same rationale as zoom above). Admins keep
+// using the DB-backed practice_settings.reduce_motion so it syncs across
+// their devices.
+const REDUCE_MOTION_STORAGE_KEY = "app_reduce_motion";
 
 function readStoredZoom(): AppZoom {
   try {
@@ -21,6 +26,14 @@ function readStoredZoom(): AppZoom {
     return (APP_ZOOM_LEVELS as readonly number[]).includes(raw) ? (raw as AppZoom) : 1;
   } catch {
     return 1;
+  }
+}
+
+function readStoredReduceMotion(): boolean {
+  try {
+    return window.localStorage.getItem(REDUCE_MOTION_STORAGE_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -57,6 +70,14 @@ export function InterfacePrefsProvider({ children }: { children: React.ReactNode
     document.documentElement.style.setProperty("--app-zoom", String(stored));
   }, []);
 
+  // Clients: apply the localStorage reduce-motion preference once we know the
+  // role isn't admin. Admins get theirs from cachedPrefs below instead.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: applyMotion is a stable per-render closure, not a changing dependency
+  useEffect(() => {
+    if (isAdmin) return;
+    applyMotion(readStoredReduceMotion());
+  }, [isAdmin]);
+
   // hidden_sections/reduce_motion are admin-only prefs — for clients this
   // stays untriggered (no reason to even hold the shared fetch open for
   // them here; Navbar/etc. already trigger it where they need it).
@@ -87,8 +108,16 @@ export function InterfacePrefsProvider({ children }: { children: React.ReactNode
   };
 
   const setReduceMotion = async (v: boolean) => {
-    if (!userProfile?.id) return;
     applyMotion(v);
+    if (!isAdmin) {
+      try {
+        window.localStorage.setItem(REDUCE_MOTION_STORAGE_KEY, v ? "1" : "0");
+      } catch {
+        // private mode / storage disabled — still applies for this load
+      }
+      return;
+    }
+    if (!userProfile?.id) return;
     await supabase.from("practice_settings").update({ reduce_motion: v }).eq("admin_id", userProfile.id);
   };
 

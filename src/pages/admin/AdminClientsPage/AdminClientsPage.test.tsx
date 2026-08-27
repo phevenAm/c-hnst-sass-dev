@@ -91,12 +91,12 @@ test("shows the first-client tips modal once the admin has their first client, a
 
   renderPage();
 
-  expect(await screen.findByText("You've added your first client")).toBeInTheDocument();
+  expect(await screen.findByText("Your first client is set up")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Got it" }));
 
   await waitFor(() => {
     expect(updateSpy).toHaveBeenCalledWith({ first_client_milestone_shown: true });
   });
-  expect(screen.queryByText("You've added your first client")).not.toBeInTheDocument();
+  expect(screen.queryByText("Your first client is set up")).not.toBeInTheDocument();
 });
