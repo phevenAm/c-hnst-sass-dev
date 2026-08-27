@@ -864,8 +864,8 @@ export default function AdminStubDetailPage() {
             </select>
           </div>
           <p className={styles.linkHint}>
-            This will transfer all notes from the offline client to their real account and mark the profiles as linked.
-            Session records remain with the offline client.
+            This moves everything to their real account — notes, sessions and any assigned surveys — and marks the two
+            profiles as linked. This offline record then drops out of your client list.
           </p>
         </Modal>
       )}

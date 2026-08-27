@@ -80,8 +80,14 @@ export function buildUpcomingRows({
       isOffline: false,
     }));
 
+  // A stub that's been linked to a real client is no longer its own client —
+  // its sessions are imported onto the real client (see merge_stub_to_user),
+  // so listing them here too would double them up and point at a person who
+  // isn't in the client list. Mirror the scheduler, which filters the same way.
+  const linkedStubIds = new Set(stubs.filter((st) => st.linked_user_id).map((st) => st.id));
+
   const stubRows: UpcomingRow[] = stubSessions
-    .filter((s) => s.status !== "cancelled" && inWindow(s.scheduled_at))
+    .filter((s) => s.status !== "cancelled" && !linkedStubIds.has(s.stub_id) && inWindow(s.scheduled_at))
     .map((s) => ({
       key: `stub-${s.id}`,
       scheduledAt: s.scheduled_at,
