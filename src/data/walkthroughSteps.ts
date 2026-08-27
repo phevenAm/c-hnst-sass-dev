@@ -77,7 +77,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "sessions-overview",
         order: 1,
         title: "Your sessions",
-        body: "Every session your counsellor books with you appears here — upcoming, done, and cancelled. Your next one is always pinned to the top.",
+        body: "Sessions your counsellor books with you show up here — upcoming, done, and cancelled. If you have one coming up, it's pinned to the top.",
         target: "#sessions-header",
       },
       {
@@ -195,7 +195,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "clients-directory",
         order: 1,
         title: "Your client list",
-        body: "Every client is listed here — full accounts and offline records alike. Click a row to open their profile, with their sessions, notes, forms, and payments.",
+        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. If it's empty, start with 'Invite a client' at the top right.",
         target: "#clients-header",
       },
       {
@@ -333,7 +333,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "payments-intro",
         order: 1,
         title: "Tracking payments",
-        body: "Every payment for every client is listed here — paid, pending, and overdue. Click a column title to sort.",
+        body: "Every payment you record shows up here — paid, pending, and overdue — and it fills up as you book and get paid for sessions. Click a column title to sort.",
         target: "#main-content h1",
       },
       {
@@ -457,7 +457,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "audit-intro",
         order: 1,
         title: "Your activity log",
-        body: "Every important action in your practice is recorded here — clients added or removed, forms created, resources uploaded, notes changed, and more. Each line shows who did it and when.",
+        body: "As you work, important actions get recorded here — clients added or removed, forms created, resources uploaded, notes changed, and more. Each line shows who did it and when.",
         target: "#audit-header",
       },
       {
