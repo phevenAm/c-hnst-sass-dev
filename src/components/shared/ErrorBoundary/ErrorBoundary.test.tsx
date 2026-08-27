@@ -3,6 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ErrorBoundary from "./ErrorBoundary";
 
+const feedbackInsert = vi.fn().mockResolvedValue({ error: null });
+const getSession = vi.fn().mockResolvedValue({ data: { session: { user: { id: "user-1" } } } });
+
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    auth: { getSession: () => getSession() },
+    from: () => ({ insert: (payload: unknown) => feedbackInsert(payload) }),
+    functions: { invoke: vi.fn().mockResolvedValue({}) },
+  },
+}));
+
 function Bomb(): never {
   throw new Error("boom");
 }
@@ -35,6 +46,9 @@ beforeEach(mockLocation);
 afterEach(() => {
   cleanup();
   reloadSpy.mockClear();
+  feedbackInsert.mockClear();
+  getSession.mockClear();
+  getSession.mockResolvedValue({ data: { session: { user: { id: "user-1" } } } });
   vi.restoreAllMocks();
 });
 
@@ -130,5 +144,51 @@ describe("ErrorBoundary", () => {
     fireEvent.click(screen.getByRole("button", { name: /go to dashboard/i }));
 
     expect(window.location.href).toBe("/");
+  });
+
+  it("lets a signed-in user send an error report to the feedback table (happy path)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /report this problem/i }));
+    fireEvent.change(screen.getByLabelText(/what were you doing/i), {
+      target: { value: "clicked save on payments" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send report/i }));
+
+    await waitFor(() => expect(screen.getByText(/your report has been sent/i)).toBeInTheDocument());
+
+    expect(feedbackInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submitter_id: "user-1",
+        type: "bug",
+        message: expect.stringContaining("clicked save on payments"),
+      }),
+    );
+    // diagnostics are appended automatically
+    expect(feedbackInsert.mock.calls[0][0].message).toContain("diagnostics");
+  });
+
+  it("offers an email fallback when the report can't be sent (sad path)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    getSession.mockResolvedValue({ data: { session: null } });
+
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /report this problem/i }));
+    fireEvent.click(screen.getByRole("button", { name: /send report/i }));
+
+    const mailLink = await screen.findByRole("link", { name: /email the report to us/i });
+    expect(mailLink).toHaveAttribute("href", expect.stringContaining("mailto:hello@clarity.app"));
+    expect(feedbackInsert).not.toHaveBeenCalled();
   });
 });

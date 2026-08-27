@@ -40,3 +40,64 @@
   justify-content: center;
   flex-wrap: wrap;
 }
+
+.reportToggle {
+  margin-top: $sp-5;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.report {
+  margin-top: $sp-5;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.reportLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.reportInput {
+  width: 100%;
+  padding: $sp-3;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+}
+
+.reportHint {
+  margin: $sp-4 0 0;
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+
+  a {
+    color: var(--accent-dark);
+    font-weight: 600;
+  }
+}
