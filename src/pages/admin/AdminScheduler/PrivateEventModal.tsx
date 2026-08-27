@@ -26,11 +26,14 @@ import styles from "./PrivateEventModal.module.scss";
 type PrivateEventModalProps = {
   event?: AdminPrivateEvent | null;
   onClose: () => void;
+  // Seed the start time for a new event (the scheduler's click-an-empty-slot
+  // flow). Ignored in edit mode, where the event's own start wins.
+  initialStart?: Dayjs | null;
 };
 
 const nextHour = () => dayjs().add(1, "hour").minute(0).second(0).millisecond(0);
 
-const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
+const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEventModalProps) => {
   const dispatch = useAppDispatch();
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
@@ -38,7 +41,7 @@ const PrivateEventModal = ({ event, onClose }: PrivateEventModalProps) => {
   const isEdit = Boolean(event);
 
   const [title, setTitle] = useState(event?.title ?? "");
-  const [startsAt, setStartsAt] = useState<Dayjs | null>(event ? dayjs(event.starts_at) : nextHour());
+  const [startsAt, setStartsAt] = useState<Dayjs | null>(event ? dayjs(event.starts_at) : (initialStart ?? nextHour()));
   const [durationMinutes, setDurationMinutes] = useState<number>(() => {
     if (!event) return 60;
     return Math.max(1, Math.round((new Date(event.ends_at).getTime() - new Date(event.starts_at).getTime()) / 60000));

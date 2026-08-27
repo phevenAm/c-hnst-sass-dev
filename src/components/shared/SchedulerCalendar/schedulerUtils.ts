@@ -81,9 +81,30 @@ function clientNameFor(session: Session, users: UserProfile[], useCodenames: boo
   return clientDisplayName(u, useCodenames);
 }
 
+// The post-session buffer strip, unless the practice has turned it off
+// (bufferMinutes = 0). Returned as a 0- or 1-length array so callers can spread it.
+function bufferEventFor(id: string, end: Date, bufferMinutes: number): SchedulerEvent[] {
+  if (!bufferMinutes || bufferMinutes <= 0) return [];
+  return [
+    {
+      id: `buffer-${id}`,
+      title: "",
+      start: end,
+      end: dayjs(end).add(bufferMinutes, "minute").toDate(),
+      resource: { type: "buffer" as const, sessionId: id },
+    },
+  ];
+}
+
 // Map real sessions → calendar events. Cancelled sessions render as greyed-out
-// chips without a buffer. Each active session gets a 10-minute buffer after it.
-export function sessionEvents(sessions: Session[], users: UserProfile[], useCodenames = false): SchedulerEvent[] {
+// chips without a buffer. Each active session gets a buffer strip after it whose
+// length is the practice's `session_buffer_minutes` setting (default 10, 0 = off).
+export function sessionEvents(
+  sessions: Session[],
+  users: UserProfile[],
+  useCodenames = false,
+  bufferMinutes = 10,
+): SchedulerEvent[] {
   return sessions.flatMap((s) => {
     const start = new Date(s.scheduled_at);
     const end = dayjs(start)
@@ -108,7 +129,6 @@ export function sessionEvents(sessions: Session[], users: UserProfile[], useCode
       ];
     }
 
-    const bufferEnd = dayjs(end).add(10, "minute").toDate();
     return [
       {
         id: `session-${s.id}`,
@@ -117,21 +137,16 @@ export function sessionEvents(sessions: Session[], users: UserProfile[], useCode
         end,
         resource: { type: "session" as const, session: s, color: colourForClient(s.client_id), clientName },
       },
-      {
-        id: `buffer-${s.id}`,
-        title: "",
-        start: end,
-        end: bufferEnd,
-        resource: { type: "buffer" as const, sessionId: s.id },
-      },
+      ...bufferEventFor(s.id, end, bufferMinutes),
     ];
   });
 }
 
 // Map the signed-in client's OWN sessions to calendar events. All share one
 // calm colour and a generic "Session" label (the client knows they're theirs).
-// Cancelled sessions render as greyed-out chips without a buffer.
-export function clientSessionEvents(sessions: Session[]): SchedulerEvent[] {
+// Cancelled sessions render as greyed-out chips without a buffer. The buffer
+// strip length mirrors the counsellor's `session_buffer_minutes` setting.
+export function clientSessionEvents(sessions: Session[], bufferMinutes = 10): SchedulerEvent[] {
   return sessions.flatMap((s) => {
     const start = new Date(s.scheduled_at);
     const end = dayjs(start)
@@ -155,7 +170,6 @@ export function clientSessionEvents(sessions: Session[]): SchedulerEvent[] {
       ];
     }
 
-    const bufferEnd = dayjs(end).add(10, "minute").toDate();
     return [
       {
         id: `session-${s.id}`,
@@ -164,13 +178,7 @@ export function clientSessionEvents(sessions: Session[]): SchedulerEvent[] {
         end,
         resource: { type: "session" as const, session: s, color: "#3a5568", clientName: "Session" },
       },
-      {
-        id: `buffer-${s.id}`,
-        title: "",
-        start: end,
-        end: bufferEnd,
-        resource: { type: "buffer" as const, sessionId: s.id },
-      },
+      ...bufferEventFor(s.id, end, bufferMinutes),
     ];
   });
 }
@@ -181,6 +189,7 @@ export function stubSessionEvents(
   stubSessions: StubSession[],
   stubs: ClientStub[],
   useCodenames = false,
+  bufferMinutes = 10,
 ): SchedulerEvent[] {
   return stubSessions.flatMap((s) => {
     const stub = stubs.find((st) => st.id === s.stub_id);
@@ -211,7 +220,6 @@ export function stubSessionEvents(
       ];
     }
 
-    const bufferEnd = dayjs(end).add(10, "minute").toDate();
     return [
       {
         id: `stub-session-${s.id}`,
@@ -220,13 +228,7 @@ export function stubSessionEvents(
         end,
         resource: { type: "stub-session" as const, stubSession: s, stub, color: colourForClient(stub.id), clientName },
       },
-      {
-        id: `stub-buffer-${s.id}`,
-        title: "",
-        start: end,
-        end: bufferEnd,
-        resource: { type: "buffer" as const, sessionId: s.id },
-      },
+      ...bufferEventFor(`stub-${s.id}`, end, bufferMinutes),
     ];
   });
 }

@@ -247,6 +247,8 @@ const SettingsPage = () => {
   const [rescheduleCutoffEnabled, setRescheduleCutoffEnabled] = useState(true);
   const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState(48);
   const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
+  const [sessionBufferMinutes, setSessionBufferMinutes] = useState(10);
+  const [savingSessionBuffer, setSavingSessionBuffer] = useState(false);
   const [allowBlockSessionCancellation, setAllowBlockSessionCancellation] = useState(true);
   const [savingBlockCancellation, setSavingBlockCancellation] = useState(false);
   const [adminRemindersEnabled, setAdminRemindersEnabled] = useState(true);
@@ -375,6 +377,7 @@ const SettingsPage = () => {
         setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
         setRescheduleCutoffEnabled(data.reschedule_cutoff_hours != null);
         setRescheduleCutoffHours(data.reschedule_cutoff_hours ?? 48);
+        setSessionBufferMinutes(data.session_buffer_minutes ?? 10);
         setAllowBlockSessionCancellation(data.allow_block_session_cancellation ?? true);
         setAdminRemindersEnabled(data.admin_reminders_enabled ?? true);
         setAdminReminderLeadMinutes(data.admin_reminder_lead_minutes ?? 1440);
@@ -557,6 +560,19 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingRescheduleCutoff(false);
     showToast("Reschedule cutoff saved.");
+  };
+
+  const handleSaveSessionBuffer = async () => {
+    if (guardDemo()) return;
+    if (!userProfile?.id) return;
+    setSavingSessionBuffer(true);
+    await supabase
+      .from("practice_settings")
+      .update({ session_buffer_minutes: sessionBufferMinutes })
+      .eq("admin_id", userProfile.id);
+    await refreshPracticeSettings();
+    setSavingSessionBuffer(false);
+    showToast("Session buffer saved.");
   };
 
   const handleSaveBlockCancellation = async () => {
@@ -1344,6 +1360,7 @@ const SettingsPage = () => {
                 "Calendar sync",
                 "Session automation",
                 "Reschedule & cancellation cutoff",
+                "Session buffer",
                 "Session-prep reminders",
                 "Block booking cancellations",
               ]}
@@ -1539,6 +1556,43 @@ const SettingsPage = () => {
                   disabled={savingRescheduleCutoff}
                 >
                   {savingRescheduleCutoff ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </SettingsCard>
+
+            {/* Session buffer strip on the scheduler calendar */}
+            <SettingsCard title="Session buffer" storageKey="settings:practice:buffer" searchQuery={practiceSearch}>
+              <section className={styles.businessSection}>
+                <p>
+                  A shaded strip drawn on your scheduler calendar after every booked session — a visual gap for notes
+                  and turnaround before the next one. It doesn't block bookings, it's just a guide.
+                </p>
+                <div className={styles.field}>
+                  <label htmlFor="sessionBufferMinutes">Buffer length</label>
+                  <select
+                    id="sessionBufferMinutes"
+                    value={sessionBufferMinutes}
+                    onChange={(e) => setSessionBufferMinutes(Number(e.target.value))}
+                    className={styles.select}
+                  >
+                    <option value={0}>Off — no strip</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={20}>20 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
+                </div>
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveSessionBuffer}
+                  disabled={savingSessionBuffer}
+                >
+                  {savingSessionBuffer ? "Saving…" : "Save"}
                 </Button>
               </div>
             </SettingsCard>

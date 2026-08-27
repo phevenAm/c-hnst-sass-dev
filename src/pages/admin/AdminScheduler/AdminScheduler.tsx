@@ -27,9 +27,10 @@ import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
 import type { AdminPrivateEvent, ClientStub, Session, StubSession, UserProfile } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
-import { fetchPrivateEvents } from "@/store/slices/adminPrivateEventsSlice";
+import { fetchPrivateEvents, updatePrivateEvent } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
+import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import { fetchAllSessions, updateSession } from "@/store/slices/sessionsSlice";
 import { fetchAllUsers, selectAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import StubSessionCard from "../AdminStubDetailPage/StubSessionCard";
@@ -136,6 +137,11 @@ const AdminScheduler = () => {
   // event or the row being edited.
   const [isPrivateOpen, setIsPrivateOpen] = useState(false);
   const [editingPrivate, setEditingPrivate] = useState<AdminPrivateEvent | null>(null);
+  // Click-to-create: the date/time the admin clicked on an empty part of the
+  // grid. While set and no `slotChoice` is made yet, the "what goes here?"
+  // chooser shows; picking an option opens that flow pre-seeded with this time.
+  const [slotStart, setSlotStart] = useState<Date | null>(null);
+  const [slotChoice, setSlotChoice] = useState<null | "session" | "private">(null);
   // Overview client filter: "all" or a specific client id.
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   // Session-totals period filter.
@@ -182,6 +188,11 @@ const AdminScheduler = () => {
   useFetchOnIdle((s: RootState) => s.availability.status, fetchAvailability, "Failed to load availability");
   useFetchOnIdle((s: RootState) => s.adminPrivateEvents.status, fetchPrivateEvents, "Failed to load private events");
   useFetchOnIdle((s: RootState) => s.clientStubs.status, fetchClientStubs, "Failed to load offline clients");
+  useFetchOnIdle(
+    (s: RootState) => s.practiceSettings.status,
+    fetchPracticeSettings,
+    "Failed to load practice settings",
+  );
 
   // Any admin-side session change (from any device) refreshes the grid.
   // duration_minutes>=0 matches every row; RLS still scopes the stream to
@@ -212,6 +223,8 @@ const AdminScheduler = () => {
   const overrides = useAppSelector((s) => s.availability.overrides);
   const privateEvents = useAppSelector((s) => s.adminPrivateEvents.events);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
+  // Post-session buffer strip length (minutes). 0 = practice has turned it off.
+  const bufferMinutes = useAppSelector((s) => s.practiceSettings.data?.session_buffer_minutes ?? 10);
 
   // Derive whether the current filter refers to an offline client (stub) or a
   // real client. Values are either "all", a real user UUID, or "stub:<stubId>".
@@ -253,10 +266,21 @@ const AdminScheduler = () => {
     () => [
       ...availabilityEvents(date, rules, overrides),
       ...privateEventEvents(privateEvents),
-      ...sessionEvents(filteredSessions, users, useCodenames),
-      ...stubSessionEvents(filteredStubSessions, allStubs, useCodenames),
+      ...sessionEvents(filteredSessions, users, useCodenames, bufferMinutes),
+      ...stubSessionEvents(filteredStubSessions, allStubs, useCodenames, bufferMinutes),
     ],
-    [date, rules, overrides, privateEvents, filteredSessions, users, useCodenames, filteredStubSessions, allStubs],
+    [
+      date,
+      rules,
+      overrides,
+      privateEvents,
+      filteredSessions,
+      users,
+      useCodenames,
+      filteredStubSessions,
+      allStubs,
+      bufferMinutes,
+    ],
   );
 
   // Real sessions + offline-client (stub) sessions on one shape, so the donuts
@@ -286,18 +310,37 @@ const AdminScheduler = () => {
     [filteredStubSessions, scope],
   );
 
-  const historyTotal = isStubSelected ? scopedStubSessions.length : scopedSessions.length;
+  // Real and offline-client (stub) sessions interleaved into one list, sorted the
+  // same way filterAndSortByScope sorts each: past = most recent first, otherwise
+  // soonest first. Both `filtered*` arrays already respect the client filter, so
+  // "All clients" shows both, a real client shows only real, a stub only stub.
+  type SessionListRow = { kind: "real"; session: Session } | { kind: "stub"; session: StubSession };
+  const scopedRows = useMemo<SessionListRow[]>(() => {
+    const rows: SessionListRow[] = [
+      ...scopedSessions.map((s): SessionListRow => ({ kind: "real", session: s })),
+      ...scopedStubSessions.map((s): SessionListRow => ({ kind: "stub", session: s })),
+    ];
+    return rows.sort((a, b) => {
+      const diff = new Date(a.session.scheduled_at).getTime() - new Date(b.session.scheduled_at).getTime();
+      return scope === "past" ? -diff : diff;
+    });
+  }, [scopedSessions, scopedStubSessions, scope]);
+
+  const historyTotal = scopedRows.length;
   const historyPageCount = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE));
 
-  const recentSessions = useMemo(
-    () => scopedSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
-    [scopedSessions, historyPage],
+  const pageRows = useMemo(
+    () => scopedRows.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
+    [scopedRows, historyPage],
   );
 
-  const recentStubSessions = useMemo(
-    () => scopedStubSessions.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE),
-    [scopedStubSessions, historyPage],
-  );
+  // A stub session's ordinal within its own client's history (not its position
+  // in the merged list) — matches what the stub detail page shows.
+  const stubSessionNumber = (target: StubSession) =>
+    [...allStubSessions]
+      .filter((s) => s.stub_id === target.stub_id)
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+      .findIndex((s) => s.id === target.id) + 1;
 
   const handleStubSessionUpdated = (updated: StubSession) =>
     setAllStubSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
@@ -359,9 +402,18 @@ const AdminScheduler = () => {
     setIsPrivateOpen(true);
   };
 
+  // Reset the whole click-to-create flow (chooser + whichever modal it opened).
+  const closeSlotFlow = () => {
+    setSlotStart(null);
+    setSlotChoice(null);
+  };
+
+  const slotStartDay = slotStart ? dayjs(slotStart) : null;
+
   const closeNewSessionPicker = () => {
     setNewSessionWithoutId(false);
     setNewSessionClientId(null);
+    closeSlotFlow();
   };
 
   const startNewSessionForClient = (clientId: string) => {
@@ -385,11 +437,29 @@ const AdminScheduler = () => {
     }
   };
 
-  const handleEventDrop = ({ event, start }: EventInteractionArgs<SchedulerEvent>) => {
+  const handleEventDrop = ({ event, start, end }: EventInteractionArgs<SchedulerEvent>) => {
     const r = event.resource;
-    if (r.type !== "session" && r.type !== "stub-session") return;
+    if (r.type !== "session" && r.type !== "stub-session" && r.type !== "private") return;
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
+      return;
+    }
+
+    if (r.type === "private") {
+      // Private events have no client to notify and no overlap rules — just move
+      // them, preserving the duration by shifting starts_at and ends_at together.
+      const newStart = new Date(start as Date);
+      const newEnd = new Date(end as Date);
+      dispatch(
+        updatePrivateEvent({
+          id: r.event.id,
+          starts_at: newStart.toISOString(),
+          ends_at: newEnd.toISOString(),
+        }),
+      ).then((res) => {
+        if (updatePrivateEvent.fulfilled.match(res)) showToast("Private event moved.");
+        else showToast("Failed to move the event.", "danger");
+      });
       return;
     }
 
@@ -600,7 +670,10 @@ const AdminScheduler = () => {
                 <span className={`${styles.swatch} ${styles.swatchPrivate}`} /> Private
               </span>
             </div>
-            <p className={styles.calendarHint}>Drag a session to reschedule it, or click one to view and edit it.</p>
+            <p className={styles.calendarHint}>
+              Drag a session or private event to move it, click one to view and edit it, or click an empty slot to add
+              something there.
+            </p>
 
             <Card className={styles.calendarCard}>
               <SchedulerCalendar
@@ -611,6 +684,11 @@ const AdminScheduler = () => {
                 onView={setView}
                 onSelectEvent={handleSelectEvent}
                 onEventDrop={handleEventDrop}
+                selectable
+                onSelectSlot={({ start }) => {
+                  setSlotChoice(null);
+                  setSlotStart(start);
+                }}
               />
             </Card>
           </CollapsibleSection>
@@ -636,37 +714,28 @@ const AdminScheduler = () => {
                 ))}
               </div>
             </div>
-            {isStubSelected ? (
-              recentStubSessions.length > 0 ? (
-                <div className={styles.historyList}>
-                  {recentStubSessions.map((session, idx) => (
-                    <StubSessionCard
-                      key={session.id}
-                      session={session}
-                      sessionNumber={
-                        scope === "past"
-                          ? historyTotal - ((historyPage - 1) * HISTORY_PAGE_SIZE + idx)
-                          : (historyPage - 1) * HISTORY_PAGE_SIZE + idx + 1
-                      }
-                      stubId={selectedStubId!}
-                      adminId={userProfile!.id}
-                      isDemo={isDemo}
-                      onUpdated={handleStubSessionUpdated}
-                      onDeleted={handleStubSessionDeleted}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className={styles.empty}>No past sessions.</p>
-              )
-            ) : recentSessions.length > 0 ? (
+            {pageRows.length > 0 ? (
               <div className={styles.historyList}>
-                {recentSessions.map((session) => {
-                  const client = clients.find((c) => c.id === session.client_id);
+                {pageRows.map((row) => {
+                  if (row.kind === "stub") {
+                    return (
+                      <StubSessionCard
+                        key={`stub-${row.session.id}`}
+                        session={row.session}
+                        sessionNumber={stubSessionNumber(row.session)}
+                        stubId={row.session.stub_id}
+                        adminId={userProfile?.id ?? ""}
+                        isDemo={isDemo}
+                        onUpdated={handleStubSessionUpdated}
+                        onDeleted={handleStubSessionDeleted}
+                      />
+                    );
+                  }
+                  const client = clients.find((c) => c.id === row.session.client_id);
                   return (
                     <SessionCard
-                      key={session.id}
-                      session={session}
+                      key={row.session.id}
+                      session={row.session}
                       isAdmin
                       isDemo={isDemo}
                       clientLabel={client ? clientDisplayName(client, useCodenames) : undefined}
@@ -859,17 +928,66 @@ const AdminScheduler = () => {
             users.find((u) => u.id === newSessionClientId) ?? ({ first_name: "", last_name: "" } as any),
             useCodenames,
           )}
+          initialStart={slotStartDay ?? undefined}
           onClose={() => {
             setNewSessionWithoutId(false);
             setNewSessionClientId(null);
+            closeSlotFlow();
           }}
         />
+      )}
+
+      {/* Click-to-create: after clicking an empty slot, choose what to put there. */}
+      {slotStart && !slotChoice && (
+        <Modal
+          title="Add to this time"
+          size="sm"
+          onClose={closeSlotFlow}
+          actions={
+            <Button variant="ghost" onClick={closeSlotFlow}>
+              Cancel
+            </Button>
+          }
+        >
+          <p className={styles.modalIntro}>
+            {dayjs(slotStart).format("dddd D MMM [at] h:mma")} — what would you like to add?
+          </p>
+          <div className={styles.slotChoices}>
+            <Button
+              onClick={() => {
+                setSlotChoice("session");
+                setNewSessionWithoutId(true);
+              }}
+            >
+              Book a session
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSlotChoice("private");
+                setEditingPrivate(null);
+                setIsPrivateOpen(true);
+              }}
+            >
+              Add a private event
+            </Button>
+          </div>
+        </Modal>
       )}
 
       {/* The editor handles demo mode internally (writes are guarded + toasted). */}
       {isAvailabilityOpen && <AvailabilityEditor onClose={() => setIsAvailabilityOpen(false)} />}
 
-      {isPrivateOpen && <PrivateEventModal event={editingPrivate} onClose={() => setIsPrivateOpen(false)} />}
+      {isPrivateOpen && (
+        <PrivateEventModal
+          event={editingPrivate}
+          initialStart={editingPrivate ? undefined : (slotStartDay ?? undefined)}
+          onClose={() => {
+            setIsPrivateOpen(false);
+            closeSlotFlow();
+          }}
+        />
+      )}
     </div>
   );
 };

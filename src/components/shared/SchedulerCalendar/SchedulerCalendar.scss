@@ -21,7 +21,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text)
+    color: inherit;
   }
 
   .cal-chipMeta {
@@ -34,7 +34,9 @@
 
   // Session chips are solid client-colour fills; force crisp white text with a
   // faint shadow so both the title and meta stay legible over any palette entry.
-  .rbc-event:not(.cal-window):not(.cal-blocked) .cal-chip {
+  // Private events are excluded — they render on a pale slate tint, not a solid
+  // fill, so white text on them is invisible (see .cal-private .cal-chip below).
+  .rbc-event:not(.cal-window):not(.cal-blocked):not(.cal-private) .cal-chip {
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   }
@@ -73,6 +75,13 @@
     background-color: color-mix(in srgb, var(--text-muted) 22%, transparent) !important;
     border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent) !important;
     color: var(--text-primary) !important;
+  }
+
+  // The pale slate tint above needs dark text — override the white-text rule
+  // that every other non-window chip gets, and drop its shadow.
+  .cal-private .cal-chip {
+    color: var(--text-primary) !important;
+    text-shadow: none !important;
   }
 
   // Cancelled sessions — greyed out, non-interactive, strikethrough title.

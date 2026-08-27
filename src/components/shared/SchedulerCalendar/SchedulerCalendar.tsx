@@ -21,8 +21,9 @@ import type { SchedulerEvent } from "./schedulerUtils";
 // and event-click handler. Styling lives in SchedulerCalendar.scss, scoped
 // to the .portal-calendar wrapper.
 //
-// Drag-and-drop is enabled for session events only (draggableAccessor).
-// Buffer events (10 min post-session) are non-interactive visual indicators.
+// Drag-and-drop is enabled for session, stub-session and private events
+// (draggableAccessor). Buffer events (configurable post-session strip, default
+// 10 min) are non-interactive visual indicators.
 // ============================================================
 
 dayjs.extend(localizedFormat);
@@ -45,6 +46,11 @@ type SchedulerCalendarProps = {
   onSelectEvent?: (event: SchedulerEvent) => void;
   onEventDrop?: (args: EventInteractionArgs<SchedulerEvent>) => void;
   slotPropGetter?: (date: Date) => { className?: string; style?: CSSProperties };
+  // When set, clicking (or click-dragging) an empty area of the grid fires
+  // onSelectSlot with the picked range — used by the admin scheduler to start
+  // a new session / private event at that date and time.
+  selectable?: boolean;
+  onSelectSlot?: (slot: { start: Date; end: Date }) => void;
   height?: string;
 };
 
@@ -57,6 +63,8 @@ export default function SchedulerCalendar({
   onSelectEvent,
   onEventDrop,
   slotPropGetter,
+  selectable,
+  onSelectSlot,
   height = "72vh",
 }: SchedulerCalendarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -115,8 +123,16 @@ export default function SchedulerCalendar({
         onSelectEvent={onSelectEvent}
         onEventDrop={onEventDrop}
         slotPropGetter={slotPropGetter}
+        selectable={selectable}
+        onSelectSlot={
+          onSelectSlot
+            ? (slotInfo) => onSelectSlot({ start: slotInfo.start as Date, end: slotInfo.end as Date })
+            : undefined
+        }
         draggableAccessor={(event: SchedulerEvent) =>
-          event.resource.type === "session" || event.resource.type === "stub-session"
+          event.resource.type === "session" ||
+          event.resource.type === "stub-session" ||
+          event.resource.type === "private"
         }
         resizableAccessor={() => false}
         components={{ event: EventChip, header: HeaderCell }}

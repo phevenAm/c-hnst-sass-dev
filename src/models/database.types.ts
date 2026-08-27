@@ -849,6 +849,7 @@ export type Database = {
           reminder_hours_before: number
           reschedule_cutoff_hours: number | null
           saved_locations: Json
+          session_buffer_minutes: number
           stripe_connect_account_id: string | null
           stripe_connect_onboarded: boolean
           stripe_subscription_id: string | null
@@ -910,6 +911,7 @@ export type Database = {
           reminder_hours_before?: number
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
+          session_buffer_minutes?: number
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
           stripe_subscription_id?: string | null
@@ -971,6 +973,7 @@ export type Database = {
           reminder_hours_before?: number
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
+          session_buffer_minutes?: number
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
           stripe_subscription_id?: string | null

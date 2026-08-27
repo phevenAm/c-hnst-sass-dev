@@ -44,6 +44,16 @@ function matchRoute(pathname: string): string | null {
   return null;
 }
 
+// The steps for a route that apply to this role, ordered. Steps with no `role`
+// show to everyone; a `role` restricts them. Shared routes (e.g. /settings)
+// carry both a client set and an admin set, so the wrong-role user never sees
+// steps written for, or pointing at UI belonging to, the other role.
+function stepsForRoute(route: string | null, role: "admin" | "client"): WalkthroughStep[] {
+  const page = route ? walkthroughSteps[route] : null;
+  if (!page) return [];
+  return [...page.steps].filter((s) => !s.role || s.role === role).sort((a, b) => a.order - b.order);
+}
+
 function getDismissed(): string[] {
   try {
     return JSON.parse(localStorage.getItem(LS_DISMISSED_KEY) ?? "[]");
@@ -66,8 +76,9 @@ function removeDismissed(route: string) {
 
 export function WalkthroughProvider({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, isAdmin } = useAuth();
   const { pending: consentPending } = useConsentPending();
+  const role: "admin" | "client" = isAdmin ? "admin" : "client";
 
   const [matchedRoute, setMatchedRoute] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -80,7 +91,7 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
   const declineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentPage = matchedRoute ? walkthroughSteps[matchedRoute] : null;
-  const sortedSteps = currentPage ? [...currentPage.steps].sort((a, b) => a.order - b.order) : [];
+  const sortedSteps = stepsForRoute(matchedRoute, role);
   const currentStep = sortedSteps[stepIndex] ?? null;
   const totalSteps = sortedSteps.length;
 
@@ -101,7 +112,17 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
     setIsActive(false);
     setPromptVisible(false);
 
-    if (!route || isDismissedGlobally || getDismissed().includes(route) || authLoading || consentPending) return;
+    // No prompt if this role has no steps for the route (e.g. a client on a
+    // route whose steps are all admin-only) — nothing to tour.
+    if (
+      !route ||
+      stepsForRoute(route, role).length === 0 ||
+      isDismissedGlobally ||
+      getDismissed().includes(route) ||
+      authLoading ||
+      consentPending
+    )
+      return;
 
     promptTimerRef.current = setTimeout(() => {
       setPromptVisible(true);
@@ -110,7 +131,7 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
     return () => {
       if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
     };
-  }, [pathname, isDismissedGlobally, authLoading, consentPending]);
+  }, [pathname, isDismissedGlobally, authLoading, consentPending, role]);
 
   // Accept prompt → start the walkthrough
   const acceptPrompt = useCallback(() => {
@@ -173,11 +194,11 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
     setMatchedRoute(route);
     setStepIndex(0);
     setIsActive(false);
-    if (route) {
+    if (route && stepsForRoute(route, role).length > 0) {
       if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
       promptTimerRef.current = setTimeout(() => setPromptVisible(true), PROMPT_DELAY_MS);
     }
-  }, [pathname]);
+  }, [pathname, role]);
 
   return (
     <WalkthroughContext.Provider
@@ -189,7 +210,7 @@ export function WalkthroughProvider({ children }: { children: ReactNode }) {
         currentPage,
         currentStepIndex: stepIndex,
         totalSteps,
-        hasWalkthroughForPage: !!currentPage,
+        hasWalkthroughForPage: sortedSteps.length > 0,
         isDismissedGlobally,
         acceptPrompt,
         declinePrompt,

@@ -10,6 +10,9 @@ export interface WalkthroughStep {
   target?: string; // CSS selector — element to spotlight
   order: number;
   actions?: WalkthroughStepAction[]; // up to 2 CTA buttons shown in the step card
+  // Limits a step to one role. Omitted = shown to everyone. Used on shared
+  // routes like /settings, where clients and counsellors see different UIs.
+  role?: "admin" | "client";
 }
 
 export interface WalkthroughPage {
@@ -129,19 +132,38 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
   "/settings": {
     pageTitle: "Settings",
     steps: [
+      // ── Client view: a single profile form, no tabs ──
+      {
+        id: "settings-client-intro",
+        order: 1,
+        title: "Your settings",
+        body: "This is where you manage your own account — nothing here is shared with anyone else.",
+        target: "#settings-header",
+        role: "client",
+      },
+      {
+        id: "settings-client-profile",
+        order: 2,
+        title: "Profile and keywords",
+        body: "Change your display name, photo, and password here. Further down, 'Focus keywords' lets you pick a few words that shape the daily quotes shown on your dashboard.",
+        role: "client",
+      },
+      // ── Counsellor view: tabbed, one per area of the app ──
       {
         id: "settings-intro",
         order: 1,
         title: "Settings",
-        body: "This is where you manage your account and profile. Clients see one profile form. Counsellors see tabs across the top, one for each area of the app.",
+        body: "This is where you manage your profile, your practice, and your account. The tabs across the top split it into one area each.",
         target: "#settings-header",
+        role: "admin",
       },
       {
         id: "settings-profile-tab",
         order: 2,
         title: "Profile",
-        body: "Change your display name, photo, and password here. Clients also get a 'Focus keywords' section — the words you choose shape the daily quotes on your dashboard.",
+        body: "Change your display name, photo, and password here.",
         target: "#settings-tabs button:nth-child(1)",
+        role: "admin",
       },
       {
         id: "settings-practice-tab",
@@ -149,6 +171,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Practice",
         body: "Your business name, contact details, bank details, and client codenames live here, along with card-payment setup and your subscription. Contact and bank fields are kept encrypted. Click a section's title to fold it away, or use the search box to jump to the one you need.",
         target: "#settings-tabs button:nth-child(2)",
+        role: "admin",
       },
       {
         id: "settings-emails-tab",
@@ -156,6 +179,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Emails",
         body: "Turn each automatic client email on or off — reminders, booking confirmations, cancellations, reschedules, and receipts. You can edit the wording and send yourself a test.",
         target: "#settings-tabs button:nth-child(3)",
+        role: "admin",
       },
       {
         id: "settings-interface-tab",
@@ -163,6 +187,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         title: "Interface",
         body: "Make the app your own — show or hide dashboard widgets, move the sidebar button, adjust zoom and motion, and replay any page tour. Sections fold away, and the search box finds them fast.",
         target: "#settings-tabs button:nth-child(4)",
+        role: "admin",
       },
     ],
   },
