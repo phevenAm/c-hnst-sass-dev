@@ -161,12 +161,13 @@ describe("ErrorBoundary", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /send report/i }));
 
-    await waitFor(() => expect(screen.getByText(/your report has been sent/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("heading", { name: /report sent/i })).toBeInTheDocument());
 
     expect(feedbackInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         submitter_id: "user-1",
         type: "bug",
+        severity: "high",
         message: expect.stringContaining("clicked save on payments"),
       }),
     );

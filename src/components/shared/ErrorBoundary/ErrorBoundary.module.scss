@@ -58,18 +58,66 @@
   }
 }
 
-.report {
-  margin-top: $sp-5;
+// ── Report modal (self-contained — no shared Modal/portal) ──
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $sp-5;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.reportCard {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
   text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: $sp-7;
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
+  gap: $sp-3;
+}
+
+.reportHeading {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.reportIntro {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .reportLabel {
+  margin-top: $sp-2;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
+
+  span {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+}
+
+.reportActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-3;
+  margin-top: $sp-3;
 }
 
 .reportInput {

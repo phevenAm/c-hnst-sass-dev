@@ -89,10 +89,14 @@ export default class ErrorBoundary extends Component<Props, State> {
       const uid = data.session?.user?.id;
       if (!uid) throw new Error("no session");
 
-      const { error } = await supabase.from("feedback").insert({ submitter_id: uid, type: "bug", message, page });
+      const { error } = await supabase
+        .from("feedback")
+        .insert({ submitter_id: uid, type: "bug", severity: "high", message, page });
       if (error) throw error;
 
-      supabase.functions.invoke("notify-feedback", { body: { type: "bug", message, page } }).catch(() => {});
+      supabase.functions
+        .invoke("notify-feedback", { body: { type: "bug", severity: "high", message, page } })
+        .catch(() => {});
       this.setState({ reportStatus: "sent" });
     } catch {
       this.setState({ reportStatus: "failed" });
@@ -133,43 +137,63 @@ export default class ErrorBoundary extends Component<Props, State> {
   };
 
   renderReporter() {
-    const { reportOpen, reportText, reportStatus } = this.state;
-
-    if (reportStatus === "sent") {
-      return <p className={styles.reportHint}>Thanks — your report has been sent.</p>;
-    }
-
-    if (!reportOpen) {
-      return (
-        <button type="button" className={styles.reportToggle} onClick={() => this.setState({ reportOpen: true })}>
-          Report this problem
-        </button>
-      );
-    }
+    const { reportText, reportStatus } = this.state;
 
     return (
-      <div className={styles.report}>
-        <label htmlFor="eb-report" className={styles.reportLabel}>
-          What were you doing when it broke? (optional)
-        </label>
-        <textarea
-          id="eb-report"
-          className={styles.reportInput}
-          rows={3}
-          value={reportText}
-          onChange={(e) => this.setState({ reportText: e.target.value })}
-          placeholder="e.g. clicked Save on the payments page"
-        />
-        <div className={styles.actions}>
-          <Button variant="primary" onClick={this.sendReport} disabled={reportStatus === "sending"}>
-            {reportStatus === "sending" ? "Sending…" : "Send report"}
-          </Button>
+      // Self-contained overlay — no shared Modal / portal / context, since any
+      // of those could be what crashed.
+      <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Report this problem">
+        <div className={styles.reportCard}>
+          {reportStatus === "sent" ? (
+            <>
+              <h2 className={styles.reportHeading}>Report sent</h2>
+              <p className={styles.reportIntro}>
+                Thanks — this went to our team flagged as a high-priority crash. Try reloading the page now.
+              </p>
+              <div className={styles.reportActions}>
+                <Button variant="primary" onClick={this.handleReload}>
+                  Reload page
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className={styles.reportHeading}>Report this problem</h2>
+              <p className={styles.reportIntro}>
+                We'll get a high-priority alert with the technical details attached. A note about what you were doing
+                helps us track it down.
+              </p>
+              <label htmlFor="eb-report" className={styles.reportLabel}>
+                What were you doing when it broke? <span>(optional)</span>
+              </label>
+              <textarea
+                id="eb-report"
+                className={styles.reportInput}
+                rows={4}
+                value={reportText}
+                onChange={(e) => this.setState({ reportText: e.target.value })}
+                placeholder="e.g. clicked Save on the payments page"
+              />
+              {reportStatus === "failed" && (
+                <p className={styles.reportHint}>
+                  Couldn't send it automatically. <a href={this.mailtoHref()}>Email the report to us instead</a>.
+                </p>
+              )}
+              <div className={styles.reportActions}>
+                <Button
+                  variant="ghost"
+                  onClick={() => this.setState({ reportOpen: false, reportStatus: "idle" })}
+                  disabled={reportStatus === "sending"}
+                >
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={this.sendReport} disabled={reportStatus === "sending"}>
+                  {reportStatus === "sending" ? "Sending…" : "Send report"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
-        {reportStatus === "failed" && (
-          <p className={styles.reportHint}>
-            Couldn't send it automatically. <a href={this.mailtoHref()}>Email the report to us instead</a>.
-          </p>
-        )}
       </div>
     );
   }
@@ -182,8 +206,8 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className={styles.card}>
           <h1 className={styles.heading}>Oops, something went wrong</h1>
           <p className={styles.body}>
-            This page hit an unexpected error. Reloading usually fixes it — if it keeps happening, tell us what you were
-            doing and we'll look into it.
+            This page hit an unexpected error. Reloading usually fixes it — if it keeps happening, let us know what you
+            were doing and we'll look into it.
           </p>
           <div className={styles.actions}>
             <Button variant="primary" onClick={this.handleReload}>
@@ -194,8 +218,16 @@ export default class ErrorBoundary extends Component<Props, State> {
             </Button>
           </div>
 
-          {this.renderReporter()}
+          <button
+            type="button"
+            className={styles.reportToggle}
+            onClick={() => this.setState({ reportOpen: true, reportStatus: "idle" })}
+          >
+            Report this problem
+          </button>
         </div>
+
+        {this.state.reportOpen && this.renderReporter()}
       </div>
     );
   }

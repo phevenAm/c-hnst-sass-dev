@@ -185,6 +185,19 @@
   white-space: nowrap;
 }
 
+.alertTag {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--danger);
+  padding: 3px 8px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
 .statusBadge {
   display: inline-flex;
   padding: 3px 10px;
