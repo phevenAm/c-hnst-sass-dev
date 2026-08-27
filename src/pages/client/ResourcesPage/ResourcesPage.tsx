@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
-
-import dayjs from "dayjs";
+import { useState } from "react";
 
 import { isAdultFromDob, isPageStatusLoading } from "@Helpers/Helpers";
+import AgreementView from "@components/Consent/AgreementView";
 import Card from "@components/shared/Card/Card";
 import { ArticleIcon, VideoIcon } from "@components/shared/Icons/Icons";
 import PdfViewer from "@components/shared/PdfViewer/PdfViewer";
-import Spinner from "@components/shared/Spinner/Spinner";
 import { useAuth } from "@context/AuthContext";
 import type { Resource } from "@models/globalTypes";
 import { getResourceTypeLabel } from "@pages/admin/AdminResourcesPage/AdminResourcesPage";
@@ -14,65 +12,7 @@ import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchPublishedResources, selectPublishedResources } from "@store/slices/resourcesSlice";
 
-import { supabase } from "@/lib/supabase";
-
 import styles from "./ResourcesPage.module.scss";
-
-type ConsentSettings = {
-  consent_title: string;
-  consent_body: string;
-  consent_pdf_url: string | null;
-};
-
-// Unlike useConsentPending, this doesn't gate on has_consented being false —
-// the whole point is showing an already-signed agreement back to the client
-// who signed it, any time after the fact.
-function AgreementView({ signedName, signedAt }: { signedName: string | null; signedAt: string | null }) {
-  const [settings, setSettings] = useState<ConsentSettings | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    supabase.rpc("get_my_admin_consent_settings").then(({ data }) => {
-      setSettings(data?.[0] ?? null);
-      setLoaded(true);
-    });
-  }, []);
-
-  if (!loaded) return <Spinner />;
-
-  if (!settings) {
-    return <p className={styles.empty}>Your agreement details aren't available right now.</p>;
-  }
-
-  return (
-    <Card>
-      <div className={styles.agreementBody}>
-        <h2 className={styles.agreementTitle}>{settings.consent_title}</h2>
-
-        {settings.consent_body && (
-          <div className={styles.agreementText}>
-            {settings.consent_body.split("\n").map((line, i) =>
-              line.trim() === "" ? (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
-                <br key={i} />
-              ) : (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
-                <p key={i}>{line}</p>
-              ),
-            )}
-          </div>
-        )}
-
-        {settings.consent_pdf_url && <PdfViewer url={settings.consent_pdf_url} title={settings.consent_title} />}
-
-        <p className={styles.agreementSigned}>
-          {signedName ? `Signed by ${signedName}` : "Signed"}
-          {signedAt ? ` on ${dayjs(signedAt).format("D MMM YYYY")}` : ""}
-        </p>
-      </div>
-    </Card>
-  );
-}
 
 function getTabLabel(type: string): string {
   if (type === "onboarding") return "Onboarding";

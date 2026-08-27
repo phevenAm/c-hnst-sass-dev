@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import AgreementView from "../../../components/Consent/AgreementView";
 import Button from "../../../components/shared/Button/Button";
 import Card from "../../../components/shared/Card/Card";
 import { useAuth } from "../../../context/AuthContext";
@@ -285,7 +286,17 @@ export default function CheckInPage() {
           ))}
         </div>
 
-        {!questionnaire && (
+        {/* Onboarding tab, nothing pending: instead of a dead end, show the
+            client the agreement they signed (consent doc / onboarding form)
+            back to them for reference. */}
+        {!questionnaire && activeTab === "onboarding" && userProfile?.has_consented && (
+          <AgreementView
+            signedName={userProfile.consent_signed_name ?? null}
+            signedAt={userProfile.consented_at ?? null}
+          />
+        )}
+
+        {!questionnaire && !(activeTab === "onboarding" && userProfile?.has_consented) && (
           <div className={styles.emptyState}>
             <p>{emptyMessages[activeTab]}</p>
             <Button onClick={() => navigate("/dashboard")}>Back to dashboard</Button>
