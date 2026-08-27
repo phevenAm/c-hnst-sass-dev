@@ -4,6 +4,7 @@ export { default as BlockSessionCard } from "./BlockSessionCard/BlockSessionCard
 export { default as Button } from "./Button/Button";
 export { default as Card } from "./Card/Card";
 export { default as CollapsibleSection } from "./CollapsibleSection/CollapsibleSection";
+export { default as Confetti } from "./Confetti/Confetti";
 export { default as DateInput } from "./DateInput/DateInput";
 export { default as DemoBanner } from "./DemoBanner/DemoBanner";
 export { default as DonutChart } from "./DonutChart/DonutChart";

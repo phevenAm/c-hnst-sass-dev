@@ -31,6 +31,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
+import OnboardingDocumentsManager from "./OnboardingDocumentsManager";
 import RegenerateCodeModal from "./RegenerateCodeModal/RegenerateCodeModal";
 
 import styles from "./SettingsPage.module.scss";
@@ -263,8 +264,6 @@ const SettingsPage = () => {
   const [consentBody, setConsentBody] = useState("");
   const [consentPdfUrl, setConsentPdfUrl] = useState("");
   const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
-  const [consentQuestionnaireId, setConsentQuestionnaireId] = useState("");
-  const [onboardingForms, setOnboardingForms] = useState<{ id: string; title: string }[]>([]);
   const [sessionPackages, setSessionPackages] = useState<
     { id: string; name: string; price_pence: number; duration_minutes: number }[]
   >([]);
@@ -384,22 +383,8 @@ const SettingsPage = () => {
         setConsentBody(data.consent_body ?? "");
         setConsentPdfUrl(data.consent_pdf_url ?? "");
         setConsentCounsellorCta(data.consent_counsellor_cta ?? "If you have any questions, speak to your counsellor.");
-        setConsentQuestionnaireId(data.consent_questionnaire_id ?? "");
       });
   }, [isAdmin, userProfile?.id, encStatus, decryptPII]);
-
-  useEffect(() => {
-    if (!isAdmin || !userProfile?.id) return;
-    supabase
-      .from("questionnaires")
-      .select("id, title")
-      .eq("admin_id", userProfile.id)
-      .eq("form_type", "onboarding")
-      .order("title")
-      .then(({ data }) => {
-        if (data) setOnboardingForms(data);
-      });
-  }, [isAdmin, userProfile?.id]);
 
   useEffect(() => {
     if (!isAdmin || !userProfile?.id) return;
@@ -639,7 +624,7 @@ const SettingsPage = () => {
   const handleSaveConsent = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
-    if (!consentQuestionnaireId && consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
+    if (consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
       setConsentPdfUrlError("This must be a direct link to a .pdf file.");
       showToast("PDF link must point directly to a .pdf file.", "danger");
       return;
@@ -659,7 +644,6 @@ const SettingsPage = () => {
         // Postgres error (found via live testing of AdminSetupPage's copy of
         // this same field, which hit it immediately since it starts blank).
         consent_counsellor_cta: consentCounsellorCta || "If you have any questions, speak to your counsellor.",
-        consent_questionnaire_id: consentQuestionnaireId || null,
       })
       .eq("admin_id", userProfile.id);
     setSavingConsent(false);
@@ -1732,7 +1716,19 @@ const SettingsPage = () => {
               </div>
             </SettingsCard>
 
-            <GroupHeading title="Client compliance" searchQuery={practiceSearch} cardTitles={["Client consent"]} />
+            <GroupHeading
+              title="Client compliance"
+              searchQuery={practiceSearch}
+              cardTitles={["Onboarding documents", "Client consent"]}
+            />
+
+            <SettingsCard
+              title="Onboarding documents"
+              storageKey="settings:practice:onboarding-docs"
+              searchQuery={practiceSearch}
+            >
+              <OnboardingDocumentsManager />
+            </SettingsCard>
 
             {/* Client consent */}
             <SettingsCard title="Client consent" storageKey="settings:practice:consent" searchQuery={practiceSearch}>
@@ -1763,91 +1759,64 @@ const SettingsPage = () => {
 
                 {consentEnabled && (
                   <div className={styles.consentConfig}>
+                    <p className={styles.toggleHint}>
+                      The <strong>signature document</strong> is whichever Onboarding document you mark as “Requires
+                      signature” above. The heading, text and PDF below are only used as a fallback when no document is
+                      marked.
+                    </p>
+
                     <div className={styles.field}>
-                      <label htmlFor="consentForm">Use one of your Forms instead (optional)</label>
-                      <select
-                        id="consentForm"
-                        className={styles.select}
-                        value={consentQuestionnaireId}
-                        onChange={(e) => setConsentQuestionnaireId(e.target.value)}
-                      >
-                        <option value="">— Use the text below instead —</option>
-                        {onboardingForms.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.title}
-                          </option>
-                        ))}
-                      </select>
-                      <p className={styles.toggleHint}>
-                        {consentQuestionnaireId
-                          ? "Its title and PDF link (if any) are shown to clients instead of the fields below."
-                          : "Create an onboarding form under Forms (with a PDF link, if you want one) to manage your consent document there instead of typing it in below."}
-                      </p>
+                      <label htmlFor="consentTitle">Heading</label>
+                      <input
+                        id="consentTitle"
+                        value={consentTitle}
+                        onChange={(e) => setConsentTitle(e.target.value)}
+                        placeholder="Before you continue"
+                      />
                     </div>
 
-                    {consentQuestionnaireId ? (
+                    <div className={styles.field}>
+                      <label htmlFor="consentBody">Agreement text</label>
+                      <textarea
+                        id="consentBody"
+                        className={styles.textarea}
+                        rows={6}
+                        value={consentBody}
+                        onChange={(e) => setConsentBody(e.target.value)}
+                        placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="consentPdfUrl">
+                        PDF link <small>(optional — must end in .pdf — clients can read this document in-app)</small>
+                      </label>
+                      <input
+                        id="consentPdfUrl"
+                        type="url"
+                        value={consentPdfUrl}
+                        onChange={(e) => {
+                          setConsentPdfUrl(e.target.value);
+                          if (consentPdfUrlError) setConsentPdfUrlError("");
+                        }}
+                        placeholder="https://example.com/document.pdf"
+                        aria-invalid={!!consentPdfUrlError}
+                      />
+                      {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
+                      <PdfUpload
+                        adminId={userProfile?.id ?? ""}
+                        value={consentPdfUrl}
+                        onChange={(url) => {
+                          setConsentPdfUrl(url);
+                          if (consentPdfUrlError) setConsentPdfUrlError("");
+                        }}
+                      />
                       <p className={styles.toggleHint}>
-                        Using <strong>{onboardingForms.find((f) => f.id === consentQuestionnaireId)?.title}</strong> —
-                        edit its content under Forms. Switch back to "— Use the text below instead —" above to write the
-                        agreement here.
+                        Upload a PDF, or paste a direct link ending in .pdf (a Dropbox share link works if it points at
+                        the file itself; a Google Drive "view" link will not). Clients will see it embedded in-app
+                        alongside your agreement text.
                       </p>
-                    ) : (
-                      <>
-                        <div className={styles.field}>
-                          <label htmlFor="consentTitle">Heading</label>
-                          <input
-                            id="consentTitle"
-                            value={consentTitle}
-                            onChange={(e) => setConsentTitle(e.target.value)}
-                            placeholder="Before you continue"
-                          />
-                        </div>
-
-                        <div className={styles.field}>
-                          <label htmlFor="consentBody">Agreement text</label>
-                          <textarea
-                            id="consentBody"
-                            className={styles.textarea}
-                            rows={6}
-                            value={consentBody}
-                            onChange={(e) => setConsentBody(e.target.value)}
-                            placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
-                          />
-                        </div>
-
-                        <div className={styles.field}>
-                          <label htmlFor="consentPdfUrl">
-                            PDF link{" "}
-                            <small>(optional — must end in .pdf — clients can read this document in-app)</small>
-                          </label>
-                          <input
-                            id="consentPdfUrl"
-                            type="url"
-                            value={consentPdfUrl}
-                            onChange={(e) => {
-                              setConsentPdfUrl(e.target.value);
-                              if (consentPdfUrlError) setConsentPdfUrlError("");
-                            }}
-                            placeholder="https://example.com/document.pdf"
-                            aria-invalid={!!consentPdfUrlError}
-                          />
-                          {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
-                          <PdfUpload
-                            adminId={userProfile?.id ?? ""}
-                            value={consentPdfUrl}
-                            onChange={(url) => {
-                              setConsentPdfUrl(url);
-                              if (consentPdfUrlError) setConsentPdfUrlError("");
-                            }}
-                          />
-                          <p className={styles.toggleHint}>
-                            Upload a PDF, or paste a direct link ending in .pdf (a Dropbox share link works if it points
-                            at the file itself; a Google Drive "view" link will not). Clients will see it embedded
-                            in-app alongside your agreement text.
-                          </p>
-                        </div>
-                      </>
-                    )}
+                    </div>
 
                     <div className={styles.field}>
                       <label htmlFor="consentCta">Footer message</label>
@@ -2263,7 +2232,6 @@ const SettingsPage = () => {
           </Card>
         )}
       </div>
-
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
       {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}

@@ -254,6 +254,21 @@
   margin: 0;
 }
 
+.docSigned,
+.docPending {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0 0 $sp-4;
+}
+
+.docSigned {
+  color: var(--success, #2e7d32);
+}
+
+.docPending {
+  color: var(--warning, #b26a00);
+}
+
 //Search
 .searchWrap {
   margin-bottom: $sp-5;

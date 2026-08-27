@@ -9,6 +9,10 @@ export type ConsentSettings = {
   consent_body: string;
   consent_pdf_url: string | null;
   consent_counsellor_cta: string;
+  // The practice_documents row to record the signature against, when the
+  // admin drives the gate from an Onboarding document. Null = plain-text
+  // consent typed straight into Settings.
+  consent_document_id: string | null;
 };
 
 // Shared by ConsentGate (which renders the blocking modal) and

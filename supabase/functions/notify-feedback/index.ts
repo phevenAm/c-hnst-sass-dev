@@ -29,10 +29,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { type, message, page } = await req.json();
+    const { type, message, page, severity } = await req.json();
     if (!type || !message) {
       return new Response(JSON.stringify({ error: "Missing type or message" }), { status: 400, headers: corsHeaders });
     }
+    const isHigh = severity === "high";
 
     // Submitter name (for the "From" line).
     const { data: submitter } = await supabase.from("users").select("first_name, last_name").eq("id", user.id).single();
@@ -60,12 +61,16 @@ Deno.serve(async (req) => {
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
 
     const html = emailTemplate({
-      label: "New feedback",
-      title: isBug ? "🐛 Bug report" : "💡 Feature request",
+      label: isHigh ? "HIGH ALERT" : "New feedback",
+      title: isHigh ? "⚠️ App crash report" : isBug ? "🐛 Bug report" : "💡 Feature request",
       body:
         para(escapeHtml(message).replace(/\n/g, "<br/>")) +
         detailsTable([
-          { label: "Type", value: isBug ? "Bug report" : "Feature request", bold: true },
+          {
+            label: "Type",
+            value: isHigh ? "App crash (high priority)" : isBug ? "Bug report" : "Feature request",
+            bold: true,
+          },
           { label: "From", value: escapeHtml(fromName) },
           { label: "Page", value: page ? escapeHtml(page) : "—" },
         ]),
@@ -80,7 +85,9 @@ Deno.serve(async (req) => {
       emails.map((to) =>
         sendEmail({
           to,
-          subject: `New ${isBug ? "bug report" : "feature request"} from ${fromName}`,
+          subject: isHigh
+            ? `[HIGH ALERT] App crash reported by ${fromName}`
+            : `New ${isBug ? "bug report" : "feature request"} from ${fromName}`,
           html,
           resendKey,
           fromEmail,

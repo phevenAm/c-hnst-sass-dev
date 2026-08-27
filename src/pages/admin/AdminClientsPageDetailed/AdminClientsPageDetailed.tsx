@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 
 import { BlockSessionCard } from "@components/shared/BlockSessionCard/BlockSessionCard";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import {
   Avatar,
   Button,
@@ -145,6 +146,8 @@ export default function AdminClientsPageDetailed() {
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [togglingDisabled, setTogglingDisabled] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
@@ -178,6 +181,32 @@ export default function AdminClientsPageDetailed() {
       .select("id", { count: "exact", head: true })
       .eq("client_id", clientId)
       .then(({ count }) => setHasRcadsAssessment(!!count));
+  }, [clientId]);
+
+  // The onboarding document this client has signed (RLS scopes it to the
+  // admin's own documents), shown alongside the consent line in the hero.
+  const [signedDoc, setSignedDoc] = useState<{ title: string; signed_name: string | null; signed_at: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!clientId) return;
+    supabase
+      .from("document_signatures")
+      .select("signed_name, signed_at, practice_documents(title)")
+      .eq("user_id", clientId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const d = data as {
+          signed_name: string | null;
+          signed_at: string;
+          practice_documents: { title: string } | null;
+        } | null;
+        setSignedDoc(
+          d
+            ? { title: d.practice_documents?.title ?? "agreement", signed_name: d.signed_name, signed_at: d.signed_at }
+            : null,
+        );
+      });
   }, [clientId]);
 
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
@@ -480,6 +509,23 @@ export default function AdminClientsPageDetailed() {
     dispatch(fetchAllUsers());
     setSavingCodename(false);
     showToast("Codename saved.");
+  };
+
+  // Pause / restore a client's access. `disabled` is enforced app-side in
+  // AuthContext: a paused client can't sign in and is signed out of any live
+  // session on their next token refresh (or sooner, via the realtime watch).
+  const setClientDisabled = async (disabled: boolean) => {
+    if (!clientId) return;
+    setTogglingDisabled(true);
+    const { error } = await supabase.from("users").update({ disabled }).eq("id", clientId);
+    setTogglingDisabled(false);
+    setPauseOpen(false);
+    if (error) {
+      showToast(`Couldn't ${disabled ? "pause" : "restore"} this client.`, "danger");
+      return;
+    }
+    dispatch(fetchAllUsers());
+    showToast(disabled ? "Client paused — they can no longer sign in." : "Client access restored.");
   };
 
   const displayedClientName = client ? clientDisplayName(client, practiceSettings?.use_client_codenames ?? false) : "";
@@ -860,9 +906,14 @@ export default function AdminClientsPageDetailed() {
               )}
               {practiceSettings?.consent_enabled && (
                 <p className={client.has_consented ? styles.consentYes : styles.consentNo}>
-                  {client.has_consented
-                    ? `Consented${client.consented_at ? ` on ${dayjs(client.consented_at).format("DD/MM/YYYY")}` : ""}`
-                    : "Has not agreed to consent terms yet"}
+                  {(() => {
+                    if (!client.has_consented) return "Has not agreed to consent terms yet";
+                    if (signedDoc) {
+                      const who = signedDoc.signed_name ? ` as ${signedDoc.signed_name}` : "";
+                      return `Signed “${signedDoc.title}”${who} on ${dayjs(signedDoc.signed_at).format("DD/MM/YYYY")}`;
+                    }
+                    return `Consented${client.consented_at ? ` on ${dayjs(client.consented_at).format("DD/MM/YYYY")}` : ""}`;
+                  })()}
                 </p>
               )}
               {accountSummaryPreview && <p className={styles.accountSummary}>{accountSummaryPreview}</p>}
@@ -1232,15 +1283,64 @@ export default function AdminClientsPageDetailed() {
 
         {/* Danger zone */}
         <div className={styles.dangerZone}>
-          <div>
-            <p className={styles.dangerTitle}>Remove client</p>
-            <p className={styles.dangerDesc}>Permanently deletes this client account and all associated data.</p>
+          <div className={styles.dangerRow}>
+            <div>
+              <p className={styles.dangerTitle}>
+                {client?.disabled ? "Client access is paused" : "Pause client access"}
+              </p>
+              <p className={styles.dangerDesc}>
+                {client?.disabled
+                  ? "They can't sign in, and were signed out of any live session. Restore access whenever you're ready."
+                  : "Blocks sign-in and signs them out of the app. Their data is kept — this is reversible."}
+              </p>
+            </div>
+            {client?.disabled ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isDemo || togglingDisabled}
+                onClick={() => setClientDisabled(false)}
+              >
+                Restore access
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isDemo || togglingDisabled}
+                onClick={() => setPauseOpen(true)}
+              >
+                Pause client
+              </Button>
+            )}
           </div>
-          <Button variant="danger" size="sm" disabled={isDemo} onClick={() => setDeleteOpen(true)}>
-            Delete client
-          </Button>
+
+          <div className={styles.dangerRow}>
+            <div>
+              <p className={styles.dangerTitle}>Remove client</p>
+              <p className={styles.dangerDesc}>Permanently deletes this client account and all associated data.</p>
+            </div>
+            <Button variant="danger" size="sm" disabled={isDemo} onClick={() => setDeleteOpen(true)}>
+              Delete client
+            </Button>
+          </div>
         </div>
       </div>
+
+      {pauseOpen && (
+        <ConfirmModal
+          title="Pause this client?"
+          confirmLabel="Pause client"
+          confirming={togglingDisabled}
+          onConfirm={() => setClientDisabled(true)}
+          onClose={() => setPauseOpen(false)}
+        >
+          <p>
+            They won't be able to sign in. If they're using the app right now, they'll be signed out within a minute.
+          </p>
+          <p>Nothing is deleted — you can restore their access at any time.</p>
+        </ConfirmModal>
+      )}
 
       {notesOpen && <SessionNotesModal user={client} onClose={() => setNotesOpen(false)} />}
 

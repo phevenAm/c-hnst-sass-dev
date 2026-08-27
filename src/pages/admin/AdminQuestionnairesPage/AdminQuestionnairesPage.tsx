@@ -4,7 +4,6 @@ import { useSearchParams } from "react-router-dom";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
-import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -35,12 +34,11 @@ import { supabase } from "@/lib/supabase.js";
 
 import styles from "./AdminQuestionnairesPage.module.scss";
 
-type FormTab = "outcome_measure" | "feedback" | "onboarding";
+type FormTab = "outcome_measure" | "feedback";
 
 const TABS: { id: FormTab; label: string }[] = [
   { id: "outcome_measure", label: "Outcome Measures" },
   { id: "feedback", label: "Feedback Forms" },
-  { id: "onboarding", label: "Onboarding" },
 ];
 
 type OptionDraft = { label: string; value: number };
@@ -64,7 +62,6 @@ type QuestionnaireFormData = {
   description: string;
   frequency: QuestionnaireFrequency | null;
   form_type: string;
-  pdf_url: string | null;
   questions: QuestionDraft[];
 };
 
@@ -108,7 +105,6 @@ function QuestionnaireBuilder({
   const [description, setDesc] = useState(initial?.description ?? "");
   const [formType, setFormType] = useState<string>((initial as any)?.form_type ?? defaultFormType ?? "outcome_measure");
   const [frequency, setFrequency] = useState<QuestionnaireFrequency | null>(initial?.frequency ?? "weekly");
-  const [pdfUrl, setPdfUrl] = useState((initial as any)?.pdf_url ?? "");
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     initial?.questions?.map((q) => ({
       id: q.id,
@@ -159,7 +155,7 @@ function QuestionnaireBuilder({
       qs.map((q) => (q.id === questionId ? { ...q, options: q.options.filter((_, i) => i !== idx) } : q)),
     );
 
-  const { isDemo, userProfile } = useAuth();
+  const { isDemo } = useAuth();
   const { showToast } = useToast();
 
   const handleCreateTag = async (questionId: string) => {
@@ -193,7 +189,6 @@ function QuestionnaireBuilder({
       description,
       frequency: frequency ?? null,
       form_type: formType,
-      pdf_url: formType === "onboarding" ? pdfUrl.trim() || null : null,
       questions,
     });
     onClose();
@@ -239,7 +234,6 @@ function QuestionnaireBuilder({
           <select id="q-type" value={formType} onChange={(e) => setFormType(e.target.value)} disabled={isEdit}>
             <option value="outcome_measure">Outcome Measure</option>
             <option value="feedback">Feedback Form</option>
-            <option value="onboarding">Onboarding</option>
           </select>
         </div>
         {formType === "outcome_measure" && (
@@ -257,26 +251,7 @@ function QuestionnaireBuilder({
             </select>
           </div>
         )}
-        {formType === "onboarding" && (
-          <div className={`${styles.formField} ${styles.fullCol}`}>
-            <label htmlFor="q-pdf">PDF link (optional)</label>
-            <input
-              id="q-pdf"
-              type="url"
-              className={styles.pdfUrl}
-              value={pdfUrl}
-              onChange={(e) => setPdfUrl(e.target.value)}
-              placeholder="https://example.com/document.pdf"
-            />
-            <PdfUpload adminId={userProfile?.id ?? ""} value={pdfUrl} onChange={setPdfUrl} />
-            <p className={styles.fieldHint}>
-              A form linked as your client consent document (Settings → Practice) shows this alongside its title —
-              useful for terms, an info sheet, or anything clients should read before agreeing.
-            </p>
-          </div>
-        )}
       </div>
-
       <div className={styles.questionsSection}>
         <div className={styles.questionsSectionHeader}>
           <h3>Questions</h3>
@@ -820,12 +795,14 @@ export default function AdminQuestionnairesPage() {
         <div className={styles.list}>
           {tabQuestionnaires.map((q) => {
             const isDefault = !!(q as any).source_default_id;
-            const formType = (q as any).form_type ?? "outcome_measure";
             // RCADS has fixed, clinically-validated content and its own
             // dedicated fill-in/scoring flow (src/Helpers/rcadsScoring.ts) —
             // there's nothing here to edit, and "reset to default" makes no
             // sense for something that was never customised.
             const isRcads = !!(q as any).is_rcads;
+            let itemSummary: string;
+            if (isRcads) itemSummary = "47 items · scored automatically";
+            else itemSummary = `${q.questions.length} question${q.questions.length !== 1 ? "s" : ""}`;
             return (
               <Card key={q.id}>
                 <div className={styles.qCard}>
@@ -840,10 +817,8 @@ export default function AdminQuestionnairesPage() {
                       </div>
                       <p className={styles.qDesc}>{q.description}</p>
                       <p className={styles.qMeta}>
-                        {isRcads
-                          ? "47 items · scored automatically"
-                          : `${q.questions.length} question${q.questions.length !== 1 ? "s" : ""}`}
-                        {formType === "outcome_measure" && q.frequency ? ` · ${q.frequency}` : ""}
+                        {itemSummary}
+                        {q.frequency ? ` · ${q.frequency}` : ""}
                         {` · ${q.assignedTo?.length ?? 0} client${(q.assignedTo?.length ?? 0) !== 1 ? "s" : ""} assigned`}
                       </p>
                     </div>

@@ -15,12 +15,11 @@ import { fetchResponsesByUser, selectUserResponses, submitResponse } from "../..
 
 import styles from "./CheckInPage.module.scss";
 
-type FormTab = "outcome_measure" | "feedback" | "onboarding";
+type FormTab = "outcome_measure" | "feedback";
 
 const TABS: { id: FormTab; label: string }[] = [
   { id: "outcome_measure", label: "Outcome Measures" },
   { id: "feedback", label: "Feedback" },
-  { id: "onboarding", label: "Onboarding" },
 ];
 
 const CheckIcon = () => (
@@ -191,7 +190,7 @@ export default function CheckInPage() {
       if (!latest) return true;
       return isQuestionnaireCheckInDue(getResponseDate(latest), q.frequency);
     }
-    // feedback and onboarding: show once (if never submitted)
+    // feedback: show once (if never submitted)
     return !latest;
   });
 
@@ -220,7 +219,6 @@ export default function CheckInPage() {
   const emptyMessages: Record<FormTab, string> = {
     outcome_measure: "You have no outcome measure forms due right now.",
     feedback: "No feedback forms to complete.",
-    onboarding: "No onboarding forms pending.",
   };
 
   const isRcads = !!(questionnaire as any)?.is_rcads;

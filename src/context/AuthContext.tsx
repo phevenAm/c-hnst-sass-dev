@@ -27,6 +27,11 @@ const AUTH_INIT_TIMEOUT_MS = REQUEST_TIMEOUT_MS + LOCK_OVERHEAD_MS;
 // shared practice_settings fetch (fetchPracticeSettings).
 const HANDLE_SESSION_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 2 + LOCK_OVERHEAD_MS;
 
+// Shown on the login screen when a paused client tries to sign in, or when a
+// signed-in client is paused mid-session and bounced out.
+export const CLIENT_PAUSED_MESSAGE =
+  "Your account has been paused by your practitioner. Please contact them to restore access.";
+
 type ProfileUpdates = Partial<
   Pick<
     UserProfile,
@@ -147,6 +152,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // before this fetch had a chance to update it.
         setLoading(true);
         const profileData = await fetchProfile(currentAuthUser);
+
+        // Paused client — bounce them straight back out with a message.
+        // `loading` is left true through the sign-out so the client-side
+        // route guards never see a brief authenticated state and flash the
+        // dashboard; the follow-up handleSession(null) clears it.
+        if (profileData?.role === "client" && profileData.disabled) {
+          setError(CLIENT_PAUSED_MESSAGE);
+          setUserProfile(null);
+          setProfileError(null);
+          setPracticeSettings(null);
+          setRescheduleCutoffHours(undefined);
+          prevUserIdRef.current = null;
+          store.dispatch(resetStore());
+          // Leave `loading` true — the SIGNED_OUT event this triggers runs
+          // handleSession(null), which clears authUser and then loading, so
+          // the route guards never see (authenticated && !loading) here.
+          // Call supabase.auth.signOut() directly (not our signOut()) so the
+          // paused message we just set survives.
+          await supabase.auth.signOut();
+          return;
+        }
+
         setUserProfile(profileData);
         setProfileError(profileData ? null : "Couldn't load your profile.");
 
@@ -221,6 +248,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Kick a signed-in client the moment their account is paused, rather than
+  // waiting for the next hourly token refresh to run handleSession again.
+  // Realtime honours RLS, and a client can read their own users row.
+  const clientId = userProfile?.role === "client" ? (authUser?.id ?? null) : null;
+  useEffect(() => {
+    if (!clientId) return;
+    const channel = supabase
+      .channel(`user-paused:${clientId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "users", filter: `id=eq.${clientId}` },
+        (payload) => {
+          if ((payload.new as { disabled?: boolean }).disabled) {
+            setError(CLIENT_PAUSED_MESSAGE);
+            setUserProfile(null);
+            setPracticeSettings(null);
+            setRescheduleCutoffHours(undefined);
+            prevUserIdRef.current = null;
+            store.dispatch(resetStore());
+            supabase.auth.signOut();
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientId]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     setError(null);

@@ -84,6 +84,11 @@ function ClientRow({ user }: { user: UserProfile }) {
 
   const avgScore = getScoreAverage(latestResponse, latestQuestionnaire);
 
+  let signedLabel = "–";
+  if (user.has_consented) {
+    signedLabel = user.consented_at ? dayjs(user.consented_at).format("D MMM YYYY") : "Yes";
+  }
+
   const handleRowClick = () => navigate(`/admin/clients/${user.id}`);
   const handleRowKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -128,6 +133,13 @@ function ClientRow({ user }: { user: UserProfile }) {
           <p className={styles.statValueDate}>{lastCheckIn}</p>
           <p className={styles.statLabel}>Last check-in</p>
         </div>
+
+        {practiceSettings?.consent_enabled && (
+          <div className={styles.statBlock}>
+            <p className={styles.statValueDate}>{signedLabel}</p>
+            <p className={styles.statLabel}>Signed</p>
+          </div>
+        )}
 
         <div className={styles.rowActions} onClick={(event) => event.stopPropagation()}>
           <SplitButton

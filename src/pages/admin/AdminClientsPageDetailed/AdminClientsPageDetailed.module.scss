@@ -456,14 +456,25 @@
 // ── Danger zone ──────────────────────────────────────────────
 .dangerZone {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $sp-4;
+  flex-direction: column;
   margin-top: $sp-8;
   padding: $sp-6;
   border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
   border-radius: var(--r-lg);
+}
+
+.dangerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
   flex-wrap: wrap;
+
+  & + & {
+    margin-top: $sp-5;
+    padding-top: $sp-5;
+    border-top: 1px solid color-mix(in srgb, var(--danger) 18%, transparent);
+  }
 }
 
 .dangerTitle {

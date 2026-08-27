@@ -1,0 +1,225 @@
+@use "../../../styles/spacing" as *;
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-5;
+}
+
+.intro {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.item {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.itemMain {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-4;
+  flex-wrap: wrap;
+}
+
+.reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  button {
+    border: 1px solid var(--border);
+    background: var(--bg-muted);
+    border-radius: 4px;
+    width: 1.75rem;
+    height: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 12rem;
+}
+
+.itemTitle {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.itemDesc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.noPdf {
+  font-size: 0.8rem;
+  color: var(--warning, #b26a00);
+}
+
+.sigToggle {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  gap: $sp-4;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  input {
+    padding: $sp-2 $sp-3;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.dangerBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--danger, #c62828);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.tally {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.signerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: $sp-4;
+    padding: $sp-2 $sp-3;
+    font-size: 0.85rem;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+
+    span:last-child {
+      color: var(--text-muted);
+    }
+  }
+}
+
+.clearSig {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  border-top: 1px solid var(--border);
+  padding-top: $sp-4;
+
+  h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  input {
+    padding: $sp-2 $sp-3;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+}

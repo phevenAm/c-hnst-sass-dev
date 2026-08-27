@@ -9,6 +9,10 @@ vi.mock("react-router-dom", () => ({
   useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }));
 
+// Onboarding documents get their own dedicated test; here they'd only drag
+// the redux store into a Provider-less render.
+vi.mock("./OnboardingDocumentsManager", () => ({ default: () => null }));
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -54,7 +58,6 @@ beforeEach(() => {
   mockUseAuth.mockImplementation(() => defaultAuthValue);
   Object.assign(currentRow, initialRow);
   setGoogleStatusRow(null);
-  setOnboardingFormsRows([]);
   reminderMutesRows.length = 0;
   sessionPackagesRows.length = 0;
 });
@@ -95,7 +98,6 @@ const {
   currentRow,
   invokeSpy,
   setGoogleStatusRow,
-  setOnboardingFormsRows,
   reminderMutesRows,
   sessionPackagesRows,
   clientOptionsRows,
@@ -135,7 +137,6 @@ const {
   // stripe_connect_onboarded) before rendering without touching the defaults.
   const currentRow: typeof initialRow = { ...initialRow };
   let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
-  const onboardingFormsRows: { id: string; title: string }[] = [];
   const reminderMutesRows: { id: string; client_id: string | null; stub_id: string | null }[] = [];
   const sessionPackagesRows: { id: string; name: string; price_pence: number; duration_minutes: number }[] = [];
   const clientOptionsRows: { id: string; first_name: string; last_name: string }[] = [
@@ -156,17 +157,6 @@ const {
   });
   const supabaseMock = {
     from: vi.fn((table: string) => {
-      if (table === "questionnaires") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                order: () => Promise.resolve({ data: onboardingFormsRows, error: null }),
-              }),
-            }),
-          }),
-        };
-      }
       if (table === "session_packages") {
         return {
           select: () => ({
@@ -266,9 +256,6 @@ const {
     invokeSpy,
     setGoogleStatusRow: (row: typeof googleStatusRow) => {
       googleStatusRow = row;
-    },
-    setOnboardingFormsRows: (rows: typeof onboardingFormsRows) => {
-      onboardingFormsRows.splice(0, onboardingFormsRows.length, ...rows);
     },
     reminderMutesRows,
     sessionPackagesRows,
@@ -476,39 +463,23 @@ describe("SettingsPage — client consent", () => {
     });
   });
 
-  it("picking an onboarding form hides the free-text fields and saves its id instead", async () => {
-    setOnboardingFormsRows([{ id: "form-1", title: "New client welcome pack" }]);
+  it("no longer offers a form picker — the signature document is managed under Onboarding documents", async () => {
     await openPracticeTab();
     fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
 
-    fireEvent.change(screen.getByLabelText(/use one of your forms instead/i), {
-      target: { value: "form-1" },
-    });
-
-    expect(screen.queryByLabelText(/^heading$/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/agreement text/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/pdf link/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/using/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
-
-    await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ consent_questionnaire_id: "form-1" }));
-    });
+    expect(screen.queryByLabelText(/use one of your forms instead/i)).not.toBeInTheDocument();
+    // The fallback fields are always available now.
+    expect(screen.getByLabelText(/^heading$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/agreement text/i)).toBeInTheDocument();
   });
 
-  it("clearing the picked form falls back to saving the typed-in text", async () => {
-    setOnboardingFormsRows([{ id: "form-1", title: "New client welcome pack" }]);
+  it("does not send consent_questionnaire_id on save", async () => {
     await openPracticeTab();
     fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
-
-    expect(screen.getByLabelText(/^heading$/i)).not.toBeDisabled();
-
     fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
 
-    await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ consent_questionnaire_id: null }));
-    });
+    await waitFor(() => expect(updateSpy).toHaveBeenCalled());
+    expect(updateSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty("consent_questionnaire_id");
   });
 });
 

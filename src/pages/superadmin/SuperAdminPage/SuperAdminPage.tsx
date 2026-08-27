@@ -45,6 +45,7 @@ const PLAN_LABELS: Record<string, string> = {
 type FeedbackRow = {
   id: string;
   type: "bug" | "feature";
+  severity: "normal" | "high" | null;
   message: string;
   page: string | null;
   status: "new" | "reviewing" | "done";
@@ -107,9 +108,14 @@ export default function SuperAdminPage() {
   useEffect(() => {
     supabase
       .from("feedback")
-      .select("id, type, message, page, status, created_at, submitter:users(first_name, last_name)")
+      .select("id, type, severity, message, page, status, created_at, submitter:users(first_name, last_name)")
       .order("created_at", { ascending: false })
-      .then(({ data }) => setFeedback((data as FeedbackRow[]) ?? []));
+      .then(({ data }) => {
+        const rows = (data as FeedbackRow[]) ?? [];
+        // high-severity (crash reports) float to the top, order otherwise kept
+        rows.sort((a, b) => (b.severity === "high" ? 1 : 0) - (a.severity === "high" ? 1 : 0));
+        setFeedback(rows);
+      });
   }, []);
 
   const updateFeedbackStatus = async (id: string, status: FeedbackRow["status"]) => {
@@ -312,6 +318,7 @@ export default function SuperAdminPage() {
               return (
                 <tr key={f.id}>
                   <td>
+                    {f.severity === "high" && <span className={styles.alertTag}>HIGH ALERT</span>}
                     <span className={styles.planTag}>{f.type === "bug" ? "🐛 Bug" : "💡 Feature"}</span>
                   </td>
                   <td>{f.message}</td>

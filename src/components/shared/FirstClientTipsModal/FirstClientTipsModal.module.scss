@@ -1,4 +1,5 @@
 .celebrate {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -8,17 +9,13 @@
   margin: 0 0 var(--sp-4);
 
   p {
+    position: relative;
+    z-index: 6; // keep the banner text above the confetti (z-index 5)
     margin: 0;
     font-size: 0.9rem;
     line-height: 1.5;
     color: var(--text-primary);
   }
-}
-
-.badge {
-  font-size: 1.5rem;
-  line-height: 1;
-  flex-shrink: 0;
 }
 
 .intro {

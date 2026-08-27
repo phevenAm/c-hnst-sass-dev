@@ -6,6 +6,51 @@
   gap: $sp-2;
 }
 
+// Expanded: same component, same <Document> (PDF stays loaded) — the wrapper
+// just takes over the screen and the page canvases re-render wider.
+.full {
+  position: fixed;
+  inset: 0;
+  z-index: 500; // matches Modal — above sidebar/flyouts + the consent gate
+  background: var(--bg-card);
+  padding: $sp-4;
+  gap: $sp-3;
+
+  .preview {
+    flex: 1;
+    max-height: none;
+  }
+}
+
+.fullHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  flex-shrink: 0;
+}
+
+.fullTitle {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.fullClose {
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  padding: 0 $sp-2;
+  cursor: pointer;
+  color: var(--text-muted);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
 // Single scrollbar for the whole stack of pages — the old iframe approach
 // nested the browser's own PDF-viewer scrollbar inside a short fixed-height
 // box, forcing the reader to scroll two independent things at once.
@@ -15,16 +60,13 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg-muted);
-  padding: $sp-3;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $sp-3;
+  padding: $sp-5;
 }
 
-.fullPage {
-  height: 100%;
-  overflow-y: auto;
+// Unpadded, full-width column that actually holds the page stack. The ref
+// that measures the render width sits here, not on the padded scroller.
+.pageCol {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,8 +75,13 @@
 
 .page {
   box-shadow: var(--shadow-md);
+  max-width: 100%;
 
+  // react-pdf renders a fixed-pixel canvas; if a stale/oversized width slips
+  // through, keep it from overflowing and distorting the stack.
   canvas {
+    max-width: 100% !important;
+    height: auto !important;
     border-radius: var(--r-sm);
   }
 }

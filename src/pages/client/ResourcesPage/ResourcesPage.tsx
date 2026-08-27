@@ -6,73 +6,20 @@ import { isAdultFromDob, isPageStatusLoading } from "@Helpers/Helpers";
 import Card from "@components/shared/Card/Card";
 import { ArticleIcon, VideoIcon } from "@components/shared/Icons/Icons";
 import PdfViewer from "@components/shared/PdfViewer/PdfViewer";
-import Spinner from "@components/shared/Spinner/Spinner";
 import { useAuth } from "@context/AuthContext";
-import type { Resource } from "@models/globalTypes";
+import type { DocumentSignature, PracticeDocument, Resource } from "@models/globalTypes";
 import { getResourceTypeLabel } from "@pages/admin/AdminResourcesPage/AdminResourcesPage";
-import { useAppSelector, useFetchOnIdle } from "@store/hooks";
+import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
+import {
+  fetchMyDocumentSignatures,
+  fetchPracticeDocuments,
+  selectMyDocumentSignatures,
+  selectPracticeDocuments,
+} from "@store/slices/practiceDocumentsSlice";
 import { fetchPublishedResources, selectPublishedResources } from "@store/slices/resourcesSlice";
 
-import { supabase } from "@/lib/supabase";
-
 import styles from "./ResourcesPage.module.scss";
-
-type ConsentSettings = {
-  consent_title: string;
-  consent_body: string;
-  consent_pdf_url: string | null;
-};
-
-// Unlike useConsentPending, this doesn't gate on has_consented being false —
-// the whole point is showing an already-signed agreement back to the client
-// who signed it, any time after the fact.
-function AgreementView({ signedName, signedAt }: { signedName: string | null; signedAt: string | null }) {
-  const [settings, setSettings] = useState<ConsentSettings | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    supabase.rpc("get_my_admin_consent_settings").then(({ data }) => {
-      setSettings(data?.[0] ?? null);
-      setLoaded(true);
-    });
-  }, []);
-
-  if (!loaded) return <Spinner />;
-
-  if (!settings) {
-    return <p className={styles.empty}>Your agreement details aren't available right now.</p>;
-  }
-
-  return (
-    <Card>
-      <div className={styles.agreementBody}>
-        <h2 className={styles.agreementTitle}>{settings.consent_title}</h2>
-
-        {settings.consent_body && (
-          <div className={styles.agreementText}>
-            {settings.consent_body.split("\n").map((line, i) =>
-              line.trim() === "" ? (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
-                <br key={i} />
-              ) : (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static text split by line, never reordered
-                <p key={i}>{line}</p>
-              ),
-            )}
-          </div>
-        )}
-
-        {settings.consent_pdf_url && <PdfViewer url={settings.consent_pdf_url} title={settings.consent_title} />}
-
-        <p className={styles.agreementSigned}>
-          {signedName ? `Signed by ${signedName}` : "Signed"}
-          {signedAt ? ` on ${dayjs(signedAt).format("D MMM YYYY")}` : ""}
-        </p>
-      </div>
-    </Card>
-  );
-}
 
 function getTabLabel(type: string): string {
   if (type === "onboarding") return "Onboarding";
@@ -88,7 +35,9 @@ function getResourceButtonLabel(type: string): string {
 
 //TODO: could do with a search to find things by words and even have a favourites. (add a star icon to the card to favourite it, and then have a filter for favourites)
 
-function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () => void }) {
+// Exported so the admin Resources page can reuse it for a client's-eye
+// "Preview" of a resource before it's published.
+export function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () => void }) {
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — close button provides keyboard path
     <div className={styles.modalOverlay} onClick={onClose} role="presentation">
@@ -184,8 +133,51 @@ function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: (resou
   );
 }
 
+// One onboarding document: title + optional blurb, with the PDF expandable
+// in place. Reference-only, unless it's the signature document — then its
+// signed / awaiting status is shown too.
+function PracticeDocumentCard({ doc, signature }: { doc: PracticeDocument; signature?: DocumentSignature }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card>
+      <div className={styles.cardBody}>
+        <span className={styles.categoryBadge}>
+          <ArticleIcon />
+          {doc.requires_signature ? "Agreement" : "Reference"}
+        </span>
+
+        <h2 className={styles.cardTitle}>{doc.title}</h2>
+
+        {doc.description && <p className={styles.excerpt}>{doc.description}</p>}
+
+        {doc.requires_signature && (
+          <p className={signature ? styles.docSigned : styles.docPending}>
+            {signature
+              ? `Signed by ${signature.signed_name} on ${dayjs(signature.signed_at).format("D MMM YYYY")}`
+              : "Awaiting your signature"}
+          </p>
+        )}
+
+        {doc.pdf_url && (
+          <>
+            <div className={styles.cardFooter}>
+              <button type="button" onClick={() => setOpen((o) => !o)} className={styles.readMoreBtn}>
+                {open ? "Hide document" : "View document"}
+              </button>
+            </div>
+            {open && <PdfViewer url={doc.pdf_url} title={doc.title} />}
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default function ResourcesPage() {
+  const dispatch = useAppDispatch();
   const resources = useAppSelector(selectPublishedResources);
+  const practiceDocuments = useAppSelector(selectPracticeDocuments);
+  const mySignatures = useAppSelector(selectMyDocumentSignatures);
   const { userProfile } = useAuth();
   const [filter, setFilter] = useState<string>("all");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -198,13 +190,25 @@ export default function ResourcesPage() {
     "Failed to fetch resources:",
   );
 
+  useFetchOnIdle(
+    (state: RootState) => state.practiceDocuments.status,
+    () => fetchPracticeDocuments(),
+    "Failed to fetch practice documents:",
+  );
+
+  useEffect(() => {
+    dispatch(fetchMyDocumentSignatures());
+  }, [dispatch]);
+
+  const signatureByDoc = new Map(mySignatures.map((s) => [s.document_id, s]));
+
   const resourcesStatus = useAppSelector((State) => State.resources.status);
 
   const contentToRender = isAdultFromDob(userProfile?.dob ?? "") ? resources : nonSensitiveResources;
   const types = [
     "all",
     ...new Set(contentToRender.map((r) => r.type)),
-    ...(userProfile?.has_consented ? ["onboarding"] : []),
+    ...(practiceDocuments.length > 0 ? ["onboarding"] : []),
   ];
 
   const byType = filter === "all" ? contentToRender : contentToRender.filter((r) => r.type === filter);
@@ -260,10 +264,12 @@ export default function ResourcesPage() {
         </div>
 
         {filter === "onboarding" ? (
-          <AgreementView
-            signedName={userProfile?.consent_signed_name ?? null}
-            signedAt={userProfile?.consented_at ?? null}
-          />
+          <div className={styles.grid}>
+            {practiceDocuments.map((doc) => (
+              <PracticeDocumentCard key={doc.id} doc={doc} signature={signatureByDoc.get(doc.id)} />
+            ))}
+            {practiceDocuments.length === 0 && <p className={styles.empty}>No documents from your practice yet.</p>}
+          </div>
         ) : (
           <>
             <div className={styles.grid}>

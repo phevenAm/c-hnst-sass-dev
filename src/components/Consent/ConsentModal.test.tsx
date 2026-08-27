@@ -10,7 +10,12 @@ afterEach(() => {
 
 const mockUpdateProfile = vi.fn().mockResolvedValue(undefined);
 vi.mock("../../context/AuthContext", () => ({
-  useAuth: () => ({ updateProfile: mockUpdateProfile }),
+  useAuth: () => ({ updateProfile: mockUpdateProfile, isDemo: false }),
+}));
+
+const mockRpc = vi.fn().mockResolvedValue({ error: null });
+vi.mock("@/lib/supabase", () => ({
+  supabase: { rpc: (...args: unknown[]) => mockRpc(...args) },
 }));
 
 // PdfViewer's own rendering (real PDF.js canvas output) is covered by live
@@ -26,6 +31,7 @@ const settings = {
   consent_body: "Please read carefully.",
   consent_pdf_url: "https://example.com/doc.pdf",
   consent_counsellor_cta: "",
+  consent_document_id: null,
 };
 
 describe("ConsentModal", () => {
@@ -74,5 +80,36 @@ describe("ConsentModal", () => {
   it("renders the PDF viewer when a consent PDF is configured", () => {
     render(<ConsentModal settings={settings} onComplete={vi.fn()} />);
     expect(screen.getByTestId("pdf-viewer")).toHaveTextContent("Terms of service");
+  });
+
+  it("records a signature via sign_document when the gate is driven by a document", async () => {
+    render(<ConsentModal settings={{ ...settings, consent_document_id: "doc-1" }} onComplete={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.change(screen.getByLabelText("Type your full name to sign"), {
+      target: { value: "  Jane Doe  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await vi.waitFor(() =>
+      expect(mockRpc).toHaveBeenCalledWith("sign_document", {
+        p_document_id: "doc-1",
+        p_signed_name: "Jane Doe",
+      }),
+    );
+    await vi.waitFor(() => expect(mockUpdateProfile).toHaveBeenCalled());
+  });
+
+  it("skips sign_document when there is no consent document (plain-text consent)", async () => {
+    render(<ConsentModal settings={settings} onComplete={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.change(screen.getByLabelText("Type your full name to sign"), {
+      target: { value: "Jane Doe" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await vi.waitFor(() => expect(mockUpdateProfile).toHaveBeenCalled());
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 });
