@@ -1,0 +1,67 @@
+// One-shot CSS confetti burst. The wrapper sits at the top of the nearest
+// positioned ancestor; pieces rain down from there and fade out.
+.confetti {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.piece {
+  position: absolute;
+  top: 0;
+  width: 7px;
+  height: 11px;
+  border-radius: 1px;
+  opacity: 0;
+  animation: confettiFall 1400ms cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -14px, 0) rotate(0deg);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift, 0), var(--confetti-fall, 230px), 0) rotate(600deg);
+  }
+}
+
+// Per-piece variation: horizontal position, colour, sideways drift, timing.
+// Colours are the earthy palette used elsewhere (scheduler donut).
+.piece:nth-child(1) { left: 3%; --drift: -14px; background: #2d7264; animation-delay: 0ms; animation-duration: 1250ms; }
+.piece:nth-child(2) { left: 10%; --drift: 10px; background: #8a6a2d; animation-delay: 90ms; animation-duration: 1500ms; }
+.piece:nth-child(3) { left: 17%; --drift: -8px; background: #3a7fa8; animation-delay: 170ms; animation-duration: 1350ms; }
+.piece:nth-child(4) { left: 24%; --drift: 16px; background: #b34437; animation-delay: 40ms; animation-duration: 1600ms; }
+.piece:nth-child(5) { left: 31%; --drift: -12px; background: #2d7264; animation-delay: 220ms; animation-duration: 1300ms; }
+.piece:nth-child(6) { left: 38%; --drift: 6px; background: #8a6a2d; animation-delay: 130ms; animation-duration: 1550ms; }
+.piece:nth-child(7) { left: 45%; --drift: -18px; background: #3a7fa8; animation-delay: 60ms; animation-duration: 1400ms; }
+.piece:nth-child(8) { left: 52%; --drift: 12px; background: #b34437; animation-delay: 260ms; animation-duration: 1500ms; }
+.piece:nth-child(9) { left: 58%; --drift: -6px; background: #2d7264; animation-delay: 100ms; animation-duration: 1350ms; }
+.piece:nth-child(10) { left: 65%; --drift: 18px; background: #8a6a2d; animation-delay: 30ms; animation-duration: 1600ms; }
+.piece:nth-child(11) { left: 72%; --drift: -10px; background: #3a7fa8; animation-delay: 200ms; animation-duration: 1300ms; }
+.piece:nth-child(12) { left: 79%; --drift: 8px; background: #b34437; animation-delay: 150ms; animation-duration: 1500ms; }
+.piece:nth-child(13) { left: 85%; --drift: -16px; background: #2d7264; animation-delay: 70ms; animation-duration: 1450ms; }
+.piece:nth-child(14) { left: 91%; --drift: 14px; background: #8a6a2d; animation-delay: 240ms; animation-duration: 1350ms; }
+.piece:nth-child(15) { left: 96%; --drift: -8px; background: #3a7fa8; animation-delay: 110ms; animation-duration: 1550ms; }
+.piece:nth-child(16) { left: 47%; --drift: 20px; background: #b34437; animation-delay: 300ms; animation-duration: 1400ms; }
+
+.piece:nth-child(even) {
+  width: 6px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece {
+    display: none;
+  }
+}
