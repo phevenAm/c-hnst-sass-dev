@@ -27,6 +27,10 @@ const TIPS = [
   },
 ];
 
+// Purely decorative one-shot confetti burst — CSS-animated, variation via
+// :nth-child in the stylesheet.
+const CONFETTI = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p"];
+
 export default function FirstClientTipsModal({ onClose }: Props) {
   return (
     <Modal
@@ -40,9 +44,11 @@ export default function FirstClientTipsModal({ onClose }: Props) {
       }
     >
       <div className={styles.celebrate}>
-        <span className={styles.badge} aria-hidden="true">
-          🎉
-        </span>
+        <div className={styles.confetti} aria-hidden="true">
+          {CONFETTI.map((id) => (
+            <span key={id} className={styles.piece} />
+          ))}
+        </div>
         <p>
           Nice work — that's the setup done. You're ready to book sessions, keep notes, track payments, and send
           check-in forms.
