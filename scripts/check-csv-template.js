@@ -65,4 +65,5 @@ if (missing.length) {
   process.exit(1);
 }
 
+// biome-ignore lint/suspicious/noConsole: CLI status output, not debugging
 console.log(`OK SESSION_HEADERS covers all ${dbFields.length} StubSession session fields`);

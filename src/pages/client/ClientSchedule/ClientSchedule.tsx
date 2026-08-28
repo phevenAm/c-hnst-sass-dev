@@ -75,7 +75,7 @@ const ClientSchedule = () => {
   const bufferMinutes = useAppSelector((state) => state.practiceSettings.data?.session_buffer_minutes ?? 10);
 
   useRealtimeTable("sessions", userProfile?.id ? `client_id=eq.${userProfile.id}` : undefined, () =>
-    dispatch(fetchSessionsByClientId(userProfile!.id)),
+    dispatch(fetchSessionsByClientId(userProfile?.id)),
   );
 
   const rules = useAppSelector((state) => state.availability.rules);

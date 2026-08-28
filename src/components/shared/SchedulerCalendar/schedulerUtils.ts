@@ -342,11 +342,13 @@ export function bookableWindowsForDate(
     .forEach((r) => windows.push({ start: at(day, r.start_time), end: at(day, r.end_time) }));
   dayOverrides
     .filter((o) => !o.is_blocked && o.start_time && o.end_time)
+    // biome-ignore lint/style/noNonNullAssertion: filtered above — start_time/end_time are guaranteed non-null here, TS just can't narrow through .filter
     .forEach((o) => windows.push({ start: at(day, o.start_time!), end: at(day, o.end_time!) }));
 
   dayOverrides
     .filter((o) => o.is_blocked && o.start_time && o.end_time)
     .forEach((o) => {
+      // biome-ignore lint/style/noNonNullAssertion: filtered above — start_time/end_time are guaranteed non-null here, TS just can't narrow through .filter
       const block = { start: at(day, o.start_time!), end: at(day, o.end_time!) };
       windows = windows.flatMap((w) => subtractInterval(w, block));
     });

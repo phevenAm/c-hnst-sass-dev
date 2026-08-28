@@ -609,7 +609,7 @@ export function generateEncryptionCode(): string {
 
 // Detects whether a field value was encrypted by encryptPII (stored as JSON {c, iv}).
 export function isEncryptedValue(value: string): boolean {
-  if (!value || !value.startsWith("{")) return false;
+  if (!value?.startsWith("{")) return false;
   try {
     const p = JSON.parse(value);
     return typeof p.c === "string" && typeof p.iv === "string";

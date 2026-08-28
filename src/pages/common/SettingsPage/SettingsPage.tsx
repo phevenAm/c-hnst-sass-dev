@@ -332,7 +332,7 @@ const SettingsPage = () => {
         const allPIIKeys = [...PII_BUSINESS_KEYS, ...PII_BANK_KEYS];
         const hasEncrypted = allPIIKeys.some((k) => {
           const v = data[k as string];
-          return v && v.startsWith("{");
+          return v?.startsWith("{");
         });
 
         if (hasEncrypted && encStatus !== "unlocked") {

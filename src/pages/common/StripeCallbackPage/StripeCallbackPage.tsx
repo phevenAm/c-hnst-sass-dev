@@ -11,6 +11,7 @@ export default function StripeCallbackPage() {
   const { refreshPracticeSettings } = useAuth();
   const [error, setError] = useState("");
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: must run exactly once — searchParams.get is a new reference every render (useSearchParams doesn't memoize), and the OAuth code is single-use, so re-running this on every render would resubmit an already-consumed code
   useEffect(() => {
     const code = searchParams.get("code");
     if (!code) {

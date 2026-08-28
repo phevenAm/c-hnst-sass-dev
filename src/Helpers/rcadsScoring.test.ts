@@ -164,7 +164,7 @@ describe("computeRcadsResult", () => {
     answers[14 - 1] = null;
     answers[24 - 1] = null;
     const result = computeRcadsResult(answers, DOB_AGE_12, "boy", AT);
-    expect(result.subscales.find((s) => s.key === "panic")!.raw).toBeNull();
+    expect(result.subscales.find((s) => s.key === "panic")?.raw).toBeNull();
     expect(result.totalAnxiety.raw).toBeNull();
     expect(result.totalRcads.raw).toBeNull(); // total also depends on every anxiety subscale
   });
@@ -176,7 +176,7 @@ describe("computeRcadsResult", () => {
     answers[6 - 1] = null;
     answers[11 - 1] = null;
     const result = computeRcadsResult(answers, DOB_AGE_12, "boy", AT);
-    expect(result.subscales.find((s) => s.key === "depression")!.raw).toBeNull();
+    expect(result.subscales.find((s) => s.key === "depression")?.raw).toBeNull();
     expect(result.totalAnxiety.raw).not.toBeNull();
     expect(result.totalRcads.raw).toBeNull();
   });

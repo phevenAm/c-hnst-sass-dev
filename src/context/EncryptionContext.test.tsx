@@ -83,7 +83,7 @@ describe("EncryptionContext", () => {
 
     await waitFor(() => expect(result.current.status).toBe("unlocked"));
     expect(result.current.pendingCode).toBeTruthy();
-    expect(result.current.pendingCode!.split("-")).toHaveLength(4);
+    expect(result.current.pendingCode?.split("-")).toHaveLength(4);
   });
 
   it("setupEncryption never persists an enc_code_wrapped-style password layer", async () => {

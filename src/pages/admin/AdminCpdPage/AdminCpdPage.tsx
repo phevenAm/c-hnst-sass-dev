@@ -117,7 +117,7 @@ export default function AdminCpdPage() {
       setLogs(merged);
     }
     setLoading(false);
-  }, [userProfile?.id]);
+  }, [userProfile?.id, showToast]);
 
   useEffect(() => {
     void fetchLogs();
@@ -266,7 +266,12 @@ export default function AdminCpdPage() {
 
   const standardFilterTypes: CpdActivityType[] = ["training", "reading", "conference"];
   const customCategoryFilters = Array.from(
-    new Set(logs.filter((l) => l.activity_type === "other" && l.custom_category).map((l) => l.custom_category!)),
+    new Set(
+      logs
+        .filter((l) => l.activity_type === "other" && l.custom_category)
+        // biome-ignore lint/style/noNonNullAssertion: filtered above — custom_category is guaranteed non-null here
+        .map((l) => l.custom_category!),
+    ),
   );
   const hasGenericOther = logs.some((l) => l.activity_type === "other" && !l.custom_category);
 

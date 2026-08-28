@@ -152,6 +152,7 @@ export default function AdminAuditLogsPage() {
   const guard = isPageStatusLoading(status);
   if (guard) return guard;
 
+  // biome-ignore lint/style/noNonNullAssertion: activeFilter is typed FilterLabel, which is exactly the set of FILTERS labels — always found
   const currentFilter = FILTERS.find((f) => f.label === activeFilter)!;
   const byTable = currentFilter.tables
     ? logs.filter((log) => (currentFilter.tables as readonly string[]).includes(log.table_name))

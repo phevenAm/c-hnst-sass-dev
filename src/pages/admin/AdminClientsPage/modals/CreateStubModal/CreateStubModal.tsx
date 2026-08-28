@@ -35,6 +35,7 @@ export default function CreateStubModal({ onClose, existing }: Props) {
       setError("First and last name are required.");
       return;
     }
+    if (!userProfile) return;
     setSaving(true);
     setError("");
 
@@ -52,7 +53,7 @@ export default function CreateStubModal({ onClose, existing }: Props) {
       } else {
         await dispatch(
           createClientStub({
-            created_by: userProfile!.id,
+            created_by: userProfile.id,
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             email: email.trim() || null,
@@ -94,7 +95,6 @@ export default function CreateStubModal({ onClose, existing }: Props) {
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="Jane"
-            autoFocus
           />
         </div>
         <div className={styles.field}>

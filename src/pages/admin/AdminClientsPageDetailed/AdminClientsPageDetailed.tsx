@@ -195,7 +195,7 @@ export default function AdminClientsPageDetailed() {
     setSelectedQuestionnaireId("");
   }, [clientId]);
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
-  const [isManageSessionsModal, setIsManageSessionsModal] = useState(false);
+  const [isManageSessionsModal, _setIsManageSessionsModal] = useState(false);
   const [sessionPageNumber, setSessionPageNumber] = useState<null | number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sessionsDateTab, setSessopmsDateTab] = useState<"upcoming" | "past">("upcoming");
@@ -269,10 +269,6 @@ export default function AdminClientsPageDetailed() {
     loadCancellationRequests();
   }, [loadCancellationRequests]);
 
-  useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
-    dispatch(fetchSessionsByClientId(clientId!)),
-  );
-
   useEffect(() => {
     if (!clientId) return;
     supabase
@@ -291,14 +287,14 @@ export default function AdminClientsPageDetailed() {
         }
         if (!data.is_encrypted) {
           const text = data.content as string;
-          setAccountSummaryPreview(text?.length > 120 ? text.slice(0, 120) + "…" : text);
+          setAccountSummaryPreview(text?.length > 120 ? `${text.slice(0, 120)}…` : text);
           setSummaryLocked(false);
           return;
         }
         if (data.note_iv && encStatus === "unlocked") {
           try {
             const plain = await decryptNote(data.content as string, data.note_iv as string);
-            setAccountSummaryPreview(plain?.length > 120 ? plain.slice(0, 120) + "…" : plain);
+            setAccountSummaryPreview(plain?.length > 120 ? `${plain.slice(0, 120)}…` : plain);
             setSummaryLocked(false);
           } catch {
             setAccountSummaryPreview(null);
@@ -676,8 +672,7 @@ export default function AdminClientsPageDetailed() {
             const dateStr =
               `${dayjs(s.scheduled_at).format("dddd D MMMM YYYY")} ${dayjs(s.scheduled_at).format("D MMM YYYY")}`.toLowerCase();
             return (
-              (s.notes && s.notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
-              dateStr.includes(searchTerm.toLowerCase())
+              s.notes?.toLowerCase().includes(searchTerm.toLowerCase()) || dateStr.includes(searchTerm.toLowerCase())
             );
           })
         : sessionsGroupByType,

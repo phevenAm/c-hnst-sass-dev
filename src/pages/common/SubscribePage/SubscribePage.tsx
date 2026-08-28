@@ -1,15 +1,8 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
-import {
-  CheckIcon,
-  ClarityLogoMark,
-  ClipboardIcon,
-  LeafLogoMark,
-  PaidIcon,
-  UsersIcon,
-} from "@components/shared/Icons/Icons";
+import { CheckIcon, ClipboardIcon, LeafLogoMark, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
@@ -137,13 +130,17 @@ export default function SubscribePage() {
     setReferralCode(getReferralCode());
   }, []);
 
-  const startAutoAdvance = () => {
+  // useCallback keeps this stable across renders — a plain function here
+  // would be a new reference on every slide advance (setCurrent below
+  // triggers a re-render), which as an effect dependency would tear down
+  // and restart the interval on every tick instead of just running once.
+  const startAutoAdvance = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(() => {
       setCurrent((c) => (c + 1) % SLIDES.length);
     }, 5000);
-  };
+  }, []);
 
   useEffect(() => {
     startAutoAdvance();
@@ -151,7 +148,7 @@ export default function SubscribePage() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [startAutoAdvance]);
 
   const goTo = (index: number) => {
     setCurrent(index);

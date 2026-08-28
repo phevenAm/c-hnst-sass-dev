@@ -138,7 +138,7 @@ export default function ClientDashboard() {
   // session, and the dashboard's "next session" card would keep showing a
   // session that's actually been cancelled.
   useRealtimeTable("sessions", authUser?.id ? `client_id=eq.${authUser.id}` : undefined, () =>
-    dispatch(fetchSessionsByClientId(authUser!.id)),
+    dispatch(fetchSessionsByClientId(authUser?.id)),
   );
 
   // Same gap for forms: an admin assigning (or re-prompting) a form while
@@ -147,7 +147,7 @@ export default function ClientDashboard() {
   // assignments drives the plotted-form pick — both need a refetch.
   useRealtimeTable("questionnaire_assignments", authUser?.id ? `user_id=eq.${authUser.id}` : undefined, () => {
     dispatch(fetchQuestionnaires());
-    dispatch(fetchAssignmentsByUser(authUser!.id));
+    dispatch(fetchAssignmentsByUser(authUser?.id));
   });
 
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);

@@ -48,10 +48,8 @@ if (!rootElement) throw new Error("Root element #root not found in DOM");
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   // <React.StrictMode>
-  <>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </>,
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
   // </React.StrictMode>
 );

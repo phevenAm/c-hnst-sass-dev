@@ -153,7 +153,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     };
 
     fetchNotes();
-  }, [user.id, sessionId, status, isDemo, decryptNote]);
+  }, [user.id, sessionId, status, isDemo, decryptNote, showToast, encryptNote]);
 
   // Account summary is a single row per client (enforced by a unique index —
   // see 20260821000004_one_account_summary_per_client.sql) — editing it

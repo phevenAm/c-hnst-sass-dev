@@ -87,7 +87,6 @@ export default function CalendarExportModal({ session, onClose }: Props) {
               placeholder="My appointment"
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
-              autoFocus
               maxLength={80}
             />
           )}

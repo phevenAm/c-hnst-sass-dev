@@ -166,7 +166,6 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
                 value={notesText}
                 onChange={(e) => setNotesText(e.target.value)}
                 rows={3}
-                autoFocus
               />
               <div className={styles.notesActions}>
                 <Button
@@ -309,7 +308,7 @@ export function SessionCardDetailed({ session, isDemo, isAdmin }: SessionCardDet
         <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
       )}
       {openEditSession && (
-        <CreateSessionModal clientId={session.client_id!} session={session} onClose={() => setOpenEditSession(false)} />
+        <CreateSessionModal clientId={session.client_id} session={session} onClose={() => setOpenEditSession(false)} />
       )}
     </div>
   );

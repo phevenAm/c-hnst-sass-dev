@@ -1,14 +1,14 @@
 import type { Session } from "@/models/globalTypes";
 
 function toIcsDate(date: Date): string {
-  return date.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
+  return `${date.toISOString().replace(/[-:.]/g, "").slice(0, 15)}Z`;
 }
 
 function fold(line: string): string {
   const chunks: string[] = [];
   while (line.length > 75) {
     chunks.push(line.slice(0, 75));
-    line = " " + line.slice(75);
+    line = ` ${line.slice(75)}`;
   }
   chunks.push(line);
   return chunks.join("\r\n");

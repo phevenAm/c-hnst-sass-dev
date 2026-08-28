@@ -252,7 +252,9 @@ const PaymentModal = ({ session, onClose }: PaymentModalProps) => {
                 {bankDetails.bank_account_name && (
                   <CopyRow label="Account name" value={bankDetails.bank_account_name} />
                 )}
+                {/* biome-ignore lint/style/noNonNullAssertion: hasBankDetails above already guarantees both fields are non-null; TS can't narrow through that derived boolean */}
                 <CopyRow label="Sort code" value={formatSortCode(bankDetails.bank_sort_code!)} mono />
+                {/* biome-ignore lint/style/noNonNullAssertion: hasBankDetails above already guarantees both fields are non-null; TS can't narrow through that derived boolean */}
                 <CopyRow label="Account number" value={bankDetails.bank_account_number!} mono />
                 <CopyRow label={isBlock ? "Amount (full block)" : "Amount"} value={`£${pricePounds}`} mono />
                 {bankDetails.bank_payment_reference && (

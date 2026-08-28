@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 
 import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Avatar from "@components/shared/Avatar/Avatar";
-import { BookIcon, CreateSession, FormsIcon, MailIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
+import { CreateSession, FormsIcon, MailIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";

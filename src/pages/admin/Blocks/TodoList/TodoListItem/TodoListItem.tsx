@@ -40,7 +40,7 @@ const TodoListItem = (todo: Todo) => {
       const now = new Date().toISOString();
       await dispatch(updateTodoItem({ ...todo, completed: true, completed_at: now })).unwrap();
       showToast("Task Updated", "success");
-    } catch (error) {
+    } catch (_error) {
       showToast("Something went wrong, please refresh page", "danger");
     } finally {
       setIsUpdating(false);

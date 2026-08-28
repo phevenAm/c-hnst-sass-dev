@@ -340,10 +340,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setError(signUpError.message);
           throw signUpError;
         }
+        if (!signUpData.user) {
+          throw new Error("Sign up succeeded but no user was returned.");
+        }
+        const newUserId = signUpData.user.id;
 
         // Auto-confirm email — invite email is proof the address is valid
         await supabase.functions.invoke("auto-confirm-signup", {
-          body: { user_id: signUpData.user!.id, access_token: cleanedToken },
+          body: { user_id: newUserId, access_token: cleanedToken },
         });
 
         // Sign in so auth.uid() is set when consume_platform_access_token runs
@@ -368,12 +372,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: linkedStub } = await supabase
           .from("client_stubs")
           .select("id")
-          .eq("linked_user_id", signUpData.user!.id)
+          .eq("linked_user_id", newUserId)
           .maybeSingle();
 
         if (linkedStub?.id) {
           supabase.functions.invoke("notify-admin-stub-joined", {
-            body: { stub_id: linkedStub.id, new_user_id: signUpData.user!.id },
+            body: { stub_id: linkedStub.id, new_user_id: newUserId },
           });
         }
       } finally {
