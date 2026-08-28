@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 import Card from "@components/shared/Card/Card";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
@@ -202,7 +199,11 @@ export default function AdminCpdPage() {
     URL.revokeObjectURL(url);
   };
 
-  const exportPdf = (logsToExport: CpdLog[]) => {
+  // jsPDF + autotable (~150 kB gzipped) are pulled in on demand so they only
+  // download when someone actually exports, not on every page load.
+  const exportPdf = async (logsToExport: CpdLog[]) => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
     const doc = new jsPDF();
     const name = userProfile?.display_name ?? "Counsellor";
     doc.setFontSize(16);
@@ -431,7 +432,7 @@ export default function AdminCpdPage() {
             setExportModalOpen(false);
           }}
           onExportPdf={(filtered) => {
-            exportPdf(filtered);
+            void exportPdf(filtered);
             setExportModalOpen(false);
           }}
         />

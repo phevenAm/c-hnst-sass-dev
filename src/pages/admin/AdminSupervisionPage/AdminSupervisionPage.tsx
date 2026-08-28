@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import Button from "@components/shared/Button/Button";
@@ -528,7 +526,11 @@ export default function AdminSupervisionPage() {
 
   const nextSessionNumber = manual.length + calendar.length + 1;
 
-  const exportPdf = () => {
+  // jsPDF + autotable (~150 kB gzipped) are pulled in on demand so they only
+  // download when someone actually exports, not on every page load.
+  const exportPdf = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
     const doc = new jsPDF();
     const name = userProfile?.display_name ?? "Counsellor";
     doc.setFontSize(16);
