@@ -25,6 +25,7 @@ import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import type { Session } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
+import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import { fetchSessionsByClientId } from "@/store/slices/sessionsSlice";
 
 import styles from "./ClientSchedule.module.scss";
@@ -64,6 +65,15 @@ const ClientSchedule = () => {
   // their counsellor's rules + overrides, so they can see open/blocked windows.
   useFetchOnIdle((state: RootState) => state.availability.status, fetchAvailability, "Failed to fetch availability");
 
+  // Practice settings — read only for the counsellor's session-buffer length so
+  // the calendar's post-session strips match what the admin sees.
+  useFetchOnIdle(
+    (state: RootState) => state.practiceSettings.status,
+    fetchPracticeSettings,
+    "Failed to fetch practice settings",
+  );
+  const bufferMinutes = useAppSelector((state) => state.practiceSettings.data?.session_buffer_minutes ?? 10);
+
   useRealtimeTable("sessions", userProfile?.id ? `client_id=eq.${userProfile.id}` : undefined, () =>
     dispatch(fetchSessionsByClientId(userProfile!.id)),
   );
@@ -99,8 +109,8 @@ const ClientSchedule = () => {
 
   // Calendar events: the client's own sessions + their counsellor's windows.
   const calendarEvents = useMemo(
-    () => [...availabilityEvents(calDate, rules, overrides), ...clientSessionEvents(mySessions)],
-    [calDate, rules, overrides, mySessions],
+    () => [...availabilityEvents(calDate, rules, overrides), ...clientSessionEvents(mySessions, bufferMinutes)],
+    [calDate, rules, overrides, mySessions, bufferMinutes],
   );
 
   // Darken time slots that fall outside the admin's availability windows.

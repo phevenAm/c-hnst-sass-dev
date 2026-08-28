@@ -1,28 +1,23 @@
 import { useEffect, useState } from "react";
 
-import dayjs from "dayjs";
-
 import { isAdultFromDob, isPageStatusLoading } from "@Helpers/Helpers";
+import AgreementView from "@components/Consent/AgreementView";
 import Card from "@components/shared/Card/Card";
-import { ArticleIcon, VideoIcon } from "@components/shared/Icons/Icons";
+import { ArticleIcon, PinIconFilled, StarIconFilled, StarIconOutline, VideoIcon } from "@components/shared/Icons/Icons";
 import PdfViewer from "@components/shared/PdfViewer/PdfViewer";
 import { useAuth } from "@context/AuthContext";
-import type { DocumentSignature, PracticeDocument, Resource } from "@models/globalTypes";
+import type { Resource } from "@models/globalTypes";
 import { getResourceTypeLabel } from "@pages/admin/AdminResourcesPage/AdminResourcesPage";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
-import {
-  fetchMyDocumentSignatures,
-  fetchPracticeDocuments,
-  selectMyDocumentSignatures,
-  selectPracticeDocuments,
-} from "@store/slices/practiceDocumentsSlice";
+import { fetchMyFavourites, selectFavouriteIds, toggleFavourite } from "@store/slices/resourceFavouritesSlice";
 import { fetchPublishedResources, selectPublishedResources } from "@store/slices/resourcesSlice";
 
 import styles from "./ResourcesPage.module.scss";
 
 function getTabLabel(type: string): string {
-  if (type === "onboarding") return "Onboarding";
+  if (type === "agreement") return "Your agreement";
+  if (type === "favourites") return "Favourites";
   return getResourceTypeLabel(type);
 }
 
@@ -32,8 +27,6 @@ function getResourceButtonLabel(type: string): string {
   if (type === "link") return "Visit site";
   return "Read";
 }
-
-//TODO: could do with a search to find things by words and even have a favourites. (add a star icon to the card to favourite it, and then have a filter for favourites)
 
 // Exported so the admin Resources page can reuse it for a client's-eye
 // "Preview" of a resource before it's published.
@@ -79,11 +72,11 @@ export function ResourceModal({ resource, onClose }: { resource: Resource; onClo
           </div>
         )}
 
-        {resource.type === "document" && resource.url.toLowerCase().endsWith(".pdf") && (
+        {resource.type === "document" && resource.url?.toLowerCase().endsWith(".pdf") && (
           <PdfViewer url={resource.url} title={resource.title} />
         )}
 
-        {resource.type === "document" && !resource.url.toLowerCase().endsWith(".pdf") && (
+        {resource.type === "document" && resource.url && !resource.url.toLowerCase().endsWith(".pdf") && (
           <div className={styles.externalWrap}>
             <a href={resource.url} target="_blank" rel="noopener noreferrer" className={styles.externalBtn}>
               Open document
@@ -91,7 +84,7 @@ export function ResourceModal({ resource, onClose }: { resource: Resource; onClo
           </div>
         )}
 
-        {resource.type === "link" && (
+        {resource.type === "link" && resource.url && (
           <div className={styles.externalWrap}>
             <a href={resource.url} target="_blank" rel="noopener noreferrer" className={styles.externalBtn}>
               Visit website
@@ -103,9 +96,19 @@ export function ResourceModal({ resource, onClose }: { resource: Resource; onClo
   );
 }
 
-function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: (resource: Resource) => void }) {
+function ResourceCard({
+  resource,
+  onOpen,
+  isFavourite,
+  onToggleFavourite,
+}: {
+  resource: Resource;
+  onOpen: (resource: Resource) => void;
+  isFavourite: boolean;
+  onToggleFavourite: (resource: Resource) => void;
+}) {
   const handleClick = () => {
-    if (resource.type === "link") {
+    if (resource.type === "link" && resource.url) {
       window.open(resource.url, "_blank");
     } else {
       onOpen(resource);
@@ -114,9 +117,24 @@ function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: (resou
   return (
     <Card>
       <div className={styles.cardBody}>
+        <button
+          type="button"
+          className={isFavourite ? styles.favBtnActive : styles.favBtn}
+          aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
+          aria-pressed={isFavourite}
+          onClick={() => onToggleFavourite(resource)}
+        >
+          {isFavourite ? <StarIconFilled /> : <StarIconOutline />}
+        </button>
+
         <span className={styles.categoryBadge}>
           {resource.type === "video" ? <VideoIcon /> : <ArticleIcon />}
           {resource.category}
+          {resource.is_pinned && (
+            <span className={styles.pinnedTag} title="Pinned by your practitioner">
+              <PinIconFilled />
+            </span>
+          )}
         </span>
 
         <h2 className={styles.cardTitle}>{resource.title}</h2>
@@ -133,51 +151,19 @@ function ResourceCard({ resource, onOpen }: { resource: Resource; onOpen: (resou
   );
 }
 
-// One onboarding document: title + optional blurb, with the PDF expandable
-// in place. Reference-only, unless it's the signature document — then its
-// signed / awaiting status is shown too.
-function PracticeDocumentCard({ doc, signature }: { doc: PracticeDocument; signature?: DocumentSignature }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Card>
-      <div className={styles.cardBody}>
-        <span className={styles.categoryBadge}>
-          <ArticleIcon />
-          {doc.requires_signature ? "Agreement" : "Reference"}
-        </span>
+// Pinned resources float to the top of whatever tab they're in.
+const pinnedFirst = (a: Resource, b: Resource) => Number(!!b.is_pinned) - Number(!!a.is_pinned);
 
-        <h2 className={styles.cardTitle}>{doc.title}</h2>
-
-        {doc.description && <p className={styles.excerpt}>{doc.description}</p>}
-
-        {doc.requires_signature && (
-          <p className={signature ? styles.docSigned : styles.docPending}>
-            {signature
-              ? `Signed by ${signature.signed_name} on ${dayjs(signature.signed_at).format("D MMM YYYY")}`
-              : "Awaiting your signature"}
-          </p>
-        )}
-
-        {doc.pdf_url && (
-          <>
-            <div className={styles.cardFooter}>
-              <button type="button" onClick={() => setOpen((o) => !o)} className={styles.readMoreBtn}>
-                {open ? "Hide document" : "View document"}
-              </button>
-            </div>
-            {open && <PdfViewer url={doc.pdf_url} title={doc.title} />}
-          </>
-        )}
-      </div>
-    </Card>
-  );
+function emptyMessage(filter: string, term: string, search: string): string {
+  if (filter === "favourites") return "No favourites yet — tap the star on any resource to save it here.";
+  if (term) return `No resources match "${search}".`;
+  return "No resources available yet.";
 }
 
 export default function ResourcesPage() {
   const dispatch = useAppDispatch();
   const resources = useAppSelector(selectPublishedResources);
-  const practiceDocuments = useAppSelector(selectPracticeDocuments);
-  const mySignatures = useAppSelector(selectMyDocumentSignatures);
+  const favouriteIds = useAppSelector(selectFavouriteIds);
   const { userProfile } = useAuth();
   const [filter, setFilter] = useState<string>("all");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -190,17 +176,9 @@ export default function ResourcesPage() {
     "Failed to fetch resources:",
   );
 
-  useFetchOnIdle(
-    (state: RootState) => state.practiceDocuments.status,
-    () => fetchPracticeDocuments(),
-    "Failed to fetch practice documents:",
-  );
-
   useEffect(() => {
-    dispatch(fetchMyDocumentSignatures());
+    dispatch(fetchMyFavourites());
   }, [dispatch]);
-
-  const signatureByDoc = new Map(mySignatures.map((s) => [s.document_id, s]));
 
   const resourcesStatus = useAppSelector((State) => State.resources.status);
 
@@ -208,19 +186,30 @@ export default function ResourcesPage() {
   const types = [
     "all",
     ...new Set(contentToRender.map((r) => r.type)),
-    ...(practiceDocuments.length > 0 ? ["onboarding"] : []),
+    "favourites",
+    ...(userProfile?.has_consented ? ["agreement"] : []),
   ];
 
-  const byType = filter === "all" ? contentToRender : contentToRender.filter((r) => r.type === filter);
+  const isSynthetic = filter === "agreement";
+
+  let byType: Resource[];
+  if (filter === "all") byType = contentToRender;
+  else if (filter === "favourites") byType = contentToRender.filter((r) => favouriteIds.includes(r.id));
+  else byType = contentToRender.filter((r) => r.type === filter);
+
   const term = search.toLowerCase().trim();
-  const filtered = term
-    ? byType.filter(
-        (r) =>
-          r.title.toLowerCase().includes(term) ||
-          (r.summary ?? "").toLowerCase().includes(term) ||
-          r.category.toLowerCase().includes(term),
-      )
-    : byType;
+  const filtered = (
+    term
+      ? byType.filter(
+          (r) =>
+            (r.title ?? "").toLowerCase().includes(term) ||
+            (r.summary ?? "").toLowerCase().includes(term) ||
+            (r.category ?? "").toLowerCase().includes(term),
+        )
+      : byType
+  )
+    .slice()
+    .sort(pinnedFirst);
 
   const guard = isPageStatusLoading(resourcesStatus);
   if (guard) return guard;
@@ -233,11 +222,7 @@ export default function ResourcesPage() {
           <p>Curated by your practitioner — take your time with these.</p>
         </div>
 
-        <div
-          className={styles.searchWrap}
-          id="resources-search"
-          style={filter === "onboarding" ? { display: "none" } : undefined}
-        >
+        <div className={styles.searchWrap} id="resources-search" style={isSynthetic ? { display: "none" } : undefined}>
           <input
             placeholder="Search for resource..."
             type="search"
@@ -263,24 +248,35 @@ export default function ResourcesPage() {
           ))}
         </div>
 
-        {filter === "onboarding" ? (
-          <div className={styles.grid}>
-            {practiceDocuments.map((doc) => (
-              <PracticeDocumentCard key={doc.id} doc={doc} signature={signatureByDoc.get(doc.id)} />
-            ))}
-            {practiceDocuments.length === 0 && <p className={styles.empty}>No documents from your practice yet.</p>}
-          </div>
+        {filter === "agreement" ? (
+          <AgreementView
+            signedName={userProfile?.consent_signed_name ?? null}
+            signedAt={userProfile?.consented_at ?? null}
+          />
         ) : (
           <>
             <div className={styles.grid}>
               {filtered.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} onOpen={setSelectedResource} />
+                <ResourceCard
+                  key={resource.id}
+                  resource={resource}
+                  onOpen={setSelectedResource}
+                  isFavourite={favouriteIds.includes(resource.id)}
+                  onToggleFavourite={(r) => {
+                    if (!userProfile?.id) return;
+                    dispatch(
+                      toggleFavourite({
+                        resourceId: r.id,
+                        userId: userProfile.id,
+                        on: !favouriteIds.includes(r.id),
+                      }),
+                    );
+                  }}
+                />
               ))}
             </div>
 
-            {filtered.length === 0 && (
-              <p className={styles.empty}>{term ? `No resources match "${search}".` : "No resources available yet."}</p>
-            )}
+            {filtered.length === 0 && <p className={styles.empty}>{emptyMessage(filter, term, search)}</p>}
           </>
         )}
       </div>

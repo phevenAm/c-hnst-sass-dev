@@ -505,7 +505,7 @@ export default function AdminStubDetailPage() {
   return (
     <div className="page">
       <div className="inner">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/clients")}>
+        <Button className={styles.backButton} variant="ghost" size="sm" onClick={() => navigate("/admin/clients")}>
           ← Back to clients
         </Button>
 
@@ -517,6 +517,15 @@ export default function AdminStubDetailPage() {
             lastSeenAt={lastSeenSession?.scheduled_at ?? null}
             lastNote={lastNote ? { content: lastNote.content, createdAt: lastNote.created_at } : null}
             notesLocked={false}
+            onManageSession={() => {
+              setSessionsDateTab(new Date(nextSession.scheduled_at) < new Date() ? "past" : "upcoming");
+              const el = document.getElementById(`stub-session-${nextSession.id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                setHighlightedSessionId(nextSession.id);
+                window.setTimeout(() => setHighlightedSessionId(null), 2500);
+              }
+            }}
             onViewNotes={() => document.getElementById("notes-section")?.scrollIntoView({ behavior: "smooth" })}
           />
         )}
@@ -855,8 +864,8 @@ export default function AdminStubDetailPage() {
             </select>
           </div>
           <p className={styles.linkHint}>
-            This will transfer all notes from the offline client to their real account and mark the profiles as linked.
-            Session records remain with the offline client.
+            This moves everything to their real account — notes, sessions and any assigned surveys — and marks the two
+            profiles as linked. This offline record then drops out of your client list.
           </p>
         </Modal>
       )}

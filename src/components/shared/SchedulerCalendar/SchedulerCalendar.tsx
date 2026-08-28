@@ -21,8 +21,9 @@ import type { SchedulerEvent } from "./schedulerUtils";
 // and event-click handler. Styling lives in SchedulerCalendar.scss, scoped
 // to the .portal-calendar wrapper.
 //
-// Drag-and-drop is enabled for session events only (draggableAccessor).
-// Buffer events (10 min post-session) are non-interactive visual indicators.
+// Drag-and-drop is enabled for session, stub-session and private events
+// (draggableAccessor). Buffer events (configurable post-session strip, default
+// 10 min) are non-interactive visual indicators.
 // ============================================================
 
 dayjs.extend(localizedFormat);
@@ -45,6 +46,13 @@ type SchedulerCalendarProps = {
   onSelectEvent?: (event: SchedulerEvent) => void;
   onEventDrop?: (args: EventInteractionArgs<SchedulerEvent>) => void;
   slotPropGetter?: (date: Date) => { className?: string; style?: CSSProperties };
+  // When set, a single click on an empty area of the grid fires onSelectSlot
+  // with that slot's time — used by the admin scheduler to start a new session
+  // / private event there. Drag-to-select a range is deliberately ignored: the
+  // create modals don't take a duration from it, so offering the gesture would
+  // be misleading.
+  selectable?: boolean;
+  onSelectSlot?: (slot: { start: Date }) => void;
   height?: string;
 };
 
@@ -57,6 +65,8 @@ export default function SchedulerCalendar({
   onSelectEvent,
   onEventDrop,
   slotPropGetter,
+  selectable,
+  onSelectSlot,
   height = "72vh",
 }: SchedulerCalendarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -115,8 +125,22 @@ export default function SchedulerCalendar({
         onSelectEvent={onSelectEvent}
         onEventDrop={onEventDrop}
         slotPropGetter={slotPropGetter}
+        selectable={selectable}
+        onSelectSlot={
+          onSelectSlot
+            ? (slotInfo) => {
+                // Only a plain click — never a drag-select ("select") — so the
+                // grid doesn't imply a range the create flow can't use.
+                if (slotInfo.action === "click" || slotInfo.action === "doubleClick") {
+                  onSelectSlot({ start: slotInfo.start as Date });
+                }
+              }
+            : undefined
+        }
         draggableAccessor={(event: SchedulerEvent) =>
-          event.resource.type === "session" || event.resource.type === "stub-session"
+          event.resource.type === "session" ||
+          event.resource.type === "stub-session" ||
+          event.resource.type === "private"
         }
         resizableAccessor={() => false}
         components={{ event: EventChip, header: HeaderCell }}

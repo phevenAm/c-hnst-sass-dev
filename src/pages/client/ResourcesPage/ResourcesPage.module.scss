@@ -254,19 +254,46 @@
   margin: 0;
 }
 
-.docSigned,
-.docPending {
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin: 0 0 $sp-4;
+// ── Favourite star + pinned marker ────────────────────────
+.favBtn,
+.favBtnActive {
+  position: absolute;
+  top: $sp-3;
+  right: $sp-3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $sp-1;
+  font-size: 1.15rem;
+  line-height: 1;
+  border-radius: var(--r-full);
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
+  }
 }
 
-.docSigned {
-  color: var(--success, #2e7d32);
+.favBtn {
+  color: var(--text-muted);
 }
 
-.docPending {
-  color: var(--warning, #b26a00);
+.favBtnActive {
+  color: var(--accent);
+}
+
+.pinnedTag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: $sp-1;
+  font-size: 0.8rem;
 }
 
 //Search

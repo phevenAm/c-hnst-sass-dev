@@ -34,14 +34,24 @@ type CreateSessionModalTypes = {
   onClose: () => void;
   session?: Session | null;
   onSave?: (payload: StubSavePayload) => Promise<void>;
+  // Pre-fill the date/time field for a brand-new session (e.g. the admin
+  // scheduler's click-an-empty-slot flow). Ignored when editing an existing one.
+  initialStart?: Dayjs | null;
 };
 
-const CreateSessionModal = ({ clientId, onClose, clientName, session = null, onSave }: CreateSessionModalTypes) => {
+const CreateSessionModal = ({
+  clientId,
+  onClose,
+  clientName,
+  session = null,
+  onSave,
+  initialStart = null,
+}: CreateSessionModalTypes) => {
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
   const allSessions = useAppSelector((state) => state.sessions.sessions);
-  const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : null);
+  const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : initialStart);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);

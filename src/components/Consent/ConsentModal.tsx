@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import Button from "../shared/Button/Button";
 import PdfViewer from "../shared/PdfViewer/PdfViewer";
@@ -12,7 +11,6 @@ interface ConsentSettings {
   consent_body: string;
   consent_pdf_url: string | null;
   consent_counsellor_cta: string;
-  consent_document_id: string | null;
 }
 
 interface Props {
@@ -21,7 +19,7 @@ interface Props {
 }
 
 export default function ConsentModal({ settings, onComplete }: Props) {
-  const { updateProfile, isDemo } = useAuth();
+  const { updateProfile } = useAuth();
   const [agreed, setAgreed] = useState(false);
   const [printedName, setPrintedName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -34,24 +32,10 @@ export default function ConsentModal({ settings, onComplete }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const name = printedName.trim();
-
-      // When the gate is driven by an Onboarding document, record a proper
-      // signature row against it. The RPC also sets has_consented server-side,
-      // but we still call updateProfile below to sync local state (and it's
-      // the only path for demo users, who never hit the RPC).
-      if (settings.consent_document_id && !isDemo) {
-        const { error: rpcError } = await supabase.rpc("sign_document", {
-          p_document_id: settings.consent_document_id,
-          p_signed_name: name,
-        });
-        if (rpcError) throw rpcError;
-      }
-
       await updateProfile({
         has_consented: true,
         consented_at: new Date().toISOString(),
-        consent_signed_name: name,
+        consent_signed_name: printedName.trim(),
       });
       onComplete();
     } catch {

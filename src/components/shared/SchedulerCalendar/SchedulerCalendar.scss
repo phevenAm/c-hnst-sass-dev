@@ -21,7 +21,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text)
+    color: inherit;
   }
 
   .cal-chipMeta {
@@ -34,7 +34,9 @@
 
   // Session chips are solid client-colour fills; force crisp white text with a
   // faint shadow so both the title and meta stay legible over any palette entry.
-  .rbc-event:not(.cal-window):not(.cal-blocked) .cal-chip {
+  // Private events are excluded — they render on a pale slate tint, not a solid
+  // fill, so white text on them is invisible (see .cal-private .cal-chip below).
+  .rbc-event:not(.cal-window):not(.cal-blocked):not(.cal-private) .cal-chip {
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   }
@@ -75,6 +77,13 @@
     color: var(--text-primary) !important;
   }
 
+  // The pale slate tint above needs dark text — override the white-text rule
+  // that every other non-window chip gets, and drop its shadow.
+  .cal-private .cal-chip {
+    color: var(--text-primary) !important;
+    text-shadow: none !important;
+  }
+
   // Cancelled sessions — greyed out, non-interactive, strikethrough title.
   // Mix with bg-card (not transparent) so light mode stays readable.
   .cal-cancelled-session {
@@ -100,6 +109,13 @@
   // Client calendar: darken time slots outside the admin's availability windows.
   .rbc-time-slot.cal-slot-blocked {
     background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  }
+
+  // We only act on a single click of an empty slot (not a drag-select), so
+  // don't paint the drag-to-select range box — it would imply a duration the
+  // new-session / private-event flow doesn't actually take.
+  .rbc-slot-selection {
+    display: none !important;
   }
 
   // ─── react-big-calendar theme overrides ─────────────────
