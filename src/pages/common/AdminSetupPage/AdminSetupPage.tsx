@@ -83,7 +83,8 @@ const SKIPPABLE_STEPS = new Set([3, 4, 5, 6]);
 // avoids racing AdminSetupGate (which bounces back to /admin/setup as long
 // as onboarding_required is still true).
 export default function AdminSetupPage() {
-  const { userProfile, practiceSettings, refreshPracticeSettings, signOut } = useAuth();
+  const { userProfile, practiceSettings, refreshPracticeSettings, updatePracticeSettingsLocal, isDemo, signOut } =
+    useAuth();
   const { status: encStatus, encryptPII } = useEncryption();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -131,6 +132,27 @@ export default function AdminSetupPage() {
   const handleAddPackage = async () => {
     if (!userProfile?.id || !newName.trim() || !newPrice) return;
     setAddingPackage(true);
+
+    // Demo admin's session_packages are shared with every visitor — don't
+    // actually insert. A locally-fabricated row lets them try the feature
+    // without touching the DB; it evaporates on their next sign-in.
+    if (isDemo) {
+      setPackages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          name: newName.trim(),
+          price_pence: Math.round(parseFloat(newPrice) * 100),
+          duration_minutes: Number(newDuration) || 50,
+        },
+      ]);
+      setNewName("");
+      setNewPrice("");
+      setNewDuration("50");
+      setAddingPackage(false);
+      return;
+    }
+
     const { data, error: insertError } = await supabase
       .from("session_packages")
       .insert({
@@ -156,6 +178,12 @@ export default function AdminSetupPage() {
   };
 
   const handleRemovePackage = async (id: string) => {
+    // Demo: local-only removal, same reasoning as handleAddPackage above —
+    // don't archive a real (possibly curated) demo session package.
+    if (isDemo) {
+      setPackages((prev) => prev.filter((p) => p.id !== id));
+      return;
+    }
     const { error: deleteError } = await supabase.from("session_packages").update({ archived: true }).eq("id", id);
     if (deleteError) {
       showToast("Failed to remove session type.", "danger");
@@ -215,6 +243,24 @@ export default function AdminSetupPage() {
     }
     setError("");
     setFinishing(true);
+
+    // Demo admin's practice_settings row is shared by every visitor — a real
+    // write here would permanently overwrite the curated business name,
+    // bank details and session packages for every future demo viewer.
+    // updatePracticeSettingsLocal only clears the gating flag for this
+    // session (matching how the "personalize your profile" modal already
+    // behaves for demo), so AdminSetupGate lets them through without ever
+    // touching the DB.
+    if (isDemo) {
+      updatePracticeSettingsLocal({
+        onboarding_required: false,
+        business_name: businessName.trim(),
+        use_client_codenames: enableCodenames,
+      });
+      setFinishing(false);
+      navigate("/admin");
+      return;
+    }
 
     const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
     const bankPayload: Record<BankField, string> = {
