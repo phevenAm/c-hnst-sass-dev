@@ -83,15 +83,26 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
 
   const clearPendingCode = useCallback(() => setPendingCode(null), []);
 
-  const fetchSettings = useCallback(async (): Promise<EncSettings | null> => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
+  // Never calls supabase.auth.getUser(): that's a network round-trip to
+  // /auth/v1/user, and supabase-js holds the sb-<ref>-auth-token lock across
+  // it. Behind a slow auth server that starved concurrent signInWithPassword
+  // calls of the same lock — sign-in appeared to hang with no request ever
+  // leaving the browser. The onAuthStateChange handler already has the
+  // session, so it passes the id straight in; everything else reads the
+  // stored session (getSession — local, no network).
+  const fetchSettings = useCallback(async (userId?: string): Promise<EncSettings | null> => {
+    let uid = userId;
+    if (!uid) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      uid = session?.user?.id;
+    }
+    if (!uid) return null;
     const { data } = await supabase
       .from("practice_settings")
       .select("enc_data_key, enc_data_key_salt, enc_data_key_iv")
-      .eq("admin_id", user.id)
+      .eq("admin_id", uid)
       .maybeSingle();
     return data as EncSettings | null;
   }, []);
@@ -105,18 +116,18 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // Deferred via setTimeout — calling any supabase.auth.* method
-      // (fetchSettings → getUser()) directly inside this callback can hang
-      // forever: onAuthStateChange fires while supabase-js's internal
-      // session lock is still held for the event being processed, and that
-      // lock isn't released until this callback returns. A nested call
-      // that needs the same lock then waits on a release that can't happen
-      // until it itself returns — a real deadlock, observed live as
-      // `status` sticking on "checking" indefinitely with no error thrown
-      // (nothing ever rejects; the awaited call just never settles).
-      // Escaping to a new task via setTimeout(…, 0) runs this after the
-      // callback (and the lock along with it) has been released. This is
-      // Supabase's own documented workaround for this exact class of bug.
+      // Deferred via setTimeout AND never calls a supabase.auth.* method
+      // in here (fetchSettings is passed session.user.id so it doesn't):
+      // onAuthStateChange fires while supabase-js's internal session lock is
+      // still held for the event being processed, and that lock isn't
+      // released until this callback returns. A nested auth call that needs
+      // the same lock then waits on a release that can't happen until it
+      // itself returns — a real deadlock (seen as `status` stuck on
+      // "checking" forever, nothing rejecting), and, when the nested call
+      // was getUser() against a slow server, it held the lock long enough to
+      // starve a concurrent signInWithPassword so sign-in hung with no
+      // request sent. setTimeout(…, 0) escapes the lock for the practice_settings
+      // read; using the handed-in id keeps auth entirely out of the path.
       setTimeout(async () => {
         try {
           if (event === "SIGNED_OUT") {
@@ -137,7 +148,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
               dataKeyRef.current = sessionKey;
               setStatus("unlocked");
             } else {
-              const settings = await fetchSettings();
+              const settings = await fetchSettings(session.user.id);
               setStatus(settings?.enc_data_key ? "locked" : "disabled");
             }
           }
@@ -156,8 +167,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
 
   const setupEncryption = useCallback(async (): Promise<void> => {
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error("Not authenticated");
 
     const code = generateEncryptionCode();
@@ -213,10 +225,11 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   const regenerateCode = useCallback(
     async (currentCode: string): Promise<boolean> => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return false;
-      const settings = await fetchSettings();
+      const settings = await fetchSettings(user.id);
       if (!settings?.enc_data_key) return false;
 
       let dataKey: CryptoKey;

@@ -22,7 +22,12 @@ const { fakeRow, supabaseMock } = vi.hoisted(() => ({
   fakeRow: { value: null as Record<string, unknown> | null },
   supabaseMock: {
     auth: {
+      // getUser() is a network round-trip that holds the auth lock — the
+      // context must never call it (it starved concurrent sign-ins of the
+      // lock). Kept here only so the "never called" assertion has something
+      // to check.
       getUser: vi.fn(),
+      getSession: vi.fn(),
       // EncryptionContext subscribes on mount purely to react to SIGNED_OUT
       // etc. — these tests drive status by calling setup/unlock/regenerate
       // directly, so this just needs to exist and be unsubscribable.
@@ -37,6 +42,7 @@ vi.mock("../lib/supabase.js", () => ({ supabase: supabaseMock }));
 function resetFakeTable() {
   fakeRow.value = null;
   supabaseMock.auth.getUser.mockResolvedValue({ data: { user: { id: ADMIN_ID } } });
+  supabaseMock.auth.getSession.mockResolvedValue({ data: { session: { user: { id: ADMIN_ID } } } });
   supabaseMock.from.mockImplementation((table: string) => {
     if (table !== "practice_settings") throw new Error(`Unexpected table: ${table}`);
     return {
@@ -104,6 +110,20 @@ describe("EncryptionContext", () => {
     const { result } = renderEncryption();
     const outcome = await result.current.unlockWithCode("anything-at-all-here");
     expect(outcome).toBe("no_key");
+  });
+
+  it("never calls supabase.auth.getUser (it holds the auth lock across a network call)", async () => {
+    const { result } = renderEncryption();
+    await result.current.setupEncryption();
+    await waitFor(() => expect(result.current.status).toBe("unlocked"));
+    const code = result.current.pendingCode!;
+    await result.current.regenerateCode(code);
+    await result.current.checkStatus();
+
+    const { result: fresh } = renderEncryption();
+    await fresh.current.unlockWithCode(result.current.pendingCode!);
+
+    expect(supabaseMock.auth.getUser).not.toHaveBeenCalled();
   });
 
   it("a note encrypted at setup is later readable after locking and unlocking with the code", async () => {
