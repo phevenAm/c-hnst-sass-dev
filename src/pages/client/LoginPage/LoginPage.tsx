@@ -305,9 +305,9 @@ export default function LoginPage() {
           </div>
 
           <div className={styles.demoSection}>
-            <p className={styles.demoDivider}>curious first?</p>
+            <p className={styles.demoDivider}>Curious to explore first?</p>
             <Link to="/demo" className={styles.link} style={{ display: "block", textAlign: "center" }}>
-              Try a demo
+              Take a quick tour
             </Link>
           </div>
         </div>

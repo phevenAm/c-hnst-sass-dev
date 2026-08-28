@@ -745,7 +745,7 @@ export default function AdminClientsPageDetailed() {
             <span className={styles.notFoundIcon}>👤</span>
             <h2>Client not found</h2>
             <p>This client may have been removed or the link is incorrect.</p>
-            <Button variant="secondary" onClick={() => navigate("/admin/clients")}>
+            <Button variant="secondary" className={styles.backButton} onClick={() => navigate("/admin/clients")}>
               ← Back to clients
             </Button>
           </div>
@@ -776,7 +776,7 @@ export default function AdminClientsPageDetailed() {
   return (
     <div className="page">
       <div className="inner">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/clients")}>
+        <Button variant="ghost" className={styles.backButton} size="sm" onClick={() => navigate("/admin/clients")}>
           ← Back to clients
         </Button>
 
