@@ -22,11 +22,11 @@ export function useConsentPending(): {
   settings: ConsentSettings | null;
   dismiss: () => void;
 } {
-  const { userProfile, isAdmin, isDemo, loading } = useAuth();
+  const { userProfile, isAdmin, loading } = useAuth();
   const [settings, setSettings] = useState<ConsentSettings | null>(null);
 
   useEffect(() => {
-    if (loading || isAdmin || isDemo || !userProfile || userProfile.has_consented) {
+    if (loading || isAdmin || !userProfile || userProfile.has_consented) {
       setSettings(null);
       return;
     }
@@ -34,7 +34,7 @@ export function useConsentPending(): {
       const row = data?.[0];
       setSettings(row?.consent_enabled ? row : null);
     });
-  }, [loading, isAdmin, isDemo, userProfile]);
+  }, [loading, isAdmin, userProfile]);
 
   return { pending: !!settings, settings, dismiss: () => setSettings(null) };
 }

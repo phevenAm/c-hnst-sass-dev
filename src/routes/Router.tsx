@@ -211,9 +211,9 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 }
 
 function AdminSetupGate({ children }: { children: React.ReactNode }) {
-  const { isAdmin, isDemo, practiceSettings, loading } = useAuth();
+  const { isAdmin, practiceSettings, loading } = useAuth();
   if (loading) return <AuthLoadingState variant="splash" />;
-  if (isAdmin && !isDemo && practiceSettings?.onboarding_required) {
+  if (isAdmin && practiceSettings?.onboarding_required) {
     return <Navigate to="/admin/setup" replace />;
   }
   return <>{children}</>;

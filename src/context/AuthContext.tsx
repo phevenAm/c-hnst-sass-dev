@@ -80,6 +80,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   updateProfile: (updates: ProfileUpdates) => Promise<void>;
   refreshPracticeSettings: () => Promise<void>;
+  updatePracticeSettingsLocal: (updates: Partial<PracticeSettings>) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -416,6 +417,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPracticeSettings(settings ?? null);
   }, [authUser, userProfile?.role]);
 
+  // Demo-admin equivalent of updateProfile's is_demo short-circuit — lets the
+  // AdminSetupPage wizard update gating state (onboarding_required, etc.)
+  // for the current session without writing to the shared demo admin's row.
+  const updatePracticeSettingsLocal = useCallback((updates: Partial<PracticeSettings>) => {
+    setPracticeSettings((prev) => (prev ? { ...prev, ...updates } : prev));
+  }, []);
+
   const retryProfile = useCallback(() => {
     if (!authUser) return;
     fetchProfile(authUser).then((profileData) => {
@@ -459,6 +467,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       updateProfile,
       refreshPracticeSettings,
+      updatePracticeSettingsLocal,
     }),
     [
       authUser,
@@ -476,6 +485,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       updateProfile,
       refreshPracticeSettings,
+      updatePracticeSettingsLocal,
     ],
   );
 
