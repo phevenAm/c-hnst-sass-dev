@@ -480,7 +480,7 @@ export default function AdminStubDetailPage() {
             <span>👤</span>
             <h2>Client not found</h2>
             <p>This offline client may have been deleted or the link is incorrect.</p>
-            <Button variant="secondary" onClick={() => navigate("/admin/clients")}>
+            <Button variant="secondary" className={styles.backButton} onClick={() => navigate("/admin/clients")}>
               ← Back to clients
             </Button>
           </div>

@@ -225,7 +225,7 @@ function ConsentGate() {
 }
 
 function OnboardingGate() {
-  const { userProfile, isDemo, isAuthenticated, loading, isAdmin, practiceSettings } = useAuth();
+  const { userProfile, isAuthenticated, loading, isAdmin, practiceSettings } = useAuth();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -249,7 +249,7 @@ function OnboardingGate() {
     setShow(subscribed && setupDone);
   }, [loading, isAuthenticated, userProfile, isAdmin, practiceSettings]);
 
-  if (!show || isDemo) return null;
+  if (!show) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
 }
 
