@@ -59,6 +59,23 @@ export default defineConfig({
     },
   },
 
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the big, rarely-changing vendors into their own chunks so a
+        // one-line app change doesn't invalidate the whole cache, and so a
+        // lazy route that doesn't touch charts/calendar never downloads them.
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "mui-vendor": ["@mui/material", "@mui/icons-material", "@mui/x-date-pickers"],
+          charts: ["recharts"],
+          calendar: ["react-big-calendar"],
+          supabase: ["@supabase/supabase-js"],
+        },
+      },
+    },
+  },
+
   css: {
     devSourcemap: true,
   },

@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
 import { describe, expect, it } from "vitest";
 
-import type { AvailabilityOverride, AvailabilityRule } from "@/models/globalTypes";
-import { bookableWindowsForDate } from "./schedulerUtils";
+import type { AvailabilityOverride, AvailabilityRule, ClientStub, Session, StubSession } from "@/models/globalTypes";
+import { bookableWindowsForDate, clientSessionEvents, sessionEvents, stubSessionEvents } from "./schedulerUtils";
 
 // A concrete Friday to anchor the tests; day_of_week is derived so the test
 // doesn't depend on knowing the weekday index by hand.
@@ -64,5 +64,84 @@ describe("bookableWindowsForDate", () => {
       "12:00-13:00",
       "14:00-16:00",
     ]);
+  });
+});
+
+// ── session → calendar events, incl. the configurable buffer strip ──────────
+
+const session = (o: Partial<Session> = {}): Session =>
+  ({
+    id: "s-1",
+    client_id: "c-1",
+    scheduled_at: "2026-08-07T10:00:00.000Z",
+    duration_minutes: 50,
+    status: "scheduled",
+    ...o,
+  }) as Session;
+
+// The buffer strip's length in minutes, or null when there is no buffer event.
+const bufferMinutesOf = (events: { id: string; start: Date; end: Date }[]): number | null => {
+  const buffer = events.find((e) => e.id.startsWith("buffer-"));
+  return buffer ? dayjs(buffer.end).diff(buffer.start, "minute") : null;
+};
+
+describe("sessionEvents — buffer strip", () => {
+  it("adds a default 10-minute buffer after an active session (happy path)", () => {
+    const events = sessionEvents([session()], []);
+    expect(bufferMinutesOf(events)).toBe(10);
+
+    // buffer starts exactly when the session ends
+    const buffer = events.find((e) => e.id === "buffer-s-1");
+    const sessionEvent = events.find((e) => e.id === "session-s-1");
+    expect(buffer?.start.getTime()).toBe(sessionEvent?.end.getTime());
+  });
+
+  it("uses the practice's buffer length when one is given", () => {
+    expect(bufferMinutesOf(sessionEvents([session()], [], false, 20))).toBe(20);
+  });
+
+  it("emits no buffer event when the buffer is turned off (bufferMinutes = 0)", () => {
+    const events = sessionEvents([session()], [], false, 0);
+    expect(bufferMinutesOf(events)).toBeNull();
+    expect(events).toHaveLength(1);
+  });
+
+  it("never buffers a cancelled session, regardless of the setting (sad path)", () => {
+    const events = sessionEvents([session({ status: "cancelled" })], [], false, 10);
+    expect(events).toHaveLength(1);
+    expect(events[0].resource.type).toBe("cancelled-session");
+  });
+});
+
+describe("clientSessionEvents — buffer strip", () => {
+  it("mirrors the counsellor's buffer setting", () => {
+    expect(bufferMinutesOf(clientSessionEvents([session()], 15))).toBe(15);
+  });
+
+  it("emits no buffer when off", () => {
+    expect(bufferMinutesOf(clientSessionEvents([session()], 0))).toBeNull();
+  });
+});
+
+describe("stubSessionEvents", () => {
+  const stub = (o: Partial<ClientStub> = {}): ClientStub =>
+    ({ id: "st-1", first_name: "Grace", last_name: "Hopper", codename: null, ...o }) as ClientStub;
+  const stubSession = (o: Partial<StubSession> = {}): StubSession =>
+    ({
+      id: "ss-1",
+      stub_id: "st-1",
+      scheduled_at: "2026-08-07T10:00:00.000Z",
+      duration_minutes: 50,
+      status: "scheduled",
+      ...o,
+    }) as StubSession;
+
+  it("honours the buffer setting for offline-client sessions", () => {
+    expect(bufferMinutesOf(stubSessionEvents([stubSession()], [stub()], false, 0))).toBeNull();
+    expect(bufferMinutesOf(stubSessionEvents([stubSession()], [stub()], false, 10))).toBe(10);
+  });
+
+  it("drops a stub session whose stub is missing (sad path)", () => {
+    expect(stubSessionEvents([stubSession({ stub_id: "gone" })], [stub()])).toEqual([]);
   });
 });

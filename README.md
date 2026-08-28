@@ -80,14 +80,6 @@ Publish and manage curated resources by type (websites, documents, articles, vid
 
 ---
 
-### Admin — Activity log
-
-Filterable audit trail of all actions across clients, check-ins, resources, and tags.
-
-![Activity log](docs/screenshots/admin-activity.png)
-
----
-
 ### Client — Dashboard (light & dark mode)
 
 Personalised greeting, an inspirational quote shaped by focus keywords, wellbeing stats, progress chart, and quick access to pending check-ins and resources.
