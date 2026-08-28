@@ -165,6 +165,7 @@ export async function logEmail(
     adminId?: string | null;
     clientId?: string | null;
     sessionId?: string | null;
+    stubSessionId?: string | null;
     emailType: string;
     recipientEmail: string;
     subject: string;
@@ -177,6 +178,7 @@ export async function logEmail(
     admin_id: opts.adminId ?? null,
     client_id: opts.clientId ?? null,
     session_id: opts.sessionId ?? null,
+    stub_session_id: opts.stubSessionId ?? null,
     email_type: opts.emailType,
     recipient_email: opts.recipientEmail,
     subject: opts.subject,
