@@ -114,6 +114,7 @@ function AdminLayout() {
   );
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname isn't read in the body — it's here purely to re-run this on every navigation and close the mobile sidebar
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [pathname]);
@@ -186,7 +187,7 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
       setVerifying(false);
     }, 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [refreshPracticeSettings, justSubscribed]);
 
   if (loading || verifying) return <AuthLoadingState variant="splash" />;
 
@@ -225,7 +226,7 @@ function ConsentGate() {
 }
 
 function OnboardingGate() {
-  const { userProfile, isAuthenticated, loading, isAdmin, practiceSettings } = useAuth();
+  const { userProfile, isAuthenticated, loading, isAdmin, isDemo, practiceSettings } = useAuth();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -234,11 +235,14 @@ function OnboardingGate() {
       setShow(false);
       return;
     }
-    if (!isAdmin) {
+    // Demo admin skips the subscribed/setup-done requirement below — it's a
+    // canned account with no real subscription or practice-setup flow to
+    // finish, so gating on those would just mean the modal can never show.
+    if (!isAdmin || isDemo) {
       setShow(true);
       return;
     }
-    // Admins only see the "personalize your profile" modal once they've
+    // Real admins only see the "personalize your profile" modal once they've
     // actually subscribed and finished practice setup — showing it right
     // after signup, before they've paid or configured anything, put a
     // client-facing first-impression step ahead of the business-critical
@@ -247,7 +251,7 @@ function OnboardingGate() {
       practiceSettings?.subscription_status === "active" || practiceSettings?.subscription_status === "trialing";
     const setupDone = !!practiceSettings && !practiceSettings.onboarding_required;
     setShow(subscribed && setupDone);
-  }, [loading, isAuthenticated, userProfile, isAdmin, practiceSettings]);
+  }, [loading, isAuthenticated, userProfile, isAdmin, isDemo, practiceSettings]);
 
   if (!show) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
