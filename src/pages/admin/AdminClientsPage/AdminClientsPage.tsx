@@ -421,7 +421,11 @@ export default function AdminClientsPage() {
 
   const handleCloseTips = () => {
     setTipsDismissed(true);
-    if (!userProfile?.id) return;
+    // Demo admin's practice_settings row is shared by every visitor — a real
+    // write here would permanently mark the milestone shown, and no future
+    // demo viewer would ever see this modal again. tipsDismissed above
+    // already closes it for this session; skip the persistent write.
+    if (!userProfile?.id || userProfile.is_demo) return;
     supabase
       .from("practice_settings")
       .update({ first_client_milestone_shown: true })
