@@ -218,7 +218,7 @@ test.describe("Stripe Connect — session payment and refund", () => {
     expect(sessionErr, sessionErr?.message).toBeFalsy();
 
     const { data, error } = await clientDb.functions.invoke("create-checkout-session", {
-      body: { session_id: unpaidSession!.id },
+      body: { session_id: unpaidSession?.id },
     });
     expect(error, error?.message).toBeFalsy();
     expect(data?.url).toContain("checkout.stripe.com");
@@ -230,7 +230,7 @@ test.describe("Stripe Connect — session payment and refund", () => {
         const { data } = await clientDb
           .from("sessions")
           .select("paid, stripe_payment_intent_id")
-          .eq("id", unpaidSession!.id)
+          .eq("id", unpaidSession?.id)
           .single();
         return data;
       },
@@ -261,7 +261,7 @@ test.describe("Stripe Connect — session payment and refund", () => {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${authSession?.access_token}`,
       },
-      body: JSON.stringify({ session_id: paidSession!.id, issue_refund: true }),
+      body: JSON.stringify({ session_id: paidSession?.id, issue_refund: true }),
     });
     const body = await res.json();
     expect(res.status, JSON.stringify(body)).toBe(200);
@@ -270,7 +270,7 @@ test.describe("Stripe Connect — session payment and refund", () => {
     const { data: cancelled } = await adminDb
       .from("sessions")
       .select("paid, status")
-      .eq("id", paidSession!.id)
+      .eq("id", paidSession?.id)
       .single();
     expect(cancelled?.paid).toBe(false);
     expect(cancelled?.status).toBe("cancelled");

@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Card from "@components/shared/Card/Card";
 import FirstClientTipsModal from "@components/shared/FirstClientTipsModal/FirstClientTipsModal";
-import ProgressChart from "@components/shared/ProgressChart/ProgressChart";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { supabase } from "@lib/supabase";
 import type { ClientStub, Questionnaire, Response, UserProfile } from "@models/globalTypes";
@@ -78,7 +77,7 @@ function ClientRow({ user }: { user: UserProfile }) {
     }
   }, [questionnaireOptions, selectedQuestionnaireId]);
 
-  const selectedQuestionnaire =
+  const _selectedQuestionnaire =
     questionnaireOptions.find((questionnaire) => questionnaire.id === selectedQuestionnaireId) ??
     questionnaireOptions[0];
 

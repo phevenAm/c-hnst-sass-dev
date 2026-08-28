@@ -34,12 +34,12 @@ function session(overrides: Partial<Session>): Session {
 describe("revenueByMonth", () => {
   it("counts a paid session in its month, converting pence to pounds", () => {
     const points = revenueByMonth([session({ price_pence: 5000, paid: true })], 6);
-    expect(points.at(-1)!.value).toBe(50);
+    expect(points.at(-1)?.value).toBe(50);
   });
 
   it("excludes unpaid sessions", () => {
     const points = revenueByMonth([session({ price_pence: 5000, paid: false })], 6);
-    expect(points.at(-1)!.value).toBe(0);
+    expect(points.at(-1)?.value).toBe(0);
   });
 
   it("excludes sessions older than the requested window", () => {
@@ -58,7 +58,7 @@ describe("revenueByMonth", () => {
       [session({ price_pence: 5000, paid: true }), session({ price_pence: 2500, paid: true })],
       6,
     );
-    expect(points.at(-1)!.value).toBe(75);
+    expect(points.at(-1)?.value).toBe(75);
   });
 });
 
@@ -80,17 +80,17 @@ function stubSession(overrides: {
 describe("revenueByMonthFromStubSessions", () => {
   it("counts a paid stub session, treating amount_paid as pounds", () => {
     const points = revenueByMonthFromStubSessions([stubSession({ amount_paid: 42.5 })], 6);
-    expect(points.at(-1)!.value).toBe(42.5);
+    expect(points.at(-1)?.value).toBe(42.5);
   });
 
   it("excludes stub sessions with no amount recorded and paid still false", () => {
     const points = revenueByMonthFromStubSessions([stubSession({ amount_paid: null })], 6);
-    expect(points.at(-1)!.value).toBe(0);
+    expect(points.at(-1)?.value).toBe(0);
   });
 
   it("excludes stub sessions with a zero amount and paid still false", () => {
     const points = revenueByMonthFromStubSessions([stubSession({ amount_paid: 0 })], 6);
-    expect(points.at(-1)!.value).toBe(0);
+    expect(points.at(-1)?.value).toBe(0);
   });
 
   // Regression: creating a session already marked paid sets `paid: true` but
@@ -98,25 +98,25 @@ describe("revenueByMonthFromStubSessions", () => {
   // entirely despite showing as paid on the client's own detail page.
   it("counts a session marked paid at creation, falling back to price_pence with no amount_paid set", () => {
     const points = revenueByMonthFromStubSessions([stubSession({ paid: true, price_pence: 8500 })], 6);
-    expect(points.at(-1)!.value).toBe(85);
+    expect(points.at(-1)?.value).toBe(85);
   });
 
   it("prefers amount_paid over price_pence when both are set", () => {
     const points = revenueByMonthFromStubSessions([stubSession({ paid: true, price_pence: 8500, amount_paid: 70 })], 6);
-    expect(points.at(-1)!.value).toBe(70);
+    expect(points.at(-1)?.value).toBe(70);
   });
 });
 
 describe("revenueByMonthFromPayments", () => {
   it("counts every manual payment — a row only exists once money is received", () => {
     const points = revenueByMonthFromPayments([{ paid_at: thisMonthIso(), amount_pence: 3000 }], 6);
-    expect(points.at(-1)!.value).toBe(30);
+    expect(points.at(-1)?.value).toBe(30);
   });
 
   it("buckets by paid_at, not any session date", () => {
     const points = revenueByMonthFromPayments([{ paid_at: monthsAgoIso(1), amount_pence: 1000 }], 6);
     expect(points[points.length - 1 - 1].value).toBe(10);
-    expect(points.at(-1)!.value).toBe(0);
+    expect(points.at(-1)?.value).toBe(0);
   });
 });
 
@@ -150,6 +150,6 @@ describe("mergeTrendPoints", () => {
     const stubs = revenueByMonthFromStubSessions([stubSession({ amount_paid: 10 })], 3);
     const manual = revenueByMonthFromPayments([{ paid_at: thisMonthIso(), amount_pence: 1500 }], 3);
     const merged = mergeTrendPoints(sessions, stubs, manual);
-    expect(merged.at(-1)!.value).toBe(50 + 10 + 15);
+    expect(merged.at(-1)?.value).toBe(50 + 10 + 15);
   });
 });

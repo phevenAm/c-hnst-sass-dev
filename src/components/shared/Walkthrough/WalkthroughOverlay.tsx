@@ -63,10 +63,10 @@ function WalkthroughPrompt() {
         Want a quick tour of <strong>{currentPage.pageTitle}</strong>?
       </p>
       <div className={styles.promptActions}>
-        <button className={styles.btnDecline} onClick={declinePrompt}>
+        <button type="button" className={styles.btnDecline} onClick={declinePrompt}>
           No thanks
         </button>
-        <button className={styles.btnAccept} onClick={acceptPrompt} autoFocus>
+        <button type="button" className={styles.btnAccept} onClick={acceptPrompt}>
           Yes please
         </button>
       </div>
@@ -122,6 +122,7 @@ export default function WalkthroughOverlay() {
   // devices, or when the element hadn't rendered yet (data still loading).
   // Now: retry until the element exists, then rAF-poll getBoundingClientRect
   // until it stops moving (scroll finished) or a hard cap is hit.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: currentStepIndex isn't read in the body, but two consecutive steps can share the same stepTarget — without the index, advancing between them wouldn't re-trigger this effect
   useEffect(() => {
     if (!isActive || !stepTarget) {
       setSpotlight(null);
@@ -175,7 +176,7 @@ export default function WalkthroughOverlay() {
 
   useLayoutEffect(() => {
     if (spotlight) reposition(spotlight);
-  }, [spotlight, isExpanded, reposition]);
+  }, [spotlight, reposition]);
 
   // Keep the spotlight glued to its target through scrolling, resizes and
   // late layout shifts (images, async content) for as long as the step is up.
@@ -247,11 +248,13 @@ export default function WalkthroughOverlay() {
               <div className={styles.headerRight}>
                 <div className={styles.dotsInline} aria-hidden="true">
                   {Array.from({ length: totalSteps }).map((_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length decorative list, position is the identity
                     <span key={i} className={`${styles.dot} ${i === currentStepIndex ? styles.dotActive : ""}`} />
                   ))}
                 </div>
                 {hasTarget && (
                   <button
+                    type="button"
                     className={styles.expandBtn}
                     onClick={() => setIsExpanded((v) => !v)}
                     aria-label={isExpanded ? "Collapse explanation" : "Expand explanation"}
@@ -278,7 +281,12 @@ export default function WalkthroughOverlay() {
                     </svg>
                   </button>
                 )}
-                <button className={styles.closeBtn} onClick={skipPage} aria-label="Skip walkthrough for this page">
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={skipPage}
+                  aria-label="Skip walkthrough for this page"
+                >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                     <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
@@ -295,8 +303,8 @@ export default function WalkthroughOverlay() {
                   <div className={styles.stepActions}>
                     {currentStep.actions.slice(0, 2).map((action) => (
                       <button
-                        key={`${action.to}|${action.label}`}
                         type="button"
+                        key={`${action.to}|${action.label}`}
                         className={styles.btnAction}
                         onClick={() => runStepAction(action.to)}
                       >
@@ -306,16 +314,21 @@ export default function WalkthroughOverlay() {
                   </div>
                 )}
                 <div className={styles.footer}>
-                  <button className={styles.btnDismiss} onClick={dismissAll} title="Turn off all walkthroughs">
+                  <button
+                    type="button"
+                    className={styles.btnDismiss}
+                    onClick={dismissAll}
+                    title="Turn off all walkthroughs"
+                  >
                     Don't show again
                   </button>
                   <div className={styles.navActions}>
                     {currentStepIndex > 0 && (
-                      <button className={styles.btnBack} onClick={prevStep}>
+                      <button type="button" className={styles.btnBack} onClick={prevStep}>
                         Back
                       </button>
                     )}
-                    <button className={styles.btnNext} onClick={nextStep} autoFocus>
+                    <button type="button" className={styles.btnNext} onClick={nextStep}>
                       {isLastStep ? "Got it" : "Next"}
                     </button>
                   </div>
@@ -326,11 +339,11 @@ export default function WalkthroughOverlay() {
             {!isExpanded && (
               <div className={styles.compactFooter}>
                 {currentStepIndex > 0 && (
-                  <button className={styles.btnBack} onClick={prevStep}>
+                  <button type="button" className={styles.btnBack} onClick={prevStep}>
                     Back
                   </button>
                 )}
-                <button className={styles.btnNext} onClick={nextStep}>
+                <button type="button" className={styles.btnNext} onClick={nextStep}>
                   {isLastStep ? "Got it" : "Next"}
                 </button>
               </div>

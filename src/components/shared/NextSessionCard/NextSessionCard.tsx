@@ -22,6 +22,7 @@ function MeetingIcon({ url }: { url: string }) {
   const shared = { width: 14, height: 14, "aria-hidden": true, style: { flexShrink: 0 } as React.CSSProperties };
   if (url.includes("teams.microsoft.com") || url.includes("teams.live.com")) {
     return (
+      // biome-ignore lint/a11y/noSvgWithoutTitle: decorative — aria-hidden is in the `shared` spread
       <svg {...shared} viewBox="0 0 16 16">
         <rect width="16" height="16" rx="3" fill="#5558AF" />
         <rect x="4" y="4" width="8" height="2" fill="white" />
@@ -31,6 +32,7 @@ function MeetingIcon({ url }: { url: string }) {
   }
   if (url.includes("meet.google.com")) {
     return (
+      // biome-ignore lint/a11y/noSvgWithoutTitle: decorative — aria-hidden is in the `shared` spread
       <svg {...shared} viewBox="0 0 16 16">
         <rect width="16" height="16" rx="3" fill="#00AC47" />
         <rect x="2" y="5" width="7" height="6" rx="1" fill="white" />
@@ -40,6 +42,7 @@ function MeetingIcon({ url }: { url: string }) {
   }
   if (url.includes("zoom.us")) {
     return (
+      // biome-ignore lint/a11y/noSvgWithoutTitle: decorative — aria-hidden is in the `shared` spread
       <svg {...shared} viewBox="0 0 16 16">
         <rect width="16" height="16" rx="3" fill="#2D8CFF" />
         <rect x="2" y="5" width="7" height="6" rx="1" fill="white" />
@@ -48,6 +51,7 @@ function MeetingIcon({ url }: { url: string }) {
     );
   }
   return (
+    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative — aria-hidden is in the `shared` spread
     <svg {...shared} viewBox="0 0 16 16" fill="currentColor">
       <rect x="1" y="4" width="9" height="8" rx="1.5" />
       <path d="M11 8l4-2.5v5z" />

@@ -419,7 +419,7 @@ export default function AdminSupervisionPage() {
         })),
       );
     setLoading(false);
-  }, [userProfile?.id]);
+  }, [userProfile?.id, showToast]);
 
   useEffect(() => {
     void fetchData();

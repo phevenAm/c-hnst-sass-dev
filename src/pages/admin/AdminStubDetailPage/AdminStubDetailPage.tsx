@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
@@ -183,7 +183,11 @@ export default function AdminStubDetailPage() {
   const stubIdRef = useRef(stubId);
   stubIdRef.current = stubId;
 
-  const loadSessions = () => {
+  // useCallback keeps this stable across renders — a plain function here
+  // would be a new reference every render, and since it's a dependency of
+  // the effect below (which it also triggers a re-render from, via
+  // setSessions), that would refetch forever.
+  const loadSessions = useCallback(() => {
     if (!stubIdRef.current) return;
     supabase
       .from("stub_sessions")
@@ -193,7 +197,7 @@ export default function AdminStubDetailPage() {
       .then(({ data }) => {
         if (data) setSessions(data as StubSession[]);
       });
-  };
+  }, []);
 
   useRealtimeTable("stub_sessions", stubId ? `stub_id=eq.${stubId}` : undefined, loadSessions);
 
@@ -236,7 +240,7 @@ export default function AdminStubDetailPage() {
       .then(({ data }) => {
         if (data) setAssignedForms(data as AssignedForm[]);
       });
-  }, [stubId]);
+  }, [stubId, loadSessions]);
 
   // Codenames only apply while the practice-wide toggle is on — matches
   // clientDisplayName() (used for real clients), which stubs never actually
@@ -616,6 +620,7 @@ export default function AdminStubDetailPage() {
                           <StubBlockSessionCard
                             sessions={item.sessions}
                             sessionNumberMap={sessionNumberMap}
+                            // biome-ignore lint/style/noNonNullAssertion: the `!stub` guard above already returned if stubId didn't resolve a stub
                             stubId={stubId!}
                             adminId={userProfile?.id ?? ""}
                             isDemo={isDemo}
@@ -636,6 +641,7 @@ export default function AdminStubDetailPage() {
                         <StubSessionCard
                           session={s}
                           sessionNumber={sessionNumberMap.get(s.id) ?? 1}
+                          // biome-ignore lint/style/noNonNullAssertion: the `!stub` guard above already returned if stubId didn't resolve a stub
                           stubId={stubId!}
                           adminId={userProfile?.id ?? ""}
                           isDemo={isDemo}
@@ -778,6 +784,7 @@ export default function AdminStubDetailPage() {
             // they group into one card, same as real-client bulk booking.
             const blockId = values.dates.length > 1 ? crypto.randomUUID().slice(0, 6) : null;
             const rows = values.dates.map((d, i) => ({
+              // biome-ignore lint/style/noNonNullAssertion: the `!stub` guard above already returned if stubId didn't resolve a stub
               stub_id: stubId!,
               admin_id: userProfile.id,
               scheduled_at: d,

@@ -75,8 +75,8 @@ export default function SortableTable<T>({
       const col = columns.find((c) => c.key === sortKey);
       if (col?.sortable && col.sortValue) {
         result.sort((a, b) => {
-          const av = col.sortValue!(a);
-          const bv = col.sortValue!(b);
+          const av = col.sortValue?.(a);
+          const bv = col.sortValue?.(b);
           const mul = sortDir === "asc" ? 1 : -1;
           if (typeof av === "number" && typeof bv === "number") return mul * (av - bv);
           return mul * String(av).localeCompare(String(bv));

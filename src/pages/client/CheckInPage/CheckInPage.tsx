@@ -157,10 +157,11 @@ export default function CheckInPage() {
   // client is sitting on this exact page never showed up — the effect above
   // only fires once per mount, not on every assignment change.
   useRealtimeTable("questionnaire_assignments", authUser?.id ? `user_id=eq.${authUser.id}` : undefined, () => {
-    dispatch(fetchAssignmentsByUser(authUser!.id));
+    dispatch(fetchAssignmentsByUser(authUser?.id));
   });
 
   // Reset form state when tab changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeTab isn't read in the body — it's here purely to re-run this reset whenever the tab changes
   useEffect(() => {
     setAnswers({});
     setCurrentStep(0);

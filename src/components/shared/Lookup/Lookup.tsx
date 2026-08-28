@@ -66,7 +66,8 @@ const Lookup = ({
         // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: combobox pattern
         <ul className={styles.dropdown} role="listbox" onMouseDown={(e) => e.preventDefault()}>
           {suggestions.map((opt) => (
-            <li key={opt} className={styles.item} role="option" aria-selected={value === opt}>
+            // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: combobox pattern — pairs with the listbox role above
+            <li key={opt} className={styles.item} role="option" tabIndex={-1} aria-selected={value === opt}>
               <button type="button" className={styles.itemBtn} onClick={() => pick(opt)}>
                 {opt}
               </button>

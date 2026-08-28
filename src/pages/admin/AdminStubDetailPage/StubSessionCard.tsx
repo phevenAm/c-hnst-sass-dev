@@ -240,7 +240,6 @@ export default function StubSessionCard({
                     setEditingCode(false);
                   }
                 }}
-                autoFocus
                 placeholder="e.g. S-001"
                 maxLength={20}
               />
@@ -302,7 +301,6 @@ export default function StubSessionCard({
                 setEditingNotes(false);
               }
             }}
-            autoFocus
             rows={3}
             placeholder="Session notes…"
           />
@@ -326,7 +324,6 @@ export default function StubSessionCard({
         <p
           className={session.notes ? styles.notes : styles.noNotes}
           onClick={() => setEditingNotes(true)}
-          role="button"
           title="Click to edit notes"
         >
           {session.notes ?? "Click to add notes"}

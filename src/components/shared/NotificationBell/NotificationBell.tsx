@@ -142,13 +142,13 @@ export function NotificationBell() {
                       className={[styles.itemBody, styles.clickable].filter(Boolean).join(" ")}
                       onClick={() => {
                         setOpen(false);
-                        navigate(n.url!.replace(window.location.origin, ""));
+                        navigate(n.url?.replace(window.location.origin, ""));
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           setOpen(false);
-                          navigate(n.url!.replace(window.location.origin, ""));
+                          navigate(n.url?.replace(window.location.origin, ""));
                         }
                       }}
                     >

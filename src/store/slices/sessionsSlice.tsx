@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
 
 import { supabase } from "@/lib/supabase.js";
-import type { Session, SessionBlockMeta, SessionStatus } from "@/models/globalTypes.js";
+import type { Session, SessionBlockMeta } from "@/models/globalTypes.js";
 import type { RootState } from "@/store/store";
 
 type SessionsState = {

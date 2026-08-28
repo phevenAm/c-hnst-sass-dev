@@ -202,7 +202,6 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                     setEditingCode(false);
                   }
                 }}
-                autoFocus
                 placeholder="e.g. S-001"
                 maxLength={20}
               />
@@ -263,7 +262,6 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                   setEditingNotes(false);
                 }
               }}
-              autoFocus
               rows={3}
               placeholder="Session notes…"
             />
@@ -287,7 +285,6 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
           <p
             className={session.notes ? styles.notes : styles.noNotes}
             onClick={() => setEditingNotes(true)}
-            role="button"
             title="Click to edit notes"
           >
             {session.notes ?? "Click to add notes"}
@@ -491,7 +488,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
         <ClientRescheduleModal session={session} onClose={() => setIsRescheduleModalOpen(false)} />
       )}
       {openEditSession && (
-        <CreateSessionModal clientId={session.client_id!} session={session} onClose={() => setOpenEditSession(false)} />
+        <CreateSessionModal clientId={session.client_id} session={session} onClose={() => setOpenEditSession(false)} />
       )}
     </div>
   );

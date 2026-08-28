@@ -45,7 +45,7 @@ export default function UnsubscribePage() {
         }
       })
       .catch(() => setState("error"));
-  }, []);
+  }, [type, token]);
 
   return (
     <div className={styles.page}>

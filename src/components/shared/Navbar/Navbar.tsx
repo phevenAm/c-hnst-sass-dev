@@ -10,15 +10,7 @@ import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSli
 import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
-import {
-  ClarityLogoMark,
-  CloseIcon,
-  DarkmodeIcon,
-  LeafLogoMark,
-  LightmodeIcon,
-  MenuIcon,
-  Settingsicon,
-} from "../Icons/Icons";
+import { CloseIcon, DarkmodeIcon, LeafLogoMark, LightmodeIcon, MenuIcon, Settingsicon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 import SkipToMain from "../SkipToMain/SkipToMain";
 

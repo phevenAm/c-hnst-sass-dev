@@ -36,13 +36,14 @@ export default function InviteStubModal({ stub, onClose }: Props) {
       setError("Email address is required.");
       return;
     }
+    if (!authUser) return;
 
     setLoading(true);
     setError(null);
 
     const { error: insertError } = await supabase
       .from("platform_access_token")
-      .insert({ token, stub_id: stub.id, admin_id: authUser!.id, is_used: false });
+      .insert({ token, stub_id: stub.id, admin_id: authUser.id, is_used: false });
 
     if (insertError) {
       setError(insertError.message);

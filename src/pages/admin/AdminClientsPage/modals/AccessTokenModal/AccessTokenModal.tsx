@@ -30,12 +30,13 @@ export default function AccessTokenModal({ onClose }: { onClose: () => void }) {
       setError("Token cannot be empty");
       return;
     }
+    if (!authUser) return;
 
     setLoading(true);
 
     const { data, error } = await supabase
       .from("platform_access_token")
-      .insert({ token: cleanedToken, admin_id: authUser!.id, is_used: false })
+      .insert({ token: cleanedToken, admin_id: authUser.id, is_used: false })
       .select("token")
       .single();
 

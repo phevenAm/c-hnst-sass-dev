@@ -79,11 +79,7 @@ export default function DemoPage() {
         </div>
 
         <div className={styles.card}>
-          {access === "checking" && (
-            <>
-              <h2 className={styles.heading}>Checking your link…</h2>
-            </>
-          )}
+          {access === "checking" && <h2 className={styles.heading}>Checking your link…</h2>}
 
           {access === "granted" && (
             <>

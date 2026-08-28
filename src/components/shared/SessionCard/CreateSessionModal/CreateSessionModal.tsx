@@ -65,7 +65,7 @@ const CreateSessionModal = ({
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
   const [referenceCode, setReferenceCode] = useState(session?.reference_code ?? "");
-  const [isSupervision, setIsSupervision] = useState((session as any)?.is_supervision ?? false);
+  const [isSupervision, _setIsSupervision] = useState((session as any)?.is_supervision ?? false);
   const [trackAsCpd, setTrackAsCpd] = useState(false);
   const [supervisionCost, setSupervisionCost] = useState(
     (session as any)?.supervision_cost_pence ? ((session as any).supervision_cost_pence / 100).toFixed(2) : "",

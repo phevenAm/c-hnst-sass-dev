@@ -31,7 +31,12 @@ type Props = {
 
 export default function CpdExportModal({ logs, onClose, onExportCsv, onExportPdf }: Props) {
   const customCategories = Array.from(
-    new Set(logs.filter((l) => l.activity_type === "other" && l.custom_category).map((l) => l.custom_category!)),
+    new Set(
+      logs
+        .filter((l) => l.activity_type === "other" && l.custom_category)
+        // biome-ignore lint/style/noNonNullAssertion: filtered above — custom_category is guaranteed non-null here
+        .map((l) => l.custom_category!),
+    ),
   );
   const hasGenericOther = logs.some((l) => l.activity_type === "other" && !l.custom_category);
 

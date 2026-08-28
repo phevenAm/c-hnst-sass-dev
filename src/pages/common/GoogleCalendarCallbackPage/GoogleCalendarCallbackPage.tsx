@@ -8,6 +8,7 @@ export default function GoogleCalendarCallbackPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: must run exactly once — searchParams.get is a new reference every render (useSearchParams doesn't memoize), and the OAuth code is single-use, so re-running this on every render would resubmit an already-consumed code
   useEffect(() => {
     const code = searchParams.get("code");
     const oauthError = searchParams.get("error");

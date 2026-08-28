@@ -621,6 +621,7 @@ const AdminPaymentsPage = () => {
               variant="ghost"
               onClick={(e) => {
                 e.stopPropagation();
+                // biome-ignore lint/style/noNonNullAssertion: gated by r.viewPath && above
                 navigate(r.viewPath!);
               }}
             >
@@ -836,7 +837,6 @@ const AdminPaymentsPage = () => {
               placeholder="85.00"
               value={markAmount}
               onChange={(e) => setMarkAmount(e.target.value)}
-              autoFocus
               style={{
                 padding: "10px 14px",
                 border: "1.5px solid var(--border)",

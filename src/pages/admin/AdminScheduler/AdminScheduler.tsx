@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { View } from "react-big-calendar";
 import { Views } from "react-big-calendar";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -25,7 +25,7 @@ import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
-import type { AdminPrivateEvent, ClientStub, Session, StubSession, UserProfile } from "@/models/globalTypes";
+import type { AdminPrivateEvent, Session, StubSession, UserProfile } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchPrivateEvents, updatePrivateEvent } from "@/store/slices/adminPrivateEventsSlice";
 import { fetchAvailability } from "@/store/slices/availabilitySlice";
@@ -173,7 +173,7 @@ const AdminScheduler = () => {
       setNewSessionClientId(null);
       setNewSessionWithoutId(false);
     }
-  }, [newSessionClientId, allStubs]);
+  }, [newSessionClientId, allStubs, navigate]);
 
   useEffect(() => {
     if (searchParams.get("newSession") === "1") {
@@ -200,7 +200,11 @@ const AdminScheduler = () => {
   useRealtimeTable("sessions", "duration_minutes=gte.0", () => dispatch(fetchAllSessions()));
 
   // Stub sessions have no Redux slice — fetch directly and keep live via realtime.
-  const fetchStubSessions = () => {
+  // useCallback keeps this stable across renders — without it, the effect below
+  // (which depends on it) would refetch on every render, forever, since a plain
+  // function is a new reference each time and every fetch's setState triggers
+  // another render.
+  const fetchStubSessions = useCallback(() => {
     supabase
       .from("stub_sessions")
       .select("*")
@@ -208,11 +212,11 @@ const AdminScheduler = () => {
         if (error) console.error("Failed to load stub sessions:", error);
         else setAllStubSessions((data as StubSession[]) ?? []);
       });
-  };
+  }, []);
 
   useEffect(() => {
     fetchStubSessions();
-  }, []);
+  }, [fetchStubSessions]);
 
   useRealtimeTable("stub_sessions", userProfile?.id ? `admin_id=eq.${userProfile.id}` : undefined, fetchStubSessions);
 
@@ -813,11 +817,10 @@ const AdminScheduler = () => {
 
       {viewingSession && (
         <Modal
-          title={
-            clients.find((c) => c.id === viewingSession.client_id)
-              ? `Session with ${clientDisplayName(clients.find((c) => c.id === viewingSession.client_id)!, useCodenames)}`
-              : "Session details"
-          }
+          title={(() => {
+            const viewingClient = clients.find((c) => c.id === viewingSession.client_id);
+            return viewingClient ? `Session with ${clientDisplayName(viewingClient, useCodenames)}` : "Session details";
+          })()}
           onClose={() => setViewingSession(null)}
           size="md"
         >

@@ -1,5 +1,5 @@
-import { chmodSync, copyFileSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { chmodSync, copyFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(fileURLToPath(import.meta.url), "../..");
@@ -17,4 +17,5 @@ for (const hook of hooks) {
   }
 }
 
+// biome-ignore lint/suspicious/noConsole: CLI status output, not debugging
 console.log("Git hooks installed.");

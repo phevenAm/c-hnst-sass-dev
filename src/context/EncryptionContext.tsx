@@ -209,7 +209,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         return "no_key";
       }
       try {
+        // biome-ignore lint/style/noNonNullAssertion: enc_data_key_salt/iv are always set together with enc_data_key (checked above) — same encryption-setup write
         const codeKEK = await deriveKEK(code.trim(), fromBase64(settings.enc_data_key_salt!));
+        // biome-ignore lint/style/noNonNullAssertion: enc_data_key_salt/iv are always set together with enc_data_key (checked above) — same encryption-setup write
         const dataKey = await unwrapDataKey(settings.enc_data_key, settings.enc_data_key_iv!, codeKEK);
         dataKeyRef.current = dataKey;
         await saveKeyToSession(dataKey);
@@ -238,7 +240,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         // data key so it can be re-wrapped under the new code, not
         // regenerated (that would orphan every note already encrypted
         // under the old one).
+        // biome-ignore lint/style/noNonNullAssertion: enc_data_key_salt/iv are always set together with enc_data_key (checked above) — same encryption-setup write
         const currentCodeKEK = await deriveKEK(currentCode.trim(), fromBase64(settings.enc_data_key_salt!));
+        // biome-ignore lint/style/noNonNullAssertion: enc_data_key_salt/iv are always set together with enc_data_key (checked above) — same encryption-setup write
         dataKey = await unwrapDataKey(settings.enc_data_key, settings.enc_data_key_iv!, currentCodeKEK);
       } catch {
         return false;
