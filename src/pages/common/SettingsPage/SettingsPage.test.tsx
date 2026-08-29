@@ -134,7 +134,14 @@ const {
   const currentRow: typeof initialRow = { ...initialRow };
   let googleStatusRow: { connected: boolean; google_email: string | null; sync_enabled: boolean } | null = null;
   const reminderMutesRows: { id: string; client_id: string | null; stub_id: string | null }[] = [];
-  const sessionPackagesRows: { id: string; name: string; price_pence: number; duration_minutes: number }[] = [];
+  const sessionPackagesRows: {
+    id: string;
+    name: string;
+    price_pence: number;
+    duration_minutes: number;
+    is_recurring?: boolean;
+    session_count?: number;
+  }[] = [];
   const clientOptionsRows: { id: string; first_name: string; last_name: string }[] = [
     { id: "client-1", first_name: "Ada", last_name: "Lovelace" },
   ];
@@ -162,14 +169,14 @@ const {
               }),
             }),
           }),
-          insert: (payload: { name: string; price_pence: number; duration_minutes: number }) => ({
+          insert: (payload: Record<string, unknown>) => ({
             select: () => ({
               single: () => {
                 const row = {
                   id: `pkg-${sessionPackagesRows.length + 1}`,
-                  name: payload.name,
-                  price_pence: payload.price_pence,
-                  duration_minutes: payload.duration_minutes,
+                  is_recurring: false,
+                  session_count: 1,
+                  ...payload,
                 };
                 sessionPackagesRows.push(row);
                 return Promise.resolve({ data: row, error: null });
@@ -615,10 +622,28 @@ describe("SettingsPage — session types & prices", () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
     fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "65" } });
     fireEvent.change(screen.getByLabelText("Duration (min)"), { target: { value: "50" } });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Add session type" }));
 
     expect(await screen.findByText(/Standard session/)).toBeInTheDocument();
     expect(screen.getByText(/£65\.00.*50 min/)).toBeInTheDocument();
+  });
+
+  it("adds a recurring block type and lists the per-session breakdown (happy path)", async () => {
+    await openPracticeTab();
+
+    fireEvent.click(screen.getByLabelText(/Recurring block/i));
+    // Price label switches to make clear it's the whole-block price.
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Weekly block" } });
+    fireEvent.change(screen.getByLabelText("Block price (£)"), { target: { value: "240" } });
+    fireEvent.change(screen.getByLabelText("Number of weeks"), { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Add session type" }));
+
+    expect(await screen.findByText(/Weekly block/)).toBeInTheDocument();
+    // £240.00 · 4-week block · £60.00/session · 50 min
+    expect(screen.getByText(/£240\.00 · 4-week block · £60\.00\/session/)).toBeInTheDocument();
+
+    // The row that was persisted carries the recurring config.
+    expect(sessionPackagesRows[0]).toMatchObject({ is_recurring: true, session_count: 4, price_pence: 24000 });
   });
 
   it("does not add a session type in demo mode (sad path)", async () => {
@@ -627,7 +652,7 @@ describe("SettingsPage — session types & prices", () => {
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
     fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "65" } });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Add session type" }));
 
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
     expect(screen.queryByText(/Standard session/)).not.toBeInTheDocument();

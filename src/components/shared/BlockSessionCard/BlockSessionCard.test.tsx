@@ -99,6 +99,39 @@ describe("BlockSessionCard tab numbering", () => {
     expect(tabs.map((t) => t.textContent)).toEqual(["1", "2", "3"]);
   });
 
+  it("shows the whole-block price from metadata, not the sum of the divided rows", () => {
+    // Each row carries its £60 share; the header should still read £240 total.
+    const meta = (pos: number) => ({
+      block_id: "blk",
+      block_pos: pos,
+      block_total: 4,
+      block_start: "",
+      block_price_pence: 24000,
+    });
+    const sessions = [
+      makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z", price_pence: 6000, metadata: meta(1) }),
+      makeSession({ id: "b", scheduled_at: "2026-06-08T09:00:00.000Z", price_pence: 6000, metadata: meta(2) }),
+      makeSession({ id: "c", scheduled_at: "2026-06-15T09:00:00.000Z", price_pence: 6000, metadata: meta(3) }),
+      makeSession({ id: "d", scheduled_at: "2026-06-22T09:00:00.000Z", price_pence: 6000, metadata: meta(4) }),
+    ];
+
+    renderWithStore(<BlockSessionCard sessions={sessions} isAdmin />);
+
+    expect(screen.getByText(/4 session block · £240\.00 total/)).toBeInTheDocument();
+  });
+
+  it("falls back to summing live rows when metadata has no block price", () => {
+    const meta = (pos: number) => ({ block_id: "blk", block_pos: pos, block_total: 2, block_start: "" });
+    const sessions = [
+      makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z", price_pence: 6000, metadata: meta(1) }),
+      makeSession({ id: "b", scheduled_at: "2026-06-08T09:00:00.000Z", price_pence: 6000, metadata: meta(2) }),
+    ];
+
+    renderWithStore(<BlockSessionCard sessions={sessions} isAdmin />);
+
+    expect(screen.getByText(/2 session block · £120\.00 total/)).toBeInTheDocument();
+  });
+
   it("defaults the active tab to the soonest session", () => {
     const sessions = [
       makeSession({ id: "later", scheduled_at: "2026-06-10T09:00:00.000Z" }),

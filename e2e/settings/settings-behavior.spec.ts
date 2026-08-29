@@ -516,6 +516,153 @@ test.describe("Block payment cascade", () => {
   });
 });
 
+// ── Block booking: one confirmation email, not one per session ──────────────
+//
+// Booking a recurring block used to fire notify-session-booked once per
+// session (4 emails for a block of 4) and stamp the whole-block price on
+// every row. notify-block-booked (added 2026-08-29) sends a single email for
+// the whole block, logged once against the earliest session. The frontend
+// now also divides the block price across the rows so they sum back to the
+// block total — covered by CreateSessionModal.test.tsx; this e2e proves the
+// email side against the real deployed function + email_logs.
+
+test.describe("Block booking confirmation email", () => {
+  test("notify-block-booked logs exactly one email for the whole block", async () => {
+    test.setTimeout(90_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    const adminDb = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
+
+    await adminDb.from("practice_settings").update({ disabled_email_types: [] }).eq("admin_id", adminId);
+
+    // Overlap trigger (check_session_overlap) rejects a rerun colliding with
+    // its own leftovers at the same now()+N offset — clear this slice first.
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '119 hours' and now() + interval '125 hours';`,
+    );
+
+    const blockId = `e2e-blockmail-${Date.now()}`;
+    const { first, second, third } = insertSessions([
+      {
+        label: "first",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(120, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId, block_pos: 1, block_total: 3 },
+      },
+      {
+        label: "second",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(121, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId, block_pos: 2, block_total: 3 },
+      },
+      {
+        label: "third",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(122, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId, block_pos: 3, block_total: 3 },
+      },
+    ]);
+
+    // Clear any notifications a previous run left for this admin/client so the
+    // assertions below only see this invocation's output.
+    dbQuery(
+      `delete from public.notifications where user_id in ('${adminId}', '${clientId}') and type in ('session_booked', 'email_sent');`,
+    );
+
+    const { error } = await adminDb.functions.invoke("notify-block-booked", {
+      body: { session_ids: [first, second, third] },
+    });
+    expect(error, error?.message).toBeFalsy();
+
+    // Exactly one session_booked log across all three sessions, and it's
+    // against the earliest one (the function's anchor).
+    const logs = dbQuery<{ session_id: string; status: string }>(
+      `select session_id, status from public.email_logs
+       where email_type = 'session_booked' and session_id in ('${first}', '${second}', '${third}');`,
+    ).rows;
+    expect(logs).toHaveLength(1);
+    expect(logs[0].session_id).toBe(first);
+    expect(logs[0].status).toBe("sent");
+
+    // Client gets one notification: what was booked + a pay nudge (unpaid) +
+    // a deep link to their sessions page.
+    const clientNotifs = dbQuery<{ message: string; url: string | null }>(
+      `select message, url from public.notifications where user_id = '${clientId}' and type = 'session_booked';`,
+    ).rows;
+    expect(clientNotifs).toHaveLength(1);
+    expect(clientNotifs[0].message).toMatch(/3-session block/);
+    expect(clientNotifs[0].message).toMatch(/pay/i);
+    expect(clientNotifs[0].url).toBe("/my-sessions");
+
+    // Admin gets ONE rich notification (with a deep link), and NOT the
+    // generic "<client> was sent: session booked" one the email_logs trigger
+    // emits for single bookings (suppressed for block rows).
+    const adminNotifs = dbQuery<{ type: string; message: string; url: string | null }>(
+      `select type, message, url from public.notifications where user_id = '${adminId}' and type in ('session_booked', 'email_sent');`,
+    ).rows;
+    expect(adminNotifs).toHaveLength(1);
+    expect(adminNotifs[0].type).toBe("session_booked");
+    expect(adminNotifs[0].message).toMatch(/3-session block/);
+    expect(adminNotifs[0].message).not.toMatch(/was sent:/);
+    expect(adminNotifs[0].url).toContain(`/admin/clients/${clientId}`);
+  });
+
+  test("respects disabled_email_types — one skipped log, still not one per session", async () => {
+    test.setTimeout(90_000);
+    const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    const adminDb = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
+
+    await adminDb
+      .from("practice_settings")
+      .update({ disabled_email_types: ["session_booked"] })
+      .eq("admin_id", adminId);
+
+    dbQuery(
+      `delete from public.sessions where created_by = '${adminId}' and scheduled_at between now() + interval '125 hours' and now() + interval '129 hours';`,
+    );
+
+    const blockId = `e2e-blockmail-skip-${Date.now()}`;
+    const { a, b } = insertSessions([
+      {
+        label: "a",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(126, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId, block_pos: 1, block_total: 2 },
+      },
+      {
+        label: "b",
+        clientId,
+        adminId,
+        scheduledAt: dayjs().add(127, "hour").toISOString(),
+        paid: false,
+        metadata: { block_id: blockId, block_pos: 2, block_total: 2 },
+      },
+    ]);
+
+    const { error } = await adminDb.functions.invoke("notify-block-booked", {
+      body: { session_ids: [a, b] },
+    });
+    expect(error, error?.message).toBeFalsy();
+
+    const logs = dbQuery<{ session_id: string; status: string }>(
+      `select session_id, status from public.email_logs
+       where email_type = 'session_booked' and session_id in ('${a}', '${b}');`,
+    ).rows;
+    expect(logs).toHaveLength(1);
+    expect(logs[0].session_id).toBe(a);
+    expect(logs[0].status).toBe("skipped");
+
+    await adminDb.from("practice_settings").update({ disabled_email_types: [] }).eq("admin_id", adminId);
+  });
+});
+
 // ── Manual payment decline + retry ──────────────────────────────────────────
 //
 // respond_manual_payment()'s decline branch sets manual_payment_status to

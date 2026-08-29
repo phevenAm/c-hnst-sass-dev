@@ -174,8 +174,16 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         role: "admin",
       },
       {
-        id: "settings-emails-tab",
+        id: "settings-session-types",
         order: 4,
+        title: "Session types & prices",
+        body: "Under 'Billing & payments', 'Session types & prices' is where you save your usual prices and durations as presets. Tick 'Recurring block' to make one that books several weekly sessions in a single step — the price you enter is the whole-block price, split evenly across the sessions. You pick these when booking from '+ New session'.",
+        target: "#settings-tabs button:nth-child(2)",
+        role: "admin",
+      },
+      {
+        id: "settings-emails-tab",
+        order: 5,
         title: "Emails",
         body: "Turn each automatic client email on or off — reminders, booking confirmations, cancellations, reschedules, and receipts. You can edit the wording and send yourself a test.",
         target: "#settings-tabs button:nth-child(3)",
@@ -183,7 +191,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
       },
       {
         id: "settings-interface-tab",
-        order: 5,
+        order: 6,
         title: "Interface",
         body: "Make the app your own — show or hide dashboard widgets, move the sidebar button, adjust zoom and motion, and replay any page tour. Sections fold away, and the search box finds them fast.",
         target: "#settings-tabs button:nth-child(4)",
@@ -274,7 +282,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "client-detail-sessions",
         order: 3,
         title: "Sessions and notes",
-        body: "Book a session for this client straight from '+ New session' here — no need to open the scheduler. Open any session to add notes; these are encrypted, so the first time you'll be asked to set up your personal key.",
+        body: "Book a session for this client straight from '+ New session' here — no need to open the scheduler. Pick a session type to fill in the price and duration, or a recurring block to create several weekly sessions at once (set those up in Settings → Session types & prices). Open any session to add notes; these are encrypted, so the first time you'll be asked to set up your personal key.",
       },
       {
         id: "client-detail-scores",
