@@ -84,7 +84,11 @@ export default defineConfig({
     historyApiFallback: true,
   },
   test: {
-    include: ["src/**/*.{test,spec}.{ts,tsx,js}"],
+    include: [
+      "src/**/*.{test,spec}.{ts,tsx,js}",
+      // Pure, Deno-free logic extracted from edge functions is unit-tested here too.
+      "supabase/functions/**/*.{test,spec}.ts",
+    ],
     environment: "jsdom",
     setupFiles: "src/test/setupTests.js",
     env: {

@@ -1,11 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
+import {
+  DEFAULT_HOURS_BEFORE,
+  REMINDER_TYPE,
+  selectSessionsToRemind,
+  WINDOW_HALF_HOURS,
+} from "../_shared/reminderLogic.ts";
 
-const REMINDER_TYPE = "session_reminder";
 const CANCELLED_TYPE = "session_cancelled";
-const DEFAULT_HOURS_BEFORE = 120; // 5 days
-const WINDOW_HALF_HOURS = 12; // daily cron: ±12h tolerance
 const INTERNAL_SECRET = Deno.env.get("INTERNAL_REMINDER_SECRET") ?? "";
 
 Deno.serve(async (req) => {
@@ -203,16 +206,29 @@ Deno.serve(async (req) => {
 
   // ── REMINDERS: real sessions in the reminder window (skip auto-cancelled) ──
 
-  const sessionsToRemind = sessions.filter((session: any) => {
-    if (autoCancelledIds.has(session.id)) return false;
-    const sessionMs = new Date(session.scheduled_at).getTime();
-    if (sessionMs < new Date(broadFrom).getTime()) return false;
+  // Sessions that already have a 'sent' reminder logged — the cron runs daily
+  // and the +/-12h window is wide enough that a session can qualify on two
+  // consecutive runs, so without this a client gets two reminder emails.
+  const { data: sentReminderRows } = await supabase
+    .from("email_logs")
+    .select("session_id")
+    .eq("email_type", REMINDER_TYPE)
+    .eq("status", "sent")
+    .in(
+      "session_id",
+      sessions.map((s: any) => s.id),
+    );
+  const remindedSessionIds = new Set((sentReminderRows ?? []).map((r: any) => r.session_id as string));
 
-    const profile = profileMap[session.client_id];
-    if (!profile) return false;
-    const hoursBefore = settingsMap[profile.adminId]?.hoursBefore ?? DEFAULT_HOURS_BEFORE;
-    const targetMs = now + hoursBefore * 3600 * 1000;
-    return Math.abs(sessionMs - targetMs) / 3600000 <= WINDOW_HALF_HOURS;
+  const sessionsToRemind = selectSessionsToRemind({
+    sessions: sessions.filter((s: any) => new Date(s.scheduled_at).getTime() >= new Date(broadFrom).getTime()),
+    now,
+    adminIdForClient: (clientId: string) => profileMap[clientId]?.adminId,
+    configForAdmin: (adminId: string) => ({ hoursBefore: settingsMap[adminId]?.hoursBefore }),
+    alreadyRemindedSessionIds: remindedSessionIds,
+    excludeSessionIds: autoCancelledIds,
+    defaultHoursBefore: DEFAULT_HOURS_BEFORE,
+    windowHalfHours: WINDOW_HALF_HOURS,
   });
 
   const reminderResults = await Promise.allSettled(
@@ -433,11 +449,25 @@ Deno.serve(async (req) => {
       }),
   );
 
+  // Stub sessions that already have a 'sent' reminder logged — same daily-cron
+  // double-send guard as real sessions, keyed on email_logs.stub_session_id.
+  const { data: sentStubReminderRows } = await supabase
+    .from("email_logs")
+    .select("stub_session_id")
+    .eq("email_type", REMINDER_TYPE)
+    .eq("status", "sent")
+    .in(
+      "stub_session_id",
+      (allStubSessions ?? []).map((ss: any) => ss.id),
+    );
+  const remindedStubSessionIds = new Set((sentStubReminderRows ?? []).map((r: any) => r.stub_session_id as string));
+
   // Stub reminders (skip auto-cancelled)
   const stubResults = await Promise.allSettled(
     (allStubSessions ?? [])
       .filter((ss: any) => {
         if (autoCancelledStubIds.has(ss.id)) return false;
+        if (remindedStubSessionIds.has(ss.id)) return false;
         const sessionMs = new Date(ss.scheduled_at).getTime();
         return sessionMs >= new Date(broadFrom).getTime();
       })
@@ -475,6 +505,7 @@ Deno.serve(async (req) => {
           adminId: ss.admin_id,
           clientId: null,
           sessionId: null,
+          stubSessionId: ss.id,
           emailType: REMINDER_TYPE,
           recipientEmail: stub.email,
           subject,
