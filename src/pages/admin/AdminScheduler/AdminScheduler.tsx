@@ -183,7 +183,19 @@ const AdminScheduler = () => {
   }, [searchParams, setSearchParams]);
 
   // ----- data
-  useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
+  // state.sessions is shared with AdminClientsPageDetailed, which fills it
+  // with just one client's rows (fetchSessionsByClientId) and still sets
+  // status "succeeded" — useFetchOnIdle would treat that as already-loaded,
+  // and picking a different client in the filter below would then show an
+  // empty calendar until a hard refresh. Refetch whenever the loaded set
+  // isn't the whole practice; once it is, `scope === "all"` stops the loop.
+  const sessionsScope = useAppSelector((s: RootState) => s.sessions.scope);
+  const sessionsStatusForFetch = useAppSelector((s: RootState) => s.sessions.status);
+  useEffect(() => {
+    if (sessionsStatusForFetch !== "loading" && sessionsScope !== "all") {
+      dispatch(fetchAllSessions());
+    }
+  }, [dispatch, sessionsScope, sessionsStatusForFetch]);
   useFetchOnIdle((s: RootState) => s.userDirectory.status, fetchAllUsers, "Failed to load users");
   useFetchOnIdle((s: RootState) => s.availability.status, fetchAvailability, "Failed to load availability");
   useFetchOnIdle((s: RootState) => s.adminPrivateEvents.status, fetchPrivateEvents, "Failed to load private events");

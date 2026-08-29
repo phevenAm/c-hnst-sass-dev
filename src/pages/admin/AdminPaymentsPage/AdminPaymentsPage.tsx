@@ -162,7 +162,6 @@ const AdminPaymentsPage = () => {
   const [ledgerSearchInput, setLedgerSearchInput] = useState("");
   const [ledgerSearch, setLedgerSearch] = useState("");
 
-  useFetchOnIdle((s: RootState) => s.sessions.status, fetchAllSessions, "Failed to load sessions");
   useFetchOnIdle((s: RootState) => s.userDirectory.status, fetchAllUsers, "Failed to load users");
   useFetchOnIdle((s: RootState) => s.clientStubs.status, fetchClientStubs, "Failed to load offline clients");
 
@@ -170,6 +169,16 @@ const AdminPaymentsPage = () => {
   const clients = useAppSelector(selectClientUsers);
   const allStubs = useAppSelector(selectAllStubs);
   const sessionsStatus = useAppSelector((s: RootState) => s.sessions.status);
+  const sessionsScope = useAppSelector((s: RootState) => s.sessions.scope);
+
+  // Not useFetchOnIdle: state.sessions is shared with the client detail page,
+  // which loads one client's rows and still marks status "succeeded". The
+  // Summary stats here need the whole practice, so refetch until scope is "all".
+  useEffect(() => {
+    if (sessionsStatus !== "loading" && sessionsScope !== "all") {
+      dispatch(fetchAllSessions());
+    }
+  }, [dispatch, sessionsScope, sessionsStatus]);
 
   const loadStubSessions = useCallback(async () => {
     const { data } = await supabase.from("stub_sessions").select("*").order("scheduled_at", { ascending: false });

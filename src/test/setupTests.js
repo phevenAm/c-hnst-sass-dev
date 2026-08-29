@@ -11,6 +11,13 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
+// JSDOM doesn't implement scrollIntoView — components that scroll a
+// deep-linked element into view (e.g. AdminClientsPageDetailed's ?session=
+// handler) would otherwise throw in tests.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 // lottie-web probes canvas 2D context at import time; JSDOM's getContext()
 // returns null without the optional "canvas" package, which crashes the
 // import outright. Stub the component so anything importing it (even

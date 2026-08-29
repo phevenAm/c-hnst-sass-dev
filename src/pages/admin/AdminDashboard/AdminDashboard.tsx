@@ -59,6 +59,7 @@ export default function AdminDashboard() {
 
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const sessionsStatus = useAppSelector((state: RootState) => state.sessions.status);
+  const sessionsScope = useAppSelector((state: RootState) => state.sessions.scope);
   const dispatch = useAppDispatch();
 
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
@@ -77,11 +78,15 @@ export default function AdminDashboard() {
     "Failed to fetch users:",
   );
 
-  useFetchOnIdle(
-    (state: RootState) => state.sessions.status,
-    () => fetchAllSessions(),
-    "Failed to fetch sessions",
-  );
+  // Not useFetchOnIdle: state.sessions is shared with the client detail page,
+  // which loads just one client's rows and still marks status "succeeded".
+  // Refetch whenever what's loaded isn't the whole practice; `scope === "all"`
+  // then stops the loop.
+  useEffect(() => {
+    if (sessionsStatus !== "loading" && sessionsScope !== "all") {
+      dispatch(fetchAllSessions());
+    }
+  }, [dispatch, sessionsScope, sessionsStatus]);
 
   useFetchOnIdle(
     (state: RootState) => state.clientStubs.status,
