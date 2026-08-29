@@ -121,6 +121,11 @@ export default function AdminClientsPageDetailed() {
   const highlightSessionId = searchParams.get("session");
   const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null);
   const handledHighlightRef = useRef<string | null>(null);
+  // Declared here (not lower down) so the ?session= deep-link machinery —
+  // `targetSessionPage` in particular — can read it. A `const` further down
+  // the component body is in the temporal dead zone while those hooks run,
+  // which crashed the page the moment `highlightSessionId` became truthy.
+  const maxPageSize = 4;
   const dispatch = useAppDispatch();
   const { isDemo, practiceSettings, userProfile } = useAuth();
   const { showToast } = useToast();
@@ -660,10 +665,14 @@ export default function AdminClientsPageDetailed() {
   const sessionsGroupByType = useMemo((): Session[] => {
     const now = new Date();
     return clientSessions.filter((session) => {
+      // state.sessions.sessions is a shared list — if the last page to fill it
+      // was a whole-practice fetch, guard against showing another client's
+      // sessions here until fetchSessionsByClientId replaces it.
+      if (clientId && session.client_id && session.client_id !== clientId) return false;
       const scheduledAt = new Date(session.scheduled_at);
       return sessionsDateTab === "upcoming" ? scheduledAt >= now : scheduledAt < now;
     });
-  }, [sessionsDateTab, clientSessions]);
+  }, [sessionsDateTab, clientSessions, clientId]);
 
   const searchResults = useMemo(
     (): Session[] =>
@@ -679,11 +688,21 @@ export default function AdminClientsPageDetailed() {
     [sessionsGroupByType, searchTerm],
   );
 
-  const paginateSessions = (array: Session[], currentPage: number, pageSize: number): Session[] => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return array.slice(startIndex, endIndex);
-  };
+  // Group block bookings into one item BEFORE paginating — otherwise a block
+  // whose sessions straddle a page boundary loses its grouping (each page
+  // slice sees <2 of the block's sessions) and renders as loose single cards,
+  // and it also means "N sessions coming up" that's really one block no
+  // longer eats N of the page's rows. Past tab never groups (a past session
+  // isn't a live block a counsellor acts on).
+  const sessionRenderItems = useMemo(
+    () =>
+      sessionsDateTab === "past"
+        ? searchResults.map((session) => ({ kind: "single" as const, session }))
+        : groupSessionsForDisplay(searchResults),
+    [searchResults, sessionsDateTab],
+  );
+
+  const totalSessionPages = Math.max(1, Math.ceil(sessionRenderItems.length / maxPageSize));
 
   // Deep link from Payments "View": ?session=<id> — put the right session
   // on screen regardless of which tab/search/page it'd otherwise be hiding
@@ -700,9 +719,13 @@ export default function AdminClientsPageDetailed() {
 
   const targetSessionPage = useMemo(() => {
     if (!highlightSessionId) return null;
-    const idx = searchResults.findIndex((s) => s.id === highlightSessionId);
+    const idx = sessionRenderItems.findIndex((item) =>
+      item.kind === "single"
+        ? item.session.id === highlightSessionId
+        : item.sessions.some((s) => s.id === highlightSessionId),
+    );
     return idx === -1 ? null : Math.floor(idx / maxPageSize) + 1;
-  }, [highlightSessionId, searchResults]);
+  }, [highlightSessionId, sessionRenderItems]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: sessionPageNumber deliberately excluded — this only sets it, including it would loop
   useEffect(() => {
@@ -726,8 +749,6 @@ export default function AdminClientsPageDetailed() {
     const timer = setTimeout(() => setHighlightedSessionId(null), 2500);
     return () => clearTimeout(timer);
   }, [targetSessionPage, sessionPageNumber, highlightSessionId]);
-
-  const maxPageSize = 4;
 
   const guard = isPageStatusLoading(usersStatus, questionnairesStatus, responsesStatus);
   if (guard) return guard;
@@ -1164,14 +1185,8 @@ export default function AdminClientsPageDetailed() {
                 <p className={styles.sessionEmpty}>No sessions yet.</p>
               ) : (
                 (() => {
-                  const pageSessions = paginateSessions(searchResults, sessionPageNumber ?? 1, maxPageSize);
-                  // Grouping only makes sense for the upcoming tab — a past
-                  // session never belongs in a live block card (see
-                  // groupSessionsForDisplay's own comment).
-                  const pageItems =
-                    sessionsDateTab === "past"
-                      ? pageSessions.map((session) => ({ kind: "single" as const, session }))
-                      : groupSessionsForDisplay(pageSessions);
+                  const page = Math.min(sessionPageNumber ?? 1, totalSessionPages);
+                  const pageItems = sessionRenderItems.slice((page - 1) * maxPageSize, page * maxPageSize);
 
                   return pageItems.map((item) => {
                     if (item.kind === "block") {
@@ -1212,7 +1227,7 @@ export default function AdminClientsPageDetailed() {
                 })()
               ))}
 
-            {searchResults.length > 4 && (
+            {sessionRenderItems.length > maxPageSize && (
               <div className={styles.sessionPagination}>
                 <Button
                   size="sm"
@@ -1222,27 +1237,26 @@ export default function AdminClientsPageDetailed() {
                 >
                   ← Prev
                 </Button>
-                {Math.ceil(searchResults.length / maxPageSize) > 5 && (
+                {totalSessionPages > 5 && (
                   <span className={styles.pageInput}>
                     <input
                       type="number"
                       min={1}
-                      max={Math.ceil(searchResults.length / maxPageSize)}
+                      max={totalSessionPages}
                       value={sessionPageNumber ?? 1}
                       onChange={(e) => {
                         const val = Number(e.target.value);
-                        const max = Math.ceil(searchResults.length / maxPageSize);
-                        setSessionPageNumber(Math.min(Math.max(val || 1, 1), max));
+                        setSessionPageNumber(Math.min(Math.max(val || 1, 1), totalSessionPages));
                       }}
                     />
-                    <span className={styles.pageTotal}>of {Math.ceil(searchResults.length / maxPageSize)}</span>
+                    <span className={styles.pageTotal}>of {totalSessionPages}</span>
                   </span>
                 )}
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => setSessionPageNumber((sessionPageNumber ?? 1) + 1)}
-                  disabled={(sessionPageNumber ?? 1) >= Math.ceil(searchResults.length / maxPageSize)}
+                  disabled={(sessionPageNumber ?? 1) >= totalSessionPages}
                 >
                   Next →
                 </Button>

@@ -8,12 +8,21 @@ type SessionsState = {
   sessions: Session[];
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  // What the current `sessions` array actually holds: the whole practice
+  // ("all"), or just one client's rows ("client:<id>"), or nothing yet.
+  // fetchSessionsByClientId and fetchAllSessions both replace `sessions`
+  // wholesale and both set status "succeeded", so pages that need the full
+  // set (scheduler, dashboard, payments) can't tell a client-scoped load
+  // apart from a real one without this — they'd render a partial calendar
+  // until a hard refresh.
+  scope: "none" | "all" | `client:${string}`;
 };
 
 const initialState: SessionsState = {
   sessions: [],
   status: "idle",
   error: null,
+  scope: "none",
 };
 
 const byScheduledAt = (a: Session, b: Session) => a.scheduled_at.localeCompare(b.scheduled_at);
@@ -123,6 +132,7 @@ const sessionsSlice = createSlice({
       .addCase(fetchAllSessions.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.sessions = [...action.payload].sort(byScheduledAt);
+        state.scope = "all";
       })
       .addCase(fetchAllSessions.rejected, (state, action) => {
         state.status = "failed";
@@ -135,6 +145,7 @@ const sessionsSlice = createSlice({
       .addCase(fetchSessionsByClientId.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.sessions = action.payload.sort(byScheduledAt);
+        state.scope = `client:${action.meta.arg}`;
       })
       .addCase(fetchSessionsByClientId.rejected, (state, action) => {
         state.status = "failed";

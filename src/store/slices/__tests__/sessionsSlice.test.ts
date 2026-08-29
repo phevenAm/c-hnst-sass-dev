@@ -18,9 +18,10 @@ type SessionsState = {
   sessions: Session[];
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  scope: "none" | "all" | `client:${string}`;
 };
 
-const initialState: SessionsState = { sessions: [], status: "idle", error: null };
+const initialState: SessionsState = { sessions: [], status: "idle", error: null, scope: "none" };
 
 const makeSession = (overrides: Partial<Session> & { id: string; scheduled_at: string }): Session => ({
   address: null,
@@ -114,6 +115,33 @@ describe("sessionsSlice ordering", () => {
     const result = sessionsReducer(initialState, fetchSessionsByClientId.fulfilled(payload, "", "client-1"));
 
     expect(result.sessions.map((s) => s.id)).toEqual(["y", "z"]);
+  });
+
+  // Regression coverage for "picking a client on the scheduler shows an empty
+  // calendar until a hard refresh": state.sessions is shared, and both fetches
+  // set status "succeeded", so consumers of the full list need `scope` to tell
+  // a client-scoped load apart from a whole-practice one.
+  it("fetchSessionsByClientId.fulfilled marks the store scope as client-scoped", () => {
+    const result = sessionsReducer(
+      initialState,
+      fetchSessionsByClientId.fulfilled(
+        [makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z" })],
+        "",
+        "client-42",
+      ),
+    );
+    expect(result.scope).toBe("client:client-42");
+  });
+
+  it("fetchAllSessions.fulfilled resets the store scope to 'all'", () => {
+    const clientScoped = sessionsReducer(initialState, fetchSessionsByClientId.fulfilled([], "", "client-42"));
+    expect(clientScoped.scope).toBe("client:client-42");
+
+    const allLoaded = sessionsReducer(
+      clientScoped,
+      fetchAllSessions.fulfilled([makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z" })], ""),
+    );
+    expect(allLoaded.scope).toBe("all");
   });
 
   it("createSession.fulfilled inserts the new session in chronological order, not just at the end", () => {

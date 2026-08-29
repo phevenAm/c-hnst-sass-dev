@@ -362,17 +362,34 @@ function createTestStore(extra: Record<string, any> = {}) {
 // clientId from the URL — the same way the real app router works.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function renderPage(extra: Record<string, any> = {}) {
+function renderPage(extra: Record<string, any> = {}, search = "") {
   const testStore = createTestStore(extra);
   return render(
     <Provider store={testStore}>
-      <MemoryRouter initialEntries={[`/admin/clients/${CLIENT_ID}`]}>
+      <MemoryRouter initialEntries={[`/admin/clients/${CLIENT_ID}${search}`]}>
         <Routes>
           <Route path="/admin/clients/:clientId" element={<AdminClientsPageDetailed />} />
         </Routes>
       </MemoryRouter>
     </Provider>,
   );
+}
+
+// A block booking: several weekly sessions sharing one metadata.block_id.
+function makeBlockSessions(count: number, blockId = "blk-1") {
+  const start = Date.now() + 3 * 24 * 60 * 60 * 1000;
+  return Array.from({ length: count }, (_, i) => ({
+    ...mockUpcomingSession,
+    id: `block-session-${i + 1}`,
+    scheduled_at: new Date(start + i * 7 * 24 * 60 * 60 * 1000).toISOString(),
+    metadata: {
+      block_id: blockId,
+      block_pos: i + 1,
+      block_total: count,
+      block_start: new Date(start).toISOString(),
+      block_price_pence: count * 8000,
+    },
+  }));
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -885,6 +902,69 @@ describe("AdminClientsPageDetailed", () => {
       await waitFor(() => {
         expect(screen.getByRole("button", { name: /← prev/i })).not.toBeDisabled();
       });
+    });
+  });
+
+  // ── Deep link: ?session=<id> ("Manage this session →", Payments "View") ──────
+  //
+  // targetSessionPage (a useMemo) reads maxPageSize, which was declared with
+  // `const` further down the component body — in the TDZ while the memo runs.
+  // Harmless while highlightSessionId is null (the memo returns early), but the
+  // moment ?session= is set the memo runs past that and threw
+  // "Cannot access 'maxPageSize' before initialization", crashing the page.
+  describe("?session= deep link", () => {
+    it("renders without crashing when a session id is in the URL", () => {
+      renderPage({}, `?session=${mockUpcomingSession.id}`);
+      expect(screen.getByRole("heading", { level: 1, name: /jane s/i })).toBeInTheDocument();
+    });
+
+    it("still renders when the ?session= id points at a session inside a block", () => {
+      const block = makeBlockSessions(3);
+      renderPage({ sessions: { sessions: block, status: "succeeded", error: null } }, `?session=${block[1].id}`);
+      expect(screen.getByRole("heading", { level: 1, name: /jane s/i })).toBeInTheDocument();
+    });
+
+    it("does not crash for an unknown ?session= id", () => {
+      renderPage({}, "?session=does-not-exist");
+      expect(screen.getByRole("heading", { level: 1, name: /jane s/i })).toBeInTheDocument();
+    });
+  });
+
+  // ── Block bookings on the upcoming tab ──────────────────────────────────────
+  //
+  // Blocks must be grouped BEFORE pagination — grouping the already-sliced page
+  // used to drop the grouping whenever a block straddled a page boundary (each
+  // slice saw <2 of its sessions), and a 3-session block also ate 3 of the
+  // page's 4 rows instead of one.
+  describe("block bookings (upcoming tab)", () => {
+    it("renders a 3-session block as one card with three tabs, not three separate cards", () => {
+      const block = makeBlockSessions(3);
+      renderPage({ sessions: { sessions: block, status: "succeeded", error: null } });
+
+      expect(screen.getByText(/3 session block/i)).toBeInTheDocument();
+      expect(screen.getAllByRole("tab")).toHaveLength(3);
+      // The stubbed inner SessionCard renders once (for the active tab only).
+      expect(screen.getAllByTestId(/^session-card-block-session-/)).toHaveLength(1);
+    });
+
+    it("shows a block AND every single session on one page — a block counts as one row", () => {
+      const block = makeBlockSessions(3, "blk-A");
+      const singles = Array.from({ length: 3 }, (_, i) => ({
+        ...mockUpcomingSession,
+        id: `single-${i + 1}`,
+        // after the block so ordering is block, then singles
+        scheduled_at: new Date(Date.now() + (40 + i) * 24 * 60 * 60 * 1000).toISOString(),
+      }));
+      renderPage({
+        sessions: { sessions: [...block, ...singles], status: "succeeded", error: null },
+      });
+
+      // 1 block + 3 singles = 4 items = a single page → no pagination controls.
+      expect(screen.queryByRole("button", { name: /next →/i })).not.toBeInTheDocument();
+      expect(screen.getByText(/3 session block/i)).toBeInTheDocument();
+      expect(screen.getByTestId("session-card-single-1")).toBeInTheDocument();
+      expect(screen.getByTestId("session-card-single-2")).toBeInTheDocument();
+      expect(screen.getByTestId("session-card-single-3")).toBeInTheDocument();
     });
   });
 });
