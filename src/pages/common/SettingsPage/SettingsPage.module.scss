@@ -639,16 +639,87 @@
   justify-content: flex-end;
 }
 
+// The "add a new session type" form, set apart from the list of existing
+// types above it with its own surface + outline. Fields stack vertically so
+// it stays clean at any width; the two short number fields pair up on wider
+// viewports and fall back to one column when there's no room.
+.packageAddCard {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: $sp-5;
+  margin-top: $sp-4;
+
+  @media (max-width: 600px) {
+    padding: $sp-4;
+    gap: $sp-3;
+  }
+}
+
+.packageAddHeading {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
 .packageRow {
   display: flex;
-  gap: $sp-2;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: $sp-3;
+  flex-direction: column;
+  gap: $sp-4;
 
   .field {
     margin-bottom: 0;
-    flex: 1 1 120px;
+
+    input {
+      width: 100%;
+    }
+
+    .packageMeta {
+      display: block;
+      margin-top: $sp-1;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+  }
+}
+
+// Weeks + Duration side by side when there's room, single column when not.
+.packageNumRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: $sp-3 $sp-4;
+  align-items: start;
+}
+
+.packageAddActions {
+  display: flex;
+  justify-content: flex-end;
+
+  button {
+    @media (max-width: 480px) {
+      width: 100%;
+    }
+  }
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-2;
+  font-weight: 400;
+  line-height: 1.45;
+  cursor: pointer;
+
+  input {
+    width: auto;
+    margin: 0.15rem 0 0;
+    flex-shrink: 0;
   }
 }
 

@@ -64,7 +64,14 @@ export function BlockSessionCard({
   // are still live in this card, i.e. haven't been cancelled or passed)
   // can differ once some have dropped out — that's worth surfacing so the
   // card doesn't look like it's silently missing sessions.
-  const blockTotal = (sortedSessions[0]?.metadata as SessionBlockMeta | null)?.block_total ?? sortedSessions.length;
+  const blockMeta = sortedSessions[0]?.metadata as SessionBlockMeta | null;
+  const blockTotal = blockMeta?.block_total ?? sortedSessions.length;
+
+  // The block's whole price: prefer the value stamped at creation (survives a
+  // sibling being cancelled), fall back to summing the live rows.
+  const blockPricePence =
+    blockMeta?.block_price_pence ?? sortedSessions.reduce((sum, s) => sum + (s.price_pence ?? 0), 0);
+  const blockPriceLabel = blockPricePence ? `£${(blockPricePence / 100).toFixed(2)}` : null;
 
   // See blockPaymentState.ts for why this is derived rather than trusting
   // activeSession's own fields — every tab needs to show the same button
@@ -77,6 +84,7 @@ export function BlockSessionCard({
       <div className={styles.blockHeader}>
         <span className={styles.blockLabel}>
           {blockTotal} session block
+          {blockPriceLabel && ` · ${blockPriceLabel} total`}
           {sortedSessions.length < blockTotal && ` · ${sortedSessions.length} remaining`}
           {allPaid && <span className={styles.blockPaidBadge}> · Paid</span>}
         </span>

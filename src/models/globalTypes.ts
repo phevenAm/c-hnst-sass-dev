@@ -181,6 +181,10 @@ export type SessionBlockMeta = {
   block_pos: number;
   block_total: number;
   block_start: string;
+  // Whole-block price in pence. Each session row carries its own divided
+  // share in price_pence; this preserves the original block total for
+  // display even if a session is later cancelled and drops out of the sum.
+  block_price_pence?: number;
 };
 
 export type Session = Tables<"sessions"> & { send_reminders?: boolean };

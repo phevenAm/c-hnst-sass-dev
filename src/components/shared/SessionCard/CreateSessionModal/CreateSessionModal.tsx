@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
 import DateInput from "@components/shared/DateInput/DateInput";
+import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import Lookup from "@components/shared/Lookup/Lookup";
 import Modal from "@components/shared/Modal/Modal";
 
@@ -17,6 +18,10 @@ import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import { createSession, updateSession } from "@/store/slices/sessionsSlice";
 
 import styles from "./CreateSessionModal.module.scss";
+
+// Deep-links to the Practice tab and scrolls the "Session types & prices"
+// card into view (see SettingsCard's `id`/`?section=` handling).
+const SESSION_TYPES_SETTINGS_URL = "/settings?tab=practice&section=packages";
 
 export type StubSavePayload = {
   dates: string[];
@@ -54,8 +59,11 @@ const CreateSessionModal = ({
   const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : initialStart);
 
   const [isSaving, setIsSaving] = useState(false);
+  // Whether the picked session type is a recurring block, and how many
+  // sessions it contains. Both are driven entirely by the selected type in
+  // Settings — there's no manual "recurring" toggle any more.
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringWeeks, setRecurringWeeks] = useState(3);
+  const [sessionCount, setSessionCount] = useState(1);
   const [sessionDuration, setSessionDuration] = useState(session?.duration_minutes ?? 50);
   const [isPrepaid, setIsPrepaid] = useState(session?.paid ?? false);
   const [pricePounds, setPricePounds] = useState(
@@ -77,7 +85,14 @@ const CreateSessionModal = ({
   const [savedLocations, setSavedLocations] = useState<string[]>([]);
   const [savingLocation, setSavingLocation] = useState(false);
   const [sessionPackages, setSessionPackages] = useState<
-    { id: string; name: string; price_pence: number; duration_minutes: number }[]
+    {
+      id: string;
+      name: string;
+      price_pence: number;
+      duration_minutes: number;
+      is_recurring: boolean;
+      session_count: number;
+    }[]
   >([]);
   const [selectedPackageId, setSelectedPackageId] = useState("");
 
@@ -94,7 +109,7 @@ const CreateSessionModal = ({
     if (!authUser?.id) return;
     supabase
       .from("session_packages")
-      .select("id, name, price_pence, duration_minutes")
+      .select("id, name, price_pence, duration_minutes, is_recurring, session_count")
       .eq("admin_id", authUser.id)
       .eq("archived", false)
       .order("sort_order")
@@ -106,10 +121,18 @@ const CreateSessionModal = ({
   const handleSelectPackage = (id: string) => {
     setSelectedPackageId(id);
     const pkg = sessionPackages.find((p) => p.id === id);
-    if (pkg) {
-      setSessionDuration(pkg.duration_minutes);
-      setPricePounds((pkg.price_pence / 100).toFixed(2));
+    if (!pkg) {
+      // "Custom — set below": a hand-priced one-off, never a block.
+      setIsRecurring(false);
+      setSessionCount(1);
+      return;
     }
+    setSessionDuration(pkg.duration_minutes);
+    // For a recurring type, price_pence is the whole-block price. The field
+    // below shows it as such; handleSave divides it across the rows.
+    setPricePounds((pkg.price_pence / 100).toFixed(2));
+    setIsRecurring(pkg.is_recurring);
+    setSessionCount(pkg.is_recurring ? pkg.session_count : 1);
   };
 
   const handleSaveLocation = async () => {
@@ -143,17 +166,27 @@ const CreateSessionModal = ({
 
     const dates = [scheduledAt];
     if (isRecurring) {
-      for (let i = 1; i <= recurringWeeks; i++) {
+      for (let i = 1; i < sessionCount; i++) {
         dates.push(scheduledAt.add(i, "week"));
       }
     }
+
+    // For a recurring block the fee field holds the WHOLE-BLOCK price. Split
+    // it evenly across the rows so each session carries its own per-session
+    // fee and the block still sums to the total — create-checkout-session
+    // sums price_pence across a block, so an undivided price would overcharge
+    // by a factor of N. Any rounding remainder lands on the first session.
+    const totalPence = pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0;
+    const n = dates.length;
+    const perSessionPence = Math.floor(totalPence / n);
+    const priceForIndex = (i: number) => (i === 0 ? totalPence - perSessionPence * (n - 1) : perSessionPence);
 
     if (onSave) {
       try {
         await onSave({
           dates: dates.map((d) => d.toISOString()),
           duration_minutes: sessionDuration,
-          price_pence: pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0,
+          price_pence: n > 1 ? Math.round(totalPence / n) : totalPence,
           paid: isPrepaid,
           address: sessionAddress,
           notes: notes.trim(),
@@ -196,7 +229,7 @@ const CreateSessionModal = ({
             client_id: clientId,
             scheduled_at: date.toISOString(),
             paid: isPrepaid,
-            price_pence: pricePounds ? Math.round(parseFloat(pricePounds) * 100) : 0,
+            price_pence: priceForIndex(i),
             duration_minutes: sessionDuration,
             notes: notes.trim() || undefined,
             reference_code: referenceCode.trim() || undefined,
@@ -213,6 +246,7 @@ const CreateSessionModal = ({
                   block_pos: i + 1,
                   block_total: dates.length,
                   block_start: scheduledAt.toISOString(),
+                  block_price_pence: totalPence,
                 }
               : undefined,
           }),
@@ -224,11 +258,13 @@ const CreateSessionModal = ({
 
     if (allSuccess) {
       if (sendConfirmation) {
-        result.forEach((r) => {
-          if (r?.meta.requestStatus === "fulfilled") {
-            supabase.functions.invoke("notify-session-booked", { body: { session_id: (r.payload as Session).id } });
-          }
-        });
+        // One email for the whole block, not one per session.
+        const ids = result.filter((r) => r?.meta.requestStatus === "fulfilled").map((r) => (r.payload as Session).id);
+        if (blockId && ids.length > 1) {
+          supabase.functions.invoke("notify-block-booked", { body: { session_ids: ids } });
+        } else if (ids[0]) {
+          supabase.functions.invoke("notify-session-booked", { body: { session_id: ids[0] } });
+        }
       }
       const emailNote = sendConfirmation ? " — confirmation email sent" : "";
       showToast(`${dates.length > 1 ? `${dates.length} sessions` : "Session"} scheduled${emailNote}.`);
@@ -349,9 +385,20 @@ const CreateSessionModal = ({
             <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
           </fieldset>
 
-          {sessionPackages.length > 0 && (
+          {sessionPackages.length > 0 ? (
             <fieldset className={styles.fieldGroup}>
-              <legend className={styles.label}>Session type</legend>
+              <legend className={styles.label}>
+                Session type
+                <InfoTooltip
+                  variant="rich"
+                  title="Session types"
+                  text={
+                    "Presets you set up once in Settings → Billing & payments → Session types & prices.\n" +
+                    "Picking one fills in the price and duration below — everything stays editable.\n" +
+                    "A recurring block creates several weekly sessions in one step, starting from the date above. The block price is split evenly across them and paid for as a unit."
+                  }
+                />
+              </legend>
               <div className={styles.inputWrapper}>
                 <select
                   id="session-package"
@@ -362,12 +409,26 @@ const CreateSessionModal = ({
                   <option value="">Custom — set below</option>
                   {sessionPackages.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} — £{(p.price_pence / 100).toFixed(2)} · {p.duration_minutes} min
+                      {p.name} — £{(p.price_pence / 100).toFixed(2)}
+                      {p.is_recurring ? ` · ${p.session_count}-week block` : ""} · {p.duration_minutes} min
                     </option>
                   ))}
                 </select>
               </div>
+              <a className={styles.settingsLink} href={SESSION_TYPES_SETTINGS_URL} target="_blank" rel="noreferrer">
+                Manage session types →
+              </a>
             </fieldset>
+          ) : (
+            !session && (
+              <p className={styles.hint}>
+                Tip: save your usual prices and durations as{" "}
+                <a className={styles.settingsLink} href={SESSION_TYPES_SETTINGS_URL} target="_blank" rel="noreferrer">
+                  session types in Settings
+                </a>{" "}
+                — including recurring blocks — so you can pick them here instead of retyping.
+              </p>
+            )
           )}
 
           <fieldset className={styles.fieldGroup}>
@@ -429,56 +490,19 @@ const CreateSessionModal = ({
             )}
           </fieldset>
 
-          {!session && (
-            <div className={styles.fieldGroup}>
-              <div className={styles.checkboxGroup}>
-                <input
-                  id="recurring"
-                  type="checkbox"
-                  checked={isRecurring}
-                  onChange={(e) => {
-                    setIsRecurring(e.target.checked);
-                    setPricePounds((prev) => {
-                      if (e.target.checked && prev === "60.00") return "55.00";
-                      if (!e.target.checked && prev === "55.00") return "60.00";
-                      return prev;
-                    });
-                  }}
-                />
-                <label htmlFor="recurring" className={styles.checkboxLabel}>
-                  Book as a recurring block
-                </label>
-              </div>
-              <p className={styles.hint}>
-                Creates several sessions, one week apart starting from the date above. They're tracked and paid together
-                — marking any one of them as paid marks the whole block as paid.
-              </p>
-            </div>
-          )}
-
           {isRecurring && !session && (
             <div className={styles.fieldGroup}>
-              <label className={styles.label} htmlFor="recurring-weeks">
-                Additional weekly sessions
-              </label>
-              <input
-                id="recurring-weeks"
-                className={styles.input}
-                type="number"
-                min={1}
-                max={11}
-                value={recurringWeeks}
-                onChange={(e) => setRecurringWeeks(Number(e.target.value))}
-              />
-              <p className={styles.hint}>
-                {recurringWeeks + 1} sessions total — the one above plus {recurringWeeks} more, weekly.
+              <p className={styles.label}>Recurring block</p>
+              <p className={styles.hint} data-testid="recurring-summary">
+                Creates {sessionCount} sessions, one week apart starting from the date above. They're tracked and paid
+                together — marking any one of them as paid marks the whole block as paid.
               </p>
             </div>
           )}
 
           <div className={styles.fieldGroup}>
             <label className={styles.label} htmlFor="session-price">
-              Session fee (£)
+              {isRecurring && !session ? `Block fee (£) — covers ${sessionCount} sessions` : "Session fee (£)"}
             </label>
             <input
               id="session-price"
@@ -490,6 +514,12 @@ const CreateSessionModal = ({
               value={pricePounds}
               onChange={(e) => setPricePounds(e.target.value)}
             />
+            {isRecurring && !session && pricePounds && sessionCount > 1 && (
+              <p className={styles.hint} data-testid="per-session-fee">
+                The client pays this once for the whole block. Each session shows £
+                {(parseFloat(pricePounds) / sessionCount).toFixed(2)}.
+              </p>
+            )}
           </div>
 
           <fieldset className={styles.fieldGroup}>

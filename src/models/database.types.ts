@@ -1357,8 +1357,10 @@ export type Database = {
           description: string | null;
           duration_minutes: number;
           id: string;
+          is_recurring: boolean;
           name: string;
           price_pence: number;
+          session_count: number;
           sort_order: number;
           updated_at: string;
         };
@@ -1369,8 +1371,10 @@ export type Database = {
           description?: string | null;
           duration_minutes?: number;
           id?: string;
+          is_recurring?: boolean;
           name: string;
           price_pence?: number;
+          session_count?: number;
           sort_order?: number;
           updated_at?: string;
         };
@@ -1381,8 +1385,10 @@ export type Database = {
           description?: string | null;
           duration_minutes?: number;
           id?: string;
+          is_recurring?: boolean;
           name?: string;
           price_pence?: number;
+          session_count?: number;
           sort_order?: number;
           updated_at?: string;
         };

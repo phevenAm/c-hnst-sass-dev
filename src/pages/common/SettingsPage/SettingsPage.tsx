@@ -11,6 +11,7 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { ChevronDown } from "@components/shared/Icons/Icons";
+import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
@@ -112,13 +113,41 @@ function SettingsCard({
   storageKey,
   searchQuery,
   children,
+  id,
 }: {
   title: string;
   storageKey: string;
   searchQuery: string;
   children: React.ReactNode;
+  // Stable slug for deep-linking: `/settings?tab=practice&section=<id>` opens
+  // this card and scrolls it into view (used by the "Manage session types"
+  // link in the session-booking modal).
+  id?: string;
 }) {
   const [open, setOpen] = useState(() => readCardOpen(storageKey));
+  const [searchParams, setSearchParams] = useSearchParams();
+  const domId = id ? `settings-section-${id}` : undefined;
+  const deepLinkHandled = useRef(false);
+
+  useEffect(() => {
+    if (deepLinkHandled.current || !id || searchParams.get("section") !== id) return;
+    deepLinkHandled.current = true;
+    setOpen(true);
+    // Two nudges: one after the tab switch settles, one after this card's
+    // body has expanded (its height changes where the page ends up). These
+    // deliberately aren't cancelled on cleanup — clearing the `section`
+    // param below re-runs this effect, and a cancel-on-cleanup would kill
+    // the pending scroll. A late scroll to an already-visible card is a
+    // harmless no-op.
+    [220, 600].forEach((ms) =>
+      setTimeout(() => {
+        document.getElementById(`settings-section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, ms),
+    );
+    const next = new URLSearchParams(searchParams);
+    next.delete("section");
+    setSearchParams(next, { replace: true });
+  }, [id, searchParams, setSearchParams]);
 
   if (searchQuery.trim() && !title.toLowerCase().includes(searchQuery.trim().toLowerCase())) return null;
 
@@ -135,7 +164,7 @@ function SettingsCard({
   };
 
   return (
-    <Card className={styles.card}>
+    <Card className={styles.card} id={domId}>
       <button type="button" className={styles.cardToggle} onClick={toggle} aria-expanded={open}>
         <span className={`${styles.cardChevron} ${open ? styles.cardChevronOpen : ""}`} aria-hidden="true">
           <ChevronDown />
@@ -194,12 +223,16 @@ const SettingsPage = () => {
   const [interfaceSearch, setInterfaceSearch] = useState("");
 
   // Deep-link to a tab via ?tab=practice (used by FirstClientTipsModal, etc.).
+  // Only consume `tab` here — `section` is left in place for the matching
+  // SettingsCard to act on (open + scroll) and clear itself.
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const t = searchParams.get("tab");
     if (t && ADMIN_TABS.some((tab) => tab.id === t)) {
       setActiveTab(t as AdminTab);
-      setSearchParams({}, { replace: true });
+      const next = new URLSearchParams(searchParams);
+      next.delete("tab");
+      setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -266,11 +299,20 @@ const SettingsPage = () => {
   const [consentPdfUrl, setConsentPdfUrl] = useState("");
   const [consentPdfUrlError, setConsentPdfUrlError] = useState("");
   const [sessionPackages, setSessionPackages] = useState<
-    { id: string; name: string; price_pence: number; duration_minutes: number }[]
+    {
+      id: string;
+      name: string;
+      price_pence: number;
+      duration_minutes: number;
+      is_recurring: boolean;
+      session_count: number;
+    }[]
   >([]);
   const [newPackageName, setNewPackageName] = useState("");
   const [newPackagePrice, setNewPackagePrice] = useState("");
   const [newPackageDuration, setNewPackageDuration] = useState("50");
+  const [newPackageRecurring, setNewPackageRecurring] = useState(false);
+  const [newPackageSessionCount, setNewPackageSessionCount] = useState("4");
   const [addingPackage, setAddingPackage] = useState(false);
   const [consentCounsellorCta, setConsentCounsellorCta] = useState(
     "If you have any questions, speak to your counsellor.",
@@ -400,7 +442,7 @@ const SettingsPage = () => {
     if (!isAdmin || !userProfile?.id) return;
     supabase
       .from("session_packages")
-      .select("id, name, price_pence, duration_minutes")
+      .select("id, name, price_pence, duration_minutes, is_recurring, session_count")
       .eq("admin_id", userProfile.id)
       .eq("archived", false)
       .order("sort_order")
@@ -669,6 +711,10 @@ const SettingsPage = () => {
     if (guardDemo()) return;
     if (!userProfile?.id || !newPackageName.trim() || !newPackagePrice) return;
     setAddingPackage(true);
+    // A recurring type is booked as one block: price_pence here is the
+    // whole-block price and session_count is how many sessions it covers.
+    // CreateSessionModal divides the price across the individual rows.
+    const sessionCount = newPackageRecurring ? Math.max(2, Number(newPackageSessionCount) || 2) : 1;
     const { data, error } = await supabase
       .from("session_packages")
       .insert({
@@ -676,9 +722,11 @@ const SettingsPage = () => {
         name: newPackageName.trim(),
         price_pence: Math.round(parseFloat(newPackagePrice) * 100),
         duration_minutes: Number(newPackageDuration) || 50,
+        is_recurring: newPackageRecurring,
+        session_count: sessionCount,
         sort_order: sessionPackages.length,
       })
-      .select("id, name, price_pence, duration_minutes")
+      .select("id, name, price_pence, duration_minutes, is_recurring, session_count")
       .single();
     if (error) {
       showToast("Failed to add session type.", "danger");
@@ -687,6 +735,8 @@ const SettingsPage = () => {
       setNewPackageName("");
       setNewPackagePrice("");
       setNewPackageDuration("50");
+      setNewPackageRecurring(false);
+      setNewPackageSessionCount("4");
     }
     setAddingPackage(false);
   };
@@ -1137,9 +1187,21 @@ const SettingsPage = () => {
               title="Session types & prices"
               storageKey="settings:practice:packages"
               searchQuery={practiceSearch}
+              id="packages"
             >
               <section className={styles.businessSection}>
-                <p>These are what you'll pick from when booking a client's session.</p>
+                <p>
+                  What you'll pick from when booking a client's session.{" "}
+                  <InfoTooltip
+                    variant="rich"
+                    title="Session types & prices"
+                    text={
+                      "These are booking presets — nothing here is shown to clients.\n" +
+                      "When you book a session (from '+ New session' on a client's page or in the Scheduler), picking a type fills in its price and duration. Every field stays editable on the session itself, so a one-off rate or a sliding scale still works.\n" +
+                      "Tick 'Recurring block' to make a type that books several weekly sessions in one step. The price you enter is the whole-block price — it's split evenly across the sessions, and the block is paid for as a unit."
+                    }
+                  />
+                </p>
                 {sessionPackages.length > 0 && (
                   <ul className={styles.packageList}>
                     {sessionPackages.map((p) => (
@@ -1148,7 +1210,13 @@ const SettingsPage = () => {
                           {p.name}
                           <span className={styles.packageMeta}>
                             {" "}
-                            — £{(p.price_pence / 100).toFixed(2)} · {p.duration_minutes} min
+                            — £{(p.price_pence / 100).toFixed(2)}
+                            {p.is_recurring
+                              ? ` · ${p.session_count}-week block · £${(p.price_pence / 100 / p.session_count).toFixed(
+                                  2,
+                                )}/session`
+                              : ""}{" "}
+                            · {p.duration_minutes} min
                           </span>
                         </span>
                         <Button variant="ghost" size="sm" onClick={() => handleRemovePackage(p.id)}>
@@ -1158,45 +1226,91 @@ const SettingsPage = () => {
                     ))}
                   </ul>
                 )}
-                <div className={styles.packageRow}>
-                  <div className={styles.field}>
-                    <label htmlFor="settings-pkg-name">Name</label>
+                <div className={styles.packageAddCard}>
+                  <p className={styles.packageAddHeading}>Add a session type</p>
+
+                  <label htmlFor="settings-pkg-recurring" className={styles.checkboxRow}>
                     <input
-                      id="settings-pkg-name"
-                      value={newPackageName}
-                      onChange={(e) => setNewPackageName(e.target.value)}
-                      placeholder="e.g. Standard session"
+                      id="settings-pkg-recurring"
+                      type="checkbox"
+                      checked={newPackageRecurring}
+                      onChange={(e) => setNewPackageRecurring(e.target.checked)}
                     />
+                    Recurring block — several weekly sessions booked and paid for together
+                  </label>
+
+                  <div className={styles.packageRow}>
+                    <div className={styles.field}>
+                      <label htmlFor="settings-pkg-name">Name</label>
+                      <input
+                        id="settings-pkg-name"
+                        value={newPackageName}
+                        onChange={(e) => setNewPackageName(e.target.value)}
+                        placeholder="e.g. Standard session"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="settings-pkg-price">
+                        {newPackageRecurring ? "Block price (£)" : "Price (£)"}
+                      </label>
+                      <input
+                        id="settings-pkg-price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newPackagePrice}
+                        onChange={(e) => setNewPackagePrice(e.target.value)}
+                        placeholder={newPackageRecurring ? "240.00" : "60.00"}
+                      />
+                      {newPackageRecurring && newPackagePrice && Number(newPackageSessionCount) >= 2 && (
+                        <span className={styles.packageMeta}>
+                          £{(parseFloat(newPackagePrice) / Number(newPackageSessionCount)).toFixed(2)} per session ·
+                          client pays the block price once
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={styles.packageNumRow}>
+                      {newPackageRecurring && (
+                        <div className={styles.field}>
+                          <label htmlFor="settings-pkg-count">Number of weeks</label>
+                          <input
+                            id="settings-pkg-count"
+                            type="number"
+                            min="2"
+                            max="52"
+                            value={newPackageSessionCount}
+                            onChange={(e) => setNewPackageSessionCount(e.target.value)}
+                          />
+                          <span className={styles.packageMeta}>
+                            {Number(newPackageSessionCount) >= 2
+                              ? `${Number(newPackageSessionCount)} weekly sessions in total.`
+                              : "One session per week."}
+                          </span>
+                        </div>
+                      )}
+                      <div className={styles.field}>
+                        <label htmlFor="settings-pkg-duration">Duration (min)</label>
+                        <input
+                          id="settings-pkg-duration"
+                          type="number"
+                          min="5"
+                          value={newPackageDuration}
+                          onChange={(e) => setNewPackageDuration(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.packageAddActions}>
+                      <Button
+                        onClick={handleAddPackage}
+                        disabled={!newPackageName.trim() || !newPackagePrice || addingPackage}
+                      >
+                        {addingPackage ? "Adding…" : "+ Add session type"}
+                      </Button>
+                    </div>
                   </div>
-                  <div className={styles.field}>
-                    <label htmlFor="settings-pkg-price">Price (£)</label>
-                    <input
-                      id="settings-pkg-price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={newPackagePrice}
-                      onChange={(e) => setNewPackagePrice(e.target.value)}
-                      placeholder="60.00"
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label htmlFor="settings-pkg-duration">Duration (min)</label>
-                    <input
-                      id="settings-pkg-duration"
-                      type="number"
-                      min="5"
-                      value={newPackageDuration}
-                      onChange={(e) => setNewPackageDuration(e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={handleAddPackage}
-                    disabled={!newPackageName.trim() || !newPackagePrice || addingPackage}
-                  >
-                    {addingPackage ? "Adding…" : "+ Add"}
-                  </Button>
                 </div>
               </section>
             </SettingsCard>
