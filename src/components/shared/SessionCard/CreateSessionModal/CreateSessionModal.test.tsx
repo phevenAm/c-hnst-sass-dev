@@ -13,6 +13,8 @@ import CreateSessionModal from "./CreateSessionModal";
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  rpcConflict.queue = [];
+  rpcConflict.fallback = false;
 });
 
 vi.mock("@/context/AuthContext", () => ({
@@ -61,9 +63,22 @@ const insertedRows: any[] = [];
 
 const invokeMock = vi.fn(() => Promise.resolve({ data: null, error: null }));
 
+// practice_slot_has_conflict — flip per test to simulate a taken slot. `queue`
+// is consumed one entry per call so a test can make only the 2nd block date
+// clash; otherwise `fallback` is returned.
+const rpcConflict = { queue: [] as boolean[], fallback: false };
+const rpcMock = vi.fn((name: string) => {
+  if (name === "practice_slot_has_conflict") {
+    const next = rpcConflict.queue.length ? rpcConflict.queue.shift() : rpcConflict.fallback;
+    return Promise.resolve({ data: next, error: null });
+  }
+  return Promise.resolve({ data: null, error: null });
+});
+
 vi.mock("@/lib/supabase.js", () => ({
   supabase: {
     functions: { invoke: (...args: any[]) => invokeMock(...args) },
+    rpc: (...args: any[]) => rpcMock(...(args as [string])),
     from: (table: string) => {
       if (table === "session_packages") {
         return {
@@ -313,5 +328,68 @@ describe("CreateSessionModal — saving a block", () => {
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(invokeMock.mock.calls.filter((c) => c[0] === "notify-session-booked")).toHaveLength(1);
     expect(invokeMock.mock.calls.filter((c) => c[0] === "notify-block-booked")).toHaveLength(0);
+  });
+});
+
+// The overlap check now runs server-side (practice_slot_has_conflict), so it
+// sees offline-client (stub) sessions too — not just whatever slice of
+// state.sessions this page happens to hold.
+describe("CreateSessionModal — double-booking guard", () => {
+  const start = dayjs("2026-09-01T10:00:00.000Z");
+
+  it("blocks the booking and inserts nothing when the slot is taken", async () => {
+    insertedRows.length = 0;
+    insertedCount = 0;
+    rpcConflict.fallback = true; // practice_slot_has_conflict → true
+    const { store, onClose } = renderModal({ initialStart: start });
+
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "pkg-1" } });
+    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toHaveValue(60));
+
+    fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
+
+    await waitFor(() => expect(screen.getByText(/overlaps with an existing session/i)).toBeInTheDocument());
+    expect(rpcMock).toHaveBeenCalledWith(
+      "practice_slot_has_conflict",
+      expect.objectContaining({ p_admin_id: "admin-1" }),
+    );
+    expect(store.getState().sessions.sessions).toHaveLength(0);
+    expect(insertedRows).toHaveLength(0);
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("creates nothing when only the 2nd date of a block clashes", async () => {
+    insertedRows.length = 0;
+    insertedCount = 0;
+    rpcConflict.queue = [false, true, false, false]; // 2nd weekly slot is taken
+    const { store } = renderModal({ initialStart: start });
+
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "pkg-3" } });
+    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toHaveValue(240));
+
+    fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
+
+    await waitFor(() => expect(screen.getByText(/overlaps with an existing session/i)).toBeInTheDocument());
+    expect(store.getState().sessions.sessions).toHaveLength(0);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it("goes ahead when the slot is free", async () => {
+    insertedRows.length = 0;
+    insertedCount = 0;
+    rpcConflict.fallback = false;
+    const { store, onClose } = renderModal({ initialStart: start });
+
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "pkg-1" } });
+    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toHaveValue(60));
+
+    fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(store.getState().sessions.sessions).toHaveLength(1);
   });
 });

@@ -447,6 +447,13 @@ export default function StubSessionCard({
               .single();
             if (error) throw new Error("Failed to update session.");
             onUpdated([data as StubSession]);
+            // Date moved → send the offline client the same reschedule notice a
+            // real client gets. Fire-and-forget; the edge fn no-ops with no email.
+            if (new Date(values.dates[0]).getTime() !== new Date(session.scheduled_at).getTime()) {
+              supabase.functions.invoke("notify-stub-session-rescheduled", {
+                body: { stub_session_id: session.id, previous_date: session.scheduled_at },
+              });
+            }
           }}
         />
       )}

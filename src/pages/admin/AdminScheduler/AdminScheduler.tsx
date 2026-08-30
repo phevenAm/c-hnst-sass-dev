@@ -23,6 +23,7 @@ import Modal from "@/components/shared/Modal/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import { hasSlotConflict } from "@/Helpers/sessionOverlap";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
 import { supabase } from "@/lib/supabase.js";
 import type { AdminPrivateEvent, Session, StubSession, UserProfile } from "@/models/globalTypes";
@@ -481,6 +482,21 @@ const AdminScheduler = () => {
 
     if (r.type === "stub-session") {
       const proposedStart = new Date(start as Date);
+      const prevDate = r.stubSession.scheduled_at;
+
+      if (
+        hasSlotConflict({
+          start: proposedStart,
+          durationMinutes: r.stubSession.duration_minutes ?? 50,
+          sessions,
+          stubSessions: allStubSessions,
+          excludeStubSessionId: r.stubSession.id,
+        })
+      ) {
+        showToast("That slot overlaps with another session — pick a different time.", "danger");
+        return;
+      }
+
       supabase
         .from("stub_sessions")
         .update({ scheduled_at: proposedStart.toISOString() })
@@ -493,6 +509,11 @@ const AdminScheduler = () => {
               prev.map((s) => (s.id === r.stubSession.id ? { ...s, scheduled_at: proposedStart.toISOString() } : s)),
             );
             showToast("Session rescheduled.");
+            // Offline clients with an email get the same reschedule notice as
+            // real clients; the edge function no-ops when there's no email.
+            supabase.functions.invoke("notify-stub-session-rescheduled", {
+              body: { stub_session_id: r.stubSession.id, previous_date: prevDate },
+            });
           }
         });
       return;
@@ -500,20 +521,18 @@ const AdminScheduler = () => {
 
     const proposedStart = new Date(start as Date);
     const { session } = r;
-    const proposedEnd = dayjs(proposedStart)
-      .add(session.duration_minutes ?? 50, "minute")
-      .toDate();
 
-    const hasOverlap = sessions.some((s) => {
-      if (s.id === session.id || s.status === "cancelled") return false;
-      const sStart = new Date(s.scheduled_at);
-      const sEnd = dayjs(sStart)
-        .add(s.duration_minutes ?? 50, "minute")
-        .toDate();
-      return proposedStart < sEnd && proposedEnd > sStart;
-    });
-
-    if (hasOverlap) {
+    // Checks real sessions AND offline-client (stub) sessions — same rule the DB
+    // trigger enforces on the write.
+    if (
+      hasSlotConflict({
+        start: proposedStart,
+        durationMinutes: session.duration_minutes ?? 50,
+        sessions,
+        stubSessions: allStubSessions,
+        excludeSessionId: session.id,
+      })
+    ) {
       showToast("That slot overlaps with another session — pick a different time.", "danger");
       return;
     }
