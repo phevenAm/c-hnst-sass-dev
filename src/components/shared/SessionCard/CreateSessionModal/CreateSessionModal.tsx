@@ -55,7 +55,6 @@ const CreateSessionModal = ({
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
-  const allSessions = useAppSelector((state) => state.sessions.sessions);
   const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : initialStart);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -154,6 +153,32 @@ const CreateSessionModal = ({
     setSavedLocations(updated);
   };
 
+  // Server-side overlap check. The single source of truth is the DB
+  // (`practice_slot_has_conflict` + the prevent_*_double_booking triggers): it
+  // sees BOTH real sessions and offline-client (stub) sessions, and isn't
+  // limited to whatever slice of `state.sessions` this page happens to hold.
+  // Returns an error message for the first clashing date, or null when clear.
+  const firstOverlappingDate = async (
+    candidates: Dayjs[],
+    excludeSessionId: string | null,
+    excludeStubSessionId: string | null,
+  ): Promise<string | null> => {
+    if (!authUser) return null;
+    for (const d of candidates) {
+      const { data: clash, error: rpcError } = await supabase.rpc("practice_slot_has_conflict", {
+        p_admin_id: authUser.id,
+        p_start: d.toISOString(),
+        p_duration_minutes: sessionDuration,
+        p_exclude_session_id: excludeSessionId,
+        p_exclude_stub_session_id: excludeStubSessionId,
+      });
+      // Fail open on a transient RPC error — the DB trigger still blocks the write.
+      if (rpcError) continue;
+      if (clash) return `${d.format("D MMM [at] h:mma")} overlaps with an existing session.`;
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
@@ -169,6 +194,14 @@ const CreateSessionModal = ({
       for (let i = 1; i < sessionCount; i++) {
         dates.push(scheduledAt.add(i, "week"));
       }
+    }
+
+    // Block double booking before any inserts — covers the stub (`onSave`) path too.
+    const overlapError = await firstOverlappingDate(dates, null, null);
+    if (overlapError) {
+      setError(overlapError);
+      setIsSaving(false);
+      return;
     }
 
     // For a recurring block the fee field holds the WHOLE-BLOCK price. Split
@@ -197,25 +230,6 @@ const CreateSessionModal = ({
       }
       setIsSaving(false);
       return;
-    }
-
-    // Overlap check — block double booking before any inserts.
-    for (const d of dates) {
-      const start = d.toDate();
-      const end = dayjs(start).add(sessionDuration, "minute").toDate();
-      const clash = allSessions.some((s) => {
-        if (s.status === "cancelled") return false;
-        const sStart = new Date(s.scheduled_at);
-        const sEnd = dayjs(sStart)
-          .add(s.duration_minutes ?? 50, "minute")
-          .toDate();
-        return start < sEnd && end > sStart;
-      });
-      if (clash) {
-        setError(`${d.format("D MMM [at] h:mma")} overlaps with an existing session.`);
-        setIsSaving(false);
-        return;
-      }
     }
 
     // For batch creates, tag every session with a shared block_id so the
@@ -286,6 +300,15 @@ const CreateSessionModal = ({
     setError("");
     setIsSaving(true);
 
+    // Exclude the row being edited — a stub when `onSave` is set (its id lives in
+    // stub_sessions), otherwise a real session.
+    const overlapError = await firstOverlappingDate([scheduledAt], onSave ? null : sess.id, onSave ? sess.id : null);
+    if (overlapError) {
+      setError("This time overlaps with an existing session.");
+      setIsSaving(false);
+      return;
+    }
+
     if (onSave) {
       try {
         await onSave({
@@ -301,23 +324,6 @@ const CreateSessionModal = ({
       } catch (err: any) {
         setError(err?.message || "Failed to update session.");
       }
-      setIsSaving(false);
-      return;
-    }
-
-    // Overlap check — exclude the session being edited.
-    const updStart = scheduledAt.toDate();
-    const updEnd = dayjs(updStart).add(sessionDuration, "minute").toDate();
-    const updateClash = allSessions.some((s) => {
-      if (s.id === sess.id || s.status === "cancelled") return false;
-      const sStart = new Date(s.scheduled_at);
-      const sEnd = dayjs(sStart)
-        .add(s.duration_minutes ?? 50, "minute")
-        .toDate();
-      return updStart < sEnd && updEnd > sStart;
-    });
-    if (updateClash) {
-      setError("This time overlaps with an existing session.");
       setIsSaving(false);
       return;
     }
