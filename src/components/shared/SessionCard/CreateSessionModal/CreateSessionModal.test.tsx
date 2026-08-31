@@ -67,7 +67,7 @@ const invokeMock = vi.fn(() => Promise.resolve({ data: null, error: null }));
 // is consumed one entry per call so a test can make only the 2nd block date
 // clash; otherwise `fallback` is returned.
 const rpcConflict = { queue: [] as boolean[], fallback: false };
-const rpcMock = vi.fn((name: string) => {
+const rpcMock = vi.fn((name: string, _params?: unknown) => {
   if (name === "practice_slot_has_conflict") {
     const next = rpcConflict.queue.length ? rpcConflict.queue.shift() : rpcConflict.fallback;
     return Promise.resolve({ data: next, error: null });
@@ -78,7 +78,7 @@ const rpcMock = vi.fn((name: string) => {
 vi.mock("@/lib/supabase.js", () => ({
   supabase: {
     functions: { invoke: (...args: any[]) => invokeMock(...args) },
-    rpc: (...args: any[]) => rpcMock(...(args as [string])),
+    rpc: (name: string, params?: unknown) => rpcMock(name, params),
     from: (table: string) => {
       if (table === "session_packages") {
         return {
