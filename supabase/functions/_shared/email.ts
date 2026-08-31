@@ -102,14 +102,15 @@ export function emailTemplate({
 
         <!-- Header -->
         <tr>
-          <td style="background:${C.header};border-radius:14px 14px 0 0;padding:30px 40px;text-align:center;">
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
-              <tr><td width="44" height="44" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);text-align:center;vertical-align:middle;line-height:44px;">
-                <img src="${LOGO_URL}" width="24" height="24" alt="Clarity" style="display:inline-block;vertical-align:middle;border:0;" />
-              </td></tr>
+          <td style="background:${C.header};border-radius:14px 14px 0 0;padding:18px 40px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:9px;">
+                  <img src="${LOGO_URL}" width="24" height="24" alt="" style="display:block;border:0;" />
+                </td>
+                <td style="vertical-align:middle;font-family:${SERIF};font-size:19px;font-weight:600;color:#ffffff;letter-spacing:0.02em;">Clarity</td>
+              </tr>
             </table>
-            <h1 style="font-family:${SERIF};font-size:20px;font-weight:600;color:#ffffff;margin:0;letter-spacing:0.02em;">Clarity</h1>
-            <p style="font-family:${SANS};font-size:12px;color:rgba(255,255,255,0.7);margin:5px 0 0;letter-spacing:0.02em;">Counselling practice management</p>
           </td>
         </tr>
 
