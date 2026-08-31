@@ -15,6 +15,24 @@
     display: none;
   }
 
+  // When rendered as a <button> (locked / not-set-up): only override what the
+  // UA button style would otherwise impose — font family — and keep every
+  // other pill rule (font-size, weight, padding, colours) exactly as the div.
+  &.encActionable {
+    cursor: pointer;
+    font-family: inherit;
+    transition: filter var(--transition-base, 0.15s ease);
+
+    &:hover {
+      filter: brightness(0.96);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--border-focus, currentColor);
+      outline-offset: 1px;
+    }
+  }
+
   &.encUnlocked {
     background: color-mix(in srgb, var(--success) 10%, transparent);
     color: var(--success);
