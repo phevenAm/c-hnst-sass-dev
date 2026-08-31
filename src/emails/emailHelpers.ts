@@ -21,9 +21,9 @@ const C = {
 
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
-// Root-relative so the Settings preview iframe loads it from the app origin;
-// the real emails (supabase/functions/_shared/email.ts) use an absolute URL.
-const LOGO_URL = "/email-logo.png";
+// The Clarity sprout mark, hosted in the public `logos` Storage bucket — same
+// URL the real emails use (supabase/functions/_shared/email.ts).
+const LOGO_URL = "https://mxyfdvfbdrusbjiozuzx.supabase.co/storage/v1/object/public/logos/system/email-logo.png";
 
 export function para(text: string): string {
   return `<p style="font-family:${SANS};font-size:15px;color:${C.textSecondary};line-height:1.7;margin:0 0 22px;">${text}</p>`;

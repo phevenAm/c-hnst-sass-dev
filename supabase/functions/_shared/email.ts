@@ -40,11 +40,12 @@ const C = {
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
 
-// The Clarity sprout mark (white, on the teal header). Served from the app's
-// own /public — falls back to a Supabase Storage copy so the header still has
-// the logo if APP_URL is ever unset.
+// The Clarity sprout mark (white, on the teal header). Hosted in the public
+// `logos` Storage bucket so it resolves in every inbox regardless of the
+// app deploy; override with the EMAIL_LOGO_URL secret if it ever moves.
 const LOGO_URL =
-  Deno.env.get("EMAIL_LOGO_URL") || `${(Deno.env.get("APP_URL") ?? "").replace(/\/$/, "")}/email-logo.png`;
+  Deno.env.get("EMAIL_LOGO_URL") ||
+  "https://mxyfdvfbdrusbjiozuzx.supabase.co/storage/v1/object/public/logos/system/email-logo.png";
 
 export type EmailTemplateOptions = {
   label: string;
