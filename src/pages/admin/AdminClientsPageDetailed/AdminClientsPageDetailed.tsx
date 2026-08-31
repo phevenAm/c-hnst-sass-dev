@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import Badge from "@components/shared/Badge/Badge";
 import { BlockSessionCard } from "@components/shared/BlockSessionCard/BlockSessionCard";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import {
@@ -27,7 +28,7 @@ import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
-import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
+import { archiveClient, fetchAllUsers, selectAllUsers, unarchiveClient } from "@store/slices/userDirectorySlice";
 
 import Modal from "@/components/shared/Modal/Modal";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
@@ -153,6 +154,9 @@ export default function AdminClientsPageDetailed() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [togglingDisabled, setTogglingDisabled] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [anonymiseOnArchive, setAnonymiseOnArchive] = useState(false);
+  const [togglingArchive, setTogglingArchive] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
@@ -506,7 +510,58 @@ export default function AdminClientsPageDetailed() {
     showToast(disabled ? "Client paused — they can no longer sign in." : "Client access restored.");
   };
 
+  // Deactivate: the working relationship has ended. Unlike pause, this is a
+  // lasting state — the client's history stays intact and attributable, but
+  // they're removed from the active caseload. Optionally anonymise in the same
+  // step (irreversible). Reactivating clears the archive but not the scrub.
+  const handleArchive = async () => {
+    if (!clientId) return;
+    setTogglingArchive(true);
+    try {
+      await dispatch(archiveClient({ id: clientId, anonymise: anonymiseOnArchive })).unwrap();
+      dispatch(fetchAllUsers());
+      showToast(anonymiseOnArchive ? "Client deactivated and anonymised." : "Client deactivated.");
+      setArchiveOpen(false);
+      setAnonymiseOnArchive(false);
+    } catch {
+      showToast("Couldn't deactivate this client.", "danger");
+    } finally {
+      setTogglingArchive(false);
+    }
+  };
+
+  const handleUnarchive = async () => {
+    if (!clientId) return;
+    setTogglingArchive(true);
+    try {
+      await dispatch(unarchiveClient(clientId)).unwrap();
+      dispatch(fetchAllUsers());
+      showToast("Client reactivated.");
+    } catch {
+      showToast("Couldn't reactivate this client.", "danger");
+    } finally {
+      setTogglingArchive(false);
+    }
+  };
+
   const displayedClientName = client ? clientDisplayName(client, practiceSettings?.use_client_codenames ?? false) : "";
+
+  let deactivateDesc =
+    "Ends the working relationship and removes them from your active caseload. All history is kept — this is reversible.";
+  if (client?.archived_at && client?.anonymised_at) {
+    deactivateDesc = "Relationship ended and personal details anonymised. Their session and payment history is kept.";
+  } else if (client?.archived_at) {
+    deactivateDesc = "Relationship ended. Their history is kept and stays on your records. Reactivate to resume.";
+  }
+
+  // Prominent status in the hero — otherwise "paused" / "deactivated" is only
+  // visible in the danger zone at the bottom of the page.
+  let statusBadge: React.ReactNode = null;
+  if (client?.archived_at) {
+    statusBadge = <Badge variant="danger">{client.anonymised_at ? "Deactivated · anonymised" : "Deactivated"}</Badge>;
+  } else if (client?.disabled) {
+    statusBadge = <Badge variant="warning">Paused</Badge>;
+  }
 
   const questionnaireOptions = useMemo(
     () => questionnaires.filter((q) => clientResponses.some((r) => r.questionnaire_id === q.id)),
@@ -907,6 +962,7 @@ export default function AdminClientsPageDetailed() {
             <Avatar name={displayedClientName} imageSrc={client.avatar_url ?? ""} size={80} />
             <div>
               <h1 className={styles.heroName}>{displayedClientName}</h1>
+              {statusBadge && <div className={styles.heroStatus}>{statusBadge}</div>}
               <p className={styles.heroEmail}>{client.email}</p>
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
@@ -1278,34 +1334,61 @@ export default function AdminClientsPageDetailed() {
 
         {/* Danger zone */}
         <div className={styles.dangerZone}>
+          {/* Pause is hidden once a client is deactivated — deactivation
+              supersedes it and archive already sets `disabled`. */}
+          {!client?.archived_at && (
+            <div className={styles.dangerRow}>
+              <div>
+                <p className={styles.dangerTitle}>
+                  {client?.disabled ? "Client access is paused" : "Pause client access"}
+                </p>
+                <p className={styles.dangerDesc}>
+                  {client?.disabled
+                    ? "They can't sign in, and were signed out of any live session. Restore access whenever you're ready."
+                    : "Blocks sign-in and signs them out of the app. Their data is kept — this is reversible."}
+                </p>
+              </div>
+              {client?.disabled ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isDemo || togglingDisabled}
+                  onClick={() => setClientDisabled(false)}
+                >
+                  Restore access
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isDemo || togglingDisabled}
+                  onClick={() => setPauseOpen(true)}
+                >
+                  Pause client
+                </Button>
+              )}
+            </div>
+          )}
+
           <div className={styles.dangerRow}>
             <div>
               <p className={styles.dangerTitle}>
-                {client?.disabled ? "Client access is paused" : "Pause client access"}
+                {client?.archived_at ? "Client is deactivated" : "Deactivate client"}
               </p>
-              <p className={styles.dangerDesc}>
-                {client?.disabled
-                  ? "They can't sign in, and were signed out of any live session. Restore access whenever you're ready."
-                  : "Blocks sign-in and signs them out of the app. Their data is kept — this is reversible."}
-              </p>
+              <p className={styles.dangerDesc}>{deactivateDesc}</p>
             </div>
-            {client?.disabled ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isDemo || togglingDisabled}
-                onClick={() => setClientDisabled(false)}
-              >
-                Restore access
+            {client?.archived_at ? (
+              <Button variant="secondary" size="sm" disabled={isDemo || togglingArchive} onClick={handleUnarchive}>
+                Reactivate
               </Button>
             ) : (
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={isDemo || togglingDisabled}
-                onClick={() => setPauseOpen(true)}
+                disabled={isDemo || togglingArchive}
+                onClick={() => setArchiveOpen(true)}
               >
-                Pause client
+                Deactivate
               </Button>
             )}
           </div>
@@ -1321,6 +1404,31 @@ export default function AdminClientsPageDetailed() {
           </div>
         </div>
       </div>
+
+      {archiveOpen && (
+        <ConfirmModal
+          title="Deactivate this client?"
+          confirmLabel="Deactivate"
+          confirming={togglingArchive}
+          onConfirm={handleArchive}
+          onClose={() => {
+            setArchiveOpen(false);
+            setAnonymiseOnArchive(false);
+          }}
+          notifyOption={{
+            label:
+              "Also anonymise their personal details now (name, date of birth, photo, email) — history stays, labelled by codename. Can't be undone.",
+            checked: anonymiseOnArchive,
+            onChange: setAnonymiseOnArchive,
+          }}
+        >
+          <p>
+            They'll be signed out and blocked from signing in, and they'll drop off your active client list. Everything
+            you've recorded — sessions, payments, notes, check-ins — stays on your records. You can reactivate them
+            later.
+          </p>
+        </ConfirmModal>
+      )}
 
       {pauseOpen && (
         <ConfirmModal

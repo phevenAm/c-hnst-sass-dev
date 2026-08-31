@@ -12,8 +12,11 @@ import { fetchAllUsers } from "../../../store/slices/userDirectorySlice";
 import AdminClientsPage from "./AdminClientsPage";
 
 vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({ userProfile: { id: "admin-1" } }),
+  useAuth: () => ({ userProfile: { id: "admin-1" }, practiceSettings: null, isDemo: false }),
 }));
+
+const showToast = vi.fn();
+vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast }) }));
 
 const updateSpy = vi.fn();
 vi.mock("@lib/supabase", () => ({
@@ -70,6 +73,90 @@ test("empty state offers all three ways to add a client", () => {
   expect(within(emptyState).getByRole("button", { name: "Invite a client" })).toBeInTheDocument();
   expect(within(emptyState).getByRole("button", { name: "Add offline client" })).toBeInTheDocument();
   expect(within(emptyState).getByRole("button", { name: "Import from CSV" })).toBeInTheDocument();
+});
+
+// Client lifecycle: a deactivated (archived_at set) client is kept but must not
+// appear in the active caseload — it moves to its own "Deactivated clients"
+// section with a Reactivate action, and is not counted as an active client.
+test("deactivated clients are split out of the active list into their own section", () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [
+        { id: "c-active", role: "client", first_name: "Ada", last_name: "Active", deleted_at: null, archived_at: null },
+        {
+          id: "c-archived",
+          role: "client",
+          first_name: "Bob",
+          last_name: "Gone",
+          deleted_at: null,
+          archived_at: "2026-08-01T00:00:00Z",
+        },
+      ],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // Header counts only the active one.
+  expect(screen.getByText("1 active client")).toBeInTheDocument();
+
+  // The deactivated section is rendered, with the archived client + its action.
+  expect(screen.getByText("Deactivated clients")).toBeInTheDocument();
+  expect(screen.getByText("Bob Gone")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reactivate" })).toBeInTheDocument();
+
+  // The active list still shows the active client.
+  expect(screen.getByText("Ada Active")).toBeInTheDocument();
+});
+
+test("a paused client stays in the active list but is marked with a Paused badge", () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [
+        {
+          id: "c-paused",
+          role: "client",
+          first_name: "Ada",
+          last_name: "Paused",
+          deleted_at: null,
+          archived_at: null,
+          disabled: true,
+        },
+      ],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  expect(screen.getByText("Ada Paused")).toBeInTheDocument();
+  expect(screen.getByText("Paused")).toBeInTheDocument();
+  // still counted as active — pause is temporary, not a deactivation
+  expect(screen.getByText("1 active client")).toBeInTheDocument();
+  expect(screen.queryByText("Deactivated clients")).not.toBeInTheDocument();
+});
+
+test("no deactivated section renders when every client is active", () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [{ id: "c-active", role: "client", first_name: "Ada", last_name: "Active", deleted_at: null, archived_at: null }],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  expect(screen.queryByText("Deactivated clients")).not.toBeInTheDocument();
 });
 
 // Regression: fires once, the first time an admin's client count goes from 0

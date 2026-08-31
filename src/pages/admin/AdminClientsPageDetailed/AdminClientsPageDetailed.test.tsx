@@ -451,6 +451,53 @@ describe("AdminClientsPageDetailed", () => {
       expect(screen.getByText(/client since/i)).toBeInTheDocument();
       expect(screen.getByText(/15\/03\/2025/i)).toBeInTheDocument();
     });
+
+    it("shows no status badge for a normal active client", () => {
+      renderPage();
+      expect(screen.queryByText("Paused")).not.toBeInTheDocument();
+      expect(screen.queryByText("Deactivated")).not.toBeInTheDocument();
+    });
+
+    it("shows a Paused badge when the client is disabled", () => {
+      renderPage({
+        userDirectory: {
+          users: [{ ...mockClient, disabled: true }],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.getByText("Paused")).toBeInTheDocument();
+    });
+
+    it("shows a Deactivated badge when the client is archived", () => {
+      renderPage({
+        userDirectory: {
+          users: [{ ...mockClient, archived_at: "2026-08-01T00:00:00Z" }],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.getByText("Deactivated")).toBeInTheDocument();
+    });
+
+    it("shows 'Deactivated · anonymised' when the client is archived and anonymised, and prefers it over Paused", () => {
+      renderPage({
+        userDirectory: {
+          users: [
+            {
+              ...mockClient,
+              disabled: true,
+              archived_at: "2026-08-01T00:00:00Z",
+              anonymised_at: "2026-08-01T00:00:00Z",
+            },
+          ],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.getByText("Deactivated · anonymised")).toBeInTheDocument();
+      expect(screen.queryByText("Paused")).not.toBeInTheDocument();
+    });
   });
 
   // ── Stats bar ─────────────────────────────────────────────────────────────────
@@ -799,6 +846,76 @@ describe("AdminClientsPageDetailed", () => {
       await waitFor(() => {
         expect(screen.queryByTestId("delete-modal")).not.toBeInTheDocument();
       });
+    });
+  });
+
+  // ── Deactivate / reactivate (client lifecycle) ──────────────────────────────
+
+  describe("Deactivate / reactivate client", () => {
+    const archived = {
+      userDirectory: {
+        users: [{ ...mockClient, archived_at: "2026-08-01T00:00:00Z", disabled: true }],
+        status: "succeeded",
+        error: null,
+      },
+    };
+
+    it("offers a Deactivate action for an active client and opens the confirm dialog", () => {
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+      expect(screen.getByText("Deactivate this client?")).toBeInTheDocument();
+    });
+
+    it("calls admin_archive_client without anonymise when confirmed with the box unchecked", async () => {
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+      // The confirm button inside the dialog carries the same label — it's the last one.
+      const deactivateButtons = screen.getAllByRole("button", { name: "Deactivate" });
+      fireEvent.click(deactivateButtons[deactivateButtons.length - 1]);
+
+      await waitFor(() =>
+        expect(supabaseMock.rpc).toHaveBeenCalledWith("admin_archive_client", {
+          target_user_id: CLIENT_ID,
+          p_reason: null,
+          p_anonymise: false,
+        }),
+      );
+    });
+
+    it("passes p_anonymise: true when the anonymise box is ticked", async () => {
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+      fireEvent.click(screen.getByRole("checkbox"));
+      const deactivateButtons = screen.getAllByRole("button", { name: "Deactivate" });
+      fireEvent.click(deactivateButtons[deactivateButtons.length - 1]);
+
+      await waitFor(() =>
+        expect(supabaseMock.rpc).toHaveBeenCalledWith("admin_archive_client", {
+          target_user_id: CLIENT_ID,
+          p_reason: null,
+          p_anonymise: true,
+        }),
+      );
+    });
+
+    it("shows a Reactivate action for an already-deactivated client and calls admin_unarchive_client", async () => {
+      renderPage(archived);
+      expect(screen.queryByRole("button", { name: "Deactivate" })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Reactivate" }));
+
+      await waitFor(() =>
+        expect(supabaseMock.rpc).toHaveBeenCalledWith("admin_unarchive_client", { target_user_id: CLIENT_ID }),
+      );
+    });
+
+    it("hides the Pause / Restore-access row once a client is deactivated", () => {
+      renderPage(archived);
+      // archived clients also have disabled=true, but the pause row must not
+      // show — deactivation supersedes it.
+      expect(screen.queryByText("Pause client access")).not.toBeInTheDocument();
+      expect(screen.queryByText("Client access is paused")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Restore access" })).not.toBeInTheDocument();
     });
   });
 
