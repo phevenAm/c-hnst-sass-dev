@@ -108,7 +108,7 @@ export function emailTemplate({
                 <td style="vertical-align:middle;padding-right:9px;">
                   <img src="${LOGO_URL}" width="24" height="24" alt="" style="display:block;border:0;" />
                 </td>
-                <td style="vertical-align:middle;font-family:${SERIF};font-size:19px;font-weight:600;color:#ffffff;letter-spacing:0.02em;">Clarity</td>
+                <td style="vertical-align:middle;font-family:${SERIF};font-size:20px;font-weight:400;color:#ffffff;letter-spacing:-0.01em;">Clarity</td>
               </tr>
             </table>
           </td>
@@ -117,7 +117,7 @@ export function emailTemplate({
         <tr>
           <td style="background:${C.cardBg};padding:36px 40px 30px;border-left:1px solid ${C.hairline};border-right:1px solid ${C.hairline};">
             <p style="font-family:${SANS};font-size:11px;font-weight:600;color:${C.caption};margin:0 0 10px;text-transform:uppercase;letter-spacing:0.12em;">${label}</p>
-            <h2 style="font-family:${SERIF};font-size:23px;font-weight:500;color:${C.text};margin:0 0 20px;line-height:1.35;">${title}</h2>
+            <h2 style="font-family:${SERIF};font-size:24px;font-weight:400;color:${C.text};margin:0 0 20px;line-height:1.35;">${title}</h2>
             ${body}
             ${ctaBlock}
           </td>
@@ -125,7 +125,7 @@ export function emailTemplate({
 
         <tr>
           <td style="background:${C.footer};border-radius:0 0 14px 14px;padding:26px 40px;">
-            <p style="font-family:${SERIF};font-size:15px;color:${C.onDark};font-weight:600;margin:0 0 14px;letter-spacing:0.02em;">Clarity</p>
+            <p style="font-family:${SERIF};font-size:16px;color:${C.onDark};font-weight:400;margin:0 0 14px;letter-spacing:-0.01em;">Clarity</p>
             ${counsellorLine}
             <p style="font-family:${SANS};font-size:12px;color:${C.onDarkMuted};line-height:1.65;margin:0;">${footerNote}</p>
             ${unsubscribeLine ? `<table role="presentation" width="100%" style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.12);"><tr><td style="padding-top:12px;">${unsubscribeLine}</td></tr></table>` : ""}
