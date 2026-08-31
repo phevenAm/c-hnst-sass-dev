@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
@@ -219,6 +220,14 @@ export default function LoginPage() {
   };
 
   const isLoading = submitting || loading;
+
+  // Coming in from the marketing site's "Log in" link: hold on the logo splash
+  // while the initial session check runs, so an already-signed-in visitor is
+  // redirected straight through (see the effect above) instead of seeing the
+  // login form flash first.
+  if (loading && !resetMode) {
+    return <AuthLoadingState variant="splash" />;
+  }
 
   return (
     <main className={`${styles.page} page`}>

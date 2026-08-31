@@ -45,6 +45,20 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "interface", label: "Interface" },
 ];
 
+// Display-only pricing for the subscription tier switcher. Capacity comes from
+// the plan_limits table (source of truth, shared with enforcement); the £ figures
+// live here and in the marketing page's TIERS array — keep the two in step.
+type TierKey = "starter" | "growth" | "unlimited";
+const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
+  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
+  growth: { label: "Growth", monthly: 15.99, annual: 159, blurb: "For a growing practice" },
+  unlimited: { label: "Unlimited", monthly: 27.99, annual: 279, blurb: "No client limit" },
+};
+const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
+
+type PlanLimitRow = { plan: string; max_active: number | null; max_archived: number | null; sort_order: number };
+type PlanUsage = { active: number; archived: number };
+
 function subscriptionStatusColor(status: string | null | undefined, cancelAtPeriodEnd: boolean): string {
   if (cancelAtPeriodEnd) return "var(--warning)";
   if (status === "active" || status === "trialing") return "var(--success)";
@@ -57,9 +71,31 @@ function subscriptionHintText(cancelAtPeriodEnd: boolean, hasBillingCustomer: bo
     return "You've cancelled — access continues until the date above, then the account reverts to free. Resubscribe any time before then through the Stripe billing portal.";
   }
   if (hasBillingCustomer) {
-    return "Manage your plan, update your payment method, or cancel through the Stripe billing portal.";
+    return "Switch tier below, or update your card / cancel through the Stripe billing portal.";
   }
   return "This account isn't linked to a Stripe subscription — there's nothing to manage here.";
+}
+
+function PlanUsageBar({ label, used, max }: { label: string; used: number; max: number | null }) {
+  const unlimited = max == null;
+  const over = !unlimited && used > (max as number);
+  const pct = unlimited ? 100 : Math.min(100, Math.round((used / Math.max(max as number, 1)) * 100));
+  return (
+    <div className={styles.usageBar}>
+      <div className={styles.usageBarHead}>
+        <span>{label}</span>
+        <span className={over ? styles.usageOver : undefined}>
+          {unlimited ? `${used} · unlimited` : `${used} / ${max}`}
+        </span>
+      </div>
+      <div className={styles.usageTrack}>
+        <div
+          className={`${styles.usageFill} ${over ? styles.usageFillOver : ""} ${unlimited ? styles.usageFillMuted : ""}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 const BUSINESS_FIELDS = [
@@ -262,6 +298,17 @@ const SettingsPage = () => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
   const [billingCustomerId, setBillingCustomerId] = useState<string | null>(null);
+
+  // Subscription tier switcher. planLimits === null while loading / if the
+  // plan_limits table isn't there yet (migration not applied) — the whole
+  // switcher block just stays hidden in that case, leaving the existing
+  // status + "Manage subscription" button untouched.
+  const [planLimits, setPlanLimits] = useState<PlanLimitRow[] | null>(null);
+  const [planUsage, setPlanUsage] = useState<PlanUsage | null>(null);
+  const [tierBilling, setTierBilling] = useState<"monthly" | "annual">("monthly");
+  const [switchingPlan, setSwitchingPlan] = useState<string | null>(null);
+  const [planSwitchError, setPlanSwitchError] = useState<string | null>(null);
+  const [confirmSwitch, setConfirmSwitch] = useState<{ plan: TierKey; billing: "monthly" | "annual" } | null>(null);
 
   const [googleStatus, setGoogleStatus] = useState<{
     connected: boolean;
@@ -761,6 +808,89 @@ const SettingsPage = () => {
     } catch {
       showToast("Couldn't copy — try selecting and copying the code manually.", "error");
     }
+  };
+
+  // Load tier capacity + current usage for the switcher. Silently no-ops if
+  // the plan_limits table / plan_change_check RPC aren't deployed yet, so the
+  // switcher block just stays hidden.
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data: limits } = await supabase.from("plan_limits").select("*").order("sort_order");
+      if (cancelled) return;
+      if (limits?.length) setPlanLimits(limits as PlanLimitRow[]);
+
+      const { data: usage } = await supabase.rpc("plan_change_check", {
+        p_target: practiceSettings?.subscription_plan ?? "starter",
+      });
+      if (cancelled || !usage) return;
+      setPlanUsage({ active: usage.active, archived: usage.archived });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, userProfile?.id, practiceSettings?.subscription_plan]);
+
+  // Default the billing toggle to whatever they're currently on.
+  useEffect(() => {
+    const interval = (practiceSettings as { billing_interval?: string } | null)?.billing_interval;
+    setTierBilling(interval === "year" ? "annual" : "monthly");
+  }, [practiceSettings]);
+
+  const overshootMessage = (targetPlan: TierKey, activeOver: number, archivedOver: number) => {
+    const over = Math.max(activeOver ?? 0, archivedOver ?? 0);
+    return (
+      `You have ${over} ${archivedOver > activeOver ? "archived " : ""}client${over === 1 ? "" : "s"} more than ` +
+      `${TIER_DISPLAY[targetPlan].label} allows. Archive or remove ${over === 1 ? "one" : over} before switching down.`
+    );
+  };
+
+  const runPlanSwitch = async (targetPlan: TierKey, billing: "monthly" | "annual") => {
+    if (guardDemo()) return;
+    setSwitchingPlan(targetPlan);
+    setPlanSwitchError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("change-subscription-plan", {
+        body: { plan: targetPlan, billing },
+      });
+      if (fnError) {
+        let message = fnError.message;
+        if (fnError instanceof FunctionsHttpError) {
+          const body = await fnError.context.json().catch(() => null);
+          if (body?.error === "PLAN_LIMIT" && body.detail) {
+            message = overshootMessage(targetPlan, body.detail.active_over, body.detail.archived_over);
+          } else if (body?.error) {
+            message = body.error;
+          }
+        }
+        throw new Error(message);
+      }
+      if (!(data as { unchanged?: boolean } | null)?.unchanged) {
+        showToast(`You're now on ${TIER_DISPLAY[targetPlan].label}.`);
+      }
+      await refreshPracticeSettings();
+      const { data: usage } = await supabase.rpc("plan_change_check", { p_target: targetPlan });
+      if (usage) setPlanUsage({ active: usage.active, archived: usage.archived });
+    } catch (err) {
+      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't switch plan.");
+    } finally {
+      setSwitchingPlan(null);
+      setConfirmSwitch(null);
+    }
+  };
+
+  const handlePickPlan = async (targetPlan: TierKey, billing: "monthly" | "annual") => {
+    if (guardDemo()) return;
+    setPlanSwitchError(null);
+    // Pre-flight the capacity check so a blocked downgrade never opens the
+    // confirm dialog — it surfaces the "archive N first" message straight away.
+    const { data: check } = await supabase.rpc("plan_change_check", { p_target: targetPlan });
+    if (check && !check.ok) {
+      setPlanSwitchError(overshootMessage(targetPlan, check.active_over, check.archived_over));
+      return;
+    }
+    setConfirmSwitch({ plan: targetPlan, billing });
   };
 
   const handleManageSubscription = async () => {
@@ -1425,6 +1555,104 @@ const SettingsPage = () => {
                     {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
                   </p>
                 </section>
+
+                {planLimits &&
+                  (() => {
+                    // Legacy rows still say "app"/"bundle"/"website" until the tier
+                    // migration backfills them — treat anything unrecognised as starter.
+                    const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
+                    const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey)
+                      ? (rawPlan as TierKey)
+                      : "starter";
+                    const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+                    return (
+                      <section className={styles.businessSection}>
+                        <h2>Your plan</h2>
+
+                        {planUsage && currentLimit && (
+                          <div className={styles.planUsage}>
+                            <PlanUsageBar
+                              label="Active clients"
+                              used={planUsage.active}
+                              max={currentLimit.max_active}
+                            />
+                            <PlanUsageBar
+                              label="Archived clients"
+                              used={planUsage.archived}
+                              max={currentLimit.max_archived}
+                            />
+                          </div>
+                        )}
+
+                        <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tierBilling === "monthly"}
+                            className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
+                            onClick={() => setTierBilling("monthly")}
+                          >
+                            Monthly
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tierBilling === "annual"}
+                            className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
+                            onClick={() => setTierBilling("annual")}
+                          >
+                            Annual · 2 months free
+                          </button>
+                        </div>
+
+                        <div className={styles.tierGrid}>
+                          {TIER_ORDER.map((key) => {
+                            const d = TIER_DISPLAY[key];
+                            const limit = planLimits.find((l) => l.plan === key);
+                            const isCurrent = key === currentPlan;
+                            const price = tierBilling === "annual" ? d.annual : d.monthly;
+                            return (
+                              <div
+                                key={key}
+                                className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}
+                              >
+                                <div className={styles.tierName}>{d.label}</div>
+                                <div className={styles.tierPrice}>
+                                  £{price}
+                                  <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
+                                </div>
+                                <div className={styles.tierCap}>
+                                  {!limit || limit.max_active == null
+                                    ? "Unlimited clients"
+                                    : `${limit.max_active} active + ${limit.max_archived} archived`}
+                                </div>
+                                <div className={styles.tierBlurb}>{d.blurb}</div>
+                                {isCurrent ? (
+                                  <span className={styles.tierCurrentBadge}>Current plan</span>
+                                ) : (
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => handlePickPlan(key, tierBilling)}
+                                    disabled={!!switchingPlan || !billingCustomerId}
+                                  >
+                                    {switchingPlan === key ? "Switching…" : "Switch"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {planSwitchError && (
+                          <p className={styles.planSwitchError} role="alert">
+                            {planSwitchError}
+                          </p>
+                        )}
+                        {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
+                      </section>
+                    );
+                  })()}
+
                 {billingCustomerId && (
                   <div className={styles.actions}>
                     <Button
@@ -2412,6 +2640,24 @@ const SettingsPage = () => {
           <p>
             Clients will no longer be able to pay by card — bank transfer stays available. You'll need to reconnect and
             turn card payments back on to offer it again.
+          </p>
+        </ConfirmModal>
+      )}
+      {confirmSwitch && (
+        <ConfirmModal
+          title={`Switch to ${TIER_DISPLAY[confirmSwitch.plan].label}?`}
+          onClose={() => setConfirmSwitch(null)}
+          onConfirm={() => runPlanSwitch(confirmSwitch.plan, confirmSwitch.billing)}
+          confirming={!!switchingPlan}
+          confirmLabel="Switch plan"
+          danger={false}
+        >
+          <p>
+            You'll move to <strong>{TIER_DISPLAY[confirmSwitch.plan].label}</strong> at £
+            {confirmSwitch.billing === "annual"
+              ? `${TIER_DISPLAY[confirmSwitch.plan].annual}/year`
+              : `${TIER_DISPLAY[confirmSwitch.plan].monthly}/month`}
+            . Stripe adjusts your next invoice for time already paid on your current plan.
           </p>
         </ConfirmModal>
       )}

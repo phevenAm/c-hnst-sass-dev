@@ -74,7 +74,7 @@ test.describe("Platform subscription checkout", () => {
     const supabase = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
 
     const { data, error } = await supabase.functions.invoke("create-subscription-checkout", {
-      body: { plan: "app", billing: "monthly" },
+      body: { plan: "starter", billing: "monthly" },
     });
     expect(error, error?.message).toBeFalsy();
     expect(data?.url).toContain("checkout.stripe.com");
@@ -98,7 +98,7 @@ test.describe("Platform subscription checkout", () => {
     );
 
     expect(settings?.subscription_status).toBe("active");
-    expect(settings?.subscription_plan).toBe("app");
+    expect(settings?.subscription_plan).toBe("starter");
     expect(settings?.billing_customer_id).toBeTruthy();
     expect(settings?.stripe_subscription_id).toBeTruthy();
   });
@@ -118,7 +118,7 @@ test.describe("Edge function auth guards", () => {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-subscription-checkout`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
-      body: JSON.stringify({ plan: "app", billing: "monthly" }),
+      body: JSON.stringify({ plan: "starter", billing: "monthly" }),
     });
     expect(res.status).toBe(401);
   });
@@ -135,7 +135,7 @@ test.describe("Edge function auth guards", () => {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${session?.access_token}`,
       },
-      body: JSON.stringify({ plan: "app", billing: "monthly" }),
+      body: JSON.stringify({ plan: "starter", billing: "monthly" }),
     });
     expect(res.status).toBe(403);
   });

@@ -94,11 +94,15 @@ export default function ClientDashboard() {
   // scales, so blending their responses together previously produced a
   // meaningless average once a client had more than one assigned. Falls
   // back to the first assigned form with any responses if the admin hasn't
-  // explicitly plotted one — same fallback the admin side uses.
+  // explicitly plotted one — same fallback the admin side uses. The fallback
+  // skips forms with no `scale` questions (CORE-10, RCADS, PHQ-9 and the other
+  // standardised built-ins): they can't be plotted, so auto-picking one just
+  // renders an empty "nothing to plot" chart.
+  const isPlottable = (q: (typeof assignedQs)[number]) => q.questions?.some((qn) => qn.type === "scale") ?? false;
   const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(authUser?.id ?? ""));
   const chartedQuestionnaireId =
     plottedAssignment?.questionnaire_id ??
-    assignedQs.find((q) => allUserResponses.some((r) => r.questionnaire_id === q.id))?.id;
+    assignedQs.find((q) => isPlottable(q) && allUserResponses.some((r) => r.questionnaire_id === q.id))?.id;
   const chartedQuestionnaire = assignedQs.find((q) => q.id === chartedQuestionnaireId);
 
   const chartResponses = allUserResponses

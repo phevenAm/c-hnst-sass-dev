@@ -745,3 +745,146 @@
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
+// ── Subscription tier switcher ─────────────────────────────
+.planUsage {
+  display: grid;
+  gap: $sp-3;
+  margin-bottom: $sp-5;
+}
+
+.usageBar {
+  display: grid;
+  gap: 6px;
+}
+
+.usageBarHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.usageOver {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.usageTrack {
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.usageFill {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+.usageFillOver {
+  background: var(--danger);
+}
+
+.usageFillMuted {
+  background: var(--accent-light);
+}
+
+.tierToggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+}
+
+.tierToggleBtn {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tierToggleBtnActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $sp-3;
+
+  @include until-md {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tierCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: $sp-4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+
+  button {
+    margin-top: auto;
+    align-self: stretch;
+  }
+}
+
+.tierCardCurrent {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.tierName {
+  font-weight: 600;
+}
+
+.tierPrice {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+
+  span {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 2px;
+  }
+}
+
+.tierCap {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.tierBlurb {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: $sp-2;
+}
+
+.tierCurrentBadge {
+  margin-top: auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+.planSwitchError {
+  margin-top: $sp-4;
+  color: var(--danger);
+  font-size: 0.85rem;
+}

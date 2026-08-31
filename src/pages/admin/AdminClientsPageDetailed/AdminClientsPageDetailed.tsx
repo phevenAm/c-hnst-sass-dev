@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import Badge from "@components/shared/Badge/Badge";
 import { BlockSessionCard } from "@components/shared/BlockSessionCard/BlockSessionCard";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import {
@@ -35,6 +36,14 @@ import { useAuth } from "@/context/AuthContext";
 import { useEncryption } from "@/context/EncryptionContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import {
+  flaggedRiskItems,
+  getMeasureSpec,
+  interpretScore,
+  scoreSubscales,
+  severityToBadgeVariant,
+  totalScore,
+} from "@/Helpers/outcomeMeasureScoring";
 import { groupSessionsForDisplay } from "@/Helpers/sessionGrouping";
 import { useCounsellorName } from "@/Hooks/useCounsellorName";
 import { useRealtimeTable } from "@/Hooks/useRealtimeTable";
@@ -1115,6 +1124,41 @@ export default function AdminClientsPageDetailed() {
                     {formResponses.length} submission{formResponses.length !== 1 ? "s" : ""} · Last:{" "}
                     {dayjs(formResponses[0].submitted_at ?? formResponses[0].created_at).format("D MMM YYYY")}
                   </span>
+
+                  {(() => {
+                    const spec = getMeasureSpec(fq.title);
+                    if (!spec) return null;
+                    const latest = formResponses[0];
+                    const latestTotal = totalScore(questions, latest);
+                    const band = interpretScore(fq.title, latestTotal);
+                    const subs = scoreSubscales(fq.title, questions, latest);
+                    const risks = flaggedRiskItems(fq.title, questions, latest);
+                    return (
+                      <div className={styles.scoreSummary}>
+                        <div className={styles.scoreSummaryRow}>
+                          <span className={styles.scoreSummaryTotal}>
+                            Latest score <strong>{latestTotal}</strong> / {spec.maxScore}
+                          </span>
+                          {band && <Badge variant={severityToBadgeVariant(band.severity)}>{band.label}</Badge>}
+                        </div>
+                        {subs.length > 0 && (
+                          <div className={styles.scoreSummaryRow}>
+                            {subs.map((s) => (
+                              <span key={s.name} className={styles.scoreSummaryTotal}>
+                                {s.name} <strong>{s.score}</strong> / {s.max}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {risks.length > 0 && (
+                          <p className={styles.scoreRisk}>
+                            <strong>Risk item flagged.</strong> This client endorsed a self-harm / crisis item on their
+                            latest submission — review it and follow your safeguarding process.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <div className={styles.tableScroll}>
                     <table className={styles.resultsTable}>
