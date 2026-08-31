@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Clarity: Counselling Practice Management</title>
+    <meta name="description" content="A counselling client portal for tracking personal growth and wellbeing." />
+
+    <!-- PWA / manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#5d612c" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1c1a16" media="(prefers-color-scheme: dark)" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+    <!-- iPhone home screen -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Clarity" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Clarity: Counselling Practice Management" />
+    <meta property="og:description" content="A counselling client portal for tracking personal growth and wellbeing." />
+    <meta property="og:site_name" content="Clarity: Counselling Practice Management" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Clarity: Counselling Practice Management" />
+    <meta name="twitter:description" content="A counselling client portal for tracking personal growth and wellbeing." />
+    <!-- Fonts: preconnect + single combined request before JS loads -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=Revalia&display=swap" />
+
+    <!-- Preload auth background image for faster paint -->
+    <link rel="preload" as="image" href="/pexels-amirali-shaghaghi-18428647.jpg">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>

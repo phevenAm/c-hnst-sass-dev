@@ -16,6 +16,31 @@ function versionJsonPlugin() {
   };
 }
 
+// The site is one deploy serving two documents:
+//   /            → index.html  (static marketing page, no React)
+//   everything   → app.html    (the React SPA shell)
+// Vercel/Netlify handle that split in production via rewrites; this
+// plugin reproduces it for `vite` dev so deep links like /login work.
+function promoRoutingPlugin() {
+  return {
+    name: "promo-dev-routing",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = (req.url || "").split("?")[0];
+        const accept = req.headers.accept || "";
+        // Only rewrite top-level page navigations; let assets/modules/HMR through.
+        if (req.method !== "GET" || !accept.includes("text/html")) return next();
+        if (url === "/" || url === "/index.html" || url === "/app.html" || url.startsWith("/promo")) {
+          return next();
+        }
+        req.url = "/app.html";
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
@@ -23,6 +48,7 @@ export default defineConfig({
   plugins: [
     react(),
     versionJsonPlugin(),
+    promoRoutingPlugin(),
     VitePWA({
       // "prompt" (not "autoUpdate"): autoUpdate makes a newly-deployed
       // service worker call skipWaiting()+clientsClaim() the moment it
@@ -36,7 +62,9 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        navigateFallback: "/index.html",
+        // The installable app is app.html; index.html is the marketing page.
+        navigateFallback: "/app.html",
+        navigateFallbackDenylist: [/^\/$/, /^\/promo/],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
     }),
@@ -61,6 +89,10 @@ export default defineConfig({
 
   build: {
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        app: fileURLToPath(new URL("./app.html", import.meta.url)),
+      },
       output: {
         // Split the big, rarely-changing vendors into their own chunks so a
         // one-line app change doesn't invalidate the whole cache, and so a

@@ -1,6 +1,6 @@
 {
   "name": "Clarity",
-  "version": "7.2.7",
+  "version": "8.0.0",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -38,6 +38,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/ui": "^4.1.7",
     "axe-playwright": "^2.2.2",
+    "gif2webp-bin": "^5.0.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.1.1",
     "sass": "^1.99.0",

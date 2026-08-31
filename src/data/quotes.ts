@@ -363,12 +363,6 @@ export const quotes: LocalQuote[] = [
     tags: ["forgiveness"],
   },
   {
-    id: "forgiveness-19",
-    content: "Forgiving is not something you do for someone else. It is something you do for yourself.",
-    author: "Unknown",
-    tags: ["forgiveness", "self-love"],
-  },
-  {
     id: "forgiveness-20",
     content: "You can't have a better tomorrow if you are thinking about yesterday all the time.",
     author: "Charles F. Kettering",
@@ -379,12 +373,6 @@ export const quotes: LocalQuote[] = [
     content: "Forgiveness is an act of the will, and the will can function regardless of the temperature of the heart.",
     author: "Corrie Ten Boom",
     tags: ["forgiveness", "courage"],
-  },
-  {
-    id: "forgiveness-22",
-    content: "The first to apologize is the bravest. The first to forgive is the strongest.",
-    author: "Unknown",
-    tags: ["forgiveness", "courage", "strength"],
   },
 
   // SELF-LOVE
@@ -480,12 +468,6 @@ export const quotes: LocalQuote[] = [
     tags: ["self-love"],
   },
   {
-    id: "self-love-16",
-    content: "Put yourself at the top of your to-do list every single day and the rest will fall into place.",
-    author: "Unknown",
-    tags: ["self-love"],
-  },
-  {
     id: "self-love-17",
     content: "Lighten up on yourself. No one is perfect. Gently accept your humanness.",
     author: "Deborah Day",
@@ -523,12 +505,7 @@ export const quotes: LocalQuote[] = [
   },
 
   // WORTH
-  {
-    id: "worth-1",
-    content: "Your value doesn't decrease based on someone's inability to see your worth.",
-    author: "Unknown",
-    tags: ["worth", "self-love"],
-  },
+
   {
     id: "worth-2",
     content: "You are braver than you believe, stronger than you seem, and smarter than you think.",
@@ -587,12 +564,6 @@ export const quotes: LocalQuote[] = [
     tags: ["worth", "self-love", "courage"],
   },
   {
-    id: "worth-11",
-    content: "Your worth is not measured by your productivity.",
-    author: "Unknown",
-    tags: ["worth", "self-love"],
-  },
-  {
     id: "worth-12",
     content: "Never forget what you are, for surely the world will not. Make it your strength.",
     author: "George R.R. Martin",
@@ -629,24 +600,6 @@ export const quotes: LocalQuote[] = [
     tags: ["worth", "self-love"],
   },
   { id: "worth-18", content: "You are worthy of love and belonging.", author: "Brené Brown", tags: ["worth", "love"] },
-  {
-    id: "worth-19",
-    content: "You matter. Your story matters. Your voice matters.",
-    author: "Unknown",
-    tags: ["worth"],
-  },
-  {
-    id: "worth-20",
-    content: "You have permission to be proud of yourself.",
-    author: "Unknown",
-    tags: ["worth", "self-love"],
-  },
-  {
-    id: "worth-21",
-    content: "Your life is worth fighting for.",
-    author: "Unknown",
-    tags: ["worth", "strength", "resilience"],
-  },
   {
     id: "worth-22",
     content:
@@ -718,12 +671,6 @@ export const quotes: LocalQuote[] = [
     tags: ["peace"],
   },
   {
-    id: "peace-11",
-    content: "Serenity is not freedom from the storm, but peace amid the storm.",
-    author: "Unknown",
-    tags: ["peace", "resilience"],
-  },
-  {
     id: "peace-12",
     content: "The measure of wisdom is how calm you are when facing any given situation.",
     author: "Naval Ravikant",
@@ -736,23 +683,10 @@ export const quotes: LocalQuote[] = [
     tags: ["peace", "love"],
   },
   {
-    id: "peace-14",
-    content:
-      "Peace does not mean to be in a place where there is no noise, trouble, or hard work. It means to be in the midst of those things and still be calm.",
-    author: "Unknown",
-    tags: ["peace", "mindfulness", "resilience"],
-  },
-  {
     id: "peace-15",
     content: "If you want peace of mind, stop fighting with your thoughts.",
     author: "Peter McWilliams",
     tags: ["peace", "mindfulness"],
-  },
-  {
-    id: "peace-16",
-    content: "He who is at peace with himself is at peace with the world.",
-    author: "Unknown",
-    tags: ["peace"],
   },
   {
     id: "peace-17",
@@ -836,12 +770,6 @@ export const quotes: LocalQuote[] = [
     id: "friendship-9",
     content: "The language of friendship is not words but meanings.",
     author: "Henry David Thoreau",
-    tags: ["friendship"],
-  },
-  {
-    id: "friendship-10",
-    content: "Friendship is not about whom you have known the longest, but about who came and never left your side.",
-    author: "Unknown",
     tags: ["friendship"],
   },
   {
@@ -958,13 +886,6 @@ export const quotes: LocalQuote[] = [
     tags: ["strength", "growth"],
   },
   {
-    id: "strength-9",
-    content:
-      "The strongest people are not those who show strength in front of us but those who win battles we know nothing about.",
-    author: "Unknown",
-    tags: ["strength"],
-  },
-  {
     id: "strength-10",
     content: "We acquire the strength we have overcome.",
     author: "Ralph Waldo Emerson",
@@ -1016,27 +937,9 @@ export const quotes: LocalQuote[] = [
     tags: ["strength", "resilience"],
   },
   {
-    id: "strength-18",
-    content: "Be strong when you are weak, brave when you are scared, and humble when you are victorious.",
-    author: "Unknown",
-    tags: ["strength", "courage"],
-  },
-  {
-    id: "strength-19",
-    content: "You were given this life because you are strong enough to live it.",
-    author: "Unknown",
-    tags: ["strength", "worth"],
-  },
-  {
     id: "strength-20",
     content: "Some women fear the fire. Some women simply become it.",
     author: "R.H. Sin",
-    tags: ["strength", "courage"],
-  },
-  {
-    id: "strength-21",
-    content: "Bravery is not the absence of fear but the forging ahead despite being afraid.",
-    author: "Unknown",
     tags: ["strength", "courage"],
   },
   {
@@ -1157,13 +1060,6 @@ export const quotes: LocalQuote[] = [
     tags: ["growth", "courage"],
   },
   {
-    id: "growth-19",
-    content: "There is no growth in the comfort zone and no comfort in the growth zone.",
-    author: "Unknown",
-    tags: ["growth"],
-  },
-  { id: "growth-20", content: "Every day is a chance to be better.", author: "Unknown", tags: ["growth"] },
-  {
     id: "growth-21",
     content: "The secret of change is to focus all of your energy, not on fighting the old, but on building the new.",
     author: "Socrates",
@@ -1240,13 +1136,6 @@ export const quotes: LocalQuote[] = [
     tags: ["healing", "courage", "growth"],
   },
   {
-    id: "healing-11",
-    content: "Every day is a new beginning. Take a deep breath, smile, and start again.",
-    author: "Unknown",
-    tags: ["healing", "mindfulness", "hope"],
-  },
-  { id: "healing-12", content: "Healing is not linear.", author: "Unknown", tags: ["healing"] },
-  {
     id: "healing-13",
     content: "Sometimes you have to kind of die inside in order to rise from your own ashes and believe in yourself.",
     author: "Bob Dylan",
@@ -1282,13 +1171,6 @@ export const quotes: LocalQuote[] = [
     content: "Healing yourself is connected with healing others.",
     author: "Yoko Ono",
     tags: ["healing", "love", "peace"],
-  },
-  { id: "healing-19", content: "Your story is not over yet.", author: "Unknown", tags: ["healing", "hope"] },
-  {
-    id: "healing-20",
-    content: "You will not always be broken. You are in the process of becoming.",
-    author: "Unknown",
-    tags: ["healing", "growth", "hope"],
   },
   {
     id: "healing-21",
@@ -1416,24 +1298,12 @@ export const quotes: LocalQuote[] = [
     author: "Maya Angelou",
     tags: ["courage", "self-love"],
   },
-  {
-    id: "courage-19",
-    content: "Sometimes the bravest thing you can do is ask for help.",
-    author: "Unknown",
-    tags: ["courage", "healing"],
-  },
   { id: "courage-20", content: "Fortune favors the bold.", author: "Virgil", tags: ["courage"] },
   {
     id: "courage-21",
     content: "Believe you can and you're halfway there.",
     author: "Theodore Roosevelt",
     tags: ["courage", "worth"],
-  },
-  {
-    id: "courage-22",
-    content: "You were born to be real, not to be perfect.",
-    author: "Unknown",
-    tags: ["courage", "self-love"],
   },
 
   // MINDFULNESS
@@ -1562,7 +1432,7 @@ export const quotes: LocalQuote[] = [
   },
 
   // GRATITUDE
-  { id: "gratitude-1", content: "Gratitude turns what we have into enough.", author: "Unknown", tags: ["gratitude"] },
+
   {
     id: "gratitude-2",
     content: "Gratitude is not only the greatest of virtues, but the parent of all others.",
@@ -1678,12 +1548,6 @@ export const quotes: LocalQuote[] = [
     author: "Henri Matisse",
     tags: ["gratitude", "mindfulness"],
   },
-  {
-    id: "gratitude-22",
-    content: "Count your blessings, not your problems.",
-    author: "Unknown",
-    tags: ["gratitude", "peace"],
-  },
 
   // RESILIENCE
   {
@@ -1715,12 +1579,6 @@ export const quotes: LocalQuote[] = [
     content: "I can be changed by what happens to me. But I refuse to be reduced by it.",
     author: "Maya Angelou",
     tags: ["resilience", "strength", "self-love"],
-  },
-  {
-    id: "resilience-6",
-    content: "When the world says, 'Give up,' hope whispers, 'Try it one more time.'",
-    author: "Unknown",
-    tags: ["resilience", "hope"],
   },
   {
     id: "resilience-7",
@@ -1765,12 +1623,6 @@ export const quotes: LocalQuote[] = [
     tags: ["resilience", "courage"],
   },
   {
-    id: "resilience-14",
-    content: "Everything you need to get through this is already inside you.",
-    author: "Unknown",
-    tags: ["resilience", "worth", "strength"],
-  },
-  {
     id: "resilience-15",
     content: "Promise me you'll always remember: you're braver than you believe, and stronger than you seem.",
     author: "A.A. Milne",
@@ -1787,13 +1639,6 @@ export const quotes: LocalQuote[] = [
     content: "Tough times never last, but tough people do.",
     author: "Robert H. Schuller",
     tags: ["resilience", "strength"],
-  },
-  {
-    id: "resilience-18",
-    content:
-      "No matter how much it hurts now, someday you will look back and realize your struggles changed your life for the better.",
-    author: "Unknown",
-    tags: ["resilience", "hope", "growth"],
   },
   {
     id: "resilience-19",

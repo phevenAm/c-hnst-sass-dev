@@ -1,8 +1,8 @@
 {
   "name": "Clarity: Counselling Practice Management",
   "short_name": "Clarity",
-  "description": "A counselling client portal for tracking personal growth and wellbeing.",
-  "start_url": "/",
+  "description": "Practice management software for therapists and counsellors — client records, scheduling, wellbeing check-ins, payments, resources, and CPD tracking in one private workspace.",
+  "start_url": "/login",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#5d612c",
