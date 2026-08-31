@@ -1089,6 +1089,35 @@ describe("AdminClientsPageDetailed", () => {
       // The modal shows Jane's upcoming session's own card.
       expect(dialog.querySelector(`[data-testid="session-card-${mockUpcomingSession.id}"]`)).toBeInTheDocument();
     });
+
+    // Regression: "N attended" counted status === "completed", so past sessions
+    // that were marked attended without their status moving off "scheduled"
+    // showed as 0 attended. It's the `attended` boolean that counts.
+    it("counts the attended boolean, not status === 'completed'", () => {
+      const attendedButStillScheduled = {
+        ...mockPastSession,
+        id: "attended-scheduled",
+        status: "scheduled",
+        attended: true,
+      };
+      const completedNoShow = {
+        ...mockPastSession,
+        id: "completed-noshow",
+        scheduled_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "completed",
+        attended: false,
+      };
+      renderPage({
+        sessions: {
+          sessions: [mockUpcomingSession, attendedButStillScheduled, completedNoShow],
+          status: "succeeded",
+          error: null,
+        },
+      });
+
+      // 3 total, only the attended:true one counts as attended.
+      expect(screen.getByText(/3 sessions · 1 attended/)).toBeInTheDocument();
+    });
   });
 
   // ── Block bookings on the upcoming tab ──────────────────────────────────────

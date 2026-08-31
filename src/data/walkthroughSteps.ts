@@ -239,7 +239,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "clients-directory",
         order: 1,
         title: "Your client list",
-        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. Nothing here yet? Add your first client below.",
+        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. Paused clients stay here with a badge; deactivated ones move to their own section lower down so your main list stays current. Nothing here yet? Add your first client below.",
         target: "#clients-header",
         actions: [
           { label: "Invite a client", to: "/admin/clients?new=true" },
@@ -289,6 +289,13 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         order: 4,
         title: "Scores vs. results",
         body: "'Check-in scores' shows their wellbeing trend as a chart. 'Form results' shows the actual answers from each form. Use scores for the big picture, results for the detail.",
+      },
+      {
+        id: "client-detail-danger-zone",
+        order: 5,
+        title: "Pause, deactivate, or delete",
+        body: "At the bottom of the page. 'Pause' blocks their sign-in for a while but keeps everything — use it for a break. 'Deactivate' ends the relationship for good: their history stays on your records, and you can tick 'anonymise' to strip their personal details (that part can't be undone). 'Delete' erases the client and everything tied to them, with no way back.",
+        target: "#danger-zone",
       },
     ],
   },
