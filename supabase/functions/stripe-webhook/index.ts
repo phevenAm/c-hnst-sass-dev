@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
           title: "Welcome to Clarity!",
           body:
             para(
-              `Your subscription is now active on the <strong style="color:#2d2926;">${planLabel}</strong> plan, billed ${billing}.`,
+              `Your subscription is now active on the <strong style="color:#2d2520;">${planLabel}</strong> plan, billed ${billing}.`,
             ) + para("You're all set up — head to your dashboard to start managing your practice."),
           cta: { label: "Go to dashboard", url: `${appUrl}/admin` },
           footerNote: "This email was sent because you subscribed to Clarity.",
@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
         title: `${clientName} has paid`,
         body:
           para(
-            `A payment of <strong style="color:#2d2926;">£${amountPounds}</strong> has been received for ${sessionDescription}.`,
+            `A payment of <strong style="color:#2d2520;">£${amountPounds}</strong> has been received for ${sessionDescription}.`,
           ) +
           detailsTable([
             { label: "Client", value: clientName, bold: true },
@@ -486,7 +486,7 @@ Deno.serve(async (req) => {
             title: "We couldn't take payment for your subscription",
             body:
               para(
-                `A payment of <strong style="color:#2d2926;">£${amountPounds}</strong> for your Clarity subscription didn't go through — your card may have expired or been declined.`,
+                `A payment of <strong style="color:#2d2520;">£${amountPounds}</strong> for your Clarity subscription didn't go through — your card may have expired or been declined.`,
               ) +
               para(
                 willRetry
@@ -554,10 +554,10 @@ Deno.serve(async (req) => {
             title: "Your Clarity subscription renewed",
             body:
               para(
-                `A payment of <strong style="color:#2d2926;">£${amountPounds}</strong> was taken for your Clarity subscription.`,
+                `A payment of <strong style="color:#2d2520;">£${amountPounds}</strong> was taken for your Clarity subscription.`,
               ) +
               (invoice.hosted_invoice_url
-                ? para(`<a href="${invoice.hosted_invoice_url}" style="color:#5a8a6a;">View invoice</a>`)
+                ? para(`<a href="${invoice.hosted_invoice_url}" style="color:#2d7264;">View invoice</a>`)
                 : ""),
             cta: { label: "Manage billing", url: `${appUrl}/settings` },
             footerNote: "This email was sent because your Clarity subscription renewed.",
