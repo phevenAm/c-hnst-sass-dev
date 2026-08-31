@@ -451,6 +451,53 @@ describe("AdminClientsPageDetailed", () => {
       expect(screen.getByText(/client since/i)).toBeInTheDocument();
       expect(screen.getByText(/15\/03\/2025/i)).toBeInTheDocument();
     });
+
+    it("shows no status badge for a normal active client", () => {
+      renderPage();
+      expect(screen.queryByText("Paused")).not.toBeInTheDocument();
+      expect(screen.queryByText("Deactivated")).not.toBeInTheDocument();
+    });
+
+    it("shows a Paused badge when the client is disabled", () => {
+      renderPage({
+        userDirectory: {
+          users: [{ ...mockClient, disabled: true }],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.getByText("Paused")).toBeInTheDocument();
+    });
+
+    it("shows a Deactivated badge when the client is archived", () => {
+      renderPage({
+        userDirectory: {
+          users: [{ ...mockClient, archived_at: "2026-08-01T00:00:00Z" }],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.getByText("Deactivated")).toBeInTheDocument();
+    });
+
+    it("shows 'Deactivated · anonymised' when the client is archived and anonymised, and prefers it over Paused", () => {
+      renderPage({
+        userDirectory: {
+          users: [
+            {
+              ...mockClient,
+              disabled: true,
+              archived_at: "2026-08-01T00:00:00Z",
+              anonymised_at: "2026-08-01T00:00:00Z",
+            },
+          ],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.getByText("Deactivated · anonymised")).toBeInTheDocument();
+      expect(screen.queryByText("Paused")).not.toBeInTheDocument();
+    });
   });
 
   // ── Stats bar ─────────────────────────────────────────────────────────────────

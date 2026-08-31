@@ -113,6 +113,36 @@ test("deactivated clients are split out of the active list into their own sectio
   expect(screen.getByText("Ada Active")).toBeInTheDocument();
 });
 
+test("a paused client stays in the active list but is marked with a Paused badge", () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [
+        {
+          id: "c-paused",
+          role: "client",
+          first_name: "Ada",
+          last_name: "Paused",
+          deleted_at: null,
+          archived_at: null,
+          disabled: true,
+        },
+      ],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  expect(screen.getByText("Ada Paused")).toBeInTheDocument();
+  expect(screen.getByText("Paused")).toBeInTheDocument();
+  // still counted as active — pause is temporary, not a deactivation
+  expect(screen.getByText("1 active client")).toBeInTheDocument();
+  expect(screen.queryByText("Deactivated clients")).not.toBeInTheDocument();
+});
+
 test("no deactivated section renders when every client is active", () => {
   store.dispatch(
     fetchAllUsers.fulfilled(

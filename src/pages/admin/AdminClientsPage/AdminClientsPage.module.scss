@@ -84,6 +84,9 @@
 }
 
 .clientName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 
 import Avatar from "@components/shared/Avatar/Avatar";
+import Badge from "@components/shared/Badge/Badge";
 import Card from "@components/shared/Card/Card";
 import FirstClientTipsModal from "@components/shared/FirstClientTipsModal/FirstClientTipsModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
@@ -108,7 +109,10 @@ function ClientRow({ user }: { user: UserProfile }) {
         <Avatar name={displayName} imageSrc={user.avatar_url ?? ""} size={40} />
 
         <div className={styles.clientMeta}>
-          <p className={styles.clientName}>{displayName}</p>
+          <p className={styles.clientName}>
+            <span>{displayName}</span>
+            {user.disabled && <Badge variant="warning">Paused</Badge>}
+          </p>
           <p className={styles.clientEmail}>{user.email}</p>
           {plottedAssignment?.questionnaires?.title && (
             <p className={styles.clientPlotted}>Charting: {plottedAssignment.questionnaires.title}</p>

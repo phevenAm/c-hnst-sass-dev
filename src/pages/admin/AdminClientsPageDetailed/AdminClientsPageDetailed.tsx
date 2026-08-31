@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import Badge from "@components/shared/Badge/Badge";
 import { BlockSessionCard } from "@components/shared/BlockSessionCard/BlockSessionCard";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import {
@@ -553,6 +554,15 @@ export default function AdminClientsPageDetailed() {
     deactivateDesc = "Relationship ended. Their history is kept and stays on your records. Reactivate to resume.";
   }
 
+  // Prominent status in the hero — otherwise "paused" / "deactivated" is only
+  // visible in the danger zone at the bottom of the page.
+  let statusBadge: React.ReactNode = null;
+  if (client?.archived_at) {
+    statusBadge = <Badge variant="danger">{client.anonymised_at ? "Deactivated · anonymised" : "Deactivated"}</Badge>;
+  } else if (client?.disabled) {
+    statusBadge = <Badge variant="warning">Paused</Badge>;
+  }
+
   const questionnaireOptions = useMemo(
     () => questionnaires.filter((q) => clientResponses.some((r) => r.questionnaire_id === q.id)),
     [questionnaires, clientResponses],
@@ -952,6 +962,7 @@ export default function AdminClientsPageDetailed() {
             <Avatar name={displayedClientName} imageSrc={client.avatar_url ?? ""} size={80} />
             <div>
               <h1 className={styles.heroName}>{displayedClientName}</h1>
+              {statusBadge && <div className={styles.heroStatus}>{statusBadge}</div>}
               <p className={styles.heroEmail}>{client.email}</p>
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
