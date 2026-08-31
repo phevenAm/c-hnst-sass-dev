@@ -53,7 +53,7 @@ type Plan = "app";
 type Billing = "monthly" | "annual";
 
 const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string }> = {
-  app: { label: "App", monthly: 11.99, annual: 119.99, desc: "Practice management" },
+  app: { label: "App", monthly: 8.99, annual: 89.99, desc: "Practice management" },
 };
 
 const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [

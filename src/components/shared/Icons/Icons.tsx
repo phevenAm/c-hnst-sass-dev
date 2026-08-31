@@ -381,6 +381,35 @@ export const ClarityLogoMark = ({ size = 36 }: { size?: number }) => {
   );
 };
 
+/**
+ * The flat "serif C + two sage circles" mark from the old marketing site
+ * (honest-portal-web/src/components/ClarityLogo.tsx). Parked here, not wired
+ * up anywhere yet — kept in case the brand moves to this. To adopt it, swap
+ * it in for <LeafLogoMark> in Navbar, AdminSidebar, LoginPage, DemoPage, etc.
+ */
+export const ClarityCircleMark = ({ size = 36, cColor = "#2d7264" }: { size?: number; cColor?: string }) => {
+  const blurId = `ccm-${Math.random().toString(36).slice(2, 7)}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" role="img" aria-label="Clarity">
+      <defs>
+        <filter id={blurId} x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
+      </defs>
+      <circle cx="6" cy="6" r="16" fill="#3a8f7e" opacity="0.3" filter={`url(#${blurId})`} />
+      <text
+        x="20"
+        y="29"
+        style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "30px", fontWeight: 500, fill: cColor }}
+        textAnchor="middle"
+      >
+        C
+      </text>
+      <circle cx="36" cy="36" r="10" fill="#3a8f7e" />
+    </svg>
+  );
+};
+
 export const MailIcon = () => (
   <svg
     width="32"

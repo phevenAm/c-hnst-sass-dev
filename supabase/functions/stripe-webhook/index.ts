@@ -173,9 +173,9 @@ Deno.serve(async (req) => {
           .single();
 
         if (referrer?.billing_customer_id) {
-          const planPrices: Record<string, number> = { app: 20, website: 15, bundle: 29 };
-          const monthlyPrice = planPrices[referrer.subscription_plan ?? "app"] ?? 20;
-          const creditPence = monthlyPrice * 2 * 100; // 2 months in pence
+          const planPrices: Record<string, number> = { app: 8.99, website: 15, bundle: 29 };
+          const monthlyPrice = planPrices[referrer.subscription_plan ?? "app"] ?? 8.99;
+          const creditPence = Math.round(monthlyPrice * 2 * 100); // 2 months in pence
 
           await stripe.customers.createBalanceTransaction(referrer.billing_customer_id, {
             amount: -creditPence, // negative = credit

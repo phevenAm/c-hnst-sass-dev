@@ -4,44 +4,733 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <title>Clarity: Counselling Practice Management</title>
-    <meta name="description" content="A counselling client portal for tracking personal growth and wellbeing." />
+    <title>Clarity — practice management software for therapists</title>
+    <meta
+      name="description"
+      content="Client management, wellbeing check-ins, payment tracking, and resource sharing — everything a solo therapy practice needs, built around how you actually work."
+    />
 
-    <!-- PWA / manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#5d612c" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1c1a16" media="(prefers-color-scheme: dark)" />
+    <!-- Kept out of search results while the product is invite-only -->
+    <meta name="robots" content="noindex, nofollow" />
 
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-
-    <!-- iPhone home screen -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Clarity" />
+    <meta name="theme-color" content="#f5f5ee" />
 
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Clarity: Counselling Practice Management" />
-    <meta property="og:description" content="A counselling client portal for tracking personal growth and wellbeing." />
-    <meta property="og:site_name" content="Clarity: Counselling Practice Management" />
-
-    <!-- Twitter / X card -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Clarity: Counselling Practice Management" />
-    <meta name="twitter:description" content="A counselling client portal for tracking personal growth and wellbeing." />
-    <!-- Fonts: preconnect + single combined request before JS loads -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=Revalia&display=swap" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600&display=swap"
+    />
 
-    <!-- Preload auth background image for faster paint -->
-    <link rel="preload" as="image" href="/pexels-amirali-shaghaghi-18428647.jpg">
+    <link rel="stylesheet" href="/src/promo/promo.scss" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/index.tsx"></script>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="wordmark" href="/">
+          <svg class="wordmark__mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22V12" />
+            <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+            <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
+          </svg>
+          Clarity
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a class="site-nav__link" href="#features">Features</a>
+          <a class="site-nav__link" href="#demo">Demo</a>
+          <a class="site-nav__link" href="#pricing">Pricing</a>
+          <a class="site-nav__link" href="#faq">FAQ</a>
+          <!-- <a class="site-nav__link" href="#contact">Contact</a> -->
+          <a class="site-nav__link site-nav__link--login" href="/login">Log in</a>
+          <a class="btn btn--primary btn--sm" href="/register">Get started</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero__photo" role="img" aria-label="A counsellor smiling in warm evening light"></div>
+        <div class="hero__veil" aria-hidden="true"></div>
+        <div class="container hero__grid">
+          <div class="hero__copy">
+            <p class="eyebrow">Practice management software</p>
+            <h1 class="hero__title">Run your therapy practice <em>with clarity.</em></h1>
+            <p class="hero__lede">
+              Client management, wellbeing check-ins, payment tracking, and resource sharing —
+              everything a solo therapy practice needs, built around how you actually work.
+            </p>
+            <div class="hero__actions">
+              <a class="btn btn--primary" href="/register">Get started</a>
+              <a class="btn btn--ghost" href="#features">How it works</a>
+            </div>
+            <p class="hero__note">Monthly and annual plans. Cancel anytime.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="band" id="features">
+        <div class="container">
+          <p class="eyebrow centered">What&rsquo;s included</p>
+          <h2 class="section-title centered">Everything your practice needs, nothing it doesn&rsquo;t.</h2>
+          <p class="section-sub centered">
+            Clarity is built specifically for therapy practitioners — not adapted from generic
+            business software.
+          </p>
+
+          <ul class="features" role="list">
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 4.5h9a2 2 0 0 1 2 2V20l-4.5-2.2L7 20V6.5a2 2 0 0 1 2-2Z" transform="translate(1 0)" />
+                  <path d="M18 7h1a1.5 1.5 0 0 1 1.5 1.5V19" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Client resources</h3>
+              <p class="feature__body">
+                Upload worksheets, videos, articles, and exercises for clients to use between
+                sessions. Organise by topic and mark sensitive materials as hidden — only visible
+                when you choose to share them.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 4 3 8.5l9 4.5 9-4.5L12 4Z" />
+                  <path d="M7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11M21 8.5V14" />
+                </svg>
+              </span>
+              <h3 class="feature__title">CPD &amp; supervision tracking</h3>
+              <p class="feature__body">
+                Log your continuing professional development hours, supervision sessions, and
+                training in one place. Export records whenever you need them for accreditation or
+                renewal.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="8" r="2.8" />
+                  <path d="M3.5 19c.9-2.8 3-4.3 5.5-4.3s4.6 1.5 5.5 4.3" />
+                  <path d="M16 6.2A2.8 2.8 0 0 1 16 12M18.5 19c-.4-1.9-1.3-3.2-2.6-4" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Client management</h3>
+              <p class="feature__body">
+                A full directory of your clients with profile, session history, and assigned
+                check-ins. Assign codenames to protect client identities — only you know who&rsquo;s
+                behind each name.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3.5" y="5" width="17" height="15" rx="2" />
+                  <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3M9 14l2 2 4-4" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Scheduling &amp; payments</h3>
+              <p class="feature__body">
+                Manage appointments, block out free days, and track who&rsquo;s paid. Booking
+                confirmations, reminders, and payment nudges are emailed to every client &mdash;
+                whether or not they use the portal.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4v16h16" />
+                  <path d="M7.5 15l3.2-3.5 2.6 2 4.2-5" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Outcome measures &amp; check-ins</h3>
+              <p class="feature__body">
+                RCADS is built in &mdash; the 47-item anxiety and depression scale, auto-scored with
+                subscales and clinical bands. Add your own check-ins and feedback forms on any
+                schedule, and watch scores chart over time.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3.5 5 6v5c0 4.5 3 7.7 7 9.5 4-1.8 7-5 7-9.5V6l-7-2.5Z" />
+                  <path d="M9.5 12l1.8 1.8L15 10" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Built for privacy</h3>
+              <p class="feature__body">
+                Role-based access, secure authentication, and per-practice data separation — built
+                with clinical confidentiality in mind. EU-hosted, and optional client-side encryption
+                for session notes.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Feature tour -->
+      <section class="band band--dark demo" id="demo">
+        <div class="container demo-inner">
+          <p class="eyebrow centered">Feature tour</p>
+          <h2 class="section-title centered">Built for how you actually work.</h2>
+          <p class="section-sub centered">
+            Every screen is designed around the day-to-day of a therapy practice — not adapted from
+            generic business software.
+          </p>
+
+          <div class="demo-tabs" role="tablist">
+            <button type="button" class="demo-tab demo-tab--active" data-demo-tab="counsellor" role="tab" aria-selected="true">
+              Counsellor experience
+            </button>
+            <button type="button" class="demo-tab" data-demo-tab="client" role="tab" aria-selected="false">
+              Client experience
+            </button>
+          </div>
+
+          <div class="carousel">
+            <button type="button" class="carousel-arrow" data-demo-prev aria-label="Previous screen">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+
+            <div class="carousel-frame" id="demoFrame">
+              <div class="demo-browser">
+                <div class="browser-chrome">
+                  <div class="browser-dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div>
+                  <div class="browser-url">clarity.app</div>
+                  <div class="browser-dots-spacer"></div>
+                </div>
+                <div class="browser-viewport">
+                  <img class="demo-screenshot" id="demoImgDesktop" src="" alt="" loading="lazy" />
+                </div>
+              </div>
+              <div class="phone-frame">
+                <div class="phone-screen">
+                  <img class="demo-screenshot" id="demoImgMobile" src="" alt="" loading="lazy" />
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="carousel-arrow" data-demo-next aria-label="Next screen">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M7.5 4.5L13 10l-5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="carousel-dots" id="demoDots"></div>
+
+          <div class="carousel-caption" aria-live="polite" aria-atomic="true">
+            <h3 class="carousel-title" id="demoTitle"></h3>
+            <p class="carousel-desc" id="demoDesc"></p>
+          </div>
+
+          <ul class="demo-chips" aria-label="Platform qualities">
+            <li class="demo-chip">Fully mobile responsive</li>
+            <li class="demo-chip">Dark &amp; light mode</li>
+            <li class="demo-chip">WCAG 2.1 AA</li>
+          </ul>
+
+          <a class="demo-cta" href="/demo">
+            Try the live demo
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          <p class="demo-note">No sign-up needed</p>
+        </div>
+      </section>
+
+      <!-- Onboarding -->
+      <section class="band band--muted" id="onboarding">
+        <div class="container">
+          <p class="eyebrow centered">Getting started</p>
+          <h2 class="section-title centered">Set up in an afternoon, not a fortnight.</h2>
+          <p class="section-sub centered">
+            However your practice already runs, Clarity meets it where it is.
+          </p>
+
+          <ul class="features" role="list">
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="8.5" />
+                  <path d="M12 11v5M12 7.5h.01" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Guided walkthroughs</h3>
+              <p class="feature__body">
+                Every page introduces itself the first time you open it, with info tips beside
+                anything fiddly. Replay them whenever you like from Settings.
+              </p>
+            </li>
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 15V4M12 4 8.5 7.5M12 4l3.5 3.5" />
+                  <path d="M4.5 13.5v4a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-4" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Bring your caseload with you</h3>
+              <p class="feature__body">
+                Import your existing clients and their past sessions from a spreadsheet &mdash;
+                dates, fees, and notes come across, so nothing starts from zero.
+              </p>
+            </li>
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="3.2" />
+                  <path d="M5 19c1.2-3.4 4-5 7-5s5.8 1.6 7 5" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Clients who don&rsquo;t want an app</h3>
+              <p class="feature__body">
+                Add offline clients you manage entirely yourself &mdash; sessions, notes, payments,
+                reminders by email. Send a portal invite later if it helps, or never.
+              </p>
+            </li>
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m4 7 8 6 8-6" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Everyone stays in the loop</h3>
+              <p class="feature__body">
+                Confirmations, reminders, reschedule notices, and payment nudges are emailed to
+                every client automatically &mdash; portal account or not.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Testimonials -->
+      <section class="band testimonials">
+        <div class="container">
+          <p class="eyebrow centered">What practitioners say</p>
+          <h2 class="section-title centered">Built for therapists, loved by therapists.</h2>
+          <div class="quotes">
+            <figure class="quote" data-quote>
+              <blockquote>
+                &ldquo;What won me over was how customisable it is. I can turn features on or off
+                depending on how I like to run my practice, rather than having to work around the
+                software.&rdquo;
+                <button type="button" class="quote__more" data-quote-open>Read more</button>
+              </blockquote>
+              <figcaption>
+                <span class="quote__avatar" aria-hidden="true"></span>
+                <span>
+                  <strong>Rosie M.</strong><br />
+                  <a href="https://abidecounselling.uk" target="_blank" rel="noopener">Abide Counselling</a>, Reading
+                </span>
+              </figcaption>
+
+              <div class="quote__full" data-quote-full hidden>
+                <blockquote>
+                  &ldquo;What won me over was how customisable it is. I can turn features on or off
+                  depending on how I like to run my practice, rather than having to work around the
+                  software. I especially love the automatic cancellation of unpaid sessions &mdash; I
+                  used to hate chasing clients for payment, and now I can set a payment deadline so a
+                  session is automatically cancelled if they haven&rsquo;t paid. It means I&rsquo;m
+                  not left paying for a room that wasn&rsquo;t used. Getting started was simple too,
+                  with plenty of guidance along the way, and importing two years of past sessions
+                  took less than fifteen minutes.&rdquo;
+                </blockquote>
+                <p class="quote__attrib">
+                  <strong>Rosie M.</strong> &middot;
+                  <a href="https://abidecounselling.uk" target="_blank" rel="noopener">Abide Counselling</a>, Reading
+                </p>
+                <button type="button" class="quote__more" data-quote-close>Show less</button>
+              </div>
+            </figure>
+            <figure class="quote">
+              <blockquote>
+                &ldquo;The check-in feature alone has saved me hours every week. Clients fill them in
+                between sessions and I can see exactly how they&rsquo;re doing before we even
+                start.&rdquo;
+              </blockquote>
+              <figcaption>
+                <span class="quote__avatar" aria-hidden="true"></span>
+                <span><strong>James T.</strong><br />CBT Practitioner, Manchester</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing -->
+      <section class="band band--muted" id="pricing">
+        <div class="container">
+          <p class="eyebrow centered">Pricing</p>
+          <h2 class="section-title centered">Simple, transparent pricing.</h2>
+          <p class="section-sub centered">
+            Everything you need to run your practice. No add-ons, no surprises.
+          </p>
+
+          <div class="billing-toggle" role="tablist" aria-label="Billing period">
+            <button type="button" class="toggle-btn toggle-active" data-billing="monthly" role="tab" aria-selected="true">Monthly</button>
+            <button type="button" class="toggle-btn" data-billing="annual" role="tab" aria-selected="false">Annual</button>
+          </div>
+
+          <div class="plans">
+            <div class="plan">
+              <p class="plan__name">Clarity</p>
+              <p class="plan__desc">Complete practice management</p>
+              <p class="plan__price">
+                <span class="plan__cur">&pound;</span><span class="plan__amount" id="planAmount">8.99</span><span class="plan__per" id="planPer">/mo</span>
+              </p>
+              <p class="plan__alt" id="planAlt" hidden></p>
+              <ul class="plan__list" role="list">
+                <li>Client directory with codenames</li>
+                <li>Offline or online clients — invite anytime</li>
+                <li>Appointment scheduling</li>
+                <li>Wellbeing check-ins &amp; progress tracking</li>
+                <li>Admin dashboard &amp; analytics</li>
+                <li>CPD logging &amp; exports</li>
+                <li>Resource library with client invites</li>
+                <li>Secure client login portal</li>
+                <li>Support built in — help is always a message away</li>
+              </ul>
+              <a class="btn btn--primary plan__cta" href="/register">Get started</a>
+            </div>
+
+            <div class="plan plan--soon">
+              <p class="plan__tag">Coming soon</p>
+              <p class="plan__name">Supervisor</p>
+              <p class="plan__desc">For clinical supervisors</p>
+              <p class="plan__price">
+                <span class="plan__cur">&pound;</span><span class="plan__amount">15</span><span class="plan__per">/mo</span>
+              </p>
+              <ul class="plan__list" role="list">
+                <li>Everything in Clarity</li>
+                <li>Supervisee records &amp; group sessions</li>
+                <li>Supervision logs your supervisees can export</li>
+                <li>CPD tracking across your supervision hours</li>
+              </ul>
+              <span class="btn btn--ghost plan__cta plan__cta--disabled" aria-disabled="true">Coming soon</span>
+            </div>
+          </div>
+
+          <p class="plan__fineprint">
+            All prices exclude VAT. Cancel anytime. Refer a colleague who subscribes and get two
+            months free.
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="band" id="faq">
+        <div class="container">
+          <p class="eyebrow centered">FAQ</p>
+          <h2 class="section-title centered">Common questions.</h2>
+
+          <div class="faq">
+            <details class="faq__item">
+              <summary>Is there a free trial?</summary>
+              <p>
+                You can explore the full demo with sample data — no sign-up and no card. Paid plans
+                are monthly or annual, and you can cancel anytime.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Do you have a referral scheme?</summary>
+              <p>
+                Yes. When someone you refer subscribes, <strong>two months are credited to your
+                account</strong>. They enter your code (or follow your link) at sign-up &mdash;
+                you&rsquo;ll find yours in Settings once you&rsquo;re subscribed. No limit on how
+                many people you refer.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Do I need any technical knowledge?</summary>
+              <p>
+                No. If you can use email and an online calendar, you can use Clarity. Every page
+                walks you through itself the first time, with info tips beside anything fiddly &mdash;
+                and you can replay any walkthrough from Settings.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Can I bring my existing clients across?</summary>
+              <p>
+                Yes. Import your client list and their past session history &mdash; dates, fees, and
+                notes &mdash; from a spreadsheet, so you&rsquo;re not rebuilding records by hand.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>What if a client doesn&rsquo;t join the app?</summary>
+              <p>
+                That&rsquo;s fine &mdash; they don&rsquo;t have to. Offline clients are managed
+                entirely by you: sessions, notes, and payments, with booking confirmations and
+                reminders still emailed to them automatically. Send a portal invite whenever it makes
+                sense, or never. If they do join, it&rsquo;s just an email and a password &mdash;
+                nothing to download.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Is my client data secure?</summary>
+              <p>
+                Role-based access, secure authentication, and per-practice data separation. Session
+                notes can be encrypted on your device so that no one else — Clarity included — can
+                read them. Everything is hosted in the EU (application and database), and you are the
+                data controller under UK GDPR.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Can I pause my account?</summary>
+              <p>
+                Yes — get in touch and we&rsquo;ll pause your billing. Your data stays exactly where
+                it is and you can pick up where you left off.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>What happens to my data if I cancel?</summary>
+              <p>
+                It stays yours. Export it any time while your account is active. When you want it
+                gone, delete your account from Settings &rarr; Delete account &mdash; that wipes your
+                account and its data straight away, for good. We never sell it or use it for anything
+                but running your practice.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Can I cancel anytime?</summary>
+              <p>
+                Yes, from Settings &rarr; Manage subscription. Access continues to the end of the
+                period you&rsquo;ve already paid for.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="band band--muted" id="contact">
+        <div class="container narrow contact">
+          <p class="eyebrow centered">Get in touch</p>
+          <h2 class="section-title centered">Questions? We&rsquo;d love to hear from you.</h2>
+          <p class="section-sub centered">
+            Whether you&rsquo;re not sure which plan fits, have a question about the app, or just want
+            to say hello — send us a message.
+          </p>
+          <p class="contact__email">
+            Email us directly at <a href="mailto:hello@honestportal.co.uk">hello@honestportal.co.uk</a>
+          </p>
+          <div class="contact__cta">
+            <a class="btn btn--primary" href="mailto:hello@honestportal.co.uk">Send an email</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__brand">
+          <span class="wordmark wordmark--onDark">
+            <svg class="wordmark__mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22V12" />
+              <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+              <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
+            </svg>
+            Clarity
+          </span>
+          <p>Practice management software built for therapy practitioners.</p>
+        </div>
+        <nav class="site-footer__col" aria-label="Product">
+          <p class="site-footer__h">Product</p>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="/login">Log in</a>
+        </nav>
+        <nav class="site-footer__col" aria-label="Contact">
+          <p class="site-footer__h">Contact</p>
+          <a href="mailto:hello@honestportal.co.uk">hello@honestportal.co.uk</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </nav>
+      </div>
+      <div class="container site-footer__base">
+        <span>&copy; <span id="year">2026</span> Clarity. All rights reserved.</span>
+      </div>
+    </footer>
+
+    <button type="button" class="to-top" id="toTop" aria-label="Back to top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 19V6M6 12l6-6 6 6" />
+      </svg>
+    </button>
+
+    <script>
+      var y = document.getElementById("year");
+      if (y) y.textContent = String(new Date().getFullYear());
+
+      // ── Testimonial "read more" ───────────────────────────────
+      // The full quote opens as an absolutely-positioned panel over the card,
+      // so the section height never changes.
+      document.querySelectorAll("[data-quote]").forEach(function (fig) {
+        var full = fig.querySelector("[data-quote-full]");
+        var openBtn = fig.querySelector("[data-quote-open]");
+        var closeBtn = fig.querySelector("[data-quote-close]");
+        if (!full || !openBtn) return;
+        openBtn.addEventListener("click", function () {
+          full.hidden = false;
+          if (closeBtn) closeBtn.focus();
+        });
+        if (closeBtn) {
+          closeBtn.addEventListener("click", function () {
+            full.hidden = true;
+            openBtn.focus();
+          });
+        }
+      });
+
+      // ── Back-to-top button ────────────────────────────────────
+      (function () {
+        var btn = document.getElementById("toTop");
+        if (!btn) return;
+        var ticking = false;
+        function sync() {
+          btn.classList.toggle("is-visible", window.scrollY > 600);
+          ticking = false;
+        }
+        window.addEventListener(
+          "scroll",
+          function () {
+            if (!ticking) {
+              window.requestAnimationFrame(sync);
+              ticking = true;
+            }
+          },
+          { passive: true },
+        );
+        btn.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        sync();
+      })();
+
+      // ── Pricing: monthly / annual toggle ──────────────────────
+      (function () {
+        var MONTHLY = { amount: "8.99", per: "/mo", alt: "" };
+        var ANNUAL = { amount: "89.99", per: "/yr", alt: "£7.50/mo · save £17.89 a year" };
+        var amountEl = document.getElementById("planAmount");
+        var perEl = document.getElementById("planPer");
+        var altEl = document.getElementById("planAlt");
+        document.querySelectorAll("[data-billing]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var v = btn.getAttribute("data-billing") === "annual" ? ANNUAL : MONTHLY;
+            document.querySelectorAll("[data-billing]").forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle("toggle-active", on);
+              b.setAttribute("aria-selected", on ? "true" : "false");
+            });
+            if (amountEl) amountEl.textContent = v.amount;
+            if (perEl) perEl.textContent = v.per;
+            if (altEl) {
+              altEl.textContent = v.alt;
+              altEl.hidden = !v.alt;
+            }
+          });
+        });
+      })();
+
+      // ── Feature tour carousel ─────────────────────────────────
+      (function () {
+        var S = "/screenshots/";
+        var SLIDES = {
+          counsellor: [
+            { d: "forms.webp", m: "mobile-forms.webp", t: "Outcome measures, feedback & onboarding forms", x: "Build a form in minutes — outcome measures, feedback forms, or onboarding paperwork. Assign it to clients and let the results come to you, no chasing needed." },
+            { d: "clients.webp", m: "mobile-clients.webp", t: "Invite clients in a couple of clicks", x: "Send a personal email invitation, or add an offline client and invite them whenever you’re ready. Give any client a codename and their real name never appears on screen." },
+            { d: "schedule.webp", m: "mobile-schedule.webp", t: "Your full session history, at a glance", x: "See your attendance rate, upcoming appointments, and session history in one clean view — no spreadsheets, no separate tools." },
+            { d: "resources.webp", m: "mobile-resources.webp", t: "A library clients can actually use", x: "Upload or link articles, videos, worksheets, and websites. Filter by type, publish what’s ready, and hold back what isn’t." },
+            { d: "cpd.webp", m: "mobile-cpd.webp", t: "CPD & supervision, logged as you go", x: "Track your continuing professional development and supervision sessions in one place, and export a clean record whenever your accrediting body asks for one." },
+            { d: "settings.webp", m: "mobile-settings.webp", t: "Your practice, your settings", x: "Customise your branding, manage notifications, and configure how the platform works for your practice — all from one place." },
+            { d: "payments.webp", m: "mobile-payments.webp", t: "Payments, without the chasing", x: "See revenue collected, outstanding balances, and a full payment history — all in one place, without the awkward follow-up messages." }
+          ],
+          client: [
+            { d: "client-dashboard.webp", m: "mobile-client-dashboard.webp", t: "A clear view of their journey", x: "Clients see their next session, their wellbeing trend across every check-in, and what’s due next — all from their own private dashboard." },
+            { d: "client-sessions.webp", m: "mobile-client-sessions.webp", t: "Their sessions, in one place", x: "Every upcoming and past session, with pay, reschedule, and add-to-calendar right there." },
+            { d: "client-calendar.webp", m: "mobile-client-calendar.webp", t: "…or as a calendar", x: "The same sessions in a week view, alongside the times their counsellor has open — so booking and rescheduling is obvious." },
+            { d: "client-checkin.webp", m: "mobile-client-checkin.webp", t: "Check-ins done in minutes", x: "Clients complete RCADS and your own check-ins whenever suits them. Answers are auto-scored and feed straight into their progress chart and your view." },
+            { d: "client-resources.webp", m: "mobile-client-resources.webp", t: "Resources, right when they’re needed", x: "Clients browse the articles, worksheets, and links you’ve shared — searchable, filterable, and always there between sessions." }
+          ]
+        };
+
+        var tab = "counsellor";
+        var i = 0;
+        var imgD = document.getElementById("demoImgDesktop");
+        var imgM = document.getElementById("demoImgMobile");
+        var titleEl = document.getElementById("demoTitle");
+        var descEl = document.getElementById("demoDesc");
+        var dotsEl = document.getElementById("demoDots");
+        var frameEl = document.getElementById("demoFrame");
+        if (!imgD) return;
+
+        function render() {
+          var list = SLIDES[tab];
+          var s = list[i];
+          imgD.src = S + s.d;
+          imgD.alt = s.t;
+          imgM.src = S + s.m;
+          imgM.alt = s.t;
+          titleEl.textContent = s.t;
+          descEl.textContent = s.x;
+          dotsEl.innerHTML = "";
+          list.forEach(function (_, n) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.className = "carousel-dot" + (n === i ? " carousel-dot--active" : "");
+            b.setAttribute("aria-label", "Screen " + (n + 1));
+            b.addEventListener("click", function () { i = n; render(); });
+            dotsEl.appendChild(b);
+          });
+          if (frameEl) {
+            frameEl.classList.remove("is-fading");
+            void frameEl.offsetWidth;
+            frameEl.classList.add("is-fading");
+          }
+        }
+        function step(delta) {
+          var len = SLIDES[tab].length;
+          i = (i + delta + len) % len;
+          render();
+        }
+
+        document.querySelectorAll("[data-demo-tab]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            tab = btn.getAttribute("data-demo-tab");
+            i = 0;
+            document.querySelectorAll("[data-demo-tab]").forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle("demo-tab--active", on);
+              b.setAttribute("aria-selected", on ? "true" : "false");
+            });
+            render();
+          });
+        });
+        var prevBtn = document.querySelector("[data-demo-prev]");
+        var nextBtn = document.querySelector("[data-demo-next]");
+        if (prevBtn) prevBtn.addEventListener("click", function () { step(-1); });
+        if (nextBtn) nextBtn.addEventListener("click", function () { step(1); });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowLeft") step(-1);
+          if (e.key === "ArrowRight") step(1);
+        });
+
+        render();
+      })();
+    </script>
   </body>
 </html>
