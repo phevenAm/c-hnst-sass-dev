@@ -960,6 +960,18 @@ describe("AdminClientsPageDetailed", () => {
       // The button is still offered — nextSession resolved to Jane's own row.
       expect(screen.getByRole("button", { name: /manage this session/i })).toBeInTheDocument();
     });
+
+    it("opens the next session in a modal on 'Manage this session' (not a silent scroll)", () => {
+      renderPage();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /manage this session/i }));
+
+      const dialog = screen.getByRole("dialog");
+      expect(dialog).toHaveTextContent(/^Session —/);
+      // The modal shows Jane's upcoming session's own card.
+      expect(dialog.querySelector(`[data-testid="session-card-${mockUpcomingSession.id}"]`)).toBeInTheDocument();
+    });
   });
 
   // ── Block bookings on the upcoming tab ──────────────────────────────────────
