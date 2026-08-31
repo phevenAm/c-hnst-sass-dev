@@ -40,6 +40,7 @@
           Clarity
         </a>
         <nav class="site-nav" aria-label="Primary">
+          <a class="site-nav__link" href="#why">Why</a>
           <a class="site-nav__link" href="#features">Features</a>
           <a class="site-nav__link" href="#demo">Demo</a>
           <a class="site-nav__link" href="#pricing">Pricing</a>
@@ -70,6 +71,44 @@
             </div>
             <p class="hero__note">Monthly and annual plans. Cancel anytime.</p>
           </div>
+        </div>
+      </section>
+
+      <!-- Why -->
+      <section class="band why" id="why">
+        <span class="why__ghost" aria-hidden="true">Why</span>
+        <div class="container why__inner">
+          <p class="eyebrow centered">Why Clarity</p>
+          <h2 class="section-title centered">Three reasons it&rsquo;s different.</h2>
+
+          <ol class="why__list" role="list">
+            <li class="why__item">
+              <span class="why__num" aria-hidden="true">01</span>
+              <h3 class="why__head">A private library for your client-only material</h3>
+              <p class="why__body">
+                Share worksheets, courses, articles, and exercises in a space only your clients can
+                see. Publish what&rsquo;s ready, keep sensitive material hidden until you choose to
+                send it.
+              </p>
+            </li>
+            <li class="why__item">
+              <span class="why__num" aria-hidden="true">02</span>
+              <h3 class="why__head">Offline or online, one continuous record</h3>
+              <p class="why__body">
+                Run a client entirely yourself &mdash; sessions, notes, payments, email reminders
+                &mdash; or give them a portal login. Start offline and invite them later; their whole
+                history comes with them, nothing restarts.
+              </p>
+            </li>
+            <li class="why__item">
+              <span class="why__num" aria-hidden="true">03</span>
+              <h3 class="why__head">Your whole practice, one tool</h3>
+              <p class="why__body">
+                Scheduling, payments, outcome measures, CPD, and supervision &mdash; all built in
+                and working together.
+              </p>
+            </li>
+          </ol>
         </div>
       </section>
 
@@ -248,7 +287,7 @@
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </a>
-          <p class="demo-note">No sign-up needed</p>
+          <p class="demo-note">Just your email &mdash; we&rsquo;ll send a private demo link. No account, no card.</p>
         </div>
       </section>
 
@@ -323,7 +362,7 @@
         <div class="container">
           <p class="eyebrow centered">What practitioners say</p>
           <h2 class="section-title centered">Built for therapists, loved by therapists.</h2>
-          <div class="quotes">
+          <div class="quotes quotes--solo">
             <figure class="quote">
               <blockquote>
                 &ldquo;What won me over was how customisable it is. I can turn features on or off
@@ -338,13 +377,14 @@
                 <button type="button" class="quote__more" data-quote-toggle aria-expanded="false">Read more</button>
               </blockquote>
               <figcaption>
-                <span class="quote__avatar" aria-hidden="true"></span>
+                <span class="quote__avatar one" aria-hidden="true"></span>
                 <span>
                   <strong>Rosie M.</strong><br />
                   <a href="https://abidecounselling.uk" target="_blank" rel="noopener">Abide Counselling</a>, Reading
                 </span>
               </figcaption>
             </figure>
+            <!-- TEMP: second review hidden while we feature just Rosie's.
             <figure class="quote">
               <blockquote>
                 &ldquo;The check-in feature alone has saved me hours every week. Clients fill them in
@@ -352,10 +392,11 @@
                 start.&rdquo;
               </blockquote>
               <figcaption>
-                <span class="quote__avatar" aria-hidden="true"></span>
+                <span class="quote__avatar two" aria-hidden="true"></span>
                 <span><strong>James T.</strong><br />CBT Practitioner, Manchester</span>
               </figcaption>
             </figure>
+            -->
           </div>
         </div>
       </section>
@@ -366,7 +407,8 @@
           <p class="eyebrow centered">Pricing</p>
           <h2 class="section-title centered">Simple, transparent pricing.</h2>
           <p class="section-sub centered">
-            Everything you need to run your practice. No add-ons, no surprises.
+            Every feature on every plan &mdash; you only choose how many clients you need.
+            From &pound;7.99/mo.
           </p>
 
           <div class="billing-toggle" role="tablist" aria-label="Billing period">
@@ -379,9 +421,30 @@
               <p class="plan__name">Clarity</p>
               <p class="plan__desc">Complete practice management</p>
               <p class="plan__price">
-                <span class="plan__cur">&pound;</span><span class="plan__amount" id="planAmount">8.99</span><span class="plan__per" id="planPer">/mo</span>
+                <span class="plan__cur">&pound;</span><span class="plan__amount" id="planAmount">7.99</span><span class="plan__per" id="planPer">/mo</span>
               </p>
+              <p class="plan__capacity" id="planCapacity">Starter &middot; 5 active clients, plus 5 archived</p>
               <p class="plan__alt" id="planAlt" hidden></p>
+
+              <div class="plan__slider">
+                <input
+                  type="range"
+                  id="planRange"
+                  class="plan__range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value="0"
+                  aria-label="Plan size"
+                  aria-valuetext="Starter — 5 active clients, plus 5 archived"
+                />
+                <div class="plan__notches" aria-hidden="true">
+                  <span class="is-active">Starter</span>
+                  <span>Growth</span>
+                  <span>Unlimited</span>
+                </div>
+              </div>
+
               <ul class="plan__list" role="list">
                 <li>Client directory with codenames</li>
                 <li>Offline or online clients — invite anytime</li>
@@ -393,16 +456,13 @@
                 <li>Secure client login portal</li>
                 <li>Support built in — help is always a message away</li>
               </ul>
-              <a class="btn btn--primary plan__cta" href="/register">Get started</a>
+              <a class="btn btn--primary plan__cta" id="planCta" href="/register?plan=starter">Get started</a>
             </div>
 
             <div class="plan plan--soon">
               <p class="plan__tag">Coming soon</p>
               <p class="plan__name">Supervisor</p>
               <p class="plan__desc">For clinical supervisors</p>
-              <p class="plan__price">
-                <span class="plan__cur">&pound;</span><span class="plan__amount">15</span><span class="plan__per">/mo</span>
-              </p>
               <ul class="plan__list" role="list">
                 <li>Everything in Clarity</li>
                 <li>Supervisee records &amp; group sessions</li>
@@ -413,9 +473,12 @@
             </div>
           </div>
 
+          <p class="plan__referral">
+            Refer a colleague who subscribes and get <strong>two months free</strong>.
+          </p>
           <p class="plan__fineprint">
-            All prices exclude VAT. Cancel anytime. Refer a colleague who subscribes and get two
-            months free.
+            You&rsquo;re only charged for active clients &mdash; archive up to the same number again
+            at no extra cost. All prices exclude VAT. Cancel anytime.
           </p>
         </div>
       </section>
@@ -430,8 +493,9 @@
             <details class="faq__item">
               <summary>Is there a free trial?</summary>
               <p>
-                You can explore the full demo with sample data — no sign-up and no card. Paid plans
-                are monthly or annual, and you can cancel anytime.
+                You can explore the full demo with sample data. We only ask for an email address so we
+                can send you your own private demo link — there&rsquo;s no account to create and no
+                card. Paid plans are monthly or annual, and you can cancel anytime.
               </p>
             </details>
             <details class="faq__item">
@@ -466,6 +530,15 @@
                 reminders still emailed to them automatically. Send a portal invite whenever it makes
                 sense, or never. If they do join, it&rsquo;s just an email and a password &mdash;
                 nothing to download.
+              </p>
+            </details>
+            <details class="faq__item">
+              <summary>Is there a minimum age for clients?</summary>
+              <p>
+                A client needs to be 13 or over to have their own portal login, and under-16s need a
+                parent or guardian&rsquo;s consent. Younger clients can still be worked with as
+                offline clients, managed entirely by their practitioner, with session and payment
+                updates going to a parent or guardian&rsquo;s email address.
               </p>
             </details>
             <details class="faq__item">
@@ -601,29 +674,83 @@
         sync();
       })();
 
-      // ── Pricing: monthly / annual toggle ──────────────────────
+      // ── Pricing: tier slider + monthly / annual toggle ───────
       (function () {
-        var MONTHLY = { amount: "8.99", per: "/mo", alt: "" };
-        var ANNUAL = { amount: "89.99", per: "/yr", alt: "£7.50/mo · save £17.89 a year" };
+        // Mirror of the `plan_limits` table. Annual = ~10 months.
+        var TIERS = [
+          { name: "Starter", clients: "5", monthly: "7.99", annual: "79" },
+          { name: "Growth", clients: "15", monthly: "15.99", annual: "159" },
+          { name: "Unlimited", clients: null, monthly: "27.99", annual: "279" },
+        ];
+
+        var range = document.getElementById("planRange");
         var amountEl = document.getElementById("planAmount");
         var perEl = document.getElementById("planPer");
         var altEl = document.getElementById("planAlt");
+        var capEl = document.getElementById("planCapacity");
+        var ctaEl = document.getElementById("planCta");
+        var notches = document.querySelectorAll(".plan__notches span");
+        if (!range) return;
+
+        var billing = "monthly";
+
+        function money(n) {
+          return Number(n).toLocaleString("en-GB", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
+
+        function render() {
+          var i = Number(range.value);
+          var t = TIERS[i];
+          var annual = billing === "annual";
+
+          if (amountEl) amountEl.textContent = annual ? t.annual : t.monthly;
+          if (perEl) perEl.textContent = annual ? "/yr" : "/mo";
+
+          var capText = t.clients
+            ? t.name + " · " + t.clients + " active clients, plus " + t.clients + " archived"
+            : t.name + " · unlimited active and archived clients";
+          if (capEl) capEl.textContent = capText;
+          range.setAttribute("aria-valuetext", capText);
+
+          if (altEl) {
+            if (annual) {
+              altEl.textContent =
+                "£" +
+                money(t.annual / 12) +
+                "/mo billed annually · save £" +
+                money(t.monthly * 12 - t.annual) +
+                " a year";
+              altEl.hidden = false;
+            } else {
+              altEl.textContent = "";
+              altEl.hidden = true;
+            }
+          }
+
+          notches.forEach(function (n, idx) {
+            n.classList.toggle("is-active", idx === i);
+          });
+          if (ctaEl) ctaEl.href = "/register?plan=" + t.name.toLowerCase();
+        }
+
+        range.addEventListener("input", render);
+
         document.querySelectorAll("[data-billing]").forEach(function (btn) {
           btn.addEventListener("click", function () {
-            var v = btn.getAttribute("data-billing") === "annual" ? ANNUAL : MONTHLY;
+            billing = btn.getAttribute("data-billing") === "annual" ? "annual" : "monthly";
             document.querySelectorAll("[data-billing]").forEach(function (b) {
               var on = b === btn;
               b.classList.toggle("toggle-active", on);
               b.setAttribute("aria-selected", on ? "true" : "false");
             });
-            if (amountEl) amountEl.textContent = v.amount;
-            if (perEl) perEl.textContent = v.per;
-            if (altEl) {
-              altEl.textContent = v.alt;
-              altEl.hidden = !v.alt;
-            }
+            render();
           });
         });
+
+        render();
       })();
 
       // ── Feature tour carousel ─────────────────────────────────

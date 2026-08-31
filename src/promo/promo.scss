@@ -383,6 +383,79 @@ a:hover {
   font-size: $text-sm;
 }
 
+// ── Why (large statement block, sits under the hero) ───────
+.why {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+// Oversized ghost word bleeding out of the band behind the copy — same
+// accent as the rest of the site, just heavily knocked back.
+.why__ghost {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  font-family: $font-serif;
+  font-weight: $weight-bold;
+  font-size: clamp(9rem, 48vw, 32rem);
+  line-height: 0.8;
+  letter-spacing: $tracking-tight;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--accent) 9%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+
+.why__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.why__list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $sp-8;
+  margin-top: $sp-16;
+  text-align: left;
+}
+
+// Translucent card so the ghost word still reads faintly through it.
+.why__item {
+  padding: $sp-6;
+  background: color-mix(in srgb, var(--surface) 68%, transparent);
+  border: 1px solid var(--line);
+  border-radius: $r-lg;
+  box-shadow: $shadow-xs;
+}
+
+.why__num {
+  display: block;
+  font-family: $font-serif;
+  font-size: 2.75rem;
+  font-weight: $weight-bold;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.why__head {
+  margin-top: $sp-2;
+  min-height: 4rem; // hold two lines so the body copy lines up across cards
+  font-family: $font-serif;
+  font-size: $text-xl;
+  font-weight: $weight-semibold;
+  line-height: $leading-tight;
+  letter-spacing: $tracking-tight;
+}
+
+.why__body {
+  margin-top: $sp-3;
+  color: var(--ink-soft);
+  font-size: $text-base;
+}
+
 // ── Features ───────────────────────────────────────────────
 .features {
   display: grid;
@@ -780,7 +853,54 @@ a:hover {
   height: 2.25rem;
   border-radius: $r-full;
   background: var(--accent-soft);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   flex-shrink: 0;
+
+  &.one {
+    background-image: url('/reviews/abide.png');
+  }
+
+  &.two {
+    background-image: url('/reviews-bg.webp');
+  }
+}
+
+// Single featured review — a large centred serif pull-quote rather than a card.
+// Remove the `quotes--solo` class on the markup to go back to the 2-up grid.
+.quotes--solo {
+  grid-template-columns: 1fr;
+  max-width: 44rem;
+  margin-inline: auto;
+  text-align: center;
+
+  .quote {
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  blockquote {
+    font-family: $font-serif;
+    font-size: $text-xl;
+    font-style: italic;
+    line-height: $leading-snug;
+    letter-spacing: $tracking-tight;
+  }
+
+  figcaption {
+    justify-content: center;
+    margin-top: $sp-6;
+    font-size: $text-sm;
+  }
+
+  .quote__more {
+    font-family: $font-sans;
+    font-style: normal;
+    font-size: $text-sm;
+  }
 }
 
 // ── Pricing ────────────────────────────────────────────────
@@ -817,11 +937,13 @@ a:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 380px));
   justify-content: center;
-  align-items: start;
+  align-items: stretch; // both cards match the taller one
   gap: $sp-6;
 }
 
 .plan {
+  display: flex;
+  flex-direction: column;
   padding: $sp-8;
   text-align: center;
   background: var(--surface);
@@ -902,6 +1024,70 @@ a:hover {
   font-size: $text-sm;
 }
 
+.plan__capacity {
+  margin-top: $sp-2;
+  font-size: $text-sm;
+  font-weight: $weight-medium;
+  color: var(--ink-soft);
+}
+
+.plan__slider {
+  margin: $sp-5 0 $sp-2;
+}
+
+.plan__range {
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  border-radius: $r-full;
+  background: var(--line);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  accent-color: var(--accent);
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #fff;
+    border-radius: $r-full;
+    background: var(--accent);
+    box-shadow: $shadow-lg;
+  }
+
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #fff;
+    border-radius: $r-full;
+    background: var(--accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 6px;
+  }
+}
+
+.plan__notches {
+  display: flex;
+  justify-content: space-between;
+  margin-top: $sp-2;
+
+  span {
+    font-size: $text-xs;
+    color: var(--ink-mut);
+    transition: color 0.18s, font-weight 0.18s;
+
+    &.is-active {
+      color: var(--accent);
+      font-weight: $weight-semibold;
+    }
+  }
+}
+
 .plan__list {
   display: grid;
   gap: $sp-2;
@@ -941,10 +1127,23 @@ a:hover {
 
 .plan__cta {
   width: 100%;
+  margin-top: auto; // pin to the bottom so both cards' CTAs line up
+}
+
+.plan__referral {
+  margin-top: $sp-6;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: $text-sm;
+
+  strong {
+    color: var(--accent);
+    font-weight: $weight-semibold;
+  }
 }
 
 .plan__fineprint {
-  margin-top: $sp-4;
+  margin-top: $sp-3;
   text-align: center;
   color: var(--ink-mut);
   font-size: $text-xs;
@@ -1168,6 +1367,24 @@ a:hover {
 
   .features {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .why__list {
+    grid-template-columns: 1fr;
+    gap: $sp-10;
+    margin-top: $sp-12;
+  }
+
+  .why__head {
+    min-height: 0; // stacked — no need to reserve two lines
+  }
+
+  .quotes--solo blockquote {
+    font-size: $text-lg;
+  }
+
+  .why__ghost {
+    font-size: clamp(7rem, 52vw, 15rem);
   }
 }
 

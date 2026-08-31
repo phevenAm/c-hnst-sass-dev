@@ -39,9 +39,44 @@
 
     <!-- Preload auth background image for faster paint -->
     <link rel="preload" as="image" href="/pexels-amirali-shaghaghi-18428647.jpg">
+
+    <!-- Boot splash: painted instantly on navigation (e.g. the marketing site's
+         "Log in" link) so there's no white gap while the app bundle loads and
+         React mounts. React clears #root on first render, which removes it; the
+         app's own <AuthLoadingState variant="splash"> then carries the same look
+         through the session check. -->
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #f3f1ea;
+        color: #2d7264;
+        animation: bootSplashPulse 6s ease-in-out infinite;
+      }
+      @keyframes bootSplashPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+      }
+      @media (prefers-color-scheme: dark) {
+        #boot-splash { background: #1c1a16; color: #6cae9f; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash { animation: none; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-splash">
+        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Clarity" role="img">
+          <path d="M12 22V12" />
+          <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+          <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

@@ -4,7 +4,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17";
+    PostgrestVersion: "14.5";
   };
   public: {
     Tables: {
@@ -462,6 +462,7 @@ export type Database = {
           sent_at: string;
           session_id: string | null;
           status: string;
+          stub_session_id: string | null;
           subject: string;
         };
         Insert: {
@@ -476,6 +477,7 @@ export type Database = {
           sent_at?: string;
           session_id?: string | null;
           status?: string;
+          stub_session_id?: string | null;
           subject: string;
         };
         Update: {
@@ -490,6 +492,7 @@ export type Database = {
           sent_at?: string;
           session_id?: string | null;
           status?: string;
+          stub_session_id?: string | null;
           subject?: string;
         };
         Relationships: [
@@ -512,6 +515,13 @@ export type Database = {
             columns: ["session_id"];
             isOneToOne: false;
             referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_stub_session_id_fkey";
+            columns: ["stub_session_id"];
+            isOneToOne: false;
+            referencedRelation: "stub_sessions";
             referencedColumns: ["id"];
           },
         ];
@@ -666,6 +676,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      plan_limits: {
+        Row: {
+          plan: string;
+          max_active: number | null;
+          max_archived: number | null;
+          sort_order: number;
+        };
+        Insert: {
+          plan: string;
+          max_active?: number | null;
+          max_archived?: number | null;
+          sort_order?: number;
+        };
+        Update: {
+          plan?: string;
+          max_active?: number | null;
+          max_archived?: number | null;
+          sort_order?: number;
+        };
+        Relationships: [];
       };
       platform_access_token: {
         Row: {
@@ -1795,18 +1826,9 @@ export type Database = {
         Args: { p_questionnaire_id: string; p_user_id: string };
         Returns: boolean;
       };
+      check_scheduled_jobs_health: { Args: never; Returns: undefined };
       consume_platform_access_token: {
         Args: { input_token: string };
-        Returns: boolean;
-      };
-      practice_slot_has_conflict: {
-        Args: {
-          p_admin_id: string;
-          p_start: string;
-          p_duration_minutes: number;
-          p_exclude_session_id?: string | null;
-          p_exclude_stub_session_id?: string | null;
-        };
         Returns: boolean;
       };
       delete_own_account: { Args: never; Returns: undefined };
@@ -1870,6 +1892,29 @@ export type Database = {
         Args: { p_stub_id: string; p_user_id: string };
         Returns: undefined;
       };
+      plan_change_check: {
+        Args: { p_target: string };
+        Returns: {
+          target: string;
+          active: number;
+          archived: number;
+          max_active: number | null;
+          max_archived: number | null;
+          active_over: number;
+          archived_over: number;
+          ok: boolean;
+        };
+      };
+      practice_slot_has_conflict: {
+        Args: {
+          p_admin_id: string;
+          p_duration_minutes: number;
+          p_exclude_session_id?: string;
+          p_exclude_stub_session_id?: string;
+          p_start: string;
+        };
+        Returns: boolean;
+      };
       questionnaire_admin_id: { Args: { q_id: string }; Returns: string };
       questionnaire_is_demo: { Args: { q_id: string }; Returns: boolean };
       questionnaire_is_system_default: {
@@ -1901,6 +1946,7 @@ export type Database = {
         Args: { p_assignment_id: string };
         Returns: undefined;
       };
+      trigger_client_session_reminders: { Args: never; Returns: undefined };
       validate_platform_access_token: {
         Args: { input_token: string };
         Returns: boolean;

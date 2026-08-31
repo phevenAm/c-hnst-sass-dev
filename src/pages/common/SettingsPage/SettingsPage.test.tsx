@@ -235,6 +235,13 @@ const {
           }),
         };
       }
+      if (table === "plan_limits") {
+        return {
+          select: () => ({
+            order: () => Promise.resolve({ data: [], error: null }),
+          }),
+        };
+      }
       if (table !== "practice_settings") throw new Error(`Unexpected table in test: ${table}`);
       return {
         select: () => ({

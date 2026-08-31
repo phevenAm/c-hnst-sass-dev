@@ -714,6 +714,45 @@
   color: var(--text-muted);
 }
 
+.scoreSummary {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  margin: $sp-3 0 $sp-4;
+}
+
+.scoreSummaryRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $sp-3;
+}
+
+.scoreSummaryTotal {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+
+  strong {
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+}
+
+.scoreRisk {
+  margin: 0;
+  padding: $sp-2 $sp-3;
+  border-radius: var(--r-md);
+  border: 1px solid var(--danger-border);
+  background: var(--danger-light);
+  color: var(--danger);
+  font-size: 0.8rem;
+  line-height: 1.45;
+
+  strong {
+    color: var(--danger);
+  }
+}
+
 .tableScroll {
   overflow-x: auto;
   margin-bottom: $sp-4;

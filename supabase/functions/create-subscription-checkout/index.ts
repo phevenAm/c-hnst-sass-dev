@@ -7,19 +7,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Plan = "website" | "app" | "bundle";
+type Plan = "starter" | "growth" | "unlimited";
 type Billing = "monthly" | "annual";
+
+const PLANS: Plan[] = ["starter", "growth", "unlimited"];
 
 function getPriceId(plan: Plan, billing: Billing): string {
   const key = `${plan}${billing === "annual" ? "_annual" : ""}`;
 
   const envKeys: Record<string, string> = {
-    website: "STRIPE_PRICE_WEBSITE",
-    app: "STRIPE_PRICE_APP",
-    bundle: "STRIPE_PRICE_BUNDLE",
-    website_annual: "STRIPE_PRICE_WEBSITE_ANNUAL",
-    app_annual: "STRIPE_PRICE_APP_ANNUAL",
-    bundle_annual: "STRIPE_PRICE_BUNDLE_ANNUAL",
+    starter: "STRIPE_PRICE_STARTER",
+    growth: "STRIPE_PRICE_GROWTH",
+    unlimited: "STRIPE_PRICE_UNLIMITED",
+    starter_annual: "STRIPE_PRICE_STARTER_ANNUAL",
+    growth_annual: "STRIPE_PRICE_GROWTH_ANNUAL",
+    unlimited_annual: "STRIPE_PRICE_UNLIMITED_ANNUAL",
   };
 
   const envKey = envKeys[key];
@@ -95,14 +97,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    let plan: Plan = "app";
+    let plan: Plan = "starter";
     let billing: Billing = "monthly";
     let referralCode: string | null = null;
 
     try {
       const body = await req.json();
 
-      if (body?.plan && ["website", "app", "bundle"].includes(body.plan)) {
+      if (body?.plan && PLANS.includes(body.plan)) {
         plan = body.plan as Plan;
       }
 
