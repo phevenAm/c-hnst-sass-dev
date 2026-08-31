@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       title: `Hi ${firstName},`,
       body:
         para(
-          `Your payment of <strong style="color:#2d2926;">£${pricePounds}</strong> has been received and your session is confirmed.`,
+          `Your payment of <strong style="color:#2d2520;">£${pricePounds}</strong> has been received and your session is confirmed.`,
         ) +
         detailsTable([
           { label: "Date & time", value: dateStr, bold: true },

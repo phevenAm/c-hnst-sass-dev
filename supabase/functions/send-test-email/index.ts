@@ -122,7 +122,7 @@ function buildTemplate(
           title: `${EXAMPLE_NAME} has paid`,
           body:
             para(
-              `A payment of <strong style="color:#2d2926;">£60.00</strong> has been received for a session on ${EXAMPLE_DATE}.`,
+              `A payment of <strong style="color:#2d2520;">£60.00</strong> has been received for a session on ${EXAMPLE_DATE}.`,
             ) +
             detailsTable([
               { label: "Client", value: EXAMPLE_NAME, bold: true },

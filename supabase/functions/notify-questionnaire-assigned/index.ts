@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       label: "New Check-in",
       title: `Hi ${firstName}, you have a new check-in`,
       body:
-        para(`Your therapist has assigned you a new check-in: <strong style="color:#2d2926;">${title}</strong>.`) +
+        para(`Your therapist has assigned you a new check-in: <strong style="color:#2d2520;">${title}</strong>.`) +
         para("Please take a moment to complete it — your responses help track your progress and guide your sessions."),
       cta: { label: "Complete check-in", url: `${appUrl}/check-in` },
       footerNote: "You received this email because a check-in was assigned to you through Clarity.",

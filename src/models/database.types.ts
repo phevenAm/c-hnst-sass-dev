@@ -1775,6 +1775,16 @@ export type Database = {
         Args: { input_token: string };
         Returns: boolean;
       };
+      practice_slot_has_conflict: {
+        Args: {
+          p_admin_id: string;
+          p_start: string;
+          p_duration_minutes: number;
+          p_exclude_session_id?: string | null;
+          p_exclude_stub_session_id?: string | null;
+        };
+        Returns: boolean;
+      };
       delete_own_account: { Args: never; Returns: undefined };
       delete_user_by_id: {
         Args: { target_user_id: string };

@@ -1,3 +1,45 @@
+// ============================================================
+// Shared transactional-email builder — Clarity brand.
+//
+// Palette mirrors src/styles/_colors.scss (the "Clarity teal/sage"
+// system): deep teal greens, warm ivories, earthy neutrals.
+//   teal-900 #1a3a35   footer
+//   teal-800 #1f4940   header + buttons (primary accent)
+//   teal-600 #2d7264   links
+//   teal-50  #f0f9f7   detail panel / note box fill
+//   warm-900 #2d2520   body text
+//   warm-700 #5c4f48   secondary text
+//   warm-600 #7a6e67   captions
+//   warm-200 #e5e0dc   hairlines
+//   warm-100 #f5f5ee   page background
+//   ivory    #fffdf9   card background
+//
+// Every string that renders in a client's inbox lives here or is passed
+// in by the caller — there are no hard-coded practice or person names.
+// "Sent on behalf of <name>" uses practice_settings.counsellor_name,
+// which each practice sets for itself.
+// ============================================================
+
+const C = {
+  pageBg: "#f5f5ee",
+  cardBg: "#fffdf9",
+  header: "#1f4940",
+  footer: "#1a3a35",
+  accent: "#1f4940",
+  link: "#2d7264",
+  panel: "#f0f9f7",
+  hairline: "#e5e0dc",
+  text: "#2d2520",
+  textSecondary: "#3d3530",
+  textMuted: "#5c4f48",
+  caption: "#7a6e67",
+  onDark: "#eef4f1",
+  onDarkMuted: "#9db3ac",
+};
+
+const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const SERIF = "Georgia,'Times New Roman',serif";
+
 export type EmailTemplateOptions = {
   label: string;
   title: string;
@@ -18,21 +60,21 @@ export function emailTemplate({
   counsellorName,
 }: EmailTemplateOptions): string {
   const ctaBlock = cta
-    ? `<div style="text-align:center;margin:0 0 28px;">
-        <a href="${cta.url}" style="display:inline-block;background:#5a8a6a;color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;letter-spacing:0.01em;">
-          ${cta.label} &rarr;
-        </a>
-      </div>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
+        <tr><td style="border-radius:999px;background:${C.accent};">
+          <a href="${cta.url}" style="display:inline-block;padding:13px 34px;font-family:${SANS};font-size:15px;font-weight:600;line-height:1;color:#ffffff;text-decoration:none;letter-spacing:0.01em;border-radius:999px;">${cta.label} &rarr;</a>
+        </td></tr>
+      </table>`
     : "";
 
   const counsellorLine = counsellorName
-    ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:#706c68;margin:0 0 10px;">Sent on behalf of <strong style="color:#9e9894;">${counsellorName}</strong>.</p>`
+    ? `<p style="font-family:${SANS};font-size:12px;line-height:1.5;color:${C.onDarkMuted};margin:0 0 12px;">Sent on behalf of <strong style="color:${C.onDark};font-weight:600;">${counsellorName}</strong></p>`
     : "";
 
   const unsubscribeLine = unsubscribeUrl
-    ? `<p style="font-family:Arial,sans-serif;font-size:11px;color:#5a5652;margin:10px 0 0;">
+    ? `<p style="font-family:${SANS};font-size:11px;line-height:1.5;color:${C.onDarkMuted};margin:12px 0 0;">
         Don&rsquo;t want this type of email?
-        <a href="${unsubscribeUrl}" style="color:#8bb898;text-decoration:underline;">Unsubscribe</a>
+        <a href="${unsubscribeUrl}" style="color:${C.onDark};text-decoration:underline;">Unsubscribe</a>
       </p>`
     : "";
 
@@ -41,72 +83,83 @@ export function emailTemplate({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light" />
   <title>${label}</title>
 </head>
-<body style="margin:0;padding:0;background:#f3f0eb;">
-<div style="background:#f3f0eb;padding:40px 16px;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;">
+<body style="margin:0;padding:0;background:${C.pageBg};-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.pageBg};">
+  <tr>
+    <td align="center" style="padding:36px 16px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:100%;">
 
-    <!-- Header -->
-    <div style="background:#8bb898;border-radius:14px 14px 0 0;padding:28px 40px;text-align:center;">
-      <div style="display:inline-block;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.25);line-height:44px;text-align:center;margin-bottom:12px;">
-        <span style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:#ffffff;">C</span>
-      </div>
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:600;color:#ffffff;margin:0;letter-spacing:0.03em;">Clarity</h1>
-      <p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.8);margin:5px 0 0;">Counselling practice management</p>
-    </div>
+        <!-- Header -->
+        <tr>
+          <td style="background:${C.header};border-radius:14px 14px 0 0;padding:30px 40px;text-align:center;">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
+              <tr><td style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.14);text-align:center;font-family:${SERIF};font-size:19px;font-weight:700;color:#ffffff;line-height:42px;">C</td></tr>
+            </table>
+            <h1 style="font-family:${SERIF};font-size:20px;font-weight:600;color:#ffffff;margin:0;letter-spacing:0.02em;">Clarity</h1>
+            <p style="font-family:${SANS};font-size:12px;color:rgba(255,255,255,0.7);margin:5px 0 0;letter-spacing:0.02em;">Counselling practice management</p>
+          </td>
+        </tr>
 
-    <!-- Body -->
-    <div style="background:#ffffff;padding:40px 40px 32px;border-left:1px solid #e0dbd4;border-right:1px solid #e0dbd4;">
-      <p style="font-family:Arial,sans-serif;font-size:12px;color:#9e9894;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.1em;">${label}</p>
-      <h2 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#2d2926;margin:0 0 20px;line-height:1.35;">${title}</h2>
-      ${body}
-      ${ctaBlock}
-    </div>
+        <!-- Body -->
+        <tr>
+          <td style="background:${C.cardBg};padding:36px 40px 30px;border-left:1px solid ${C.hairline};border-right:1px solid ${C.hairline};">
+            <p style="font-family:${SANS};font-size:11px;font-weight:600;color:${C.caption};margin:0 0 10px;text-transform:uppercase;letter-spacing:0.12em;">${label}</p>
+            <h2 style="font-family:${SERIF};font-size:23px;font-weight:500;color:${C.text};margin:0 0 20px;line-height:1.35;">${title}</h2>
+            ${body}
+            ${ctaBlock}
+          </td>
+        </tr>
 
-    <!-- Footer -->
-    <div style="background:#2d2926;border-radius:0 0 14px 14px;padding:24px 40px;">
-      <p style="font-family:Georgia,serif;font-size:14px;color:#f0ece8;font-weight:600;margin:0 0 12px;">Clarity</p>
-      ${counsellorLine}
-      <p style="font-family:Arial,sans-serif;font-size:12px;color:#706c68;line-height:1.7;margin:0 0 14px;">${footerNote}</p>
-      <div style="border-top:1px solid #3a3834;padding-top:12px;">
-        ${unsubscribeLine}
-      </div>
-    </div>
+        <!-- Footer -->
+        <tr>
+          <td style="background:${C.footer};border-radius:0 0 14px 14px;padding:26px 40px;">
+            <p style="font-family:${SERIF};font-size:15px;color:${C.onDark};font-weight:600;margin:0 0 14px;letter-spacing:0.02em;">Clarity</p>
+            ${counsellorLine}
+            <p style="font-family:${SANS};font-size:12px;color:${C.onDarkMuted};line-height:1.65;margin:0;">${footerNote}</p>
+            ${unsubscribeLine ? `<table role="presentation" width="100%" style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.12);"><tr><td style="padding-top:12px;">${unsubscribeLine}</td></tr></table>` : ""}
+          </td>
+        </tr>
 
-  </div>
-</div>
+      </table>
+    </td>
+  </tr>
+</table>
 </body>
 </html>`;
 }
 
-/** Renders a styled details table */
+/** A key/value panel. Labels sit in a fixed left column; long values wrap
+ *  under themselves, not under the label. Rows are hairline-separated. */
 export function detailsTable(rows: { label: string; value: string; bold?: boolean }[]): string {
   const cells = rows
-    .map(
-      (r) => `<tr>
-    <td style="font-family:Arial,sans-serif;font-size:14px;color:#9e9894;padding:6px 0;width:140px;vertical-align:top;">${r.label}</td>
-    <td style="font-family:Arial,sans-serif;font-size:14px;color:#2d2926;padding:6px 0;${r.bold ? "font-weight:700;" : ""}">${r.value}</td>
-  </tr>`,
-    )
+    .map((r, i) => {
+      const border = i === rows.length - 1 ? "" : `border-bottom:1px solid ${C.hairline};`;
+      return `<tr>
+    <td style="font-family:${SANS};font-size:13px;color:${C.caption};padding:9px 16px 9px 0;width:130px;vertical-align:top;white-space:nowrap;${border}">${r.label}</td>
+    <td style="font-family:${SANS};font-size:14px;color:${C.text};padding:9px 0;vertical-align:top;word-break:break-word;${r.bold ? "font-weight:700;" : ""}${border}">${r.value}</td>
+  </tr>`;
+    })
     .join("");
 
-  return `<div style="background:#f3f0eb;border-radius:10px;padding:18px 22px;margin:0 0 24px;">
-  <table style="width:100%;border-collapse:collapse;">${cells}</table>
-</div>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.panel};border-radius:10px;padding:6px 20px;margin:0 0 24px;border-collapse:separate;">
+  ${cells}
+</table>`;
 }
 
-/** Renders a muted info box */
+/** A muted callout, teal keyline on the left. */
 export function noteBox(text: string): string {
-  return `<div style="background:#f3f0eb;border-left:3px solid #8bb898;border-radius:0 8px 8px 0;padding:14px 18px;margin:0 0 8px;">
-  <p style="font-family:Arial,sans-serif;font-size:13px;color:#6b6460;line-height:1.65;margin:0;">${text}</p>
-</div>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
+  <tr><td style="background:${C.panel};border-left:3px solid ${C.link};border-radius:0 8px 8px 0;padding:14px 18px;font-family:${SANS};font-size:13px;color:${C.textMuted};line-height:1.65;">${text}</td></tr>
+</table>`;
 }
 
-/** Renders a body paragraph */
+/** A body paragraph. */
 export function para(text: string): string {
-  return `<p style="font-family:Arial,sans-serif;font-size:15px;color:#4a4744;line-height:1.8;margin:0 0 24px;">${text}</p>`;
+  return `<p style="font-family:${SANS};font-size:15px;color:${C.textSecondary};line-height:1.7;margin:0 0 22px;">${text}</p>`;
 }
 
 /** Formats an ISO date string for UK display in Europe/London timezone */

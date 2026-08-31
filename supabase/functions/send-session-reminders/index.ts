@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
           deadlineHours >= 24 ? `${deadlineDays} day${deadlineDays !== 1 ? "s" : ""}` : `${deadlineHours} hours`;
         body =
           para(
-            `You have a session coming up in ${timeLabel}. <strong style="color:#2d2926;">Your session has not been paid yet.</strong> Please pay at least ${deadlineLabel} before your session to keep your booking.`,
+            `You have a session coming up in ${timeLabel}. <strong style="color:#2d2520;">Your session has not been paid yet.</strong> Please pay at least ${deadlineLabel} before your session to keep your booking.`,
           ) +
           sessionDetails +
           noteBox(
@@ -537,7 +537,7 @@ Deno.serve(async (req) => {
             deadlineHours >= 24 ? `${deadlineDays} day${deadlineDays !== 1 ? "s" : ""}` : `${deadlineHours} hours`;
           body =
             para(
-              `You have a session coming up in ${timeLabel}. <strong style="color:#2d2926;">Payment has not yet been recorded for this session.</strong> Please pay at least ${deadlineLabel} before your session to keep your booking.`,
+              `You have a session coming up in ${timeLabel}. <strong style="color:#2d2520;">Payment has not yet been recorded for this session.</strong> Please pay at least ${deadlineLabel} before your session to keep your booking.`,
             ) +
             sessionDetails +
             noteBox("If you have any questions about payment, please contact your therapist directly.");

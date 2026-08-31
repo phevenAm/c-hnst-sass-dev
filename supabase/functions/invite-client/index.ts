@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       ),
       noteBox(
         `Access code (in case the button doesn't work): <strong style="font-family:monospace;letter-spacing:0.05em;">${token}</strong><br>` +
-          `Enter it at <a href="${signupUrl}" style="color:#8bb898;">${appUrl}/signup</a>`,
+          `Enter it at <a href="${signupUrl}" style="color:#2d7264;">${appUrl}/signup</a>`,
       ),
     ];
 

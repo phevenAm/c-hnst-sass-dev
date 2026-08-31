@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
           ? para(
               "Your Clarity account has been paused by an administrator. The app is now read-only for you and your clients — no data will be lost, and nothing can be changed until it's resumed.",
             ) +
-            (reason ? para(`Reason given: <strong style="color:#2d2926;">${reason}</strong>`) : "") +
+            (reason ? para(`Reason given: <strong style="color:#2d2520;">${reason}</strong>`) : "") +
             para("Billing has also been paused for as long as your account stays paused.")
           : para(
               "Your Clarity account has been reactivated. You and your clients can use the app normally again, and billing has resumed.",
