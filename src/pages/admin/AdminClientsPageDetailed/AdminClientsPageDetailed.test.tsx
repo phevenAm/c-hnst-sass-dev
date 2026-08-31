@@ -930,6 +930,38 @@ describe("AdminClientsPageDetailed", () => {
     });
   });
 
+  // ── Session prep card is scoped to this client ─────────────────────────────
+  //
+  // state.sessions.sessions is a shared list. After booking sessions for two
+  // different clients (or visiting the scheduler), it holds more than Jane's
+  // rows. `nextSession` used to be picked from the whole list with no client
+  // filter, so it could resolve to a stranger's session — then "Manage this
+  // session →" deep-links to a row that isn't in Jane's list and silently
+  // no-ops. The stats ("N sessions · M attended") were inflated the same way.
+  describe("session prep card scoping", () => {
+    it("ignores other clients' sessions in the shared store", () => {
+      const strangerSooner = {
+        ...mockUpcomingSession,
+        id: "stranger-session-1",
+        client_id: "some-other-client",
+        // sooner than Jane's upcoming session, so the unscoped code picked this
+        scheduled_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      renderPage({
+        sessions: {
+          sessions: [strangerSooner, mockUpcomingSession, mockPastSession],
+          status: "succeeded",
+          error: null,
+        },
+      });
+
+      // Counts only Jane's two rows, not the stranger's (was "3 sessions").
+      expect(screen.getByText(/2 sessions · 1 attended/)).toBeInTheDocument();
+      // The button is still offered — nextSession resolved to Jane's own row.
+      expect(screen.getByRole("button", { name: /manage this session/i })).toBeInTheDocument();
+    });
+  });
+
   // ── Block bookings on the upcoming tab ──────────────────────────────────────
   //
   // Blocks must be grouped BEFORE pagination — grouping the already-sliced page
