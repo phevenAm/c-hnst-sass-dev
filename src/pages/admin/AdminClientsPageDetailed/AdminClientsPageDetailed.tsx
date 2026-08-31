@@ -589,9 +589,13 @@ export default function AdminClientsPageDetailed() {
     .filter((s) => s.status === "scheduled" && new Date(s.scheduled_at) > new Date())
     .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
   const totalSessionsCount = thisClientSessions.length;
-  const attendedSessionsCount = thisClientSessions.filter((s) => s.status === "completed").length;
+  // "Attended" is the `attended` boolean, not `status === "completed"` — a
+  // session can be completed-but-no-show, and a past session can be marked
+  // attended without its status ever moving off "scheduled". Matches how the
+  // PDF export (exportClientPDF in AdminClientsPageUtils) counts it.
+  const attendedSessionsCount = thisClientSessions.filter((s) => s.attended === true).length;
   const lastSeenSession = [...thisClientSessions]
-    .filter((s) => s.status === "completed")
+    .filter((s) => s.attended === true)
     .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())[0];
 
   const [reminderMuted, setReminderMuted] = useState(false);
