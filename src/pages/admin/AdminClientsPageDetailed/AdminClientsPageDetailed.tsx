@@ -1333,7 +1333,7 @@ export default function AdminClientsPageDetailed() {
         </Card>
 
         {/* Danger zone */}
-        <div className={styles.dangerZone}>
+        <div className={styles.dangerZone} id="danger-zone">
           {/* Pause is hidden once a client is deactivated — deactivation
               supersedes it and archive already sets `disabled`. */}
           {!client?.archived_at && (
