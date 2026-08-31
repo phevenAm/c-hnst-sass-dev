@@ -307,6 +307,7 @@ export type Database = {
       };
       client_stubs: {
         Row: {
+          archived_at: string | null;
           codename: string | null;
           created_at: string;
           created_by: string;
@@ -317,6 +318,7 @@ export type Database = {
           linked_user_id: string | null;
         };
         Insert: {
+          archived_at?: string | null;
           codename?: string | null;
           created_at?: string;
           created_by?: string;
@@ -327,6 +329,7 @@ export type Database = {
           linked_user_id?: string | null;
         };
         Update: {
+          archived_at?: string | null;
           codename?: string | null;
           created_at?: string;
           created_by?: string;
@@ -1665,6 +1668,9 @@ export type Database = {
           admin_codename: string | null;
           admin_id: string | null;
           age: number | null;
+          anonymised_at: string | null;
+          archived_at: string | null;
+          archived_reason: string | null;
           avatar_url: string | null;
           consent_signed_name: string | null;
           consented_at: string | null;
@@ -1691,6 +1697,9 @@ export type Database = {
           admin_codename?: string | null;
           admin_id?: string | null;
           age?: number | null;
+          anonymised_at?: string | null;
+          archived_at?: string | null;
+          archived_reason?: string | null;
           avatar_url?: string | null;
           consent_signed_name?: string | null;
           consented_at?: string | null;
@@ -1717,6 +1726,9 @@ export type Database = {
           admin_codename?: string | null;
           admin_id?: string | null;
           age?: number | null;
+          anonymised_at?: string | null;
+          archived_at?: string | null;
+          archived_reason?: string | null;
           avatar_url?: string | null;
           consent_signed_name?: string | null;
           consented_at?: string | null;
@@ -1765,6 +1777,18 @@ export type Database = {
       };
     };
     Functions: {
+      admin_archive_client: {
+        Args: { target_user_id: string; p_reason?: string | null; p_anonymise?: boolean };
+        Returns: undefined;
+      };
+      admin_unarchive_client: {
+        Args: { target_user_id: string };
+        Returns: undefined;
+      };
+      anonymise_client: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
       auto_cancel_unpaid_sessions: { Args: never; Returns: undefined };
       check_demo_access: { Args: { p_for: string }; Returns: boolean };
       check_no_duplicate_submission: {

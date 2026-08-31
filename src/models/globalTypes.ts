@@ -83,6 +83,9 @@ export type UserProfile = Omit<Tables<"users">, "age" | "first_name" | "role" | 
   role: UserRole | string;
   disabled: boolean;
   admin_codename?: string | null;
+  // Client lifecycle (migration 20260901000000): archived_at = relationship
+  // ended, data retained; anonymised_at = PII scrubbed, codename stands in for
+  // the name. Flow through from Tables<"users">; listed here for visibility.
 };
 
 export type Questionnaire = Omit<Tables<"questionnaires">, "title" | "description" | "frequency" | "is_active"> & {

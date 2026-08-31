@@ -16,7 +16,7 @@ import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 import { fetchAllAssignments, selectPlottedAssignmentByUser } from "@store/slices/questionnaireAssignmentsSlice";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
-import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
+import { fetchAllUsers, selectAllUsers, unarchiveClient } from "@store/slices/userDirectorySlice";
 
 import { Button } from "@/components/shared";
 import HideableSection from "@/components/shared/HideableSection/HideableSection";
@@ -184,7 +184,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
   const platformClients = (useAppSelector(selectAllUsers) as UserProfile[]).filter(
-    (u) => u.role !== "admin" && !u.deleted_at,
+    (u) => u.role !== "admin" && !u.deleted_at && !u.archived_at,
   );
   const selectedUser = platformClients.find((c) => c.id === selectedUserId) ?? null;
 
@@ -336,6 +336,56 @@ function StubRow({ stub }: { stub: ClientStub }) {
   );
 }
 
+// ── Archived (deactivated) client row ─────────────────────────
+
+function ArchivedClientRow({ user }: { user: UserProfile }) {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { showToast } = useToast();
+  const { practiceSettings, isDemo } = useAuth();
+  const [restoring, setRestoring] = useState(false);
+  const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
+
+  const handleReactivate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRestoring(true);
+    try {
+      await dispatch(unarchiveClient(user.id)).unwrap();
+      showToast("Client reactivated.");
+    } catch {
+      showToast("Couldn't reactivate this client.", "danger");
+      setRestoring(false);
+    }
+  };
+
+  return (
+    <div
+      className={styles.clientRow}
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/admin/clients/${user.id}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(`/admin/clients/${user.id}`);
+        }
+      }}
+    >
+      <Avatar name={displayName} imageSrc={user.avatar_url ?? ""} size={40} />
+      <div className={styles.clientMeta}>
+        <p className={styles.clientName}>{displayName}</p>
+        <p className={styles.clientEmail}>
+          Deactivated{user.archived_at ? ` ${dayjs(user.archived_at).format("D MMM YYYY")}` : ""}
+          {user.anonymised_at ? " · anonymised" : ""}
+        </p>
+      </div>
+      <Button variant="secondary" size="sm" disabled={isDemo || restoring} onClick={handleReactivate}>
+        Reactivate
+      </Button>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────
 
 export default function AdminClientsPage() {
@@ -407,7 +457,9 @@ export default function AdminClientsPage() {
   const guard = isPageStatusLoading(usersStatus, questionnairesStatus);
   if (guard) return guard;
 
-  const allClients = allUsers.filter((user) => user.role !== "admin" && !user.deleted_at);
+  const nonAdminUsers = allUsers.filter((user) => user.role !== "admin" && !user.deleted_at);
+  const allClients = nonAdminUsers.filter((user) => !user.archived_at);
+  const archivedClients = nonAdminUsers.filter((user) => user.archived_at);
 
   const filtered = allClients.filter(
     (user) =>
@@ -500,6 +552,24 @@ export default function AdminClientsPage() {
             filtered.map((user) => <ClientRow key={user.id} user={user} />)
           )}
         </Card>
+
+        {/* Archived (deactivated) clients section */}
+        {archivedClients.length > 0 && (
+          <div className={styles.stubsSection}>
+            <div className={styles.stubsSectionHeader}>
+              <h2>Deactivated clients</h2>
+              <p>
+                {archivedClients.length} deactivated {archivedClients.length === 1 ? "client" : "clients"} — history
+                kept, no longer on your active list
+              </p>
+            </div>
+            <Card>
+              {archivedClients.map((user) => (
+                <ArchivedClientRow key={user.id} user={user} />
+              ))}
+            </Card>
+          </div>
+        )}
 
         {/* Offline clients section */}
         {unlinkedStubs.length > 0 && (

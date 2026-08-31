@@ -64,6 +64,24 @@ describe("DeleteUserModal — happy paths", () => {
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
+  it("client: frames it as closing the account and explains the practitioner keeps an anonymised record", () => {
+    setAuth({ isAdmin: false });
+    render(<DeleteUserModal onClose={vi.fn()} />);
+
+    expect(screen.getByText("Close your account?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "confirm user deletion" })).toHaveTextContent("Close account");
+    expect(screen.getByText(/anonymised record of your sessions and payments/i)).toBeInTheDocument();
+    expect(screen.getByText(/won't be able to sign in again/i)).toBeInTheDocument();
+  });
+
+  it("admin: keeps the permanent-delete framing", () => {
+    setAuth({ isAdmin: true });
+    render(<DeleteUserModal onClose={vi.fn()} />);
+
+    expect(screen.getByText("Delete your account forever?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "confirm user deletion" })).toHaveTextContent("Delete");
+  });
+
   it("Cancel closes the modal without deleting anything", () => {
     setAuth();
     const onClose = vi.fn();

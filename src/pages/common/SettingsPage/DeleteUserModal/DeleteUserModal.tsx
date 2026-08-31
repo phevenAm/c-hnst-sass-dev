@@ -41,9 +41,12 @@ export default function DeleteUserModal({ onClose }: DeleteUserModalProps) {
     }
   };
 
+  let confirmLabel = isAdmin ? "Delete" : "Close account";
+  if (deleting) confirmLabel = isAdmin ? "Deleting…" : "Closing…";
+
   return (
     <Modal
-      title="Delete your account forever?"
+      title={isAdmin ? "Delete your account forever?" : "Close your account?"}
       onClose={onClose}
       actions={
         <>
@@ -52,12 +55,25 @@ export default function DeleteUserModal({ onClose }: DeleteUserModalProps) {
           </Button>
 
           <Button variant="danger" onClick={handleDeletion} aria-label="confirm user deletion" disabled={deleting}>
-            {deleting ? "Deleting…" : "Delete"}
+            {confirmLabel}
           </Button>
         </>
       }
     >
-      <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+      {isAdmin ? (
+        <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+      ) : (
+        <>
+          <p>
+            Your login and personal details (name, date of birth, profile photo, email) will be removed immediately and
+            you won't be able to sign in again.
+          </p>
+          <p>
+            Your practitioner keeps an anonymised record of your sessions and payments — identified only by a codename,
+            not your name — for as long as their professional guidelines require them to. This can't be undone.
+          </p>
+        </>
+      )}
       {error && <p style={{ color: "var(--error)", marginTop: "0.5rem" }}>{error}</p>}
     </Modal>
   );

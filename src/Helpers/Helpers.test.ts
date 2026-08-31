@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getInitials, isQuestionnaireCheckInDue } from "./Helpers";
+import { clientDisplayName, getInitials, isQuestionnaireCheckInDue } from "./Helpers";
 
 describe("isQuestionnaireCheckInDue", () => {
   it("returns true when 1 day has passed", () => {
@@ -74,5 +74,37 @@ describe("getInitials", () => {
 
   it("returns an empty string when everything is empty", () => {
     expect(getInitials(null, "", "")).toBe("");
+  });
+});
+
+describe("clientDisplayName", () => {
+  const base = { first_name: "Ada", last_name: "Lovelace", display_name: null, admin_codename: null };
+
+  it("uses the full name by default", () => {
+    expect(clientDisplayName(base)).toBe("Ada Lovelace");
+  });
+
+  it("prefers display_name over first/last when present", () => {
+    expect(clientDisplayName({ ...base, display_name: "Ada L." })).toBe("Ada L.");
+  });
+
+  it("uses the codename when useCodenames is on and one exists", () => {
+    expect(clientDisplayName({ ...base, admin_codename: "Client 3F9A" }, true)).toBe("Client 3F9A");
+  });
+
+  it("still shows the real name when useCodenames is on but there is no codename", () => {
+    expect(clientDisplayName(base, true)).toBe("Ada Lovelace");
+  });
+
+  it("falls back to the codename when an anonymised client has no name fields, even with useCodenames off", () => {
+    expect(
+      clientDisplayName({ first_name: "", last_name: "", display_name: null, admin_codename: "Client 7C21" }),
+    ).toBe("Client 7C21");
+  });
+
+  it("falls back to the generic label only when there is neither a name nor a codename", () => {
+    expect(clientDisplayName({ first_name: "", last_name: "", display_name: null, admin_codename: null })).toBe(
+      "Unnamed client",
+    );
   });
 });

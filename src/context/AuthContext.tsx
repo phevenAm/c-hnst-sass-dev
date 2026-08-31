@@ -32,6 +32,12 @@ const HANDLE_SESSION_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 2 + LOCK_OVERHEAD_MS;
 export const CLIENT_PAUSED_MESSAGE =
   "Your account has been paused by your practitioner. Please contact them to restore access.";
 
+// Shown when a client whose account has been closed/deactivated (archived_at
+// set — by the practitioner or by the client themselves via "Close account")
+// tries to sign in, or is bounced out mid-session.
+export const CLIENT_ARCHIVED_MESSAGE =
+  "This account has been closed. If you think this is a mistake, please contact your practitioner.";
+
 type ProfileUpdates = Partial<
   Pick<
     UserProfile,
@@ -158,8 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // `loading` is left true through the sign-out so the client-side
         // route guards never see a brief authenticated state and flash the
         // dashboard; the follow-up handleSession(null) clears it.
-        if (profileData?.role === "client" && profileData.disabled) {
-          setError(CLIENT_PAUSED_MESSAGE);
+        if (profileData?.role === "client" && (profileData.disabled || profileData.archived_at)) {
+          setError(profileData.archived_at ? CLIENT_ARCHIVED_MESSAGE : CLIENT_PAUSED_MESSAGE);
           setUserProfile(null);
           setProfileError(null);
           setPracticeSettings(null);
@@ -262,8 +268,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "users", filter: `id=eq.${clientId}` },
         (payload) => {
-          if ((payload.new as { disabled?: boolean }).disabled) {
-            setError(CLIENT_PAUSED_MESSAGE);
+          const next = payload.new as { disabled?: boolean; archived_at?: string | null };
+          if (next.disabled || next.archived_at) {
+            setError(next.archived_at ? CLIENT_ARCHIVED_MESSAGE : CLIENT_PAUSED_MESSAGE);
             setUserProfile(null);
             setPracticeSettings(null);
             setRescheduleCutoffHours(undefined);

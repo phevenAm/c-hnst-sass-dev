@@ -27,7 +27,7 @@ import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
-import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
+import { archiveClient, fetchAllUsers, selectAllUsers, unarchiveClient } from "@store/slices/userDirectorySlice";
 
 import Modal from "@/components/shared/Modal/Modal";
 import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/ToggleButtonTabs";
@@ -153,6 +153,9 @@ export default function AdminClientsPageDetailed() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [togglingDisabled, setTogglingDisabled] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [anonymiseOnArchive, setAnonymiseOnArchive] = useState(false);
+  const [togglingArchive, setTogglingArchive] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportPickerOpen, setExportPickerOpen] = useState(false);
@@ -506,7 +509,49 @@ export default function AdminClientsPageDetailed() {
     showToast(disabled ? "Client paused — they can no longer sign in." : "Client access restored.");
   };
 
+  // Deactivate: the working relationship has ended. Unlike pause, this is a
+  // lasting state — the client's history stays intact and attributable, but
+  // they're removed from the active caseload. Optionally anonymise in the same
+  // step (irreversible). Reactivating clears the archive but not the scrub.
+  const handleArchive = async () => {
+    if (!clientId) return;
+    setTogglingArchive(true);
+    try {
+      await dispatch(archiveClient({ id: clientId, anonymise: anonymiseOnArchive })).unwrap();
+      dispatch(fetchAllUsers());
+      showToast(anonymiseOnArchive ? "Client deactivated and anonymised." : "Client deactivated.");
+      setArchiveOpen(false);
+      setAnonymiseOnArchive(false);
+    } catch {
+      showToast("Couldn't deactivate this client.", "danger");
+    } finally {
+      setTogglingArchive(false);
+    }
+  };
+
+  const handleUnarchive = async () => {
+    if (!clientId) return;
+    setTogglingArchive(true);
+    try {
+      await dispatch(unarchiveClient(clientId)).unwrap();
+      dispatch(fetchAllUsers());
+      showToast("Client reactivated.");
+    } catch {
+      showToast("Couldn't reactivate this client.", "danger");
+    } finally {
+      setTogglingArchive(false);
+    }
+  };
+
   const displayedClientName = client ? clientDisplayName(client, practiceSettings?.use_client_codenames ?? false) : "";
+
+  let deactivateDesc =
+    "Ends the working relationship and removes them from your active caseload. All history is kept — this is reversible.";
+  if (client?.archived_at && client?.anonymised_at) {
+    deactivateDesc = "Relationship ended and personal details anonymised. Their session and payment history is kept.";
+  } else if (client?.archived_at) {
+    deactivateDesc = "Relationship ended. Their history is kept and stays on your records. Reactivate to resume.";
+  }
 
   const questionnaireOptions = useMemo(
     () => questionnaires.filter((q) => clientResponses.some((r) => r.questionnaire_id === q.id)),
@@ -1312,6 +1357,29 @@ export default function AdminClientsPageDetailed() {
 
           <div className={styles.dangerRow}>
             <div>
+              <p className={styles.dangerTitle}>
+                {client?.archived_at ? "Client is deactivated" : "Deactivate client"}
+              </p>
+              <p className={styles.dangerDesc}>{deactivateDesc}</p>
+            </div>
+            {client?.archived_at ? (
+              <Button variant="secondary" size="sm" disabled={isDemo || togglingArchive} onClick={handleUnarchive}>
+                Reactivate
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isDemo || togglingArchive}
+                onClick={() => setArchiveOpen(true)}
+              >
+                Deactivate
+              </Button>
+            )}
+          </div>
+
+          <div className={styles.dangerRow}>
+            <div>
               <p className={styles.dangerTitle}>Remove client</p>
               <p className={styles.dangerDesc}>Permanently deletes this client account and all associated data.</p>
             </div>
@@ -1321,6 +1389,31 @@ export default function AdminClientsPageDetailed() {
           </div>
         </div>
       </div>
+
+      {archiveOpen && (
+        <ConfirmModal
+          title="Deactivate this client?"
+          confirmLabel="Deactivate"
+          confirming={togglingArchive}
+          onConfirm={handleArchive}
+          onClose={() => {
+            setArchiveOpen(false);
+            setAnonymiseOnArchive(false);
+          }}
+          notifyOption={{
+            label:
+              "Also anonymise their personal details now (name, date of birth, photo, email) — history stays, labelled by codename. Can't be undone.",
+            checked: anonymiseOnArchive,
+            onChange: setAnonymiseOnArchive,
+          }}
+        >
+          <p>
+            They'll be signed out and blocked from signing in, and they'll drop off your active client list. Everything
+            you've recorded — sessions, payments, notes, check-ins — stays on your records. You can reactivate them
+            later.
+          </p>
+        </ConfirmModal>
+      )}
 
       {pauseOpen && (
         <ConfirmModal
