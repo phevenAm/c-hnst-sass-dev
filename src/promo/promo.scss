@@ -707,32 +707,30 @@ a:hover {
   isolation: isolate;
   overflow: hidden;
 }
-.testimonials::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background: url("/reviews-bg.webp") center / cover no-repeat;
-  filter: blur(4px) saturate(0.95);
-  transform: scale(1.06);
-}
+
+// .testimonials::before {
+//   content: "";
+//   position: absolute;
+//   inset: 0;
+//   z-index: -2;
+//   background: url("/reviews-bg.webp") center / cover no-repeat;
+//   filter: blur(4px) saturate(0.95);
+//   transform: scale(1.06);
+// }
 // Cream wash — heavier behind the heading at the top, lighter over the cards
 // (which are opaque anyway) so more of the photo shows through.
-.testimonials::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-muted) 82%, transparent) 0%,
-    color-mix(in srgb, var(--surface-muted) 48%, transparent) 34%,
-    color-mix(in srgb, var(--surface-muted) 58%, transparent) 100%
-  );
-}
+// .testimonials::after {
+//   content: "";
+//   position: absolute;
+//   inset: 0;
+//   z-index: -1;
+//   background: linear-gradient(180deg,
+//       color-mix(in srgb, var(--surface-muted) 82%, transparent) 0%,
+//       color-mix(in srgb, var(--surface-muted) 48%, transparent) 34%,
+//       color-mix(in srgb, var(--surface-muted) 58%, transparent) 100%);
+// }
 
 .quote {
-  position: relative;
   padding: $sp-6;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -775,35 +773,6 @@ a:hover {
   &:hover {
     text-decoration: underline;
   }
-}
-
-// Full quote, opened as a panel over the card — anchored to the card top and
-// free to extend past the card / section without changing any layout height.
-.quote__full {
-  position: absolute;
-  inset: 0 0 auto 0;
-  z-index: 8;
-  padding: $sp-6;
-  background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: $r-lg;
-  box-shadow: $shadow-xl;
-
-  blockquote {
-    font-family: $font-sans;
-    font-size: $text-base;
-    color: var(--ink);
-    line-height: $leading-normal;
-  }
-}
-.quote__attrib {
-  margin-top: $sp-4;
-  font-size: $text-sm;
-  color: var(--ink-mut);
-}
-.quote__full .quote__more {
-  display: block;
-  margin: $sp-4 0 0;
 }
 
 .quote__avatar {

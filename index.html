@@ -324,12 +324,18 @@
           <p class="eyebrow centered">What practitioners say</p>
           <h2 class="section-title centered">Built for therapists, loved by therapists.</h2>
           <div class="quotes">
-            <figure class="quote" data-quote>
+            <figure class="quote">
               <blockquote>
                 &ldquo;What won me over was how customisable it is. I can turn features on or off
                 depending on how I like to run my practice, rather than having to work around the
-                software.&rdquo;
-                <button type="button" class="quote__more" data-quote-open>Read more</button>
+                software.<span class="quote__rest" data-quote-rest hidden> I especially love the
+                automatic cancellation of unpaid sessions &mdash; I used to hate chasing clients for
+                payment, and now I can set a payment deadline so a session is automatically cancelled
+                if they haven&rsquo;t paid. It means I&rsquo;m not left paying for a room that
+                wasn&rsquo;t used. Getting started was simple too, with plenty of guidance along the
+                way, and importing two years of past sessions took less than fifteen minutes.</span
+                >&rdquo;
+                <button type="button" class="quote__more" data-quote-toggle aria-expanded="false">Read more</button>
               </blockquote>
               <figcaption>
                 <span class="quote__avatar" aria-hidden="true"></span>
@@ -338,24 +344,6 @@
                   <a href="https://abidecounselling.uk" target="_blank" rel="noopener">Abide Counselling</a>, Reading
                 </span>
               </figcaption>
-
-              <div class="quote__full" data-quote-full hidden>
-                <blockquote>
-                  &ldquo;What won me over was how customisable it is. I can turn features on or off
-                  depending on how I like to run my practice, rather than having to work around the
-                  software. I especially love the automatic cancellation of unpaid sessions &mdash; I
-                  used to hate chasing clients for payment, and now I can set a payment deadline so a
-                  session is automatically cancelled if they haven&rsquo;t paid. It means I&rsquo;m
-                  not left paying for a room that wasn&rsquo;t used. Getting started was simple too,
-                  with plenty of guidance along the way, and importing two years of past sessions
-                  took less than fifteen minutes.&rdquo;
-                </blockquote>
-                <p class="quote__attrib">
-                  <strong>Rosie M.</strong> &middot;
-                  <a href="https://abidecounselling.uk" target="_blank" rel="noopener">Abide Counselling</a>, Reading
-                </p>
-                <button type="button" class="quote__more" data-quote-close>Show less</button>
-              </div>
             </figure>
             <figure class="quote">
               <blockquote>
@@ -576,24 +564,16 @@
       var y = document.getElementById("year");
       if (y) y.textContent = String(new Date().getFullYear());
 
-      // ── Testimonial "read more" ───────────────────────────────
-      // The full quote opens as an absolutely-positioned panel over the card,
-      // so the section height never changes.
-      document.querySelectorAll("[data-quote]").forEach(function (fig) {
-        var full = fig.querySelector("[data-quote-full]");
-        var openBtn = fig.querySelector("[data-quote-open]");
-        var closeBtn = fig.querySelector("[data-quote-close]");
-        if (!full || !openBtn) return;
-        openBtn.addEventListener("click", function () {
-          full.hidden = false;
-          if (closeBtn) closeBtn.focus();
+      // ── Testimonial "read more" — expands the card inline ─────
+      document.querySelectorAll("[data-quote-toggle]").forEach(function (btn) {
+        var rest = btn.closest("blockquote").querySelector("[data-quote-rest]");
+        if (!rest) return;
+        btn.addEventListener("click", function () {
+          var show = rest.hidden;
+          rest.hidden = !show;
+          btn.textContent = show ? "Show less" : "Read more";
+          btn.setAttribute("aria-expanded", show ? "true" : "false");
         });
-        if (closeBtn) {
-          closeBtn.addEventListener("click", function () {
-            full.hidden = true;
-            openBtn.focus();
-          });
-        }
       });
 
       // ── Back-to-top button ────────────────────────────────────
