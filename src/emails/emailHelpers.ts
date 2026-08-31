@@ -21,6 +21,9 @@ const C = {
 
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',serif";
+// The Clarity sprout mark, hosted in the public `logos` Storage bucket — same
+// URL the real emails use (supabase/functions/_shared/email.ts).
+const LOGO_URL = "https://mxyfdvfbdrusbjiozuzx.supabase.co/storage/v1/object/public/logos/system/email-logo.png";
 
 export function para(text: string): string {
   return `<p style="font-family:${SANS};font-size:15px;color:${C.textSecondary};line-height:1.7;margin:0 0 22px;">${text}</p>`;
@@ -101,7 +104,9 @@ export function emailTemplate({
         <tr>
           <td style="background:${C.header};border-radius:14px 14px 0 0;padding:30px 40px;text-align:center;">
             <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
-              <tr><td style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.14);text-align:center;font-family:${SERIF};font-size:19px;font-weight:700;color:#ffffff;line-height:42px;">C</td></tr>
+              <tr><td width="44" height="44" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.14);text-align:center;vertical-align:middle;line-height:44px;">
+                <img src="${LOGO_URL}" width="24" height="24" alt="Clarity" style="display:inline-block;vertical-align:middle;border:0;" />
+              </td></tr>
             </table>
             <h1 style="font-family:${SERIF};font-size:20px;font-weight:600;color:#ffffff;margin:0;letter-spacing:0.02em;">Clarity</h1>
             <p style="font-family:${SANS};font-size:12px;color:rgba(255,255,255,0.7);margin:5px 0 0;letter-spacing:0.02em;">Counselling practice management</p>

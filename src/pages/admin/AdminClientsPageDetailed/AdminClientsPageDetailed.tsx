@@ -512,14 +512,27 @@ export default function AdminClientsPageDetailed() {
 
   const clientSessions = useAppSelector((state) => state.sessions.sessions);
 
+  // state.sessions.sessions is a SHARED list — after the scheduler, dashboard,
+  // or another client's page has filled it, it can hold other clients' rows.
+  // Every other consumer on this page scopes by clientId (see
+  // sessionsGroupByType); the prep-card stats must too. Without this,
+  // `nextSession` can resolve to a different client's session, so "Manage this
+  // session" deep-links (?session=<id>) to a row that isn't in this page's
+  // list — targetSessionPage is null and the scroll/highlight effect silently
+  // no-ops ("nothing happens").
+  const thisClientSessions = useMemo(
+    () => clientSessions.filter((s) => s.client_id === clientId),
+    [clientSessions, clientId],
+  );
+
   // Prep card: soonest still-scheduled session, and the most recent completed
   // one (for "last seen").
-  const nextSession = [...clientSessions]
+  const nextSession = [...thisClientSessions]
     .filter((s) => s.status === "scheduled" && new Date(s.scheduled_at) > new Date())
     .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
-  const totalSessionsCount = clientSessions.length;
-  const attendedSessionsCount = clientSessions.filter((s) => s.status === "completed").length;
-  const lastSeenSession = [...clientSessions]
+  const totalSessionsCount = thisClientSessions.length;
+  const attendedSessionsCount = thisClientSessions.filter((s) => s.status === "completed").length;
+  const lastSeenSession = [...thisClientSessions]
     .filter((s) => s.status === "completed")
     .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime())[0];
 
