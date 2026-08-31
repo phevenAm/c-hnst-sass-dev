@@ -908,6 +908,15 @@ describe("AdminClientsPageDetailed", () => {
         expect(supabaseMock.rpc).toHaveBeenCalledWith("admin_unarchive_client", { target_user_id: CLIENT_ID }),
       );
     });
+
+    it("hides the Pause / Restore-access row once a client is deactivated", () => {
+      renderPage(archived);
+      // archived clients also have disabled=true, but the pause row must not
+      // show — deactivation supersedes it.
+      expect(screen.queryByText("Pause client access")).not.toBeInTheDocument();
+      expect(screen.queryByText("Client access is paused")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Restore access" })).not.toBeInTheDocument();
+    });
   });
 
   // ── Export PDF button ─────────────────────────────────────────────────────────

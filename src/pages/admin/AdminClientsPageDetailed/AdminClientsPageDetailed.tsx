@@ -1334,37 +1334,41 @@ export default function AdminClientsPageDetailed() {
 
         {/* Danger zone */}
         <div className={styles.dangerZone}>
-          <div className={styles.dangerRow}>
-            <div>
-              <p className={styles.dangerTitle}>
-                {client?.disabled ? "Client access is paused" : "Pause client access"}
-              </p>
-              <p className={styles.dangerDesc}>
-                {client?.disabled
-                  ? "They can't sign in, and were signed out of any live session. Restore access whenever you're ready."
-                  : "Blocks sign-in and signs them out of the app. Their data is kept — this is reversible."}
-              </p>
+          {/* Pause is hidden once a client is deactivated — deactivation
+              supersedes it and archive already sets `disabled`. */}
+          {!client?.archived_at && (
+            <div className={styles.dangerRow}>
+              <div>
+                <p className={styles.dangerTitle}>
+                  {client?.disabled ? "Client access is paused" : "Pause client access"}
+                </p>
+                <p className={styles.dangerDesc}>
+                  {client?.disabled
+                    ? "They can't sign in, and were signed out of any live session. Restore access whenever you're ready."
+                    : "Blocks sign-in and signs them out of the app. Their data is kept — this is reversible."}
+                </p>
+              </div>
+              {client?.disabled ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isDemo || togglingDisabled}
+                  onClick={() => setClientDisabled(false)}
+                >
+                  Restore access
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isDemo || togglingDisabled}
+                  onClick={() => setPauseOpen(true)}
+                >
+                  Pause client
+                </Button>
+              )}
             </div>
-            {client?.disabled ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isDemo || togglingDisabled}
-                onClick={() => setClientDisabled(false)}
-              >
-                Restore access
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isDemo || togglingDisabled}
-                onClick={() => setPauseOpen(true)}
-              >
-                Pause client
-              </Button>
-            )}
-          </div>
+          )}
 
           <div className={styles.dangerRow}>
             <div>
