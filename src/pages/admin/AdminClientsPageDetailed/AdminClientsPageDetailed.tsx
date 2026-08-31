@@ -200,7 +200,10 @@ export default function AdminClientsPageDetailed() {
     setSelectedQuestionnaireId("");
   }, [clientId]);
   const [isScheduleEditorOpen, setIsScheduleEditorOpen] = useState(false);
-  const [isManageSessionsModal, _setIsManageSessionsModal] = useState(false);
+  // Session opened from the prep card's "Manage this session →" — shown in a
+  // modal so the admin can act on it (mark paid, reschedule, cancel, attendance)
+  // without hunting for its card in the list.
+  const [manageSession, setManageSession] = useState<Session | null>(null);
   const [sessionPageNumber, setSessionPageNumber] = useState<null | number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sessionsDateTab, setSessopmsDateTab] = useState<"upcoming" | "past">("upcoming");
@@ -817,12 +820,7 @@ export default function AdminClientsPageDetailed() {
             lastSeenAt={lastSeenSession?.scheduled_at ?? null}
             lastNote={lastSessionNote}
             notesLocked={lastNoteLocked}
-            onManageSession={() => {
-              // Reuse the ?session=<id> deep-link machinery — it switches the
-              // tab, pages to the right slice, scrolls and flash-highlights.
-              handledHighlightRef.current = null;
-              setSearchParams({ session: nextSession.id });
-            }}
+            onManageSession={() => setManageSession(nextSession)}
             onViewNotes={() => setNotesOpen(true)}
           />
         )}
@@ -1339,6 +1337,22 @@ export default function AdminClientsPageDetailed() {
         </ConfirmModal>
       )}
 
+      {manageSession && (
+        <Modal
+          title={`Session — ${dayjs(manageSession.scheduled_at).format("D MMM YYYY, HH:mm")}`}
+          size="md"
+          onClose={() => setManageSession(null)}
+        >
+          <SessionCard
+            session={manageSession}
+            isAdmin
+            isDemo={isDemo}
+            clientLabel={displayedClientName}
+            onNotesClick={(id) => setSelectedNoteSessionId(id)}
+          />
+        </Modal>
+      )}
+
       {notesOpen && <SessionNotesModal user={client} onClose={() => setNotesOpen(false)} />}
 
       {selectedNoteSessionId && (
@@ -1482,7 +1496,6 @@ export default function AdminClientsPageDetailed() {
         />
       )}
 
-      {isManageSessionsModal && <div>Manage sessions modal</div>}
       {isScheduleEditorOpen && (
         <CreateSessionModal
           clientName={displayedClientName}
