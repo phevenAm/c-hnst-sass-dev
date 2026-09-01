@@ -81,6 +81,20 @@ function RootRedirect() {
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 }
 
+// /login is a common entry point (marketing site link, bookmarks). Without
+// this gate LoginPage paints its form immediately and only redirects an
+// already-signed-in user via a post-render useEffect — a visible flash of the
+// login screen. Guard on `loading` first, same as RootRedirect.
+function LoginRoute() {
+  const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
+  if (loading) return <AuthLoadingState variant="splash" />;
+  if (isAuthenticated) {
+    if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
+    return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+  }
+  return <LoginPage />;
+}
+
 function AppLayout() {
   const topRef = useFocusOnNavigate();
   useSessionsRealtime();
@@ -269,7 +283,7 @@ export default function AppRoutes() {
           <WalkthroughOverlay />
           <Suspense fallback={<AuthLoadingState variant="splash" />}>
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login" element={<LoginRoute />} />
               <Route path="/demo" element={<DemoPage />} />
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="/register" element={<CounsellorSignupPage />} />

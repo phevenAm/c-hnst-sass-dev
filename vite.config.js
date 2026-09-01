@@ -62,6 +62,12 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Keep the marketing page out of the precache. It's a plain landing
+        // page with no offline need, and precaching it means a stale service
+        // worker serves an old index.html pointing at a CSS hash that no
+        // longer exists after a deploy — "/" renders unstyled until a hard
+        // refresh. Ignoring it forces "/" to always hit the network.
+        globIgnores: ["index.html"],
         // The installable app is app.html; index.html is the marketing page.
         navigateFallback: "/app.html",
         navigateFallbackDenylist: [/^\/$/, /^\/promo/],

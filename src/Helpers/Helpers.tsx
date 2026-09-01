@@ -51,7 +51,11 @@ export function clientDisplayName(
   useCodenames = false,
 ): string {
   if (useCodenames && client.admin_codename) return client.admin_codename;
-  return client.display_name || `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim() || "Unnamed client";
+  const name = client.display_name || `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim();
+  if (name) return name;
+  // Anonymised (or never-named) clients have no name fields left — fall back to
+  // the codename before the generic label so they stay identifiable to the admin.
+  return client.admin_codename || "Unnamed client";
 }
 
 export function isPageStatusLoading(...statuses: string[]) {

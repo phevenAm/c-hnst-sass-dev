@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 
 import Avatar from "@components/shared/Avatar/Avatar";
+import Badge from "@components/shared/Badge/Badge";
 import Card from "@components/shared/Card/Card";
 import FirstClientTipsModal from "@components/shared/FirstClientTipsModal/FirstClientTipsModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
@@ -16,7 +17,7 @@ import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 import { fetchAllAssignments, selectPlottedAssignmentByUser } from "@store/slices/questionnaireAssignmentsSlice";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
-import { fetchAllUsers, selectAllUsers } from "@store/slices/userDirectorySlice";
+import { fetchAllUsers, selectAllUsers, unarchiveClient } from "@store/slices/userDirectorySlice";
 
 import { Button } from "@/components/shared";
 import HideableSection from "@/components/shared/HideableSection/HideableSection";
@@ -108,7 +109,10 @@ function ClientRow({ user }: { user: UserProfile }) {
         <Avatar name={displayName} imageSrc={user.avatar_url ?? ""} size={40} />
 
         <div className={styles.clientMeta}>
-          <p className={styles.clientName}>{displayName}</p>
+          <p className={styles.clientName}>
+            <span>{displayName}</span>
+            {user.disabled && <Badge variant="warning">Paused</Badge>}
+          </p>
           <p className={styles.clientEmail}>{user.email}</p>
           {plottedAssignment?.questionnaires?.title && (
             <p className={styles.clientPlotted}>Charting: {plottedAssignment.questionnaires.title}</p>
@@ -184,7 +188,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
   const platformClients = (useAppSelector(selectAllUsers) as UserProfile[]).filter(
-    (u) => u.role !== "admin" && !u.deleted_at,
+    (u) => u.role !== "admin" && !u.deleted_at && !u.archived_at,
   );
   const selectedUser = platformClients.find((c) => c.id === selectedUserId) ?? null;
 
@@ -336,7 +340,60 @@ function StubRow({ stub }: { stub: ClientStub }) {
   );
 }
 
+// ── Archived (deactivated) client row ─────────────────────────
+
+function ArchivedClientRow({ user }: { user: UserProfile }) {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { showToast } = useToast();
+  const { practiceSettings, isDemo } = useAuth();
+  const [restoring, setRestoring] = useState(false);
+  const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
+
+  const handleReactivate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRestoring(true);
+    try {
+      await dispatch(unarchiveClient(user.id)).unwrap();
+      showToast("Client reactivated.");
+    } catch {
+      showToast("Couldn't reactivate this client.", "danger");
+      setRestoring(false);
+    }
+  };
+
+  return (
+    <div
+      className={styles.clientRow}
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/admin/clients/${user.id}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(`/admin/clients/${user.id}`);
+        }
+      }}
+    >
+      <Avatar name={displayName} imageSrc={user.avatar_url ?? ""} size={40} />
+      <div className={styles.clientMeta}>
+        <p className={styles.clientName}>{displayName}</p>
+        <p className={styles.clientEmail}>
+          Deactivated{user.archived_at ? ` ${dayjs(user.archived_at).format("D MMM YYYY")}` : ""}
+          {user.anonymised_at ? " · anonymised" : ""}
+        </p>
+      </div>
+      <Button variant="secondary" size="sm" disabled={isDemo || restoring} onClick={handleReactivate}>
+        Reactivate
+      </Button>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────
+
+type ClientTab = "active" | "deactivated" | "offline";
+const PAGE_SIZE = 25;
 
 export default function AdminClientsPage() {
   const { userProfile } = useAuth();
@@ -350,7 +407,15 @@ export default function AdminClientsPage() {
   const [createStubOpen, setCreateStubOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<ClientTab>("active");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [tipsDismissed, setTipsDismissed] = useState(false);
+
+  // Reset "show more" whenever the visible set changes underneath it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tab/search are the triggers — the body only resets a counter
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [tab, search]);
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
 
@@ -407,16 +472,37 @@ export default function AdminClientsPage() {
   const guard = isPageStatusLoading(usersStatus, questionnairesStatus);
   if (guard) return guard;
 
-  const allClients = allUsers.filter((user) => user.role !== "admin" && !user.deleted_at);
+  const nonAdminUsers = allUsers.filter((user) => user.role !== "admin" && !user.deleted_at);
+  const activeClients = nonAdminUsers.filter((user) => !user.archived_at);
+  const deactivatedClients = nonAdminUsers.filter((user) => user.archived_at);
 
-  const filtered = allClients.filter(
-    (user) =>
-      `${user.first_name} ${user.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-      user.email?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const q = search.trim().toLowerCase();
+  const userMatches = (u: UserProfile) =>
+    `${u.first_name ?? ""} ${u.last_name ?? ""}`.toLowerCase().includes(q) ||
+    (u.email ?? "").toLowerCase().includes(q) ||
+    (u.admin_codename ?? "").toLowerCase().includes(q);
+  const stubMatches = (s: ClientStub) =>
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || (s.email ?? "").toLowerCase().includes(q);
+
+  const tabItems: Record<ClientTab, (UserProfile | ClientStub)[]> = {
+    active: activeClients.filter(userMatches),
+    deactivated: deactivatedClients.filter(userMatches),
+    offline: unlinkedStubs.filter(stubMatches),
+  };
+  const currentItems = tabItems[tab];
+  const visibleItems = currentItems.slice(0, visibleCount);
+  const remaining = currentItems.length - visibleItems.length;
+  const totalClients = activeClients.length + deactivatedClients.length + unlinkedStubs.length;
+
+  const renderRows = () => {
+    if (tab === "offline") return (visibleItems as ClientStub[]).map((s) => <StubRow key={s.id} stub={s} />);
+    if (tab === "deactivated")
+      return (visibleItems as UserProfile[]).map((u) => <ArchivedClientRow key={u.id} user={u} />);
+    return (visibleItems as UserProfile[]).map((u) => <ClientRow key={u.id} user={u} />);
+  };
 
   const showFirstClientTips =
-    !tipsDismissed && firstClientMilestoneShown === false && allClients.length + unlinkedStubs.length >= 1;
+    !tipsDismissed && firstClientMilestoneShown === false && nonAdminUsers.length + unlinkedStubs.length >= 1;
 
   const handleCloseTips = () => {
     setTipsDismissed(true);
@@ -441,9 +527,9 @@ export default function AdminClientsPage() {
           <div>
             <h1>Clients</h1>
             <p>
-              {allClients.length} active {allClients.length === 1 ? "client" : "clients"}{" "}
-              {unlinkedStubs.length > 0 &&
-                `  |   ${unlinkedStubs.length}  offline ${unlinkedStubs.length === 1 ? "client" : "clients"}`}
+              {activeClients.length} active
+              {deactivatedClients.length > 0 ? ` · ${deactivatedClients.length} deactivated` : ""}
+              {unlinkedStubs.length > 0 ? ` · ${unlinkedStubs.length} offline` : ""}
             </p>
           </div>
 
@@ -472,8 +558,8 @@ export default function AdminClientsPage() {
           </div>
         </HideableSection>
 
-        <Card>
-          {allClients.length === 0 && unlinkedStubs.length === 0 ? (
+        {totalClients === 0 ? (
+          <Card>
             <div className={styles.freshAccount}>
               <h3>No clients yet</h3>
               <p>
@@ -492,31 +578,51 @@ export default function AdminClientsPage() {
                 </Button>
               </div>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className={styles.empty}>
-              <p>No clients match your search.</p>
-            </div>
-          ) : (
-            filtered.map((user) => <ClientRow key={user.id} user={user} />)
-          )}
-        </Card>
-
-        {/* Offline clients section */}
-        {unlinkedStubs.length > 0 && (
-          <div className={styles.stubsSection}>
-            <div className={styles.stubsSectionHeader}>
-              <h2>Offline clients</h2>
-              <p>
-                {unlinkedStubs.length} offline {unlinkedStubs.length === 1 ? "client" : "clients"} — not yet on the
-                platform
-              </p>
-            </div>
-            <Card>
-              {unlinkedStubs.map((stub) => (
-                <StubRow key={stub.id} stub={stub} />
+          </Card>
+        ) : (
+          <>
+            <div className={styles.tabBar} role="tablist" aria-label="Client groups">
+              {(
+                [
+                  ["active", "Active", activeClients.length],
+                  ["deactivated", "Deactivated", deactivatedClients.length],
+                  ["offline", "Offline", unlinkedStubs.length],
+                ] as const
+              ).map(([key, label, count]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === key}
+                  className={tab === key ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+                  onClick={() => setTab(key)}
+                >
+                  {label} <span className={styles.tabCount}>({count})</span>
+                </button>
               ))}
+            </div>
+
+            <Card>
+              {currentItems.length === 0 ? (
+                <div className={styles.empty}>
+                  <p>{search.trim() ? "No clients match your search." : `No ${tab} clients.`}</p>
+                </div>
+              ) : (
+                <>
+                  {renderRows()}
+                  {remaining > 0 && (
+                    <Button
+                      variant="ghost"
+                      className={styles.showMore}
+                      onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
+                    >
+                      Show {Math.min(remaining, PAGE_SIZE)} more ({remaining} left)
+                    </Button>
+                  )}
+                </>
+              )}
             </Card>
-          </div>
+          </>
         )}
       </div>
 

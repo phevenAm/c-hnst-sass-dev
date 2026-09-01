@@ -42,6 +42,38 @@ export const deleteOwnAccount = createAsyncThunk(
   },
 );
 
+// Deactivate a client: relationship ended, all history retained. Optionally
+// anonymise their personal details in the same call. Reversible via
+// unarchiveClient (the anonymisation is not).
+export const archiveClient = createAsyncThunk(
+  "userDirectory/archiveClient",
+  async (
+    { id, reason, anonymise = false }: { id: string; reason?: string | null; anonymise?: boolean },
+    { rejectWithValue },
+  ) => {
+    const { error } = await supabase.rpc("admin_archive_client", {
+      target_user_id: id,
+      p_reason: reason ?? null,
+      p_anonymise: anonymise,
+    });
+
+    if (error) return rejectWithValue(error.message);
+
+    return { id, anonymise };
+  },
+);
+
+export const unarchiveClient = createAsyncThunk(
+  "userDirectory/unarchiveClient",
+  async (id: string, { rejectWithValue }) => {
+    const { error } = await supabase.rpc("admin_unarchive_client", { target_user_id: id });
+
+    if (error) return rejectWithValue(error.message);
+
+    return id;
+  },
+);
+
 const userDirectorySlice = createSlice({
   name: "userDirectory",
   initialState,
@@ -72,6 +104,36 @@ const userDirectorySlice = createSlice({
         state.users = state.users.filter((u) => u.id !== action.payload);
       })
       .addCase(deleteOwnAccount.rejected, (state, action) => {
+        state.status = "failed";
+        (state.error as string) = action.payload as string;
+      })
+      .addCase(archiveClient.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        const { id, anonymise } = action.payload;
+        state.users = state.users.map((u) =>
+          u.id === id
+            ? {
+                ...u,
+                archived_at: new Date().toISOString(),
+                disabled: true,
+                ...(anonymise
+                  ? { anonymised_at: new Date().toISOString(), first_name: "", last_name: "", display_name: null }
+                  : {}),
+              }
+            : u,
+        );
+      })
+      .addCase(archiveClient.rejected, (state, action) => {
+        state.status = "failed";
+        (state.error as string) = action.payload as string;
+      })
+      .addCase(unarchiveClient.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.users = state.users.map((u) =>
+          u.id === action.payload ? { ...u, archived_at: null, archived_reason: null, disabled: false } : u,
+        );
+      })
+      .addCase(unarchiveClient.rejected, (state, action) => {
         state.status = "failed";
         (state.error as string) = action.payload as string;
       })
