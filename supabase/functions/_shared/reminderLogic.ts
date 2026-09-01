@@ -65,6 +65,29 @@ export interface SelectRemindersArgs<S extends RemindableSession> {
  * reminders not disabled for that practice, and not already reminded / excluded.
  * Order-preserving; never returns the same session twice.
  */
+export interface ReminderNotification {
+  type: string;
+  message: string;
+}
+
+/**
+ * The in-app notification (bell) that accompanies a reminder email. An unpaid
+ * session gets a distinct `type` and a "not paid yet" message so the client's
+ * notification list can flag it apart from a plain upcoming-session nudge.
+ */
+export function reminderNotification(opts: {
+  paid: boolean;
+  dateStr: string;
+  timeLabel: string;
+}): ReminderNotification {
+  return opts.paid
+    ? { type: REMINDER_TYPE, message: `Session on ${opts.dateStr}, coming up in ${opts.timeLabel}.` }
+    : {
+        type: "session_payment_due",
+        message: `Session on ${opts.dateStr} (in ${opts.timeLabel}) — not paid yet.`,
+      };
+}
+
 export function selectSessionsToRemind<S extends RemindableSession>(args: SelectRemindersArgs<S>): S[] {
   const already = new Set(args.alreadyRemindedSessionIds ?? []);
   const excluded = new Set(args.excludeSessionIds ?? []);
