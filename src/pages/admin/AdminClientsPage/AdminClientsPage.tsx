@@ -390,10 +390,43 @@ function ArchivedClientRow({ user }: { user: UserProfile }) {
   );
 }
 
+// ── Subheaded, independently-paginated list ───────────────────
+
+function PaginatedGroup({
+  heading,
+  total,
+  visible,
+  onShowMore,
+  children,
+}: {
+  heading: string;
+  total: number;
+  visible: number;
+  onShowMore: () => void;
+  children: React.ReactNode;
+}) {
+  const remaining = Math.max(0, total - visible);
+  return (
+    <div className={styles.clientGroup}>
+      <h3 className={styles.groupHeading}>
+        {heading} <span className={styles.tabCount}>({total})</span>
+      </h3>
+      <Card>
+        {children}
+        {remaining > 0 && (
+          <Button variant="ghost" className={styles.showMore} onClick={onShowMore}>
+            Show {Math.min(remaining, PAGE_SIZE)} more ({remaining} left)
+          </Button>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────
 
 type ClientTab = "active" | "deactivated";
-type ActiveItem = { kind: "client"; data: UserProfile } | { kind: "stub"; data: ClientStub };
+type GroupKey = "online" | "offline" | "deactivated";
 const PAGE_SIZE = 25;
 
 export default function AdminClientsPage() {
@@ -409,13 +442,19 @@ export default function AdminClientsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<ClientTab>("active");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Each list (online clients, offline clients, deactivated) pages independently.
+  const [visible, setVisible] = useState<Record<GroupKey, number>>({
+    online: PAGE_SIZE,
+    offline: PAGE_SIZE,
+    deactivated: PAGE_SIZE,
+  });
+  const showMore = (k: GroupKey) => setVisible((v) => ({ ...v, [k]: v[k] + PAGE_SIZE }));
   const [tipsDismissed, setTipsDismissed] = useState(false);
 
-  // Reset "show more" whenever the visible set changes underneath it.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: tab/search are the triggers — the body only resets a counter
+  // Reset every list's page size when the visible set changes underneath it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tab/search are the triggers — the body only resets counters
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
+    setVisible({ online: PAGE_SIZE, offline: PAGE_SIZE, deactivated: PAGE_SIZE });
   }, [tab, search]);
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
@@ -485,35 +524,80 @@ export default function AdminClientsPage() {
   const stubMatches = (s: ClientStub) =>
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || (s.email ?? "").toLowerCase().includes(q);
 
-  // The "Active" tab holds working clients — real accounts and offline records
-  // together (offline are still current, just not on the platform). Deactivated
-  // is its own tab: relationship ended.
-  const activeItems: ActiveItem[] = [
-    ...activeClients.filter(userMatches).map((c) => ({ kind: "client" as const, data: c })),
-    ...unlinkedStubs.filter(stubMatches).map((s) => ({ kind: "stub" as const, data: s })),
-  ];
+  // The "Active" tab holds working clients — online accounts and offline records
+  // shown as two separate, independently-paginated groups. Deactivated is its
+  // own tab: relationship ended.
+  const onlineClients = activeClients.filter(userMatches);
+  const offlineClients = unlinkedStubs.filter(stubMatches);
   const deactivatedItems = deactivatedClients.filter(userMatches);
 
-  const currentCount = tab === "active" ? activeItems.length : deactivatedItems.length;
-  const remaining = Math.max(0, currentCount - visibleCount);
+  const activeCount = onlineClients.length + offlineClients.length;
   const totalClients = activeClients.length + deactivatedClients.length + unlinkedStubs.length;
 
-  let emptyMessage = "No clients yet.";
-  if (search.trim()) emptyMessage = "No clients match your search.";
-  else if (tab === "deactivated") emptyMessage = "No deactivated clients.";
+  const emptyMsg = search.trim() ? "No clients match your search." : null;
 
-  const renderRows = () => {
-    if (tab === "deactivated")
-      return deactivatedItems.slice(0, visibleCount).map((u) => <ArchivedClientRow key={u.id} user={u} />);
-    return activeItems
-      .slice(0, visibleCount)
-      .map((it) =>
-        it.kind === "stub" ? (
-          <StubRow key={`stub-${it.data.id}`} stub={it.data} />
-        ) : (
-          <ClientRow key={it.data.id} user={it.data} />
-        ),
+  const renderTabBody = () => {
+    if (tab === "deactivated") {
+      if (deactivatedItems.length === 0) {
+        return (
+          <Card>
+            <div className={styles.empty}>
+              <p>{emptyMsg ?? "No deactivated clients."}</p>
+            </div>
+          </Card>
+        );
+      }
+      return (
+        <PaginatedGroup
+          heading="Deactivated"
+          total={deactivatedItems.length}
+          visible={visible.deactivated}
+          onShowMore={() => showMore("deactivated")}
+        >
+          {deactivatedItems.slice(0, visible.deactivated).map((u) => (
+            <ArchivedClientRow key={u.id} user={u} />
+          ))}
+        </PaginatedGroup>
       );
+    }
+
+    if (activeCount === 0) {
+      return (
+        <Card>
+          <div className={styles.empty}>
+            <p>{emptyMsg ?? "No active clients."}</p>
+          </div>
+        </Card>
+      );
+    }
+    return (
+      <>
+        {onlineClients.length > 0 && (
+          <PaginatedGroup
+            heading="On the platform"
+            total={onlineClients.length}
+            visible={visible.online}
+            onShowMore={() => showMore("online")}
+          >
+            {onlineClients.slice(0, visible.online).map((u) => (
+              <ClientRow key={u.id} user={u} />
+            ))}
+          </PaginatedGroup>
+        )}
+        {offlineClients.length > 0 && (
+          <PaginatedGroup
+            heading="Offline"
+            total={offlineClients.length}
+            visible={visible.offline}
+            onShowMore={() => showMore("offline")}
+          >
+            {offlineClients.slice(0, visible.offline).map((s) => (
+              <StubRow key={s.id} stub={s} />
+            ))}
+          </PaginatedGroup>
+        )}
+      </>
+    );
   };
 
   const showFirstClientTips =
@@ -616,26 +700,7 @@ export default function AdminClientsPage() {
               ))}
             </div>
 
-            <Card>
-              {currentCount === 0 ? (
-                <div className={styles.empty}>
-                  <p>{emptyMessage}</p>
-                </div>
-              ) : (
-                <>
-                  {renderRows()}
-                  {remaining > 0 && (
-                    <Button
-                      variant="ghost"
-                      className={styles.showMore}
-                      onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    >
-                      Show {Math.min(remaining, PAGE_SIZE)} more ({remaining} left)
-                    </Button>
-                  )}
-                </>
-              )}
-            </Card>
+            {renderTabBody()}
           </>
         )}
       </div>

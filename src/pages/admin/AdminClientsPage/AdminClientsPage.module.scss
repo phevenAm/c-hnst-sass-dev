@@ -617,6 +617,18 @@
   margin: $sp-4 auto 0;
 }
 
+.clientGroup {
+  margin-bottom: $sp-6;
+}
+
+.groupHeading {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 $sp-2;
+}
+
 .stubsSection {
   margin-top: $sp-10;
 }

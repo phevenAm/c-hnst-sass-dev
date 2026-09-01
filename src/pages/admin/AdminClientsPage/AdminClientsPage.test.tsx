@@ -172,9 +172,50 @@ test("offline clients live on the Active tab (no separate Offline tab)", () => {
   expect(screen.getByRole("tab", { name: /Active \(2\)/ })).toBeInTheDocument();
   expect(screen.queryByRole("tab", { name: /Offline/ })).not.toBeInTheDocument();
 
-  // Both show on the default Active tab.
+  // On the Active tab, the two groups are shown under their own subheadings.
+  expect(screen.getByRole("heading", { name: /On the platform \(1\)/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Offline \(1\)/ })).toBeInTheDocument();
   expect(screen.getByText("Ada Active")).toBeInTheDocument();
   expect(screen.getByText("Ozzy Offline")).toBeInTheDocument();
+});
+
+test("online and offline groups on the Active tab paginate independently", () => {
+  const users = Array.from({ length: 30 }, (_, i) => ({
+    id: `u-${i}`,
+    role: "client",
+    first_name: `On${i}`,
+    last_name: "Line",
+    email: `on${i}@example.com`,
+    deleted_at: null,
+    archived_at: null,
+  }));
+  const stubs = Array.from({ length: 30 }, (_, i) => ({
+    id: `st-${i}`,
+    first_name: `Off${i}`,
+    last_name: "Line",
+    email: `off${i}@example.com`,
+    linked_user_id: null,
+  }));
+  store.dispatch(fetchAllUsers.fulfilled(users, "test", undefined));
+  store.dispatch(fetchClientStubs.fulfilled(stubs, "test", undefined));
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // Each group caps at 25 with its own Show more.
+  expect(screen.getByText("On24 Line")).toBeInTheDocument();
+  expect(screen.queryByText("On25 Line")).not.toBeInTheDocument();
+  expect(screen.getByText("Off24 Line")).toBeInTheDocument();
+  expect(screen.queryByText("Off25 Line")).not.toBeInTheDocument();
+
+  const showMores = screen.getAllByRole("button", { name: /Show \d+ more/ });
+  expect(showMores).toHaveLength(2);
+
+  // Expanding the online group leaves the offline group where it was.
+  fireEvent.click(showMores[0]);
+  expect(screen.getByText("On25 Line")).toBeInTheDocument();
+  expect(screen.queryByText("Off25 Line")).not.toBeInTheDocument();
 });
 
 test("paginates the active list at 25 with a Show more control", () => {
