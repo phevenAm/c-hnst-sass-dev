@@ -67,7 +67,9 @@ export default defineConfig({
         // worker serves an old index.html pointing at a CSS hash that no
         // longer exists after a deploy — "/" renders unstyled until a hard
         // refresh. Ignoring it forces "/" to always hit the network.
-        globIgnores: ["index.html"],
+        // ...as does the marketing page's own imagery (the one .png the app
+        // itself never references).
+        globIgnores: ["index.html", "reviews/**"],
         // The installable app is app.html; index.html is the marketing page.
         navigateFallback: "/app.html",
         navigateFallbackDenylist: [/^\/$/, /^\/promo/],
