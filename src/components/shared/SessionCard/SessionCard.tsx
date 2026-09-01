@@ -56,7 +56,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
   const sessionNumber = useAppSelector(selectSessionNumberMap).get(session.id);
   const allSessions = useAppSelector((state) => state.sessions.sessions);
   const { showToast } = useToast();
-  const { practiceSettings } = useAuth();
+  const { practiceSettings, allowBlockSessionCancellation } = useAuth();
 
   const handleAddToCalendar = () => {
     const totalSessions = session.client_id
@@ -81,13 +81,20 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
     setEditingCode(false);
   };
 
-  // Block payments cover the whole block up front — an individual session
-  // within a paid block can't be cancelled on its own (request-cancel-session
-  // enforces this server-side too; this just skips the round trip so the
-  // client sees why immediately instead of opening a request modal that's
-  // just going to fail).
+  // Two reasons an individual session in a block can't be cancelled: the
+  // practice has turned block-session cancellation off, or the block is
+  // already paid up front. request-cancel-session enforces both server-side —
+  // this just skips the round trip so the client sees why immediately instead
+  // of opening a request modal that's just going to fail.
   const handleClientCancelClick = () => {
     const blockMeta = session.metadata as SessionBlockMeta | null;
+    if (blockMeta?.block_id && allowBlockSessionCancellation === false) {
+      showToast(
+        "Sessions that are part of a block can't be cancelled individually — contact your therapist.",
+        "danger",
+      );
+      return;
+    }
     if (blockMeta?.block_id && session.paid) {
       showToast(
         "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
