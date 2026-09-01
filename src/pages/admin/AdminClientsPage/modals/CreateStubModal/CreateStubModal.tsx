@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
+import PlanLimitModal from "@components/shared/PlanLimitModal/PlanLimitModal";
 import { useAuth } from "@context/AuthContext";
 import type { ClientStub } from "@models/globalTypes";
 import { useAppDispatch } from "@store/hooks";
@@ -23,6 +24,7 @@ export default function CreateStubModal({ onClose, existing }: Props) {
   const [codename, setCodename] = useState(existing?.codename ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [limitHit, setLimitHit] = useState<null | "active" | "archived">(null);
 
   const isEdit = !!existing;
 
@@ -63,11 +65,18 @@ export default function CreateStubModal({ onClose, existing }: Props) {
       }
       onClose();
     } catch (err) {
-      setError(typeof err === "string" ? err : "Something went wrong.");
+      const msg = typeof err === "string" ? err : "Something went wrong.";
+      if (msg.startsWith("PLAN_LIMIT_ACTIVE")) setLimitHit("active");
+      else if (msg.startsWith("PLAN_LIMIT_ARCHIVED")) setLimitHit("archived");
+      else setError(msg);
     } finally {
       setSaving(false);
     }
   };
+
+  if (limitHit) {
+    return <PlanLimitModal kind={limitHit} onClose={onClose} />;
+  }
 
   return (
     <Modal

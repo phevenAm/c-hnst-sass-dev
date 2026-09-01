@@ -43,18 +43,41 @@ const SLIDES = [
 ];
 
 const PRICING_FEATURES = [
-  { text: "Unlimited clients and sessions", slide: 0 },
+  { text: "Every feature on every plan", slide: 0 },
   { text: "Card payments via Stripe Connect", slide: 2 },
   { text: "Client check-ins and surveys", slide: 1 },
   { text: "Practice analytics and PDF export", slide: 3 },
 ];
 
-type Plan = "app";
+type Plan = "starter" | "growth" | "unlimited";
 type Billing = "monthly" | "annual";
 
-const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string }> = {
-  app: { label: "App", monthly: 8.99, annual: 89.99, desc: "Practice management" },
+// £ figures mirror the marketing page (index.html TIERS) and the Stripe
+// products. Client caps are enforced server-side from the plan_limits table.
+const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string; capacity: string }> = {
+  starter: {
+    label: "Starter",
+    monthly: 7.99,
+    annual: 79,
+    desc: "For a small caseload",
+    capacity: "5 active · 5 archived",
+  },
+  growth: {
+    label: "Growth",
+    monthly: 15.99,
+    annual: 159,
+    desc: "For a growing practice",
+    capacity: "15 active · 15 archived",
+  },
+  unlimited: {
+    label: "Unlimited",
+    monthly: 27.99,
+    annual: 279,
+    desc: "No limit",
+    capacity: "Unlimited clients",
+  },
 };
+const PLAN_ORDER: Plan[] = ["starter", "growth", "unlimited"];
 
 const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   {
@@ -110,7 +133,7 @@ export default function SubscribePage() {
   const [current, setCurrent] = useState(0);
   const [agreed, setAgreed] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [plan, setPlan] = useState<Plan>("app");
+  const [plan, setPlan] = useState<Plan>("starter");
   const [billing, setBilling] = useState<Billing>("monthly");
   const [referralCode, setReferralCode] = useState<string | null>(null);
 
@@ -255,20 +278,26 @@ export default function SubscribePage() {
               </div>
 
               <div className={styles.planCards}>
-                {(Object.entries(PLANS) as [Plan, (typeof PLANS)[Plan]][]).map(([key, p]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`${styles.planCard} ${plan === key ? styles.planCardActive : ""}`}
-                    onClick={() => setPlan(key)}
-                  >
-                    <span className={styles.planCardName}>{p.label}</span>
-                    <span className={styles.planCardPrice}>
-                      £{billing === "annual" ? p.annual : p.monthly}
-                      <span className={styles.planCardPer}>{billing === "annual" ? "/yr" : "/mo"}</span>
-                    </span>
-                  </button>
-                ))}
+                {PLAN_ORDER.map((key) => {
+                  const p = PLANS[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`${styles.planCard} ${plan === key ? styles.planCardActive : ""}`}
+                      onClick={() => setPlan(key)}
+                    >
+                      <span className={styles.planCardMain}>
+                        <span className={styles.planCardName}>{p.label}</span>
+                        <span className={styles.planCardSub}>{p.capacity}</span>
+                      </span>
+                      <span className={styles.planCardPrice}>
+                        £{billing === "annual" ? p.annual : p.monthly}
+                        <span className={styles.planCardPer}>{billing === "annual" ? "/yr" : "/mo"}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className={styles.priceRow}>
@@ -278,10 +307,15 @@ export default function SubscribePage() {
               </div>
 
               {billing === "annual" ? (
-                <p className={styles.billingNote}>Save £{annualSaving} vs monthly &middot; Cancel any time</p>
+                <p className={styles.billingNote}>
+                  Save £{annualSaving.toFixed(2)} vs monthly &middot; Cancel any time
+                </p>
               ) : (
                 <p className={styles.billingNote}>Billed monthly &middot; Cancel any time</p>
               )}
+              <p className={styles.billingNote}>
+                You're only charged for active clients — archive the same number again at no extra cost.
+              </p>
 
               <hr className={styles.divider} />
 

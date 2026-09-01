@@ -1,7 +1,9 @@
 import { useState } from "react";
 
+import { usePlanCapacity } from "@Hooks/usePlanCapacity";
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
+import PlanLimitModal from "@components/shared/PlanLimitModal/PlanLimitModal";
 import { useAuth } from "@context/AuthContext";
 import { supabase } from "@lib/supabase";
 
@@ -10,6 +12,8 @@ import styles from "../../AdminClientsPage.module.scss";
 
 export default function InviteClientModal({ onClose }: { onClose: () => void }) {
   const { authUser, isDemo } = useAuth();
+  const { atActiveLimit } = usePlanCapacity();
+  const [limitHit, setLimitHit] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,6 +29,10 @@ export default function InviteClientModal({ onClose }: { onClose: () => void }) 
     if (!canSend || !authUser) return;
     if (isDemo) {
       setError("Demo mode — invites can't actually be sent.");
+      return;
+    }
+    if (atActiveLimit) {
+      setLimitHit(true);
       return;
     }
     setError("");
@@ -57,6 +65,10 @@ export default function InviteClientModal({ onClose }: { onClose: () => void }) 
     }
     setSent(true);
   };
+
+  if (limitHit) {
+    return <PlanLimitModal kind="active" onClose={onClose} />;
+  }
 
   if (sent) {
     return (
