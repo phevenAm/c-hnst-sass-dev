@@ -60,18 +60,18 @@ test("the client sees the booked session on /my-sessions, unpaid", async ({ page
 test("admin marks it paid; the client then sees it as paid", async ({ page, browser }) => {
   test.setTimeout(120_000);
 
+  // wide enough that SessionCard shows its inline desktop action row
+  await page.setViewportSize({ width: 1400, height: 900 });
+
   // ── admin marks the session paid from the client's detail page ──
   await login(page, FIXTURES.admin.email, FIXTURES.admin.password);
   await page.goto(`${APP_URL}/admin/clients/${clientId}`, { waitUntil: "load", timeout: 20_000 });
-
-  // open the session (its card carries the mark-as-paid control)
-  await page.getByText(/£55/).first().click();
-  await page
-    .getByRole("button", { name: /Mark as paid/i })
-    .first()
-    .click();
-  // ConfirmModal
-  await page.getByRole("button", { name: "Mark as paid", exact: true }).click();
+  // Upcoming tab is the default; the session (now + 3d) is there with an inline
+  // SessionCard. The admin "Mark as paid" button (data-action-type="payment")
+  // dispatches updateSession directly — no confirm modal.
+  await expect(page.getByText(/£55/).first()).toBeVisible({ timeout: 15_000 });
+  await page.locator('button[data-action-type="payment"]').filter({ hasText: "Mark as paid" }).first().click();
+  await expect(page.getByText("Updated payment status")).toBeVisible({ timeout: 10_000 });
 
   await expect
     .poll(
