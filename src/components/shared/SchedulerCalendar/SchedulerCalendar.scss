@@ -42,12 +42,15 @@
   }
 
   // ─── Availability + blocked "ghost" events ──────────────
-  // Faint colour tint + coloured border (green = open, red = blocked).
-  // Booked sessions are fully opaque so they read as the filled blocks.
+  // Availability windows recede: ~60% tint + a dotted outline so they read as
+  // a background layer, not a booked block. Booked sessions stay fully opaque.
+  // Text colour is set per-theme (below + in the .dark block) because a 60%
+  // tint lands light in light mode and dark in dark mode — one fixed colour
+  // can't stay legible on both.
   .cal-window {
-    background-color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--accent-dark) 75%, transparent) !important;
-    color: var(--text-inverse) !important;
+    background-color: color-mix(in srgb, var(--accent) 60%, transparent) !important;
+    border: 2px dotted var(--accent-dark) !important;
+    color: color-mix(in srgb, var(--accent-dark) 92%, var(--text-primary)) !important;
   }
 
   .cal-blocked {
@@ -126,18 +129,20 @@
   }
 
   .rbc-toolbar {
-    margin-bottom: var(--sp-4);
-    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+    gap: var(--sp-1);
     flex-wrap: wrap;
   }
 
   .rbc-toolbar-label {
     font-family: var(--font-serif);
-    font-size: 1.05rem;
+    font-size: 1rem;
     color: var(--text-primary);
   }
 
   .rbc-toolbar button {
+    padding: 4px 10px;
+    font-size: 0.85rem;
     color: var(--text-primary);
     border-color: var(--border);
     border-radius: var(--r-md);
@@ -180,20 +185,71 @@
 
   .rbc-header {
     padding: var(--sp-2) 0;
-    color: var(--text-secondary);
-    font-weight: 600;
     border-bottom-color: var(--border) !important;
+  }
+
+  // Column header: muted day name over a large date; today's date sits in a
+  // filled accent pill. Rendered by the HeaderCell component in the .tsx.
+  .cal-dayHead {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    line-height: 1;
+  }
+
+  .cal-dayName {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .cal-dayNum {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-radius: var(--r-full);
+  }
+
+  .cal-dayNum.isToday {
+    background: var(--accent);
+    color: var(--text-inverse);
   }
 
   .rbc-today {
     background: var(--accent-subtle);
   }
 
-  // --text-secondary (not --text-muted) so time-axis labels clear AA contrast.
+  // --text-secondary (not --text-muted) so time-axis labels clear AA contrast
+  // in both themes.
   .rbc-label,
   .rbc-time-gutter .rbc-label {
     color: var(--text-secondary);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+  }
+
+  // Nudge the hour label up so it sits against its grid line rather than
+  // floating mid-cell, and give it a little breathing room from the grid.
+  .rbc-time-gutter .rbc-timeslot-group {
+    padding-right: var(--sp-2);
+  }
+
+  // Sparser grid in BOTH themes: on-theme hour lines, no half-hour sub-line.
+  // (The .dark block used to do this for dark mode only, leaving light mode
+  // with RBC's shipped #f7f7f7 lines and a busier half-hour grid.)
+  .rbc-time-slot {
+    border-top: 1px solid var(--border);
+  }
+
+  .rbc-timeslot-group .rbc-time-slot + .rbc-time-slot {
+    border-top-color: transparent !important;
   }
 
   // The all-day row is unused (sessions always have a time) and its empty
@@ -273,6 +329,14 @@
   // these are the ugly white horizontal lines. Override all of them.
   .rbc-time-slot {
     border-top-color: color-mix(in srgb, var(--accent-dark) 18%, transparent) !important;
+  }
+
+  // The 60% availability tint reads dark on the dark grid — flip text + the
+  // dotted outline to a pale mint so both stay legible (light-mode values are
+  // on the base rule).
+  .cal-window {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--text-inverse)) !important;
+    color: color-mix(in srgb, var(--text-inverse) 92%, var(--accent)) !important;
   }
 
   // Hide the half-hour sub-line for a cleaner grid — only show hour marks.

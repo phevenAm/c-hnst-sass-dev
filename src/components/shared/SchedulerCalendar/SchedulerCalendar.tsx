@@ -176,9 +176,20 @@ function eventPropGetter(event: SchedulerEvent) {
 }
 
 // Role-free column header. RBC's default emits <span role="columnheader"> with
-// no role="row" parent in time views, which axe flags — a plain span avoids it.
-function HeaderCell({ label }: { label: ReactNode }) {
-  return <span>{label}</span>;
+// no role="row" parent in time views, which axe flags — a plain span (no role)
+// avoids it. Renders a muted day name over a large date; today's date sits in
+// a filled accent pill (styled in SchedulerCalendar.scss). Falls back to RBC's
+// preformatted `label` if `date` isn't supplied (e.g. month view).
+export function HeaderCell({ date, label }: { date?: Date; label: ReactNode }) {
+  if (!date) return <span>{label}</span>;
+  const d = dayjs(date);
+  const isToday = d.isSame(dayjs(), "day");
+  return (
+    <span className="cal-dayHead">
+      <span className="cal-dayName">{d.format("ddd")}</span>
+      <span className={isToday ? "cal-dayNum isToday" : "cal-dayNum"}>{d.format("D")}</span>
+    </span>
+  );
 }
 
 // Custom event body. Sessions show title + time + location; windows/blocks
