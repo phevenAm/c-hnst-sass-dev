@@ -293,10 +293,22 @@
   }
 }
 
+.planCardMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .planCardName {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.planCardSub {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .planCardPrice {
