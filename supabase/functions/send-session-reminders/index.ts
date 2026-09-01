@@ -4,6 +4,7 @@ import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendE
 import {
   DEFAULT_HOURS_BEFORE,
   REMINDER_TYPE,
+  reminderNotification,
   selectSessionsToRemind,
   WINDOW_HALF_HOURS,
 } from "../_shared/reminderLogic.ts";
@@ -333,6 +334,19 @@ Deno.serve(async (req) => {
       }
 
       await logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" });
+
+      // In-app companion so the reminder also lands in the client's
+      // notification bell, not just their inbox. Best-effort: a failed insert
+      // must not fail the reminder. Runs only when the email actually sent
+      // (the disabled-type / unsubscribed paths returned earlier), and the
+      // session set is already deduped against email_logs, so it's one per
+      // session per reminder.
+      const { error: notifErr } = await supabase.from("notifications").insert({
+        user_id: session.client_id,
+        ...reminderNotification({ paid: !!session.paid, dateStr, timeLabel }),
+        url: `${appUrl}/my-sessions`,
+      });
+      if (notifErr) console.error("reminder notification insert failed", session.id, notifErr.message);
     }),
   );
 
