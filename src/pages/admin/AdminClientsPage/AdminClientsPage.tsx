@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Card from "@components/shared/Card/Card";
+import ClientCapBanner from "@components/shared/ClientCapBanner/ClientCapBanner";
 import FirstClientTipsModal from "@components/shared/FirstClientTipsModal/FirstClientTipsModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { supabase } from "@lib/supabase";
@@ -545,6 +546,8 @@ export default function AdminClientsPage() {
             secondaryLabel="View more options"
           />
         </div>
+
+        <ClientCapBanner />
 
         <HideableSection id="clients-search">
           <div className={styles.searchWrap}>

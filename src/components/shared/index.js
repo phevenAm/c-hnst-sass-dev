@@ -3,6 +3,7 @@ export { default as Badge } from "./Badge/Badge";
 export { default as BlockSessionCard } from "./BlockSessionCard/BlockSessionCard";
 export { default as Button } from "./Button/Button";
 export { default as Card } from "./Card/Card";
+export { default as ClientCapBanner } from "./ClientCapBanner/ClientCapBanner";
 export { default as CollapsibleSection } from "./CollapsibleSection/CollapsibleSection";
 export { default as Confetti } from "./Confetti/Confetti";
 export { default as DateInput } from "./DateInput/DateInput";
