@@ -5,6 +5,27 @@ import { detailsTable, emailTemplate, formatDate, logEmail, para, sendEmail } fr
 
 const REFUND_EMAIL_TYPE = "refund_issued";
 
+// Reverse-map a Stripe price ID back to our tier + billing interval so the
+// app's practice_settings.subscription_plan stays in sync no matter where the
+// plan changed — our Settings switcher, the Stripe billing portal, or the
+// Stripe dashboard. Returns null for anything that isn't one of our 3 tiers
+// (e.g. a legacy price), in which case the plan column is left untouched.
+function planFromPriceId(priceId: string | null | undefined): { plan: string; interval: "month" | "year" } | null {
+  if (!priceId) return null;
+  const entries: [string | undefined, string, "month" | "year"][] = [
+    [Deno.env.get("STRIPE_PRICE_STARTER"), "starter", "month"],
+    [Deno.env.get("STRIPE_PRICE_STARTER_ANNUAL"), "starter", "year"],
+    [Deno.env.get("STRIPE_PRICE_GROWTH"), "growth", "month"],
+    [Deno.env.get("STRIPE_PRICE_GROWTH_ANNUAL"), "growth", "year"],
+    [Deno.env.get("STRIPE_PRICE_UNLIMITED"), "unlimited", "month"],
+    [Deno.env.get("STRIPE_PRICE_UNLIMITED_ANNUAL"), "unlimited", "year"],
+  ];
+  for (const [envPrice, plan, interval] of entries) {
+    if (envPrice && envPrice === priceId) return { plan, interval };
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   const body = await req.text();
@@ -61,6 +82,7 @@ Deno.serve(async (req) => {
   // ── Subscription billing events (platform account, no event.account) ──────────
   if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
     const sub = event.data.object as Stripe.Subscription;
+    const tier = planFromPriceId(sub.items.data[0]?.price?.id);
     await supabase
       .from("practice_settings")
       .update({
@@ -70,6 +92,8 @@ Deno.serve(async (req) => {
         subscription_current_period_end: sub.current_period_end
           ? new Date(sub.current_period_end * 1000).toISOString()
           : null,
+        // Keep the app's tier in step with Stripe wherever the change was made.
+        ...(tier ? { subscription_plan: tier.plan, billing_interval: tier.interval } : {}),
       })
       .eq("billing_customer_id", sub.customer as string);
   }
