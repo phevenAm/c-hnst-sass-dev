@@ -11,14 +11,11 @@
 // 'unlimited' subscription so it clears /subscribe and the client-cap triggers).
 
 import { expect, type Page, test } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 
-import { APP_URL, FIXTURES, SUPABASE_ANON_KEY, SUPABASE_URL } from "../settings/constants";
-import { dbQuery } from "../settings/db";
+import { APP_URL, FIXTURES } from "../settings/constants";
+import { createAuthUser, dbQuery } from "../settings/db";
 
 test.describe.configure({ mode: "serial" });
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const TS = Date.now();
 const LC = { email: `e2e-lifecycle-${TS}@clarity-e2e-test.dev`, password: "E2eLifecycle2026!" };
@@ -33,16 +30,14 @@ async function login(page: Page, email: string, password: string) {
   await page.click('button[type="submit"]');
 }
 
-test.beforeAll(async () => {
+test.beforeAll(() => {
   adminId = dbQuery<{ id: string }>(`select id from auth.users where email = '${FIXTURES.admin.email}';`).rows[0].id;
 
-  const { data, error } = await supabase.auth.signUp({
+  clientId = createAuthUser({
     email: LC.email,
     password: LC.password,
-    options: { data: { role: "client", first_name: "Lifecycle", last_name: "Tester" } },
+    meta: { first_name: "Lifecycle", last_name: "Tester" },
   });
-  if (error || !data.user) throw new Error(`fixture client signUp failed: ${error?.message}`);
-  clientId = data.user.id;
 
   dbQuery(`update public.users set admin_id = '${adminId}', onboarding_completed = true where id = '${clientId}';`);
 });
