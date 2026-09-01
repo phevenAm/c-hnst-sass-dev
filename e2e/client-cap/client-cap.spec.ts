@@ -4,15 +4,15 @@
 // blocked. Runs the fixture admin down on the 'starter' tier (cap 5) for the
 // duration, restores 'unlimited' in afterAll.
 //
-// KNOWN GAP (test.fixme below): a client signing up via an access token is
-// NOT checked against the cap — enforce_client_active_limit skips the INSERT
-// (admin_id still null) and the later admin_id UPDATE (v_active_before true).
+// The last test covers the token-signup path (migration 20260901000013) and
+// self-skips if that migration isn't applied yet.
 //
 // Prereq: `node e2e/settings/seed-fixtures.mjs`.
 
 import { expect, type Page, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
-import { APP_URL, FIXTURES } from "../settings/constants";
+import { APP_URL, FIXTURES, SUPABASE_ANON_KEY, SUPABASE_URL } from "../settings/constants";
 import { dbQuery } from "../settings/db";
 
 test.describe.configure({ mode: "serial" });
@@ -112,10 +112,61 @@ test("archiving a client frees a slot; reactivating past the cap is blocked", ()
   expect(activeCount()).toBe(5);
 });
 
-// KNOWN GAP — enable once enforce_client_active_limit also covers the
-// signup path (INSERT with admin_id null, then the admin_id UPDATE).
-test.fixme("a client signing up via an access token is capped too", () => {
-  // A token-signup at cap currently succeeds: neither the handle_new_user
-  // INSERT (admin_id null → trigger skips) nor the consume_platform_access_token
-  // UPDATE (v_active_before = true → trigger skips) is enforced.
+// enforce_client_active_limit never fires for a token signup (admin_id is null
+// at INSERT, v_active_before is true at the admin_id UPDATE). Migration
+// 20260901000013 closes it inside consume_platform_access_token. This test
+// exercises the real RPC and self-skips if that migration isn't live.
+test("a token signup at cap is refused by consume_platform_access_token", async () => {
+  test.setTimeout(90_000);
+
+  const fixLive = dbQuery<{ def: string }>(
+    `select pg_get_functiondef('public.consume_platform_access_token(text)'::regprocedure) as def;`,
+  ).rows[0].def.includes("reached its client limit");
+  test.skip(!fixLive, "migration 20260901000013 not applied yet");
+
+  expect(activeCount()).toBe(5); // still at the starter cap from beforeAll
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const email = `${TAG}-signup@clarity-e2e-test.dev`;
+  const password = "E2eCapSignup2026!";
+  let newUserId = "";
+  let token = "";
+
+  try {
+    // a plain (no stub) token for this practice
+    token = dbQuery<{ token: string }>(
+      `insert into public.platform_access_token (token, admin_id, is_used)
+       values ('${TAG}-tok', '${adminId}', false)
+       returning token;`,
+    ).rows[0].token;
+
+    // mirror AuthContext's signup: create the auth user, sign in, consume token
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { role: "client", first_name: "Cap", last_name: "Signup" } },
+    });
+    if (error || !data.user) throw new Error(`signUp failed: ${error?.message}`);
+    newUserId = data.user.id;
+    await supabase.auth.signInWithPassword({ email, password });
+
+    const { error: consumeErr } = await supabase.rpc("consume_platform_access_token", {
+      input_token: token,
+    });
+
+    expect(consumeErr?.message ?? "").toMatch(/reached its client limit/i);
+
+    // the signup never linked to the practice, and the count didn't move
+    expect(
+      dbQuery<{ admin_id: string | null }>(`select admin_id from public.users where id = '${newUserId}';`).rows[0]
+        .admin_id,
+    ).toBeNull();
+    expect(activeCount()).toBe(5);
+  } finally {
+    if (newUserId) {
+      dbQuery(`delete from public.users where id = '${newUserId}';`);
+      dbQuery(`delete from auth.users where id = '${newUserId}';`);
+    }
+    if (token) dbQuery(`delete from public.platform_access_token where token = '${token}';`);
+  }
 });
