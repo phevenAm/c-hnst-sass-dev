@@ -2657,7 +2657,11 @@ const SettingsPage = () => {
             {confirmSwitch.billing === "annual"
               ? `${TIER_DISPLAY[confirmSwitch.plan].annual}/year`
               : `${TIER_DISPLAY[confirmSwitch.plan].monthly}/month`}
-            . Stripe adjusts your next invoice for time already paid on your current plan.
+            . The change takes effect straight away and your renewal date stays the same.
+          </p>
+          <p>
+            We don't refund unused time on your current plan — any difference is applied as account credit or added to
+            your next invoice.
           </p>
         </ConfirmModal>
       )}

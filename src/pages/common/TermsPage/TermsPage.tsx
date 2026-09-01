@@ -88,6 +88,13 @@ export default function TermsPage() {
             end of your current billing period. We do not offer refunds for unused time within a billing period.
           </p>
           <p>
+            You may change plan at any time from your account settings. A plan change takes effect immediately and does
+            not change your renewal date. We do not issue cash refunds for the unused portion of your current plan:
+            where you move to a lower-priced plan, the unused value is applied as credit against future invoices; where
+            you move to a higher-priced plan, the price difference for the remainder of the current period is added to
+            your next invoice. Amounts are calculated by Stripe on a pro-rata basis.
+          </p>
+          <p>
             We will give you at least 30 days' notice of any price increase by email. Continued use after the notice
             period constitutes acceptance of the new price.
           </p>
