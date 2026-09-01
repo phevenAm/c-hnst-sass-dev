@@ -41,6 +41,32 @@ export function dbQuery<T = Record<string, unknown>>(sql: string): { rows: T[] }
 // 10s and one taking 40s. Use these instead of several dbQuery() calls in a
 // row wherever the statements don't depend on each other's results.
 
+/**
+ * Create a real, login-capable auth user directly in the DB. Bypasses
+ * supabase.auth.signUp, which now rejects the fake @clarity-e2e-test.dev
+ * domain ("Email address … is invalid") — GoTrue gained address validation
+ * after the shared fixtures were first created. handle_new_user fires on the
+ * insert and makes the matching public.users row. Password is bcrypt-hashed so
+ * signInWithPassword / a browser login still works.
+ */
+export function createAuthUser(opts: { email: string; password: string; meta?: Record<string, unknown> }): string {
+  const meta = JSON.stringify({ role: "client", ...(opts.meta ?? {}) }).replace(/'/g, "''");
+  // GoTrue rejects a login when these token columns are NULL rather than '' —
+  // set them explicitly. cost 10 to match GoTrue's own bcrypt output.
+  return dbQuery<{ id: string }>(`
+    insert into auth.users
+      (id, instance_id, email, encrypted_password, email_confirmed_at, aud, role,
+       raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
+       confirmation_token, recovery_token, email_change_token_new, email_change)
+    values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '${opts.email}',
+            extensions.crypt('${opts.password}', extensions.gen_salt('bf', 10)), now(),
+            'authenticated', 'authenticated', '${meta}'::jsonb,
+            '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+            '', '', '', '')
+    returning id;
+  `).rows[0].id;
+}
+
 export function lookupFixtureIds(adminEmail: string, clientEmail: string): { adminId: string; clientId: string } {
   const rows = dbQuery<{ who: string; id: string }>(`
     select 'admin' as who, id from auth.users where email = '${adminEmail}'
