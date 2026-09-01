@@ -45,6 +45,15 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Second client, scoped to the calling user's JWT — needed so auth.uid()
+    // resolves inside plan_change_check (a SECURITY DEFINER fn that derives the
+    // admin from auth.uid()). The service-role client above carries no user
+    // context, so that RPC would fail with "Not authenticated".
+    const asUser = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
+    });
+
     const {
       data: { user },
       error: authError,
@@ -67,7 +76,8 @@ Deno.serve(async (req) => {
     if (!plan) return json({ error: "Invalid plan" }, 400);
 
     // ── Capacity gate: can this practice fit inside the target tier? ─────
-    const { data: check, error: checkErr } = await supabase.rpc("plan_change_check", { p_target: plan });
+    // Called on the user-scoped client so auth.uid() resolves inside the fn.
+    const { data: check, error: checkErr } = await asUser.rpc("plan_change_check", { p_target: plan });
     if (checkErr) throw new Error(`plan_change_check failed: ${checkErr.message}`);
     if (!check?.ok) {
       // Frontend renders "archive N clients before downgrading".
