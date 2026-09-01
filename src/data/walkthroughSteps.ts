@@ -239,7 +239,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "clients-directory",
         order: 1,
         title: "Your client list",
-        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. Paused clients stay here with a badge; deactivated ones move to their own section lower down so your main list stays current. Nothing here yet? Add your first client below.",
+        body: "This page holds all your clients — full accounts and offline records alike. Each row opens that client's full profile: sessions, notes, forms, and payments. The Active / Deactivated / Offline tabs split them so each list stays short; paused clients stay on Active with a badge. Nothing here yet? Add your first client below.",
         target: "#clients-header",
         actions: [
           { label: "Invite a client", to: "/admin/clients?new=true" },

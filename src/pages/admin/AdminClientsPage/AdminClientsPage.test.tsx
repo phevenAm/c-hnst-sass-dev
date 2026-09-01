@@ -76,9 +76,9 @@ test("empty state offers all three ways to add a client", () => {
 });
 
 // Client lifecycle: a deactivated (archived_at set) client is kept but must not
-// appear in the active caseload — it moves to its own "Deactivated clients"
-// section with a Reactivate action, and is not counted as an active client.
-test("deactivated clients are split out of the active list into their own section", () => {
+// appear on the Active tab — it lives on the Deactivated tab with a Reactivate
+// action, and is not counted as active.
+test("deactivated clients are on their own tab, not the active list", () => {
   store.dispatch(
     fetchAllUsers.fulfilled(
       [
@@ -101,16 +101,20 @@ test("deactivated clients are split out of the active list into their own sectio
 
   renderPage();
 
-  // Header counts only the active one.
-  expect(screen.getByText("1 active client")).toBeInTheDocument();
+  // Active tab is the default: shows Ada, not Bob. Header counts only Ada.
+  expect(screen.getByText("1 active", { exact: false })).toBeInTheDocument();
+  expect(screen.getByText("Ada Active")).toBeInTheDocument();
+  expect(screen.queryByText("Bob Gone")).not.toBeInTheDocument();
 
-  // The deactivated section is rendered, with the archived client + its action.
-  expect(screen.getByText("Deactivated clients")).toBeInTheDocument();
+  // Tab labels carry counts.
+  expect(screen.getByRole("tab", { name: /Active \(1\)/ })).toBeInTheDocument();
+  const deactivatedTab = screen.getByRole("tab", { name: /Deactivated \(1\)/ });
+
+  // Switching to it reveals Bob + the Reactivate action.
+  fireEvent.click(deactivatedTab);
   expect(screen.getByText("Bob Gone")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Reactivate" })).toBeInTheDocument();
-
-  // The active list still shows the active client.
-  expect(screen.getByText("Ada Active")).toBeInTheDocument();
+  expect(screen.queryByText("Ada Active")).not.toBeInTheDocument();
 });
 
 test("a paused client stays in the active list but is marked with a Paused badge", () => {
@@ -139,11 +143,38 @@ test("a paused client stays in the active list but is marked with a Paused badge
   expect(screen.getByText("Ada Paused")).toBeInTheDocument();
   expect(screen.getByText("Paused")).toBeInTheDocument();
   // still counted as active — pause is temporary, not a deactivation
-  expect(screen.getByText("1 active client")).toBeInTheDocument();
-  expect(screen.queryByText("Deactivated clients")).not.toBeInTheDocument();
+  expect(screen.getByText("1 active", { exact: false })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: /Deactivated \(0\)/ })).toBeInTheDocument();
 });
 
-test("no deactivated section renders when every client is active", () => {
+test("paginates the active list at 25 with a Show more control", () => {
+  const many = Array.from({ length: 30 }, (_, i) => ({
+    id: `c-${i}`,
+    role: "client",
+    first_name: `Client${i}`,
+    last_name: "X",
+    email: `c${i}@example.com`,
+    deleted_at: null,
+    archived_at: null,
+  }));
+  store.dispatch(fetchAllUsers.fulfilled(many, "test", undefined));
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // First page: 25 rows, row 26 not yet rendered.
+  expect(screen.getByText("Client24 X")).toBeInTheDocument();
+  expect(screen.queryByText("Client25 X")).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /Show 5 more \(5 left\)/ }));
+
+  expect(screen.getByText("Client25 X")).toBeInTheDocument();
+  expect(screen.getByText("Client29 X")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Show .* more/ })).not.toBeInTheDocument();
+});
+
+test("the Deactivated tab shows (0) and an empty message when every client is active", () => {
   store.dispatch(
     fetchAllUsers.fulfilled(
       [{ id: "c-active", role: "client", first_name: "Ada", last_name: "Active", deleted_at: null, archived_at: null }],
@@ -156,7 +187,8 @@ test("no deactivated section renders when every client is active", () => {
 
   renderPage();
 
-  expect(screen.queryByText("Deactivated clients")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("tab", { name: /Deactivated \(0\)/ }));
+  expect(screen.getByText("No deactivated clients.")).toBeInTheDocument();
 });
 
 // Regression: fires once, the first time an admin's client count goes from 0

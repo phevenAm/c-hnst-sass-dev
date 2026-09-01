@@ -392,6 +392,9 @@ function ArchivedClientRow({ user }: { user: UserProfile }) {
 
 // ── Page ──────────────────────────────────────────────────────
 
+type ClientTab = "active" | "deactivated" | "offline";
+const PAGE_SIZE = 25;
+
 export default function AdminClientsPage() {
   const { userProfile } = useAuth();
   const dispatch = useAppDispatch();
@@ -404,7 +407,15 @@ export default function AdminClientsPage() {
   const [createStubOpen, setCreateStubOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<ClientTab>("active");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [tipsDismissed, setTipsDismissed] = useState(false);
+
+  // Reset "show more" whenever the visible set changes underneath it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tab/search are the triggers — the body only resets a counter
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [tab, search]);
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
 
@@ -462,17 +473,36 @@ export default function AdminClientsPage() {
   if (guard) return guard;
 
   const nonAdminUsers = allUsers.filter((user) => user.role !== "admin" && !user.deleted_at);
-  const allClients = nonAdminUsers.filter((user) => !user.archived_at);
-  const archivedClients = nonAdminUsers.filter((user) => user.archived_at);
+  const activeClients = nonAdminUsers.filter((user) => !user.archived_at);
+  const deactivatedClients = nonAdminUsers.filter((user) => user.archived_at);
 
-  const filtered = allClients.filter(
-    (user) =>
-      `${user.first_name} ${user.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-      user.email?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const q = search.trim().toLowerCase();
+  const userMatches = (u: UserProfile) =>
+    `${u.first_name ?? ""} ${u.last_name ?? ""}`.toLowerCase().includes(q) ||
+    (u.email ?? "").toLowerCase().includes(q) ||
+    (u.admin_codename ?? "").toLowerCase().includes(q);
+  const stubMatches = (s: ClientStub) =>
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || (s.email ?? "").toLowerCase().includes(q);
+
+  const tabItems: Record<ClientTab, (UserProfile | ClientStub)[]> = {
+    active: activeClients.filter(userMatches),
+    deactivated: deactivatedClients.filter(userMatches),
+    offline: unlinkedStubs.filter(stubMatches),
+  };
+  const currentItems = tabItems[tab];
+  const visibleItems = currentItems.slice(0, visibleCount);
+  const remaining = currentItems.length - visibleItems.length;
+  const totalClients = activeClients.length + deactivatedClients.length + unlinkedStubs.length;
+
+  const renderRows = () => {
+    if (tab === "offline") return (visibleItems as ClientStub[]).map((s) => <StubRow key={s.id} stub={s} />);
+    if (tab === "deactivated")
+      return (visibleItems as UserProfile[]).map((u) => <ArchivedClientRow key={u.id} user={u} />);
+    return (visibleItems as UserProfile[]).map((u) => <ClientRow key={u.id} user={u} />);
+  };
 
   const showFirstClientTips =
-    !tipsDismissed && firstClientMilestoneShown === false && allClients.length + unlinkedStubs.length >= 1;
+    !tipsDismissed && firstClientMilestoneShown === false && nonAdminUsers.length + unlinkedStubs.length >= 1;
 
   const handleCloseTips = () => {
     setTipsDismissed(true);
@@ -497,9 +527,9 @@ export default function AdminClientsPage() {
           <div>
             <h1>Clients</h1>
             <p>
-              {allClients.length} active {allClients.length === 1 ? "client" : "clients"}{" "}
-              {unlinkedStubs.length > 0 &&
-                `  |   ${unlinkedStubs.length}  offline ${unlinkedStubs.length === 1 ? "client" : "clients"}`}
+              {activeClients.length} active
+              {deactivatedClients.length > 0 ? ` · ${deactivatedClients.length} deactivated` : ""}
+              {unlinkedStubs.length > 0 ? ` · ${unlinkedStubs.length} offline` : ""}
             </p>
           </div>
 
@@ -528,8 +558,8 @@ export default function AdminClientsPage() {
           </div>
         </HideableSection>
 
-        <Card>
-          {allClients.length === 0 && unlinkedStubs.length === 0 ? (
+        {totalClients === 0 ? (
+          <Card>
             <div className={styles.freshAccount}>
               <h3>No clients yet</h3>
               <p>
@@ -548,49 +578,51 @@ export default function AdminClientsPage() {
                 </Button>
               </div>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className={styles.empty}>
-              <p>No clients match your search.</p>
-            </div>
-          ) : (
-            filtered.map((user) => <ClientRow key={user.id} user={user} />)
-          )}
-        </Card>
-
-        {/* Archived (deactivated) clients section */}
-        {archivedClients.length > 0 && (
-          <div className={styles.stubsSection}>
-            <div className={styles.stubsSectionHeader}>
-              <h2>Deactivated clients</h2>
-              <p>
-                {archivedClients.length} deactivated {archivedClients.length === 1 ? "client" : "clients"} — history
-                kept, no longer on your active list
-              </p>
-            </div>
-            <Card>
-              {archivedClients.map((user) => (
-                <ArchivedClientRow key={user.id} user={user} />
+          </Card>
+        ) : (
+          <>
+            <div className={styles.tabBar} role="tablist" aria-label="Client groups">
+              {(
+                [
+                  ["active", "Active", activeClients.length],
+                  ["deactivated", "Deactivated", deactivatedClients.length],
+                  ["offline", "Offline", unlinkedStubs.length],
+                ] as const
+              ).map(([key, label, count]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === key}
+                  className={tab === key ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+                  onClick={() => setTab(key)}
+                >
+                  {label} <span className={styles.tabCount}>({count})</span>
+                </button>
               ))}
-            </Card>
-          </div>
-        )}
-
-        {/* Offline clients section */}
-        {unlinkedStubs.length > 0 && (
-          <div className={styles.stubsSection}>
-            <div className={styles.stubsSectionHeader}>
-              <h2>Offline clients</h2>
-              <p>
-                {unlinkedStubs.length} offline {unlinkedStubs.length === 1 ? "client" : "clients"} — not yet on the
-                platform
-              </p>
             </div>
+
             <Card>
-              {unlinkedStubs.map((stub) => (
-                <StubRow key={stub.id} stub={stub} />
-              ))}
+              {currentItems.length === 0 ? (
+                <div className={styles.empty}>
+                  <p>{search.trim() ? "No clients match your search." : `No ${tab} clients.`}</p>
+                </div>
+              ) : (
+                <>
+                  {renderRows()}
+                  {remaining > 0 && (
+                    <Button
+                      variant="ghost"
+                      className={styles.showMore}
+                      onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
+                    >
+                      Show {Math.min(remaining, PAGE_SIZE)} more ({remaining} left)
+                    </Button>
+                  )}
+                </>
+              )}
             </Card>
-          </div>
+          </>
         )}
       </div>
 

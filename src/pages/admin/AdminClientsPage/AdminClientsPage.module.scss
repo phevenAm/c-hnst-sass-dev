@@ -577,6 +577,46 @@
 }
 
 // ── Client profiles (stubs) section ───────────────────────
+.tabBar {
+  display: flex;
+  gap: $sp-2;
+  margin-bottom: $sp-4;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: $sp-2 $sp-4;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color var(--transition-base);
+
+  &:hover {
+    border-color: var(--border-focus);
+  }
+}
+
+.tabActive {
+  border-color: var(--accent);
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tabCount {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.showMore {
+  display: block;
+  margin: $sp-4 auto 0;
+}
+
 .stubsSection {
   margin-top: $sp-10;
 }
