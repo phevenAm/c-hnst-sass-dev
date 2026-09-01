@@ -4,6 +4,7 @@ import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendE
 import {
   DEFAULT_HOURS_BEFORE,
   REMINDER_TYPE,
+  reminderNotification,
   selectSessionsToRemind,
   WINDOW_HALF_HOURS,
 } from "../_shared/reminderLogic.ts";
@@ -342,10 +343,7 @@ Deno.serve(async (req) => {
       // session per reminder.
       const { error: notifErr } = await supabase.from("notifications").insert({
         user_id: session.client_id,
-        type: session.paid ? "session_reminder" : "session_payment_due",
-        message: session.paid
-          ? `Session on ${dateStr}, coming up in ${timeLabel}.`
-          : `Session on ${dateStr} (in ${timeLabel}) — not paid yet.`,
+        ...reminderNotification({ paid: !!session.paid, dateStr, timeLabel }),
         url: `${appUrl}/my-sessions`,
       });
       if (notifErr) console.error("reminder notification insert failed", session.id, notifErr.message);

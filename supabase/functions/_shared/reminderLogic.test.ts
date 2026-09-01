@@ -4,6 +4,7 @@ import {
   DEFAULT_HOURS_BEFORE,
   isWithinReminderWindow,
   REMINDER_TYPE,
+  reminderNotification,
   selectSessionsToRemind,
   WINDOW_HALF_HOURS,
 } from "./reminderLogic";
@@ -126,5 +127,22 @@ describe("selectSessionsToRemind", () => {
     };
 
     expect(selectSessionsToRemind(args).map((s) => s.id)).toEqual(["s1", "s2"]);
+  });
+});
+
+describe("reminderNotification", () => {
+  it("a paid session gets a plain upcoming-session notice", () => {
+    expect(reminderNotification({ paid: true, dateStr: "12 Mar 2026", timeLabel: "5 days" })).toEqual({
+      type: REMINDER_TYPE,
+      message: "Session on 12 Mar 2026, coming up in 5 days.",
+    });
+  });
+
+  it("an unpaid session gets a distinct type and a 'not paid yet' message", () => {
+    const n = reminderNotification({ paid: false, dateStr: "12 Mar 2026", timeLabel: "5 days" });
+    expect(n.type).toBe("session_payment_due");
+    expect(n.type).not.toBe(REMINDER_TYPE);
+    expect(n.message).toMatch(/not paid yet/i);
+    expect(n.message).toContain("12 Mar 2026");
   });
 });
