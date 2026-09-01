@@ -1,6 +1,11 @@
 // One-off: convert the marketing screenshot GIFs to animated WebP with
 // Google's gif2webp (sharp's animated pipeline drops frames on this build).
-// Run: node scripts/gif-to-webp.mjs   (deletes each .gif once converted)
+//
+// gif2webp-bin is NOT a project dependency — it pulled a fresh binary from a
+// remote host on every deploy for a task that runs maybe once a release. Install
+// it ad hoc before running this:
+//   npm i --no-save gif2webp-bin && node scripts/gif-to-webp.mjs
+// (deletes each .gif once converted)
 import { execFileSync } from "node:child_process";
 import { readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
