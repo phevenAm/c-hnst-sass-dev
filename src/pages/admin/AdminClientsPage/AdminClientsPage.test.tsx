@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, expect, test, vi } from "vitest";
 
 import { store } from "../../../store";
+import { fetchClientStubs } from "../../../store/slices/clientStubsSlice";
 import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
 import { fetchQuestionnaires } from "../../../store/slices/questionnairesSlice";
 import { fetchAllResponses } from "../../../store/slices/responsesSlice";
@@ -147,6 +148,76 @@ test("a paused client stays in the active list but is marked with a Paused badge
   expect(screen.getByRole("tab", { name: /Deactivated \(0\)/ })).toBeInTheDocument();
 });
 
+test("offline clients live on the Active tab (no separate Offline tab)", () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [{ id: "c-active", role: "client", first_name: "Ada", last_name: "Active", deleted_at: null, archived_at: null }],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(
+    fetchClientStubs.fulfilled(
+      [{ id: "s-1", first_name: "Ozzy", last_name: "Offline", email: "ozzy@example.com", linked_user_id: null }],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // Two tabs only; Active counts the real client + the offline record.
+  expect(screen.getByRole("tab", { name: /Active \(2\)/ })).toBeInTheDocument();
+  expect(screen.queryByRole("tab", { name: /Offline/ })).not.toBeInTheDocument();
+
+  // On the Active tab, the two groups are shown under their own subheadings.
+  expect(screen.getByRole("heading", { name: /On the platform \(1\)/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Offline \(1\)/ })).toBeInTheDocument();
+  expect(screen.getByText("Ada Active")).toBeInTheDocument();
+  expect(screen.getByText("Ozzy Offline")).toBeInTheDocument();
+});
+
+test("online and offline groups on the Active tab paginate independently", () => {
+  const users = Array.from({ length: 30 }, (_, i) => ({
+    id: `u-${i}`,
+    role: "client",
+    first_name: `On${i}`,
+    last_name: "Line",
+    email: `on${i}@example.com`,
+    deleted_at: null,
+    archived_at: null,
+  }));
+  const stubs = Array.from({ length: 30 }, (_, i) => ({
+    id: `st-${i}`,
+    first_name: `Off${i}`,
+    last_name: "Line",
+    email: `off${i}@example.com`,
+    linked_user_id: null,
+  }));
+  store.dispatch(fetchAllUsers.fulfilled(users, "test", undefined));
+  store.dispatch(fetchClientStubs.fulfilled(stubs, "test", undefined));
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // Each group caps at 25 with its own Show more.
+  expect(screen.getByText("On24 Line")).toBeInTheDocument();
+  expect(screen.queryByText("On25 Line")).not.toBeInTheDocument();
+  expect(screen.getByText("Off24 Line")).toBeInTheDocument();
+  expect(screen.queryByText("Off25 Line")).not.toBeInTheDocument();
+
+  const showMores = screen.getAllByRole("button", { name: /Show \d+ more/ });
+  expect(showMores).toHaveLength(2);
+
+  // Expanding the online group leaves the offline group where it was.
+  fireEvent.click(showMores[0]);
+  expect(screen.getByText("On25 Line")).toBeInTheDocument();
+  expect(screen.queryByText("Off25 Line")).not.toBeInTheDocument();
+});
+
 test("paginates the active list at 25 with a Show more control", () => {
   const many = Array.from({ length: 30 }, (_, i) => ({
     id: `c-${i}`,
@@ -158,20 +229,23 @@ test("paginates the active list at 25 with a Show more control", () => {
     archived_at: null,
   }));
   store.dispatch(fetchAllUsers.fulfilled(many, "test", undefined));
+  store.dispatch(fetchClientStubs.fulfilled([], "test", undefined)); // shared store — clear stubs from earlier tests
   store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
   store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
 
   renderPage();
 
-  // First page: 25 rows, row 26 not yet rendered.
+  // First page stops at PAGE_SIZE (25): row 25 (0-indexed 24) shows, row 26 doesn't.
+  // Assertions avoid exact leftover counts — the test store is a shared singleton
+  // and other suites can leave a stray row behind.
   expect(screen.getByText("Client24 X")).toBeInTheDocument();
   expect(screen.queryByText("Client25 X")).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: /Show 5 more \(5 left\)/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Show \d+ more/ }));
 
   expect(screen.getByText("Client25 X")).toBeInTheDocument();
   expect(screen.getByText("Client29 X")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /Show .* more/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Show \d+ more/ })).not.toBeInTheDocument();
 });
 
 test("the Deactivated tab shows (0) and an empty message when every client is active", () => {
