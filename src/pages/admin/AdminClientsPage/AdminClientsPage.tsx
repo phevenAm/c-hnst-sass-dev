@@ -392,7 +392,8 @@ function ArchivedClientRow({ user }: { user: UserProfile }) {
 
 // ── Page ──────────────────────────────────────────────────────
 
-type ClientTab = "active" | "deactivated" | "offline";
+type ClientTab = "active" | "deactivated";
+type ActiveItem = { kind: "client"; data: UserProfile } | { kind: "stub"; data: ClientStub };
 const PAGE_SIZE = 25;
 
 export default function AdminClientsPage() {
@@ -484,21 +485,35 @@ export default function AdminClientsPage() {
   const stubMatches = (s: ClientStub) =>
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || (s.email ?? "").toLowerCase().includes(q);
 
-  const tabItems: Record<ClientTab, (UserProfile | ClientStub)[]> = {
-    active: activeClients.filter(userMatches),
-    deactivated: deactivatedClients.filter(userMatches),
-    offline: unlinkedStubs.filter(stubMatches),
-  };
-  const currentItems = tabItems[tab];
-  const visibleItems = currentItems.slice(0, visibleCount);
-  const remaining = currentItems.length - visibleItems.length;
+  // The "Active" tab holds working clients — real accounts and offline records
+  // together (offline are still current, just not on the platform). Deactivated
+  // is its own tab: relationship ended.
+  const activeItems: ActiveItem[] = [
+    ...activeClients.filter(userMatches).map((c) => ({ kind: "client" as const, data: c })),
+    ...unlinkedStubs.filter(stubMatches).map((s) => ({ kind: "stub" as const, data: s })),
+  ];
+  const deactivatedItems = deactivatedClients.filter(userMatches);
+
+  const currentCount = tab === "active" ? activeItems.length : deactivatedItems.length;
+  const remaining = Math.max(0, currentCount - visibleCount);
   const totalClients = activeClients.length + deactivatedClients.length + unlinkedStubs.length;
 
+  let emptyMessage = "No clients yet.";
+  if (search.trim()) emptyMessage = "No clients match your search.";
+  else if (tab === "deactivated") emptyMessage = "No deactivated clients.";
+
   const renderRows = () => {
-    if (tab === "offline") return (visibleItems as ClientStub[]).map((s) => <StubRow key={s.id} stub={s} />);
     if (tab === "deactivated")
-      return (visibleItems as UserProfile[]).map((u) => <ArchivedClientRow key={u.id} user={u} />);
-    return (visibleItems as UserProfile[]).map((u) => <ClientRow key={u.id} user={u} />);
+      return deactivatedItems.slice(0, visibleCount).map((u) => <ArchivedClientRow key={u.id} user={u} />);
+    return activeItems
+      .slice(0, visibleCount)
+      .map((it) =>
+        it.kind === "stub" ? (
+          <StubRow key={`stub-${it.data.id}`} stub={it.data} />
+        ) : (
+          <ClientRow key={it.data.id} user={it.data} />
+        ),
+      );
   };
 
   const showFirstClientTips =
@@ -584,9 +599,8 @@ export default function AdminClientsPage() {
             <div className={styles.tabBar} role="tablist" aria-label="Client groups">
               {(
                 [
-                  ["active", "Active", activeClients.length],
+                  ["active", "Active", activeClients.length + unlinkedStubs.length],
                   ["deactivated", "Deactivated", deactivatedClients.length],
-                  ["offline", "Offline", unlinkedStubs.length],
                 ] as const
               ).map(([key, label, count]) => (
                 <button
@@ -603,9 +617,9 @@ export default function AdminClientsPage() {
             </div>
 
             <Card>
-              {currentItems.length === 0 ? (
+              {currentCount === 0 ? (
                 <div className={styles.empty}>
-                  <p>{search.trim() ? "No clients match your search." : `No ${tab} clients.`}</p>
+                  <p>{emptyMessage}</p>
                 </div>
               ) : (
                 <>
