@@ -1,0 +1,2 @@
+[functions.agency-teams-test]
+verify_jwt = true

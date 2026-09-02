@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { postAgencyTeamsCard } from "../_shared/agencyTeams.ts";
 import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
 
 const EMAIL_TYPE = "session_booked";
@@ -41,6 +43,14 @@ Deno.serve(async (req) => {
         .single(),
       supabase.auth.admin.getUserById(session.client_id),
     ]);
+
+    // Agency Teams channel — independent of the client email below (fires even
+    // if the client has no address or has muted this email type).
+    await postAgencyTeamsCard(supabase, clientProfile?.admin_id, {
+      event: "booked",
+      clientName: clientProfile?.first_name ?? "A client",
+      detail: formatDate(session.scheduled_at),
+    });
 
     const clientEmail = authResult?.user?.email;
     if (!clientEmail) {

@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { postAgencyTeamsCard } from "../_shared/agencyTeams.ts";
 import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
 
 const EMAIL_TYPE = "session_cancelled";
@@ -42,12 +44,20 @@ Deno.serve(async (req) => {
       supabase.auth.admin.getUserById(session.client_id),
     ]);
 
+    const dateStr = formatDate(session.scheduled_at);
+
+    // Agency Teams channel — independent of the client email below.
+    await postAgencyTeamsCard(supabase, clientProfile?.admin_id, {
+      event: "cancelled",
+      clientName: clientProfile?.first_name ?? "A client",
+      detail: dateStr,
+    });
+
     const clientEmail = authResult?.user?.email;
     if (!clientEmail) {
       return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422, headers: corsHeaders });
     }
 
-    const dateStr = formatDate(session.scheduled_at);
     const subject = `Your session on ${dateStr} has been cancelled`;
     let counsellorName: string | undefined;
 
