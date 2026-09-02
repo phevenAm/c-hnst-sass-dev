@@ -73,7 +73,7 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
 
   const { showToast } = useToast();
   const { isWithinRescheduleCutoff, rescheduleCutoffMessage } = useSessionCard(session);
-  const { isDemo } = useAuth();
+  const { isDemo, allowBlockSessionCancellation } = useAuth();
 
   const isOnline = session.location !== "in_person";
   // Defence in depth — callers are expected to filter cancelled sessions out
@@ -89,11 +89,19 @@ export default function NextSessionCard({ session, compact }: NextSessionCardPro
     fn();
   };
 
-  // Block payments cover the whole block up front — an individual session
-  // within a paid block can't be cancelled on its own (request-cancel-session
-  // enforces this server-side too; this just skips the round trip).
+  // Two reasons an individual session in a block can't be cancelled: the
+  // practice has turned block-session cancellation off, or the block is
+  // already paid up front. request-cancel-session enforces both server-side —
+  // this just skips the round trip so the client sees why immediately.
   const handleCancelClick = () => {
     const blockMeta = session.metadata as SessionBlockMeta | null;
+    if (blockMeta?.block_id && allowBlockSessionCancellation === false) {
+      showToast(
+        "Sessions that are part of a block can't be cancelled individually — contact your therapist.",
+        "danger",
+      );
+      return;
+    }
     if (blockMeta?.block_id && session.paid) {
       showToast(
         "This session is part of a paid block and can't be cancelled individually — contact your therapist.",
