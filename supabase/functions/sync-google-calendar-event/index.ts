@@ -108,9 +108,17 @@ Deno.serve(async (req) => {
     const start = new Date(session.scheduled_at);
     const end = new Date(start.getTime() + (session.duration_minutes ?? 50) * 60_000);
 
+    // One-way sync: edits made to this event in Google Calendar are never read
+    // back into Clarity, so spell that out in the event body.
+    const managedNote =
+      "Managed by Clarity. Reschedule or cancel this session in the Clarity app — " +
+      "changes made directly here in Google Calendar are not synced back.";
+
     const eventBody = {
       summary: `${clientName} — Session`,
-      description: practice?.business_name ? `Practice: ${practice.business_name}` : undefined,
+      description: [practice?.business_name ? `Practice: ${practice.business_name}` : null, managedNote]
+        .filter(Boolean)
+        .join("\n\n"),
       location: session.location === "in_person" ? (session.address ?? undefined) : "Online",
       start: { dateTime: start.toISOString() },
       end: { dateTime: end.toISOString() },
