@@ -448,11 +448,14 @@
               <ul class="plan__list" role="list">
                 <li>Client directory with codenames</li>
                 <li>Offline or online clients — invite anytime</li>
-                <li>Appointment scheduling</li>
-                <li>Wellbeing check-ins &amp; progress tracking</li>
+                <li>Appointment scheduling &amp; reminders</li>
+                <li>Session notes with optional end-to-end encryption</li>
+                <li>Card payments via Stripe Connect — no platform cut</li>
+                <li>Custom surveys &amp; wellbeing check-ins with progress tracking</li>
                 <li>Admin dashboard &amp; analytics</li>
-                <li>CPD logging &amp; exports</li>
+                <li>CPD &amp; supervision logs with exports</li>
                 <li>Resource library with client invites</li>
+                <li>Automated client emails you control</li>
                 <li>Secure client login portal</li>
                 <li>Support built in — help is always a message away</li>
               </ul>
@@ -679,8 +682,8 @@
         // Mirror of the `plan_limits` table. Annual = ~10 months.
         var TIERS = [
           { name: "Starter", clients: "5", monthly: "7.99", annual: "79" },
-          { name: "Growth", clients: "15", monthly: "15.99", annual: "159" },
-          { name: "Unlimited", clients: null, monthly: "27.99", annual: "279" },
+          { name: "Growth", clients: "15", monthly: "13.99", annual: "139" },
+          { name: "Unlimited", clients: null, monthly: "19.99", annual: "199" },
         ];
 
         var range = document.getElementById("planRange");
