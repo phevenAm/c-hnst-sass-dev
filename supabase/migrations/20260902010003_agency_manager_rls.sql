@@ -31,14 +31,14 @@ begin
       ('stub_sessions',            'for all',    'public.acts_for_admin(admin_id)'),
       ('payments',                 'for all',    'public.acts_for_admin(admin_id)'),
       ('resources',                'for all',    'public.acts_for_admin(admin_id)'),
-      ('questionnaires',           'for all',    'public.acts_for_admin(admin_id)'),
       ('session_notes',            'for select', 'public.acts_for_admin(admin_id)'),
-      ('responses',                'for select',
-         'exists (select 1 from public.questionnaires q where q.id = responses.questionnaire_id and public.acts_for_admin(q.admin_id))'),
-      ('questionnaire_assignments','for all',
-         'exists (select 1 from public.questionnaires q where q.id = questionnaire_assignments.questionnaire_id and public.acts_for_admin(q.admin_id))'),
-      ('questions',                'for all',
-         'exists (select 1 from public.questionnaires q where q.id = questions.questionnaire_id and public.acts_for_admin(q.admin_id))'),
+      -- NOTE: the questionnaire family (questionnaires / questions /
+      -- questionnaire_assignments / responses) is intentionally NOT widened
+      -- here. Those tables sit in a mutual policy reference with each other, and
+      -- adding a subquery-based policy makes Postgres throw "infinite recursion
+      -- detected in policy". See 20260902010006. If manager visibility into a
+      -- member's forms is needed, route it through a SECURITY DEFINER
+      -- parent-ownership helper so child policies never re-enter questionnaires RLS.
       ('session_events',           'for select',
          'exists (select 1 from public.sessions s where s.id = session_events.session_id and public.acts_for_admin(s.created_by))'),
       ('reschedule_requests',      'for all',
