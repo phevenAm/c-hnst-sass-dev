@@ -1,0 +1,2 @@
+[functions.microsoft-calendar-oauth]
+verify_jwt = true

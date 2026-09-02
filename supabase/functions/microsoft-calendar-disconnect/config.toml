@@ -1,0 +1,2 @@
+[functions.microsoft-calendar-disconnect]
+verify_jwt = true

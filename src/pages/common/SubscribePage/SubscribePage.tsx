@@ -16,7 +16,11 @@ const SLIDES = [
     Icon: UsersIcon,
     title: "Your clients, organised",
     description: "Manage client profiles, session history, surveys, and notes — all in one place.",
-    points: ["Client profiles and onboarding", "Custom surveys and responses", "Session notes and history"],
+    points: [
+      "Client profiles and onboarding",
+      "Custom surveys and responses",
+      "Session notes with optional end-to-end encryption",
+    ],
   },
   {
     Icon: ClipboardIcon,
@@ -64,15 +68,15 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
   },
   growth: {
     label: "Growth",
-    monthly: 15.99,
-    annual: 159,
+    monthly: 13.99,
+    annual: 139,
     desc: "For a growing practice",
     capacity: "15 active · 15 archived",
   },
   unlimited: {
     label: "Unlimited",
-    monthly: 27.99,
-    annual: 279,
+    monthly: 19.99,
+    annual: 199,
     desc: "No limit",
     capacity: "Unlimited clients",
   },

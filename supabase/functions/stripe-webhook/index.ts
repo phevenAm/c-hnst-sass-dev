@@ -26,6 +26,25 @@ function planFromPriceId(priceId: string | null | undefined): { plan: string; in
   return null;
 }
 
+// Canonicalise an email for self-referral detection: lowercase, drop any
+// "+tag" suffix, and for Gmail also strip dots from the local part (Gmail
+// ignores them, so alice.smith@gmail.com and alicesmith@gmail.com are one
+// inbox). Not a security boundary — just closes the obvious plus-addressing
+// dodge for referral farming.
+function normalizeEmail(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const trimmed = raw.trim().toLowerCase();
+  const at = trimmed.lastIndexOf("@");
+  if (at === -1) return trimmed;
+  let local = trimmed.slice(0, at);
+  const domain = trimmed.slice(at + 1);
+  local = local.split("+")[0];
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    return `${local.replace(/\./g, "")}@gmail.com`;
+  }
+  return `${local}@${domain}`;
+}
+
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   const body = await req.text();
@@ -188,24 +207,53 @@ Deno.serve(async (req) => {
         { onConflict: "admin_id" },
       );
 
-      // Apply 2-month balance credit to the referrer
+      // Record the referral as PENDING. The referrer is not paid here — an
+      // instant refund/cancel would otherwise walk away with the credit. The
+      // grant happens later, when this referred practice pays its first
+      // renewal invoice (see the invoice.payment_succeeded handler below).
       if (referralCode) {
+        const referredAdminId = cs.metadata.admin_id;
+        const referredCustomerId = typeof cs.customer === "string" ? cs.customer : null;
+
         const { data: referrer } = await supabase
           .from("practice_settings")
-          .select("billing_customer_id, subscription_plan")
+          .select("admin_id, billing_customer_id")
           .eq("referral_code", referralCode)
-          .single();
+          .maybeSingle();
 
-        if (referrer?.billing_customer_id) {
-          const planPrices: Record<string, number> = { app: 8.99, website: 15, bundle: 29 };
-          const monthlyPrice = planPrices[referrer.subscription_plan ?? "app"] ?? 8.99;
-          const creditPence = Math.round(monthlyPrice * 2 * 100); // 2 months in pence
+        // Unknown code -> silently ignore, exactly as before.
+        if (referrer?.admin_id) {
+          // Self-referral checks. Any hit records the row as rejected (kept
+          // for visibility) rather than pending.
+          let rejectedReason: string | null = null;
+          if (referrer.admin_id === referredAdminId) {
+            rejectedReason = "self_same_account";
+          } else if (referrer.billing_customer_id && referrer.billing_customer_id === referredCustomerId) {
+            rejectedReason = "self_same_customer";
+          } else {
+            const { data: pair } = await supabase
+              .from("users")
+              .select("id, email")
+              .in("id", [referrer.admin_id, referredAdminId]);
+            const referrerEmail = pair?.find((u) => u.id === referrer.admin_id)?.email;
+            const referredEmail = pair?.find((u) => u.id === referredAdminId)?.email;
+            if (referrerEmail && referredEmail && normalizeEmail(referrerEmail) === normalizeEmail(referredEmail)) {
+              rejectedReason = "self_same_email";
+            }
+          }
 
-          await stripe.customers.createBalanceTransaction(referrer.billing_customer_id, {
-            amount: -creditPence, // negative = credit
-            currency: "gbp",
-            description: "Referral credit — 2 months",
-          });
+          // ignoreDuplicates: a re-subscribe or a Stripe redelivery must not
+          // create a second row or disturb an already-granted one.
+          await supabase.from("referral_credits").upsert(
+            {
+              referred_admin_id: referredAdminId,
+              referrer_admin_id: referrer.admin_id,
+              referral_code: referralCode,
+              status: rejectedReason ? "rejected" : "pending",
+              rejected_reason: rejectedReason,
+            },
+            { onConflict: "referred_admin_id", ignoreDuplicates: true },
+          );
         }
       }
 
@@ -606,6 +654,117 @@ Deno.serve(async (req) => {
               status: "failed",
               errorMessage: sendErr.message,
             });
+          }
+        }
+      }
+    }
+  }
+
+  // ── Referral credit — granted only once the REFERRED practice has paid a
+  // full billing period (first renewal invoice). An instant refund/cancel
+  // never produces a subscription_cycle invoice, so it never earns anything.
+  // The credit is sized from the referrer's live Stripe price so it tracks
+  // whatever plan/interval they're actually on.
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = invoice.customer as string | null;
+
+    if (customerId && invoice.billing_reason === "subscription_cycle" && (invoice.amount_paid ?? 0) > 0) {
+      const { data: referredSettings } = await supabase
+        .from("practice_settings")
+        .select("admin_id")
+        .eq("billing_customer_id", customerId)
+        .maybeSingle();
+
+      if (referredSettings?.admin_id) {
+        // Atomically claim the pending row: whichever concurrent delivery wins
+        // this conditional update gets the row back and does the payout; the
+        // rest see nothing. Reverted to 'pending' below if the payout can't
+        // complete, so a later cycle retries.
+        const { data: claim } = await supabase
+          .from("referral_credits")
+          .update({ status: "claimed" })
+          .eq("referred_admin_id", referredSettings.admin_id)
+          .eq("status", "pending")
+          .select("id, referrer_admin_id")
+          .maybeSingle();
+
+        if (claim) {
+          const { data: referrer } = await supabase
+            .from("practice_settings")
+            .select("billing_customer_id, subscription_status, stripe_subscription_id")
+            .eq("admin_id", claim.referrer_admin_id)
+            .maybeSingle();
+
+          const referrerActive =
+            !!referrer?.billing_customer_id &&
+            ["active", "trialing", "past_due"].includes(referrer.subscription_status ?? "");
+
+          if (!referrerActive) {
+            // Referrer has since churned — the offer was "credited to your
+            // account", and there's no account to credit.
+            await supabase
+              .from("referral_credits")
+              .update({ status: "rejected", rejected_reason: "referrer_not_subscribed" })
+              .eq("id", claim.id);
+          } else {
+            // Two months of the referrer's current price, in pence.
+            let monthlyPence: number | null = null;
+            try {
+              let sub: Stripe.Subscription | null = null;
+              if (referrer!.stripe_subscription_id) {
+                sub = await stripe.subscriptions.retrieve(referrer!.stripe_subscription_id);
+              } else {
+                const list = await stripe.subscriptions.list({
+                  customer: referrer!.billing_customer_id!,
+                  status: "active",
+                  limit: 1,
+                });
+                sub = list.data[0] ?? null;
+              }
+              const price = sub?.items.data[0]?.price;
+              if (price?.unit_amount) {
+                monthlyPence =
+                  price.recurring?.interval === "year" ? Math.round(price.unit_amount / 12) : price.unit_amount;
+              }
+            } catch (err) {
+              console.error("referral: failed to load referrer price", err);
+            }
+
+            if (!monthlyPence) {
+              // Couldn't price it — leave it for the next cycle rather than guess.
+              await supabase.from("referral_credits").update({ status: "pending" }).eq("id", claim.id);
+            } else {
+              const creditPence = monthlyPence * 2;
+              try {
+                const txn = await stripe.customers.createBalanceTransaction(referrer!.billing_customer_id!, {
+                  amount: -creditPence, // negative = credit toward future invoices
+                  currency: "gbp",
+                  description: "Referral credit — 2 months",
+                });
+
+                await supabase
+                  .from("referral_credits")
+                  .update({
+                    status: "granted",
+                    credit_amount_pence: creditPence,
+                    stripe_balance_txn_id: txn.id,
+                    granted_at: new Date().toISOString(),
+                  })
+                  .eq("id", claim.id);
+
+                await supabase.from("notifications").insert({
+                  user_id: claim.referrer_admin_id,
+                  type: "referral_credit",
+                  message: `A practice you referred stuck around — £${(creditPence / 100).toFixed(
+                    2,
+                  )} of referral credit is now on your account.`,
+                });
+              } catch (err) {
+                console.error("referral: balance transaction failed, reverting to pending", err);
+                await supabase.from("referral_credits").update({ status: "pending" }).eq("id", claim.id);
+              }
+            }
           }
         }
       }

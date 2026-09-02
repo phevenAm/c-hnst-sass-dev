@@ -27,28 +27,48 @@
   place-items: center;
   width: 100%;
   height: 100vh;
-  background: var(--bg-muted);
+  /* Hard fallbacks: this can paint before index.scss :root vars are applied
+     (cold load, chunk swap). Without them the ground and the leaf could both
+     resolve to nothing and you'd see a bare white flash with no logo. */
+  background: #eef1ec;
+  background: var(--bg-muted, #eef1ec);
+}
+
+@media (prefers-color-scheme: dark) {
+  .splash {
+    background: #12211d;
+    background: var(--bg-muted, #12211d);
+  }
+  .splashLogo {
+    color: #6fb3a1;
+    color: var(--accent, #6fb3a1);
+  }
 }
 
 @keyframes brandCycle {
-  0%   { color: var(--accent);       opacity: 1; }
+  0%   { color: var(--accent, #1f4940);       opacity: 1; }
   12%  { opacity: 0.6; }
-  25%  { color: var(--accent-dark);  opacity: 1; }
+  25%  { color: var(--accent-dark, #163a33);  opacity: 1; }
   37%  { opacity: 0.6; }
-  50%  { color: var(--highlight);    opacity: 1; }
+  50%  { color: var(--highlight, #3f7d6e);    opacity: 1; }
   62%  { opacity: 0.6; }
-  75%  { color: var(--accent-hover); opacity: 1; }
+  75%  { color: var(--accent-hover, #285f53); opacity: 1; }
   87%  { opacity: 0.6; }
-  100% { color: var(--accent);       opacity: 1; }
+  100% { color: var(--accent, #1f4940);       opacity: 1; }
 }
 
 .splashLogo {
+  /* Base colour so the mark is visible on frame 1, before the animation's
+     first keyframe is computed. */
+  color: #1f4940;
+  color: var(--accent, #1f4940);
   animation: brandCycle 6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .splashLogo {
     animation: none;
-    color: var(--accent);
+    color: #1f4940;
+    color: var(--accent, #1f4940);
   }
 }
