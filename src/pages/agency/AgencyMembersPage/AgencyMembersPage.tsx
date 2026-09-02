@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import InviteMemberModal from "@components/agency/InviteMemberModal/InviteMemberModal";
@@ -9,8 +9,10 @@ import { useAuth } from "@context/AuthContext";
 import type { AgencyMemberWithUser } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
+  fetchAgencyClients,
   fetchAgencyMembers,
   selectAgency,
+  selectAgencyClients,
   selectAgencyMembers,
   selectIsAgencyManager,
   setAgencyMember,
@@ -27,6 +29,7 @@ export default function AgencyMembersPage() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const members = useAppSelector(selectAgencyMembers);
+  const clients = useAppSelector(selectAgencyClients);
   const status = useAppSelector((s) => s.agency.membersStatus);
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -34,7 +37,18 @@ export default function AgencyMembersPage() {
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
-  }, [dispatch]);
+    if (agency) dispatch(fetchAgencyClients(agency.id));
+  }, [dispatch, agency]);
+
+  const caseloadByMember = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of clients) {
+      if (c.assignment?.status === "accepted") {
+        map.set(c.assignment.to_admin_id, (map.get(c.assignment.to_admin_id) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [clients]);
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
@@ -67,8 +81,12 @@ export default function AgencyMembersPage() {
                     {displayName(m)} {self && <span className={styles.rowMeta}>(you)</span>}
                   </span>
                   <span className={styles.rowMeta}>
-                    {m.email} · {m.employment_type}
+                    {m.employment_type === "freelance" ? "Freelance" : "Employee"}
                     {isOwner(m) && " · owner"}
+                    {m.counselling_enabled &&
+                      ` · ${caseloadByMember.get(m.user_id) ?? 0} agency client${
+                        (caseloadByMember.get(m.user_id) ?? 0) === 1 ? "" : "s"
+                      }`}
                   </span>
                 </div>
 

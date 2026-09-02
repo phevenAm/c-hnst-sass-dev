@@ -19,6 +19,15 @@ import {
 import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
 
+type Bucket = "unassigned" | "pending" | "accepted" | "declined";
+
+const BUCKETS: { key: Bucket; title: string }[] = [
+  { key: "unassigned", title: "Unassigned" },
+  { key: "pending", title: "Awaiting review" },
+  { key: "accepted", title: "With a counsellor" },
+  { key: "declined", title: "Declined" },
+];
+
 export default function AgencyClientsPage() {
   const dispatch = useAppDispatch();
   const isManager = useAppSelector(selectIsAgencyManager);
@@ -29,6 +38,7 @@ export default function AgencyClientsPage() {
 
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [assigning, setAssigning] = useState<AgencyClient | null>(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!agency) return;
@@ -47,17 +57,20 @@ export default function AgencyClientsPage() {
     return map;
   }, [members]);
 
+  const grouped = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const g: Record<Bucket, AgencyClient[]> = { unassigned: [], pending: [], accepted: [], declined: [] };
+    for (const c of clients) {
+      if (q && !`${c.first_name} ${c.last_name} ${c.email ?? ""}`.toLowerCase().includes(q)) continue;
+      const s = c.assignment?.status;
+      g[s ?? "unassigned"].push(c);
+    }
+    return g;
+  }, [clients, query]);
+
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
-  const statusFor = (c: AgencyClient) => {
-    const a = c.assignment;
-    if (!a) return { label: "Unassigned", variant: "warning" as const };
-    if (a.status === "pending")
-      return { label: `Awaiting ${nameByUserId.get(a.to_admin_id) ?? "review"}`, variant: "neutral" as const };
-    if (a.status === "accepted")
-      return { label: `With ${nameByUserId.get(a.to_admin_id) ?? "a counsellor"}`, variant: "success" as const };
-    return { label: "Declined", variant: "danger" as const };
-  };
+  const total = clients.length;
 
   return (
     <div>
@@ -69,39 +82,67 @@ export default function AgencyClientsPage() {
         <Button onClick={() => setIntakeOpen(true)}>Add a client</Button>
       </div>
 
-      {status === "loading" && clients.length === 0 && <p className={styles.empty}>Loading clients…</p>}
-      {status !== "loading" && clients.length === 0 && (
-        <p className={styles.empty}>No clients yet. Add your first above, then assign them to a counsellor.</p>
-      )}
-      {clients.length > 0 && (
-        <div className={styles.list}>
-          {clients.map((c) => {
-            const s = statusFor(c);
-            const canAssign = !c.assignment || c.assignment.status === "declined";
-            return (
-              <div key={c.id} className={styles.row}>
-                <div className={styles.rowMain}>
-                  <span className={styles.rowName}>
-                    {c.first_name} {c.last_name}
-                  </span>
-                  <span className={styles.rowMeta}>
-                    {c.email || "No email"}
-                    {c.default_rate_pence != null && ` · ${formatPence(c.default_rate_pence)} / session`}
-                  </span>
-                </div>
-                <div className={styles.rowActions}>
-                  <Badge variant={s.variant}>{s.label}</Badge>
-                  {canAssign && (
-                    <Button size="sm" onClick={() => setAssigning(c)}>
-                      {c.assignment?.status === "declined" ? "Reassign" : "Assign"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {total > 0 && (
+        <div className={styles.toolbar}>
+          <input
+            className={`${styles.input} ${styles.grow}`}
+            placeholder="Search clients by name or email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
       )}
+
+      {status === "loading" && total === 0 && <p className={styles.empty}>Loading clients…</p>}
+      {status !== "loading" && total === 0 && (
+        <p className={styles.empty}>No clients yet. Add your first above, then assign them to a counsellor.</p>
+      )}
+
+      {BUCKETS.map(({ key, title }) => {
+        const rows = grouped[key];
+        if (rows.length === 0) return null;
+        return (
+          <div key={key} className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>{title}</h2>
+              <span className={styles.countPill}>{rows.length}</span>
+            </div>
+            <div className={styles.list}>
+              {rows.map((c) => {
+                const canAssign = !c.assignment || c.assignment.status === "declined";
+                const withName = c.assignment ? nameByUserId.get(c.assignment.to_admin_id) : null;
+                return (
+                  <div key={c.id} className={styles.row}>
+                    <div className={styles.rowMain}>
+                      <span className={styles.rowName}>
+                        {c.first_name} {c.last_name}
+                      </span>
+                      <span className={styles.rowMeta}>
+                        {c.email || "No email"}
+                        {c.default_rate_pence != null && ` · ${formatPence(c.default_rate_pence)} / session`}
+                        {key === "pending" && withName && ` · with ${withName}`}
+                        {key === "accepted" && withName && ` · ${withName}`}
+                        {key === "declined" && c.assignment?.decline_reason && ` · "${c.assignment.decline_reason}"`}
+                      </span>
+                    </div>
+                    <div className={styles.rowActions}>
+                      {key === "unassigned" && <Badge variant="warning">Unassigned</Badge>}
+                      {key === "pending" && <Badge variant="neutral">In review</Badge>}
+                      {key === "accepted" && <Badge variant="success">Active</Badge>}
+                      {key === "declined" && <Badge variant="danger">Declined</Badge>}
+                      {canAssign && (
+                        <Button size="sm" onClick={() => setAssigning(c)}>
+                          {c.assignment?.status === "declined" ? "Reassign" : "Assign"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
       {intakeOpen && agency && <IntakeClientModal agencyId={agency.id} onClose={() => setIntakeOpen(false)} />}
       {assigning && <AssignClientModal client={assigning} members={members} onClose={() => setAssigning(null)} />}

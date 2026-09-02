@@ -118,12 +118,75 @@ export default function AgencyFinancePage() {
         </div>
         <div className={styles.tile}>
           <p className={styles.tileLabel}>Net</p>
-          <div className={styles.tileValue}>{summary ? formatPence(summary.net_pence) : "—"}</div>
+          <div
+            className={styles.tileValue}
+            style={{ color: (summary?.net_pence ?? 0) < 0 ? "var(--danger)" : "var(--success)" }}
+          >
+            {summary ? formatPence(summary.net_pence) : "—"}
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.grid2}>
+        <div className={styles.panel}>
+          <h3 className={styles.panelTitle}>Income vs outgoings</h3>
+          {(() => {
+            const inc = summary?.income_pence ?? 0;
+            const out = summary?.outgoings_pence ?? 0;
+            const max = Math.max(1, inc, out);
+            return (
+              <>
+                <div className={styles.barRow}>
+                  <span className={styles.barLabel}>Income</span>
+                  <span className={styles.barTrack}>
+                    <span
+                      className={styles.barFill}
+                      style={{ width: `${(inc / max) * 100}%`, background: "#3f7d6e" }}
+                    />
+                  </span>
+                  <span className={styles.barValue}>{formatPence(inc)}</span>
+                </div>
+                <div className={styles.barRow}>
+                  <span className={styles.barLabel}>Outgoings</span>
+                  <span className={styles.barTrack}>
+                    <span
+                      className={styles.barFill}
+                      style={{ width: `${(out / max) * 100}%`, background: "#b23b3b" }}
+                    />
+                  </span>
+                  <span className={styles.barValue}>{formatPence(out)}</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        <div className={styles.panel}>
+          <h3 className={styles.panelTitle}>Outgoings by category</h3>
+          {(() => {
+            const byCat = new Map<string, number>();
+            for (const x of expenses) {
+              const k = x.category?.trim() || "Uncategorised";
+              byCat.set(k, (byCat.get(k) ?? 0) + x.amount_pence);
+            }
+            const rows = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+            const max = Math.max(1, ...rows.map(([, v]) => v));
+            if (rows.length === 0) return <p className={styles.empty}>No outgoings recorded yet.</p>;
+            return rows.map(([cat, amt]) => (
+              <div key={cat} className={styles.barRow}>
+                <span className={styles.barLabel}>{cat}</span>
+                <span className={styles.barTrack}>
+                  <span className={styles.barFill} style={{ width: `${(amt / max) * 100}%` }} />
+                </span>
+                <span className={styles.barValue}>{formatPence(amt)}</span>
+              </div>
+            ));
+          })()}
         </div>
       </div>
 
       <h2 className={styles.title} style={{ fontSize: "1.1rem" }}>
-        Outgoings
+        Record an outgoing
       </h2>
 
       <form className={styles.toolbar} onSubmit={addExpense} style={{ alignItems: "flex-end" }}>

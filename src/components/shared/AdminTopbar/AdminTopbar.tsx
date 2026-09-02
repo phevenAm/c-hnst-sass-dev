@@ -10,7 +10,7 @@ import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
-import { MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
+import { LayersIcon, MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 
 import styles from "./AdminTopbar.module.scss";
@@ -64,12 +64,9 @@ export default function AdminTopbar() {
     <header className={styles.topbar}>
       <div className={styles.actions}>
         {(isAgencyManager || isAgencyMember) && (
-          <Link
-            to={isAgencyManager ? "/agency" : "/agency/incoming"}
-            className={styles.iconBtn}
-            style={{ textDecoration: "none", fontWeight: 600 }}
-          >
-            {isAgencyManager ? "Manage" : "Agency"}
+          <Link to={isAgencyManager ? "/agency" : "/agency/incoming"} className={styles.modeSwitch}>
+            <LayersIcon />
+            Agency view
           </Link>
         )}
 

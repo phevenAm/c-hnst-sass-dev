@@ -2,6 +2,9 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
+import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
+import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
+import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 import type { Agency } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
@@ -9,14 +12,9 @@ import { selectAgency, selectIsAgencyManager, updateAgencyPolicies } from "@stor
 
 import styles from "../agency.module.scss";
 
-type PolicyKey = "shared_resources" | "require_note_encryption" | "locked_email_templates" | "locked_consent";
+type PolicyKey = "shared_resources" | "require_note_encryption" | "locked_email_templates";
 
 const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
-  {
-    key: "locked_consent",
-    title: "Agency consent wording",
-    blurb: "Members use the agency's client-consent text below instead of setting their own.",
-  },
   {
     key: "shared_resources",
     title: "Shared resource library",
@@ -34,8 +32,18 @@ const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
   },
 ];
 
+function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className={styles.switch}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-label={label} />
+      <span className={styles.switchTrack} />
+    </label>
+  );
+}
+
 export default function AgencySettingsPage() {
   const dispatch = useAppDispatch();
+  const { authUser } = useAuth();
   const { showToast } = useToast();
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
@@ -49,7 +57,9 @@ export default function AgencySettingsPage() {
   }, [agency]);
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
-  if (!draft) return <p className={styles.empty}>Loading…</p>;
+  if (!draft || !authUser) return <p className={styles.empty}>Loading…</p>;
+
+  const set = (patch: Partial<Agency>) => setDraft({ ...draft, ...patch });
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -60,8 +70,10 @@ export default function AgencySettingsPage() {
         updateAgencyPolicies({
           id: draft.id,
           name: draft.name.trim(),
+          logo_url: draft.logo_url,
           locked_consent: draft.locked_consent,
           consent_text: draft.consent_text,
+          consent_pdf_url: draft.consent_pdf_url,
           shared_resources: draft.shared_resources,
           require_note_encryption: draft.require_note_encryption,
           locked_email_templates: draft.locked_email_templates,
@@ -80,7 +92,7 @@ export default function AgencySettingsPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Settings</h1>
-          <p className={styles.subtitle}>Your agency's name and the rules that apply to every member.</p>
+          <p className={styles.subtitle}>Your agency's identity and the rules that apply to every member.</p>
         </div>
         <Button type="submit" disabled={busy}>
           {busy ? "Saving…" : "Save changes"}
@@ -89,40 +101,92 @@ export default function AgencySettingsPage() {
 
       {error && <div className={styles.error}>{error}</div>}
 
-      <div className={styles.field} style={{ maxWidth: 380, marginBottom: "var(--sp-6)" }}>
-        <label className={styles.label} htmlFor="ag-name">
-          Agency name
-        </label>
-        <input
-          id="ag-name"
-          className={styles.input}
-          value={draft.name}
-          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-        />
+      {/* ── Identity ── */}
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Identity</h2>
+        <p className={styles.cardBlurb}>Shown next to the Clarity mark in manage mode.</p>
+
+        <div className={styles.logoLockup}>
+          {draft.logo_url ? (
+            <img src={draft.logo_url} alt="Agency logo" className={styles.logoImg} />
+          ) : (
+            <div className={styles.logoImg} aria-hidden="true" />
+          )}
+          <div>
+            <UploadAndDisplayImage userId={authUser.id} bucket="logos" onUpload={(url) => set({ logo_url: url })} />
+            {draft.logo_url && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => set({ logo_url: null })}>
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.field} style={{ maxWidth: 400 }}>
+          <label className={styles.label} htmlFor="ag-name">
+            Agency name
+          </label>
+          <input
+            id="ag-name"
+            className={styles.input}
+            value={draft.name}
+            onChange={(e) => set({ name: e.target.value })}
+          />
+        </div>
       </div>
 
-      <div>
+      {/* ── Client consent ── */}
+      <div className={styles.card}>
+        <div className={styles.toggleRow} style={{ borderBottom: "none", paddingTop: 0 }}>
+          <div className={styles.toggleText}>
+            <strong>Agency client consent</strong>
+            <span>Members use the agency's consent below instead of setting their own.</span>
+          </div>
+          <Switch
+            checked={draft.locked_consent}
+            onChange={(v) => set({ locked_consent: v })}
+            label="Agency client consent"
+          />
+        </div>
+
+        {draft.locked_consent && (
+          <div style={{ marginTop: "var(--sp-3)" }}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="ag-consent">
+                Consent text
+              </label>
+              <textarea
+                id="ag-consent"
+                className={styles.textarea}
+                style={{ minHeight: 140 }}
+                value={draft.consent_text ?? ""}
+                onChange={(e) => set({ consent_text: e.target.value })}
+                placeholder="The consent wording your clients must agree to."
+              />
+            </div>
+            <div className={styles.field} style={{ marginTop: "var(--sp-3)" }}>
+              <span className={styles.label}>Or attach a consent PDF</span>
+              <PdfUpload
+                adminId={authUser.id}
+                value={draft.consent_pdf_url ?? ""}
+                onChange={(url) => set({ consent_pdf_url: url })}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Policies ── */}
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Member policies</h2>
+        <p className={styles.cardBlurb}>Rules the agency enforces across every member's practice.</p>
         {POLICIES.map((p) => (
           <div key={p.key} className={styles.toggleRow}>
             <div className={styles.toggleText}>
               <strong>{p.title}</strong>
               <span>{p.blurb}</span>
-              {p.key === "locked_consent" && draft.locked_consent && (
-                <textarea
-                  className={styles.textarea}
-                  style={{ marginTop: "var(--sp-2)" }}
-                  value={draft.consent_text ?? ""}
-                  onChange={(e) => setDraft({ ...draft, consent_text: e.target.value })}
-                  placeholder="The consent text your clients must agree to."
-                />
-              )}
             </div>
-            <input
-              type="checkbox"
-              checked={draft[p.key]}
-              onChange={(e) => setDraft({ ...draft, [p.key]: e.target.checked })}
-              aria-label={p.title}
-            />
+            <Switch checked={draft[p.key]} onChange={(v) => set({ [p.key]: v } as Partial<Agency>)} label={p.title} />
           </div>
         ))}
       </div>

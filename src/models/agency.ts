@@ -11,6 +11,7 @@ export interface Agency {
   id: string;
   name: string;
   owner_id: string;
+  logo_url: string | null;
   locked_consent: boolean;
   consent_text: string | null;
   consent_pdf_url: string | null;

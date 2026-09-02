@@ -84,10 +84,11 @@ export const fetchAgencyMembers = createAsyncThunk("agency/fetchMembers", async 
     .order("joined_at", { ascending: true });
   if (error) return rejectWithValue(error.message);
 
+  // public.users has no email / avatar_url column (those live on auth.users) —
+  // selecting them 400s the whole query.
   const ids = (members ?? []).map((m) => (m as AgencyMember).user_id);
   const profiles = ids.length
-    ? ((await supabase.from("users").select("id, first_name, last_name, display_name, email, avatar_url").in("id", ids))
-        .data ?? [])
+    ? ((await supabase.from("users").select("id, first_name, last_name, display_name").in("id", ids)).data ?? [])
     : [];
   const byId = new Map(profiles.map((p) => [(p as { id: string }).id, p as Record<string, string | null>]));
 
@@ -99,8 +100,8 @@ export const fetchAgencyMembers = createAsyncThunk("agency/fetchMembers", async 
       first_name: u.first_name ?? null,
       last_name: u.last_name ?? null,
       display_name: u.display_name ?? null,
-      email: u.email ?? null,
-      avatar_url: u.avatar_url ?? null,
+      email: null,
+      avatar_url: null,
     };
   });
 });
@@ -310,6 +311,7 @@ export const updateAgencyPolicies = createAsyncThunk(
       Pick<
         Agency,
         | "name"
+        | "logo_url"
         | "locked_consent"
         | "consent_text"
         | "consent_pdf_url"
