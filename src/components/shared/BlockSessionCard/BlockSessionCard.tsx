@@ -84,7 +84,7 @@ export function BlockSessionCard({
       <div className={styles.blockHeader}>
         <span className={styles.blockLabel}>
           {blockTotal} session block
-          {blockPriceLabel && ` · ${blockPriceLabel} total`}
+          {isAdmin && blockPriceLabel && ` · ${blockPriceLabel} total`}
           {sortedSessions.length < blockTotal && ` · ${sortedSessions.length} remaining`}
           {allPaid && <span className={styles.blockPaidBadge}> · Paid</span>}
         </span>

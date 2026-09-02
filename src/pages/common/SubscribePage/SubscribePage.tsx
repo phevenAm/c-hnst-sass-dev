@@ -75,7 +75,7 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
   },
   unlimited: {
     label: "Unlimited",
-    monthly: 19.99,
+    monthly: 23.99,
     annual: 199,
     desc: "No limit",
     capacity: "Unlimited clients",

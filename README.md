@@ -2,7 +2,7 @@
 
 A client portal for mental health practitioners. Clients complete regular check-ins, track their progress over time, and access resources assigned by their practitioner. The admin side gives the practitioner a clear view of each client's progress and the tools to manage content and questionnaires.
 
-**Live demo:** https://honest-portal.vercel.app/
+**Live demo:** https://withclarity.uk/
 
 ## Tech stack
 

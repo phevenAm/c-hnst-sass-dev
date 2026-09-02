@@ -1,6 +1,6 @@
 .container {
-  max-width: 680px;
-  padding-top: var(--spacing-xl);
+  max-width: 720px;
+  padding-top: var(--spacing-xxl);
   padding-bottom: var(--spacing-xxl);
 
   h1 {
@@ -8,41 +8,61 @@
   }
 
   h2 {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 600;
-    margin-top: var(--spacing-xl);
+    margin-top: 0;
     margin-bottom: var(--spacing-sm);
+    scroll-margin-top: var(--spacing-xl);
   }
 
   h3 {
-    font-size: 0.98rem;
+    font-size: 1rem;
     font-weight: 600;
-    margin-top: var(--spacing-md);
+    margin-top: var(--spacing-lg);
     margin-bottom: var(--spacing-xs);
   }
 
   ul {
     margin: 0 0 var(--spacing-md);
-    padding-left: 1.25rem;
+    padding-left: 1.35rem;
   }
 
   li {
     color: var(--text-secondary);
-    line-height: 1.7;
+    line-height: 1.75;
     margin-bottom: var(--spacing-xs);
     font-size: 0.95rem;
   }
 
   p {
     color: var(--text-secondary);
-    line-height: 1.7;
+    line-height: 1.75;
     margin-bottom: var(--spacing-md);
     font-size: 0.95rem;
   }
 
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+
   section {
     border-bottom: 1px solid var(--border-color, #e5e7eb);
-    padding-bottom: var(--spacing-lg);
+    padding-block: var(--spacing-xl);
+
+    &:first-of-type {
+      padding-top: var(--spacing-lg);
+    }
 
     &:last-of-type {
       border-bottom: none;

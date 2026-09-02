@@ -164,7 +164,7 @@ export default function AgencyLayout() {
           <p className={styles.poweredBy}>
             <span className={styles.linkLabel}>
               Powered by{" "}
-              <a href="https://clarity.app" target="_blank" rel="noopener noreferrer">
+              <a href="https://withclarity.uk" target="_blank" rel="noopener noreferrer">
                 Clarity
               </a>
               {" · "}v{__APP_VERSION__}

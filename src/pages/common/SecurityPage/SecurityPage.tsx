@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import NewTabLink from "../../../components/shared/NewTabLink/NewTabLink";
+
 import styles from "./SecurityPage.module.scss";
 
 export default function SecurityPage() {
@@ -62,14 +64,15 @@ export default function SecurityPage() {
           <h2>Reporting a security issue</h2>
           <p>
             If you believe you've found a security vulnerability in Clarity, please email us at{" "}
-            <a href="mailto:hello@clarity.app">hello@clarity.app</a> with details. We ask that you give us a reasonable
-            amount of time to investigate and address any issue before disclosing it publicly.
+            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a> with details. We ask that you give us a
+            reasonable amount of time to investigate and address any issue before disclosing it publicly.
           </p>
         </section>
 
         <p className={styles.contact}>
-          See also our <Link to="/privacy">Privacy Policy</Link>, <Link to="/terms">Terms of Service</Link>, and{" "}
-          <Link to="/legal/subprocessors">Subprocessors</Link>.
+          See also our <NewTabLink href="/privacy">Privacy Policy</NewTabLink>,{" "}
+          <NewTabLink href="/terms">Terms of Service</NewTabLink>, and{" "}
+          <NewTabLink href="/legal/subprocessors">Subprocessors</NewTabLink>.
         </p>
       </div>
     </div>

@@ -124,7 +124,7 @@ export default function SubprocessorsPage() {
         </section>
 
         <p className={styles.contact}>
-          Questions? Contact us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>
+          Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
         </p>
       </div>
     </div>
