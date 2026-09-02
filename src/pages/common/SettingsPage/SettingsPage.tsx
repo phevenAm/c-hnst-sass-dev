@@ -51,8 +51,8 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
 type TierKey = "starter" | "growth" | "unlimited";
 const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
   starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
-  growth: { label: "Growth", monthly: 15.99, annual: 159, blurb: "For a growing practice" },
-  unlimited: { label: "Unlimited", monthly: 27.99, annual: 279, blurb: "No client limit" },
+  growth: { label: "Growth", monthly: 13.99, annual: 139, blurb: "For a growing practice" },
+  unlimited: { label: "Unlimited", monthly: 19.99, annual: 199, blurb: "No client limit" },
 };
 const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
 
@@ -319,6 +319,17 @@ const SettingsPage = () => {
   const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false);
 
+  const [microsoftStatus, setMicrosoftStatus] = useState<{
+    connected: boolean;
+    microsoft_email: string | null;
+    sync_enabled: boolean;
+    create_teams_links: boolean;
+  } | null>(null);
+  const [savingMicrosoftSync, setSavingMicrosoftSync] = useState(false);
+  const [savingTeamsLinks, setSavingTeamsLinks] = useState(false);
+  const [disconnectingMicrosoft, setDisconnectingMicrosoft] = useState(false);
+  const [confirmDisconnectMicrosoft, setConfirmDisconnectMicrosoft] = useState(false);
+
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
@@ -482,6 +493,14 @@ const SettingsPage = () => {
     supabase.rpc("get_google_calendar_status").then(({ data }) => {
       const row = data?.[0];
       if (row) setGoogleStatus(row);
+    });
+  }, [isAdmin, userProfile?.id]);
+
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    supabase.rpc("get_microsoft_calendar_status").then(({ data }) => {
+      const row = data?.[0];
+      if (row) setMicrosoftStatus(row);
     });
   }, [isAdmin, userProfile?.id]);
 
@@ -989,6 +1008,66 @@ const SettingsPage = () => {
       showToast(err instanceof Error ? err.message : "Failed to disconnect Google Calendar", "error");
     }
     setDisconnectingGoogle(false);
+  };
+
+  const handleConnectMicrosoftCalendar = () => {
+    if (guardDemo()) return;
+    const clientId = import.meta.env.VITE_MICROSOFT_CALENDAR_CLIENT_ID;
+    const redirect = `${window.location.origin}/settings/microsoft-callback`;
+    const scope = "offline_access Calendars.ReadWrite OnlineMeetings.ReadWrite User.Read";
+    window.location.href =
+      `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirect)}&response_type=code&response_mode=query` +
+      `&scope=${encodeURIComponent(scope)}&prompt=consent`;
+  };
+
+  const handleToggleMicrosoftSync = async () => {
+    if (guardDemo()) return;
+    if (!microsoftStatus) return;
+    const nextEnabled = !microsoftStatus.sync_enabled;
+    setSavingMicrosoftSync(true);
+    const { error: rpcError } = await supabase.rpc("set_microsoft_calendar_sync_enabled", { p_enabled: nextEnabled });
+    if (rpcError) {
+      showToast(rpcError.message, "error");
+    } else {
+      setMicrosoftStatus({ ...microsoftStatus, sync_enabled: nextEnabled });
+      showToast(nextEnabled ? "Outlook sync resumed." : "Outlook sync paused.");
+    }
+    setSavingMicrosoftSync(false);
+  };
+
+  const handleToggleTeamsLinks = async () => {
+    if (guardDemo()) return;
+    if (!microsoftStatus) return;
+    const nextEnabled = !microsoftStatus.create_teams_links;
+    setSavingTeamsLinks(true);
+    const { error: rpcError } = await supabase.rpc("set_microsoft_teams_links_enabled", { p_enabled: nextEnabled });
+    if (rpcError) {
+      showToast(rpcError.message, "error");
+    } else {
+      setMicrosoftStatus({ ...microsoftStatus, create_teams_links: nextEnabled });
+      showToast(
+        nextEnabled
+          ? "New online sessions will get a Teams meeting link."
+          : "Teams meeting links turned off — sessions still sync to Outlook.",
+      );
+    }
+    setSavingTeamsLinks(false);
+  };
+
+  const handleDisconnectMicrosoftCalendar = async () => {
+    if (guardDemo()) return;
+    setDisconnectingMicrosoft(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("microsoft-calendar-disconnect");
+      if (fnError) throw new Error(fnError.message);
+      setMicrosoftStatus({ connected: false, microsoft_email: null, sync_enabled: false, create_teams_links: false });
+      showToast("Microsoft calendar disconnected.");
+      setConfirmDisconnectMicrosoft(false);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to disconnect Microsoft calendar", "error");
+    }
+    setDisconnectingMicrosoft(false);
   };
 
   if (loading || !userProfile)
@@ -1729,6 +1808,14 @@ const SettingsPage = () => {
                       Clarity.
                     </p>
                   </div>
+                  <div>
+                    <h3>Microsoft 365 / Outlook (auto-sync)</h3>
+                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Connect your Microsoft account once — sessions push to your Outlook calendar automatically,
+                      one-way, the same as Google. Online sessions also get a Microsoft Teams meeting link added
+                      automatically (needs a Microsoft 365 Business account with Teams).
+                    </p>
+                  </div>
                 </div>
 
                 {googleStatus?.connected ? (
@@ -1763,9 +1850,68 @@ const SettingsPage = () => {
                     </div>
                   </>
                 ) : (
+                  <Button variant="primary" onClick={handleConnectGoogleCalendar}>
+                    Connect Google Calendar
+                  </Button>
+                )}
+
+                {microsoftStatus?.connected ? (
+                  <div style={{ marginTop: "var(--sp-6)" }}>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Sync to Outlook</strong>
+                        <span>Connected as {microsoftStatus.microsoft_email ?? "unknown account"}</span>
+                      </span>
+                      <span
+                        className={`${styles.toggleSwitch} ${
+                          microsoftStatus.sync_enabled ? styles.toggleSwitchOn : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={microsoftStatus.sync_enabled}
+                          disabled={savingMicrosoftSync}
+                          onChange={handleToggleMicrosoftSync}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Add Teams meeting links</strong>
+                        <span>Online sessions get a Microsoft Teams join link automatically</span>
+                      </span>
+                      <span
+                        className={`${styles.toggleSwitch} ${
+                          microsoftStatus.create_teams_links ? styles.toggleSwitchOn : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={microsoftStatus.create_teams_links}
+                          disabled={savingTeamsLinks || !microsoftStatus.sync_enabled}
+                          onChange={handleToggleTeamsLinks}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
+                      <Button
+                        variant="ghost-danger"
+                        size="sm"
+                        onClick={() => setConfirmDisconnectMicrosoft(true)}
+                        disabled={disconnectingMicrosoft}
+                      >
+                        {disconnectingMicrosoft ? "Disconnecting…" : "Disconnect Microsoft calendar"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                   <WIP>
-                    <Button variant="primary" onClick={handleConnectGoogleCalendar}>
-                      Connect Google Calendar
+                    <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
+                      Connect Microsoft calendar
                     </Button>
                   </WIP>
                 )}
@@ -2626,6 +2772,20 @@ const SettingsPage = () => {
           confirmLabel="Yes, disconnect"
         >
           <p>Future sessions will stop syncing to Google Calendar. Events already created there won't be removed.</p>
+        </ConfirmModal>
+      )}
+      {confirmDisconnectMicrosoft && (
+        <ConfirmModal
+          title="Disconnect Microsoft calendar?"
+          onClose={() => setConfirmDisconnectMicrosoft(false)}
+          onConfirm={handleDisconnectMicrosoftCalendar}
+          confirming={disconnectingMicrosoft}
+          confirmLabel="Yes, disconnect"
+        >
+          <p>
+            Future sessions will stop syncing to Outlook and no new Teams links will be created. Events and meetings
+            already in your calendar won't be removed.
+          </p>
         </ConfirmModal>
       )}
       {confirmDisconnectStripe && (
