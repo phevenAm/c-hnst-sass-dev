@@ -34,18 +34,26 @@ export function usePlanCapacity() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.rpc("plan_change_check", { p_target: plan });
-      if (cancelled) return;
-      if (data) {
-        setState({
-          loading: false,
-          active: data.active,
-          maxActive: data.max_active,
-          archived: data.archived,
-          maxArchived: data.max_archived,
-        });
-      } else {
-        setState({ loading: false, active: null, maxActive: null, archived: null, maxArchived: null });
+      try {
+        const { data } = await supabase.rpc("plan_change_check", { p_target: plan });
+        if (cancelled) return;
+        if (data) {
+          setState({
+            loading: false,
+            active: data.active,
+            maxActive: data.max_active,
+            archived: data.archived,
+            maxArchived: data.max_archived,
+          });
+        } else {
+          setState({ loading: false, active: null, maxActive: null, archived: null, maxArchived: null });
+        }
+      } catch {
+        // Degrade quietly, per the contract above — the RPC may be missing
+        // (not yet deployed) or unavailable (e.g. under test).
+        if (!cancelled) {
+          setState({ loading: false, active: null, maxActive: null, archived: null, maxArchived: null });
+        }
       }
     })();
     return () => {

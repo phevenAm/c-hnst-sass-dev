@@ -247,7 +247,7 @@
               <div class="demo-browser">
                 <div class="browser-chrome">
                   <div class="browser-dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div>
-                  <div class="browser-url">clarity.app</div>
+                  <div class="browser-url">withclarity.uk</div>
                   <div class="browser-dots-spacer"></div>
                 </div>
                 <div class="browser-viewport">
@@ -448,11 +448,14 @@
               <ul class="plan__list" role="list">
                 <li>Client directory with codenames</li>
                 <li>Offline or online clients — invite anytime</li>
-                <li>Appointment scheduling</li>
-                <li>Wellbeing check-ins &amp; progress tracking</li>
+                <li>Appointment scheduling &amp; reminders</li>
+                <li>Session notes with optional end-to-end encryption</li>
+                <li>Card payments via Stripe Connect — no platform cut</li>
+                <li>Custom surveys &amp; wellbeing check-ins with progress tracking</li>
                 <li>Admin dashboard &amp; analytics</li>
-                <li>CPD logging &amp; exports</li>
+                <li>CPD &amp; supervision logs with exports</li>
                 <li>Resource library with client invites</li>
+                <li>Automated client emails you control</li>
                 <li>Secure client login portal</li>
                 <li>Support built in — help is always a message away</li>
               </ul>
@@ -587,10 +590,10 @@
             to say hello — send us a message.
           </p>
           <p class="contact__email">
-            Email us directly at <a href="mailto:hello@honestportal.co.uk">hello@honestportal.co.uk</a>
+            Email us directly at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
           </p>
           <div class="contact__cta">
-            <a class="btn btn--primary" href="mailto:hello@honestportal.co.uk">Send an email</a>
+            <a class="btn btn--primary" href="mailto:support@withclarity.uk">Send an email</a>
           </div>
         </div>
       </section>
@@ -617,9 +620,9 @@
         </nav>
         <nav class="site-footer__col" aria-label="Contact">
           <p class="site-footer__h">Contact</p>
-          <a href="mailto:hello@honestportal.co.uk">hello@honestportal.co.uk</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
+          <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
+          <a href="/privacy" target="_blank" rel="noopener">Privacy <span class="ext-mark" aria-hidden="true">&#8599;</span><span class="sr-only"> (opens in new tab)</span></a>
+          <a href="/terms" target="_blank" rel="noopener">Terms <span class="ext-mark" aria-hidden="true">&#8599;</span><span class="sr-only"> (opens in new tab)</span></a>
         </nav>
       </div>
       <div class="container site-footer__base">
@@ -679,8 +682,8 @@
         // Mirror of the `plan_limits` table. Annual = ~10 months.
         var TIERS = [
           { name: "Starter", clients: "5", monthly: "7.99", annual: "79" },
-          { name: "Growth", clients: "15", monthly: "15.99", annual: "159" },
-          { name: "Unlimited", clients: null, monthly: "27.99", annual: "279" },
+          { name: "Growth", clients: "15", monthly: "13.99", annual: "139" },
+          { name: "Unlimited", clients: null, monthly: "23.99", annual: "199" },
         ];
 
         var range = document.getElementById("planRange");

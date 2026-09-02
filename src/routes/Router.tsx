@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
+import AgencyReviewBanner from "../components/agency/AgencyReviewBanner/AgencyReviewBanner";
 import ConsentModal from "../components/Consent/ConsentModal";
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
@@ -17,6 +18,7 @@ import ViewportWarningBanner from "../components/shared/ViewportWarningBanner/Vi
 import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
+import { useAgencyBootstrap } from "../Hooks/useAgencyBootstrap";
 import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
 import { useConsentPending } from "../Hooks/useConsentPending";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
@@ -25,6 +27,7 @@ import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
+import { selectAgencyBootstrapStatus, selectAgencyMembership } from "../store/slices/agencySlice";
 import { selectThemeMode } from "../store/slices/themeSlice";
 
 // Every routed page is lazy-loaded so it ships as its own chunk — the initial
@@ -54,6 +57,9 @@ const DemoPage = lazy(() => import("../pages/common/DemoPage/DemoPage"));
 const GoogleCalendarCallbackPage = lazy(
   () => import("../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage"),
 );
+const MicrosoftCalendarCallbackPage = lazy(
+  () => import("../pages/common/MicrosoftCalendarCallbackPage/MicrosoftCalendarCallbackPage"),
+);
 const PrivacyPage = lazy(() => import("../pages/common/PrivacyPage/PrivacyPage"));
 const SecurityPage = lazy(() => import("../pages/common/SecurityPage/SecurityPage"));
 const SettingsPage = lazy(() => import("../pages/common/SettingsPage/SettingsPage"));
@@ -64,6 +70,16 @@ const SubscribePage = lazy(() => import("../pages/common/SubscribePage/Subscribe
 const TermsPage = lazy(() => import("../pages/common/TermsPage/TermsPage"));
 const UnsubscribePage = lazy(() => import("../pages/common/UnsubscribePage/UnsubscribePage"));
 const SuperAdminPage = lazy(() => import("../pages/superadmin/SuperAdminPage/SuperAdminPage"));
+
+const AgencyLayout = lazy(() => import("../components/agency/AgencyLayout/AgencyLayout"));
+const CreateAgencyPage = lazy(() => import("../pages/agency/CreateAgencyPage/CreateAgencyPage"));
+const AgencyOverviewPage = lazy(() => import("../pages/agency/AgencyOverviewPage/AgencyOverviewPage"));
+const AgencyMembersPage = lazy(() => import("../pages/agency/AgencyMembersPage/AgencyMembersPage"));
+const AgencyClientsPage = lazy(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
+const AgencyIncomingPage = lazy(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
+const AgencyFinancePage = lazy(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
+const AgencyOnboardingPage = lazy(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
+const AgencySettingsPage = lazy(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
   const mode = useAppSelector(selectThemeMode);
@@ -161,6 +177,7 @@ function AdminLayout() {
           <DemoBanner />
           <PausedBanner />
           <PastDueBanner />
+          <AgencyReviewBanner />
           <main id="main-content" tabIndex={-1}>
             <div className="page-content">
               <Suspense fallback={null}>
@@ -271,6 +288,26 @@ function OnboardingGate() {
   return <OnboardingModal onComplete={() => setShow(false)} />;
 }
 
+// Loads the current user's agency membership into Redux once per session
+// (and consumes any pending invite token from the sign-up flow).
+function AgencyBootstrapper() {
+  useAgencyBootstrap();
+  return null;
+}
+
+// A counsellor whose agency has switched off their counselling side has no
+// business on the /admin tree — send them to manage mode. Waits for the
+// membership fetch so it doesn't bounce during the initial load.
+function AgencyGate({ children }: { children: React.ReactNode }) {
+  const status = useAppSelector(selectAgencyBootstrapStatus);
+  const membership = useAppSelector(selectAgencyMembership);
+  if (status !== "succeeded") return <>{children}</>;
+  if (membership && membership.status === "active" && !membership.counselling_enabled) {
+    return <Navigate to="/agency" replace />;
+  }
+  return <>{children}</>;
+}
+
 export default function AppRoutes() {
   return (
     <ThemeWrapper>
@@ -280,6 +317,7 @@ export default function AppRoutes() {
           <ViewportWarningBanner />
           <ConsentGate />
           <OnboardingGate />
+          <AgencyBootstrapper />
           <WalkthroughOverlay />
           <Suspense fallback={<AuthLoadingState variant="splash" />}>
             <Routes>
@@ -313,6 +351,7 @@ export default function AppRoutes() {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/settings/stripe-callback" element={<StripeCallbackPage />} />
                 <Route path="/settings/google-callback" element={<GoogleCalendarCallbackPage />} />
+                <Route path="/settings/microsoft-callback" element={<MicrosoftCalendarCallbackPage />} />
               </Route>
 
               <Route
@@ -344,7 +383,9 @@ export default function AppRoutes() {
                   <ProtectedRoute requiredRole="admin">
                     <SubscriptionGate>
                       <AdminSetupGate>
-                        <AdminLayout />
+                        <AgencyGate>
+                          <AdminLayout />
+                        </AgencyGate>
                       </AdminSetupGate>
                     </SubscriptionGate>
                   </ProtectedRoute>
@@ -375,6 +416,31 @@ export default function AppRoutes() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Agency "manage mode" — standalone shell, gated to agency members */}
+              <Route
+                path="/register/agency"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <CreateAgencyPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AgencyLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/agency" element={<AgencyOverviewPage />} />
+                <Route path="/agency/members" element={<AgencyMembersPage />} />
+                <Route path="/agency/clients" element={<AgencyClientsPage />} />
+                <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
+                <Route path="/agency/finance" element={<AgencyFinancePage />} />
+                <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
+                <Route path="/agency/settings" element={<AgencySettingsPage />} />
+              </Route>
 
               <Route path="/" element={<RootRedirect />} />
               <Route path="*" element={<NotFoundPage />} />

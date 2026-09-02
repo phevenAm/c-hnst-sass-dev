@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import NewTabLink from "../../../components/shared/NewTabLink/NewTabLink";
 
 import styles from "./TermsPage.module.scss";
 
@@ -13,15 +13,16 @@ export default function TermsPage() {
           <h2>1. About these terms</h2>
           <p>
             These Terms of Service ("Terms") govern your use of the Clarity platform ("Clarity", "the platform", "we",
-            "us") operated by [Trading name — TBD], a sole trader. Our business address is [Registered business address
-            — TBD, pending forwarding address registration].
+            "us") operated by Clarity, a sole trader. Our business address is [Registered business address — TBD,
+            pending forwarding address registration].
           </p>
           <p>
             By creating an account or accessing the platform you agree to these Terms. If you do not agree, do not use
             the platform.
           </p>
           <p>
-            For questions about these Terms, contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>.
+            For questions about these Terms, contact us at{" "}
+            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>.
           </p>
         </section>
 
@@ -67,8 +68,9 @@ export default function TermsPage() {
           <h2>4. Accounts</h2>
           <p>
             You are responsible for keeping your login credentials secure. Do not share your account with anyone else.
-            You must notify us immediately at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a> if you suspect
-            your account has been compromised. We may suspend or terminate accounts that show signs of unauthorised use.
+            You must notify us immediately at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a> if you
+            suspect your account has been compromised. We may suspend or terminate accounts that show signs of
+            unauthorised use.
           </p>
         </section>
 
@@ -86,6 +88,13 @@ export default function TermsPage() {
           <p>
             You may cancel your subscription at any time from your account settings. Cancellation takes effect at the
             end of your current billing period. We do not offer refunds for unused time within a billing period.
+          </p>
+          <p>
+            You may change plan at any time from your account settings. A plan change takes effect immediately and does
+            not change your renewal date. We do not issue cash refunds for the unused portion of your current plan:
+            where you move to a lower-priced plan, the unused value is applied as credit against future invoices; where
+            you move to a higher-priced plan, the price difference for the remainder of the current period is added to
+            your next invoice. Amounts are calculated by Stripe on a pro-rata basis.
           </p>
           <p>
             We will give you at least 30 days' notice of any price increase by email. Continued use after the notice
@@ -136,7 +145,7 @@ export default function TermsPage() {
           <p>
             We process your personal data (as a Practitioner) as a data controller for the purposes of operating your
             account, managing your subscription, and communicating with you. See our{" "}
-            <Link to="/privacy">Privacy Policy</Link> for details.
+            <NewTabLink href="/privacy">Privacy Policy</NewTabLink> for details.
           </p>
           <h3>7.4 Encryption</h3>
           <p>
@@ -145,7 +154,7 @@ export default function TermsPage() {
             <strong>You are responsible for not losing access to your encryption passphrase.</strong> Loss of the
             passphrase may result in permanent loss of access to notes encrypted under it — we cannot recover them for
             you. Where you don't enable it, notes are stored without that additional protection. See our{" "}
-            <Link to="/security">Security page</Link> for more detail.
+            <NewTabLink href="/security">Security page</NewTabLink> for more detail.
           </p>
           <h3>7.5 Your data protection obligations</h3>
           <p>
@@ -170,8 +179,8 @@ export default function TermsPage() {
           </p>
           <p>
             If you delete your Practitioner account, your account data and your clients' profiles will be deleted in
-            accordance with our retention schedule (see our <Link to="/privacy">Privacy Policy</Link>). You should
-            export any data you need to retain before deleting your account.
+            accordance with our retention schedule (see our <NewTabLink href="/privacy">Privacy Policy</NewTabLink>).
+            You should export any data you need to retain before deleting your account.
           </p>
         </section>
 
@@ -180,10 +189,10 @@ export default function TermsPage() {
           <p>
             We implement reasonable technical and organisational measures to protect the platform, including optional
             client-side encryption of session notes, row-level access controls, and authentication requirements — see
-            our <Link to="/security">Security page</Link> for details. However, no online service is completely secure.
-            You are responsible for maintaining the security of your account credentials and (if enabled) your
-            encryption passphrase, ensuring your devices and networks are reasonably secure, and notifying us promptly
-            if you become aware of a security issue.
+            our <NewTabLink href="/security">Security page</NewTabLink> for details. However, no online service is
+            completely secure. You are responsible for maintaining the security of your account credentials and (if
+            enabled) your encryption passphrase, ensuring your devices and networks are reasonably secure, and notifying
+            us promptly if you become aware of a security issue.
           </p>
         </section>
 
@@ -199,10 +208,9 @@ export default function TermsPage() {
         <section>
           <h2>11. Intellectual property</h2>
           <p>
-            All software, design, and content forming part of the Clarity platform is owned by [Trading name — TBD] or
-            licensed to us. Nothing in these Terms grants you any right to the platform's intellectual property other
-            than the limited licence to use it as described here. You retain ownership of all data you input into the
-            platform.
+            All software, design, and content forming part of the Clarity platform is owned by Clarity or licensed to
+            us. Nothing in these Terms grants you any right to the platform's intellectual property other than the
+            limited licence to use it as described here. You retain ownership of all data you input into the platform.
           </p>
         </section>
 
@@ -246,8 +254,8 @@ export default function TermsPage() {
           <p>
             Clarity integrates with third-party services including Stripe (payments) and Resend (email). Your use of
             those services is also subject to their own terms. We are not responsible for the acts or omissions of
-            third-party services. A full list is published on our <Link to="/legal/subprocessors">Subprocessors</Link>{" "}
-            page.
+            third-party services. A full list is published on our{" "}
+            <NewTabLink href="/legal/subprocessors">Subprocessors</NewTabLink> page.
           </p>
         </section>
 
@@ -283,8 +291,8 @@ export default function TermsPage() {
           <h2>18. Complaints</h2>
           <p>
             If you have a concern about the platform or these Terms, please contact us first at{" "}
-            <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>. We will endeavour to resolve complaints within 10
-            working days.
+            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>. We will endeavour to resolve complaints
+            within 10 working days.
           </p>
         </section>
 
@@ -304,7 +312,7 @@ export default function TermsPage() {
         </section>
 
         <p className={styles.contact}>
-          Questions? Contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
+          Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
         </p>
       </div>
     </div>

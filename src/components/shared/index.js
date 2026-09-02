@@ -50,6 +50,7 @@ export {
 export { default as Lookup } from "./Lookup/Lookup";
 export { default as Modal } from "./Modal/Modal";
 export { default as Navbar } from "./Navbar/Navbar";
+export { default as NewTabLink } from "./NewTabLink/NewTabLink";
 export { default as NextSessionCard } from "./NextSessionCard/NextSessionCard";
 export { default as PdfUpload } from "./PdfUpload/PdfUpload";
 export { default as PlanLimitModal } from "./PlanLimitModal/PlanLimitModal";

@@ -51,8 +51,8 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
 type TierKey = "starter" | "growth" | "unlimited";
 const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
   starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
-  growth: { label: "Growth", monthly: 15.99, annual: 159, blurb: "For a growing practice" },
-  unlimited: { label: "Unlimited", monthly: 27.99, annual: 279, blurb: "No client limit" },
+  growth: { label: "Growth", monthly: 13.99, annual: 139, blurb: "For a growing practice" },
+  unlimited: { label: "Unlimited", monthly: 23.99, annual: 199, blurb: "No client limit" },
 };
 const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
 
@@ -319,6 +319,17 @@ const SettingsPage = () => {
   const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false);
 
+  const [microsoftStatus, setMicrosoftStatus] = useState<{
+    connected: boolean;
+    microsoft_email: string | null;
+    sync_enabled: boolean;
+    create_teams_links: boolean;
+  } | null>(null);
+  const [savingMicrosoftSync, setSavingMicrosoftSync] = useState(false);
+  const [savingTeamsLinks, setSavingTeamsLinks] = useState(false);
+  const [disconnectingMicrosoft, setDisconnectingMicrosoft] = useState(false);
+  const [confirmDisconnectMicrosoft, setConfirmDisconnectMicrosoft] = useState(false);
+
   const [useCodenames, setUseCodenames] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
@@ -482,6 +493,14 @@ const SettingsPage = () => {
     supabase.rpc("get_google_calendar_status").then(({ data }) => {
       const row = data?.[0];
       if (row) setGoogleStatus(row);
+    });
+  }, [isAdmin, userProfile?.id]);
+
+  useEffect(() => {
+    if (!isAdmin || !userProfile?.id) return;
+    supabase.rpc("get_microsoft_calendar_status").then(({ data }) => {
+      const row = data?.[0];
+      if (row) setMicrosoftStatus(row);
     });
   }, [isAdmin, userProfile?.id]);
 
@@ -991,6 +1010,66 @@ const SettingsPage = () => {
     setDisconnectingGoogle(false);
   };
 
+  const handleConnectMicrosoftCalendar = () => {
+    if (guardDemo()) return;
+    const clientId = import.meta.env.VITE_MICROSOFT_CALENDAR_CLIENT_ID;
+    const redirect = `${window.location.origin}/settings/microsoft-callback`;
+    const scope = "offline_access Calendars.ReadWrite OnlineMeetings.ReadWrite User.Read";
+    window.location.href =
+      `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirect)}&response_type=code&response_mode=query` +
+      `&scope=${encodeURIComponent(scope)}&prompt=consent`;
+  };
+
+  const handleToggleMicrosoftSync = async () => {
+    if (guardDemo()) return;
+    if (!microsoftStatus) return;
+    const nextEnabled = !microsoftStatus.sync_enabled;
+    setSavingMicrosoftSync(true);
+    const { error: rpcError } = await supabase.rpc("set_microsoft_calendar_sync_enabled", { p_enabled: nextEnabled });
+    if (rpcError) {
+      showToast(rpcError.message, "error");
+    } else {
+      setMicrosoftStatus({ ...microsoftStatus, sync_enabled: nextEnabled });
+      showToast(nextEnabled ? "Outlook sync resumed." : "Outlook sync paused.");
+    }
+    setSavingMicrosoftSync(false);
+  };
+
+  const handleToggleTeamsLinks = async () => {
+    if (guardDemo()) return;
+    if (!microsoftStatus) return;
+    const nextEnabled = !microsoftStatus.create_teams_links;
+    setSavingTeamsLinks(true);
+    const { error: rpcError } = await supabase.rpc("set_microsoft_teams_links_enabled", { p_enabled: nextEnabled });
+    if (rpcError) {
+      showToast(rpcError.message, "error");
+    } else {
+      setMicrosoftStatus({ ...microsoftStatus, create_teams_links: nextEnabled });
+      showToast(
+        nextEnabled
+          ? "New online sessions will get a Teams meeting link."
+          : "Teams meeting links turned off — sessions still sync to Outlook.",
+      );
+    }
+    setSavingTeamsLinks(false);
+  };
+
+  const handleDisconnectMicrosoftCalendar = async () => {
+    if (guardDemo()) return;
+    setDisconnectingMicrosoft(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("microsoft-calendar-disconnect");
+      if (fnError) throw new Error(fnError.message);
+      setMicrosoftStatus({ connected: false, microsoft_email: null, sync_enabled: false, create_teams_links: false });
+      showToast("Microsoft calendar disconnected.");
+      setConfirmDisconnectMicrosoft(false);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to disconnect Microsoft calendar", "error");
+    }
+    setDisconnectingMicrosoft(false);
+  };
+
   if (loading || !userProfile)
     return (
       <div className="page">
@@ -1385,6 +1464,441 @@ const SettingsPage = () => {
                 </section>
               </SettingsCard>
             </WIP>
+
+            {/* Session automation */}
+            <SettingsCard
+              title="Session automation"
+              storageKey="settings:practice:auto-cancel"
+              searchQuery={practiceSearch}
+            >
+              <section className={styles.businessSection}>
+                <p>
+                  Off by default. When enabled, any session that remains unpaid past the cutoff date is{" "}
+                  <strong>automatically cancelled</strong> and a{" "}
+                  <strong>cancellation email is sent to the client</strong>.
+                </p>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Auto-cancel unpaid sessions</strong>
+                    <span>
+                      {autoCancelEnabled
+                        ? "On — sessions will be cancelled and clients emailed when payment is missed."
+                        : "Off — no sessions will be automatically cancelled."}
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={autoCancelEnabled}
+                      onChange={(e) => setAutoCancelEnabled(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                {autoCancelEnabled && (
+                  <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+                    <label htmlFor="paymentDeadlinePractice">Cutoff period</label>
+                    <select
+                      id="paymentDeadlinePractice"
+                      value={paymentDeadlineHours}
+                      onChange={(e) => setPaymentDeadlineHours(Number(e.target.value))}
+                      className={styles.select}
+                    >
+                      <option value={24}>1 day</option>
+                      <option value={48}>2 days</option>
+                      <option value={72}>3 days</option>
+                      <option value={168}>1 week</option>
+                    </select>
+                    <p className={styles.toggleHint}>
+                      How long after the session date before the session is cancelled and the cancellation email is
+                      sent.
+                    </p>
+                  </div>
+                )}
+              </section>
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveAutoCancel}
+                  disabled={savingAutoCancel}
+                >
+                  {savingAutoCancel ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </SettingsCard>
+
+            {/* Reschedule cutoff */}
+            <SettingsCard
+              title="Reschedule & cancellation cutoff"
+              storageKey="settings:practice:cutoff"
+              searchQuery={practiceSearch}
+            >
+              <section className={styles.businessSection}>
+                <p>
+                  Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
+                </p>
+                {stripeConnected ? (
+                  <>
+                    <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Offer card payments to clients</strong>
+                        <span>
+                          Off by default even once connected — turn on when you're ready for clients to see "Pay with
+                          Stripe" as an option.
+                        </span>
+                      </span>
+                      <span className={`${styles.toggleSwitch} ${cardPaymentsEnabled ? styles.toggleSwitchOn : ""}`}>
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={cardPaymentsEnabled}
+                          disabled={savingCardPayments}
+                          onChange={handleToggleCardPayments}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <Button variant="ghost" onClick={() => setConfirmDisconnectStripe(true)}>
+                      Disconnect Stripe
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
+                      const redirect = `${window.location.origin}/settings/stripe-callback`;
+                      window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
+                    }}
+                  >
+                    Connect Stripe account
+                  </Button>
+                )}
+              </section>
+            </SettingsCard>
+
+            {/* Subscription */}
+            {practiceSettings && (
+              <SettingsCard
+                title="Subscription"
+                storageKey="settings:practice:subscription"
+                searchQuery={practiceSearch}
+              >
+                <section className={styles.businessSection}>
+                  <p>
+                    Status:{" "}
+                    <strong
+                      style={{
+                        color: subscriptionStatusColor(
+                          practiceSettings.subscription_status,
+                          practiceSettings.subscription_cancel_at_period_end,
+                        ),
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {practiceSettings.subscription_status}
+                    </strong>
+                    {practiceSettings.subscription_cancel_at_period_end && (
+                      <>
+                        {" "}
+                        — cancels{" "}
+                        {practiceSettings.subscription_current_period_end
+                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                          : "at the end of the current billing period"}
+                      </>
+                    )}
+                  </p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
+                  </p>
+                </section>
+
+                {planLimits &&
+                  (() => {
+                    // Legacy rows still say "app"/"bundle"/"website" until the tier
+                    // migration backfills them — treat anything unrecognised as starter.
+                    const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
+                    const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey)
+                      ? (rawPlan as TierKey)
+                      : "starter";
+                    const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+                    return (
+                      <section className={styles.businessSection}>
+                        <h2>Your plan</h2>
+
+                        {planUsage && currentLimit && (
+                          <div className={styles.planUsage}>
+                            <PlanUsageBar
+                              label="Active clients"
+                              used={planUsage.active}
+                              max={currentLimit.max_active}
+                            />
+                            <PlanUsageBar
+                              label="Archived clients"
+                              used={planUsage.archived}
+                              max={currentLimit.max_archived}
+                            />
+                          </div>
+                        )}
+
+                        <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tierBilling === "monthly"}
+                            className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
+                            onClick={() => setTierBilling("monthly")}
+                          >
+                            Monthly
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tierBilling === "annual"}
+                            className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
+                            onClick={() => setTierBilling("annual")}
+                          >
+                            Annual · 2 months free
+                          </button>
+                        </div>
+
+                        <div className={styles.tierGrid}>
+                          {TIER_ORDER.map((key) => {
+                            const d = TIER_DISPLAY[key];
+                            const limit = planLimits.find((l) => l.plan === key);
+                            const isCurrent = key === currentPlan;
+                            const price = tierBilling === "annual" ? d.annual : d.monthly;
+                            return (
+                              <div
+                                key={key}
+                                className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}
+                              >
+                                <div className={styles.tierName}>{d.label}</div>
+                                <div className={styles.tierPrice}>
+                                  £{price}
+                                  <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
+                                </div>
+                                <div className={styles.tierCap}>
+                                  {!limit || limit.max_active == null
+                                    ? "Unlimited clients"
+                                    : `${limit.max_active} active + ${limit.max_archived} archived`}
+                                </div>
+                                <div className={styles.tierBlurb}>{d.blurb}</div>
+                                {isCurrent ? (
+                                  <span className={styles.tierCurrentBadge}>Current plan</span>
+                                ) : (
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => handlePickPlan(key, tierBilling)}
+                                    disabled={!!switchingPlan || !billingCustomerId}
+                                  >
+                                    {switchingPlan === key ? "Switching…" : "Switch"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {planSwitchError && (
+                          <p className={styles.planSwitchError} role="alert">
+                            {planSwitchError}
+                          </p>
+                        )}
+                        {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
+                      </section>
+                    );
+                  })()}
+
+                {billingCustomerId && (
+                  <div className={styles.actions}>
+                    <Button
+                      variant="primary"
+                      className={styles.saveButton}
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                    >
+                      {loadingPortal ? "Opening…" : "Manage subscription"}
+                    </Button>
+                  </div>
+                )}
+              </SettingsCard>
+            )}
+
+            {/* Refer a friend */}
+            {practiceSettings?.referral_code && (
+              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
+                <section className={styles.businessSection}>
+                  <p>
+                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
+                    credited to your account automatically.
+                  </p>
+                  <div className={styles.field}>
+                    <label htmlFor="referral-link">Your referral link</label>
+                    <input
+                      id="referral-link"
+                      readOnly
+                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </section>
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
+                    {referralCopied ? "Copied!" : "Copy link"}
+                  </Button>
+                </div>
+              </SettingsCard>
+            )}
+
+            <GroupHeading
+              title="Scheduling"
+              searchQuery={practiceSearch}
+              cardTitles={[
+                "Calendar sync",
+                "Session automation",
+                "Reschedule & cancellation cutoff",
+                "Session buffer",
+                "Session-prep reminders",
+                "Block booking cancellations",
+              ]}
+            />
+
+            {/* Calendar sync */}
+            <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={practiceSearch}>
+              <section className={styles.businessSection}>
+                <p>Choose how your sessions show up in your own calendar.</p>
+
+                <div style={{ display: "grid", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
+                  <div>
+                    <h3>Built-in (.ics download)</h3>
+                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Download a calendar file for any session and import it manually. Works with any calendar app —
+                      nothing is connected automatically, so changes made in-app won't update a file you've already
+                      imported.
+                    </p>
+                  </div>
+                  <div>
+                    <h3>Google Calendar (auto-sync)</h3>
+                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Connect your Google account once — every session you book, reschedule, or cancel is pushed to your
+                      Google Calendar automatically. One-way only: changes made directly in Google don't come back into
+                      Clarity.
+                    </p>
+                  </div>
+                  <div>
+                    <h3>Microsoft 365 / Outlook (auto-sync)</h3>
+                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Connect your Microsoft account once — sessions push to your Outlook calendar automatically,
+                      one-way, the same as Google. Online sessions also get a Microsoft Teams meeting link added
+                      automatically (needs a Microsoft 365 Business account with Teams).
+                    </p>
+                  </div>
+                </div>
+
+                {googleStatus?.connected ? (
+                  <>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Sync to Google Calendar</strong>
+                        <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
+                      </span>
+                      <span
+                        className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={googleStatus.sync_enabled}
+                          disabled={savingGoogleSync}
+                          onChange={handleToggleGoogleSync}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
+                      <Button
+                        variant="ghost-danger"
+                        size="sm"
+                        onClick={() => setConfirmDisconnectGoogle(true)}
+                        disabled={disconnectingGoogle}
+                      >
+                        {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <Button variant="primary" onClick={handleConnectGoogleCalendar}>
+                    Connect Google Calendar
+                  </Button>
+                )}
+
+                {microsoftStatus?.connected ? (
+                  <div style={{ marginTop: "var(--sp-6)" }}>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Sync to Outlook</strong>
+                        <span>Connected as {microsoftStatus.microsoft_email ?? "unknown account"}</span>
+                      </span>
+                      <span
+                        className={`${styles.toggleSwitch} ${
+                          microsoftStatus.sync_enabled ? styles.toggleSwitchOn : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={microsoftStatus.sync_enabled}
+                          disabled={savingMicrosoftSync}
+                          onChange={handleToggleMicrosoftSync}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Add Teams meeting links</strong>
+                        <span>Online sessions get a Microsoft Teams join link automatically</span>
+                      </span>
+                      <span
+                        className={`${styles.toggleSwitch} ${
+                          microsoftStatus.create_teams_links ? styles.toggleSwitchOn : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={microsoftStatus.create_teams_links}
+                          disabled={savingTeamsLinks || !microsoftStatus.sync_enabled}
+                          onChange={handleToggleTeamsLinks}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
+                      <Button
+                        variant="ghost-danger"
+                        size="sm"
+                        onClick={() => setConfirmDisconnectMicrosoft(true)}
+                        disabled={disconnectingMicrosoft}
+                      >
+                        {disconnectingMicrosoft ? "Disconnecting…" : "Disconnect Microsoft calendar"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <WIP>
+                    <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
+                      Connect Microsoft calendar
+                    </Button>
+                  </WIP>
+                )}
+              </section>
+            </SettingsCard>
 
             {/* Session automation */}
             <SettingsCard
@@ -2630,6 +3144,20 @@ const SettingsPage = () => {
           <p>Future sessions will stop syncing to Google Calendar. Events already created there won't be removed.</p>
         </ConfirmModal>
       )}
+      {confirmDisconnectMicrosoft && (
+        <ConfirmModal
+          title="Disconnect Microsoft calendar?"
+          onClose={() => setConfirmDisconnectMicrosoft(false)}
+          onConfirm={handleDisconnectMicrosoftCalendar}
+          confirming={disconnectingMicrosoft}
+          confirmLabel="Yes, disconnect"
+        >
+          <p>
+            Future sessions will stop syncing to Outlook and no new Teams links will be created. Events and meetings
+            already in your calendar won't be removed.
+          </p>
+        </ConfirmModal>
+      )}
       {confirmDisconnectStripe && (
         <ConfirmModal
           title="Disconnect Stripe?"
@@ -2659,7 +3187,11 @@ const SettingsPage = () => {
             {confirmSwitch.billing === "annual"
               ? `${TIER_DISPLAY[confirmSwitch.plan].annual}/year`
               : `${TIER_DISPLAY[confirmSwitch.plan].monthly}/month`}
-            . Stripe adjusts your next invoice for time already paid on your current plan.
+            . The change takes effect straight away and your renewal date stays the same.
+          </p>
+          <p>
+            We don't refund unused time on your current plan — any difference is applied as account credit or added to
+            your next invoice.
           </p>
         </ConfirmModal>
       )}

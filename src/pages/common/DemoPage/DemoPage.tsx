@@ -119,7 +119,7 @@ export default function DemoPage() {
                 <Link to="/register" className={styles.submitBtn} style={{ textAlign: "center" }}>
                   Register your practice
                 </Link>
-                <a href="mailto:hello@Clarity.app" className={styles.link}>
+                <a href="mailto:support@withclarity.uk" className={styles.link}>
                   Have questions? Email us
                 </a>
               </div>

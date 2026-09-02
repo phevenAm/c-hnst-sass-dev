@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
   const { data: allSessions, error: sessionsError } = await supabase
     .from("sessions")
-    .select("id, scheduled_at, duration_minutes, paid, location, client_id")
+    .select("id, scheduled_at, duration_minutes, paid, location, client_id, address")
     .gte("scheduled_at", new Date(now).toISOString())
     .lte("scheduled_at", broadTo)
     .eq("status", "scheduled")
@@ -279,6 +279,15 @@ Deno.serve(async (req) => {
         { label: "Location", value: locationLabel },
       ]);
 
+      // For online sessions, session.address holds the meeting URL (a Teams
+      // link auto-added by the Microsoft integration, or one the practitioner
+      // typed in). Only surface it when it's actually a link.
+      const meetingUrl =
+        session.location !== "in_person" && /^https?:\/\//i.test(session.address ?? "") ? session.address : null;
+      const joinLine = meetingUrl
+        ? para(`<a href="${meetingUrl}" style="color:#2d7264;font-weight:600;">Join the session online</a>`)
+        : "";
+
       let body: string;
       if (adminSettings?.body) {
         const interpolated = adminSettings.body
@@ -306,6 +315,8 @@ Deno.serve(async (req) => {
             `Sessions that remain unpaid within ${deadlineLabel} may be cancelled. If you have questions, please contact your therapist.`,
           );
       }
+
+      body += joinLine;
 
       const heading = adminSettings?.heading
         ? adminSettings.heading.replace(/\{\{name\}\}/gi, firstName)

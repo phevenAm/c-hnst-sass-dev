@@ -81,14 +81,22 @@ async function main() {
   // state so a previous failed run can't leak into the next.
   dbQuery(`
     insert into public.practice_settings
-      (admin_id, reschedule_cutoff_hours, auto_cancel_enabled, payment_deadline_hours, consent_enabled, disabled_email_types)
-    values ('${adminId}', 48, false, 48, false, '{}')
+      (admin_id, reschedule_cutoff_hours, auto_cancel_enabled, payment_deadline_hours, consent_enabled,
+       disabled_email_types, subscription_status, subscription_plan, onboarding_required)
+    values ('${adminId}', 48, false, 48, false, '{}', 'active', 'unlimited', false)
     on conflict (admin_id) do update set
       reschedule_cutoff_hours = 48,
       auto_cancel_enabled = false,
       payment_deadline_hours = 48,
       consent_enabled = false,
-      disabled_email_types = '{}';
+      disabled_email_types = '{}',
+      -- e2e admin must clear the SubscriptionGate and the client-cap triggers:
+      -- 'active' gets past /subscribe, 'unlimited' makes enforce_client_*_limit
+      -- fail open. Specs that test the cap set 'starter'/'growth' themselves and
+      -- restore 'unlimited' in afterAll.
+      subscription_status = 'active',
+      subscription_plan = 'unlimited',
+      onboarding_required = false;
   `);
 
   // Fresh consent state so the gate test can always exercise a client who

@@ -52,6 +52,50 @@ export type Database = {
           },
         ];
       };
+      admin_microsoft_calendar: {
+        Row: {
+          access_token: string | null;
+          access_token_expires_at: string | null;
+          admin_id: string;
+          create_teams_links: boolean;
+          created_at: string;
+          microsoft_email: string | null;
+          refresh_token: string;
+          sync_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          access_token?: string | null;
+          access_token_expires_at?: string | null;
+          admin_id: string;
+          create_teams_links?: boolean;
+          created_at?: string;
+          microsoft_email?: string | null;
+          refresh_token: string;
+          sync_enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          access_token?: string | null;
+          access_token_expires_at?: string | null;
+          admin_id?: string;
+          create_teams_links?: boolean;
+          created_at?: string;
+          microsoft_email?: string | null;
+          refresh_token?: string;
+          sync_enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_microsoft_calendar_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_private_events: {
         Row: {
           admin_id: string;
@@ -1123,6 +1167,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      referral_credits: {
+        Row: {
+          created_at: string;
+          credit_amount_pence: number | null;
+          granted_at: string | null;
+          id: string;
+          referral_code: string;
+          referred_admin_id: string;
+          referrer_admin_id: string;
+          rejected_reason: string | null;
+          status: string;
+          stripe_balance_txn_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          credit_amount_pence?: number | null;
+          granted_at?: string | null;
+          id?: string;
+          referral_code: string;
+          referred_admin_id: string;
+          referrer_admin_id: string;
+          rejected_reason?: string | null;
+          status?: string;
+          stripe_balance_txn_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          credit_amount_pence?: number | null;
+          granted_at?: string | null;
+          id?: string;
+          referral_code?: string;
+          referred_admin_id?: string;
+          referrer_admin_id?: string;
+          rejected_reason?: string | null;
+          status?: string;
+          stripe_balance_txn_id?: string | null;
+        };
+        Relationships: [];
+      };
       reschedule_requests: {
         Row: {
           client_id: string;
@@ -1452,6 +1535,7 @@ export type Database = {
           location: string | null;
           manual_payment_status: string;
           metadata: Json | null;
+          microsoft_event_id: string | null;
           notes: string | null;
           paid: boolean;
           paid_at: string | null;
@@ -1462,6 +1546,7 @@ export type Database = {
           status: Database["public"]["Enums"]["session_status"];
           stripe_payment_intent_id: string | null;
           supervision_cost_pence: number | null;
+          teams_join_url: string | null;
         };
         Insert: {
           address?: string | null;
@@ -1478,6 +1563,7 @@ export type Database = {
           location?: string | null;
           manual_payment_status?: string;
           metadata?: Json | null;
+          microsoft_event_id?: string | null;
           notes?: string | null;
           paid?: boolean;
           paid_at?: string | null;
@@ -1488,6 +1574,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["session_status"];
           stripe_payment_intent_id?: string | null;
           supervision_cost_pence?: number | null;
+          teams_join_url?: string | null;
         };
         Update: {
           address?: string | null;
@@ -1504,6 +1591,7 @@ export type Database = {
           location?: string | null;
           manual_payment_status?: string;
           metadata?: Json | null;
+          microsoft_event_id?: string | null;
           notes?: string | null;
           paid?: boolean;
           paid_at?: string | null;
@@ -1514,6 +1602,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["session_status"];
           stripe_payment_intent_id?: string | null;
           supervision_cost_pence?: number | null;
+          teams_join_url?: string | null;
         };
         Relationships: [
           {
@@ -1852,6 +1941,15 @@ export type Database = {
           sync_enabled: boolean;
         }[];
       };
+      get_microsoft_calendar_status: {
+        Args: never;
+        Returns: {
+          connected: boolean;
+          microsoft_email: string;
+          sync_enabled: boolean;
+          create_teams_links: boolean;
+        }[];
+      };
       get_my_admin_consent_settings: {
         Args: never;
         Returns: {
@@ -1939,6 +2037,14 @@ export type Database = {
       };
       send_admin_session_reminders: { Args: never; Returns: undefined };
       set_google_calendar_sync_enabled: {
+        Args: { p_enabled: boolean };
+        Returns: undefined;
+      };
+      set_microsoft_calendar_sync_enabled: {
+        Args: { p_enabled: boolean };
+        Returns: undefined;
+      };
+      set_microsoft_teams_links_enabled: {
         Args: { p_enabled: boolean };
         Returns: undefined;
       };
