@@ -10,7 +10,7 @@ import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
-import { LayersIcon, MoonIcon, Settingsicon, SunIcon } from "../Icons/Icons";
+import { MoonIcon, RescheduleIcon, Settingsicon, SunIcon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 
 import styles from "./AdminTopbar.module.scss";
@@ -65,7 +65,7 @@ export default function AdminTopbar() {
       <div className={styles.actions}>
         {(isAgencyManager || isAgencyMember) && (
           <Link to={isAgencyManager ? "/agency" : "/agency/incoming"} className={styles.modeSwitch}>
-            <LayersIcon />
+            <RescheduleIcon />
             Agency view
           </Link>
         )}

@@ -1,15 +1,24 @@
-$sidebar-w: 15.5rem;
+$w: 15.5rem;
+$rail: 56px;
 
 .shell {
   min-height: 100vh;
   background: var(--bg-base);
 }
 
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 0;
+  z-index: 55;
+}
+
 /* ── Sidebar ─────────────────────────────────────────────── */
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: $sidebar-w;
+  width: $w;
   background: var(--bg-card);
   border-right: 1px solid var(--border);
   display: flex;
@@ -21,11 +30,13 @@ $sidebar-w: 15.5rem;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-4);
+  padding: var(--sp-4) var(--sp-3);
   border-bottom: 1px solid var(--border);
+  min-height: var(--navbar-height, 60px);
+  justify-content: center;
 }
 
-.lockup {
+.brandLink {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -33,42 +44,32 @@ $sidebar-w: 15.5rem;
   min-width: 0;
 }
 
-.clarity {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-primary);
-  font-weight: 700;
-  font-size: 0.95rem;
+.agencyLogo,
+.logoFallback {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm, 6px);
   flex-shrink: 0;
-}
-
-.divider {
-  width: 1px;
-  align-self: stretch;
-  background: var(--border);
-  margin: 2px 2px;
-}
-
-.agencyMark {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
 }
 
 .agencyLogo {
-  width: 20px;
-  height: 20px;
   object-fit: contain;
-  border-radius: 4px;
-  flex-shrink: 0;
+  background: var(--bg-base);
+}
+
+.logoFallback {
+  display: grid;
+  place-items: center;
+  background: var(--accent-subtle);
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .agencyName {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -96,7 +97,9 @@ $sidebar-w: 15.5rem;
   overflow-y: auto;
 }
 
-.link {
+.link,
+.modeSwitch,
+.signOut {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -104,65 +107,110 @@ $sidebar-w: 15.5rem;
   border-radius: var(--r-md);
   color: var(--text-secondary);
   text-decoration: none;
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 500;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background var(--transition-base), color var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
+}
+
+.linkIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 
   svg {
     width: 18px;
     height: 18px;
     font-size: 18px;
-    flex-shrink: 0;
-    opacity: 0.85;
-  }
-
-  &:hover {
-    background: var(--bg-muted);
-    color: var(--text-primary);
   }
 }
 
-.active {
+.link.active {
   background: var(--accent-subtle);
   color: var(--accent-dark);
   font-weight: 600;
-
-  svg {
-    opacity: 1;
-  }
 }
 
 .sidebarFoot {
   padding: var(--sp-3);
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .modeSwitch {
+  justify-content: flex-start;
+  font-weight: 600;
+}
+
+.signOut {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.poweredBy {
+  margin: var(--sp-2) 0 0;
+  padding: 0 var(--sp-3);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+
+  a {
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+/* Edge chevron — only rendered on mobile */
+.edgeToggle {
+  position: absolute;
+  right: -0.8125rem;
+  top: 4.4rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-2);
-  width: 100%;
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-md);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  background: var(--bg-base);
+  border-radius: 50%;
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all var(--transition-base);
+  cursor: pointer;
+  z-index: 62;
 
   svg {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
   }
 
   &:hover {
-    background: var(--bg-muted);
-    color: var(--text-primary);
-    border-color: var(--border-strong);
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    border-color: var(--accent);
   }
 
   &:focus-visible {
@@ -173,7 +221,7 @@ $sidebar-w: 15.5rem;
 
 /* ── Content ─────────────────────────────────────────────── */
 .main {
-  margin-left: $sidebar-w;
+  margin-left: $w;
   max-width: 1040px;
   padding: var(--sp-8) var(--sp-6) var(--sp-12);
 }
@@ -199,75 +247,48 @@ $sidebar-w: 15.5rem;
   }
 }
 
-/* ── Mobile ──────────────────────────────────────────────── */
-.mobileBar {
-  display: none;
-}
-
-.overlay {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .mobileBar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
-    background: var(--bg-card);
-    border-bottom: 2px solid var(--accent);
+/* ── Mobile: slim icon rail, chevron expands to an overlay ── */
+@media (max-width: 860px) {
+  .sidebar {
+    width: $rail;
+    transition: width 0.22s ease, box-shadow 0.22s ease;
   }
 
-  .hamburger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--bg-base);
-    color: var(--text-primary);
-    cursor: pointer;
+  .sidebar:not(.open) {
+    .agencyName,
+    .modePill,
+    .linkLabel,
+    .poweredBy {
+      display: none;
+    }
 
-    svg {
-      width: 18px;
-      height: 18px;
+    .brand {
+      padding: var(--sp-3) 0;
+      align-items: center;
+    }
+
+    .nav,
+    .sidebarFoot {
+      padding: var(--sp-2);
+      align-items: center;
+    }
+
+    .link,
+    .modeSwitch,
+    .signOut {
+      justify-content: center;
+      gap: 0;
+      padding: var(--sp-2);
     }
   }
 
-  .mobileTitle {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.22s ease;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .sidebarOpen {
-    transform: translateX(0);
-  }
-
-  .overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: 55;
+  .sidebar.open {
+    width: $w;
+    box-shadow: 6px 0 28px rgba(0, 0, 0, 0.18);
   }
 
   .main {
-    margin-left: 0;
+    margin-left: $rail;
     padding: var(--sp-5) var(--sp-4) var(--sp-10);
   }
 }
