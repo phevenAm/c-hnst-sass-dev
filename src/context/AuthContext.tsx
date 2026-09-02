@@ -68,6 +68,9 @@ type AuthContextType = {
   /** Hours before a session that clients are blocked from self-service pay/reschedule/cancel.
    *  null = restriction disabled. undefined = not loaded yet. */
   rescheduleCutoffHours: number | null | undefined;
+  /** Whether this client's practice lets them request to cancel individual sessions in a block.
+   *  Plucked out for clients (full practiceSettings stays admin-only). undefined = not loaded. */
+  allowBlockSessionCancellation: boolean | null | undefined;
   displayName: string | null;
   loading: boolean;
   isFinishingSignup: boolean;
@@ -117,6 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [practiceSettings, setPracticeSettings] = useState<PracticeSettings | null>(null);
   const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState<number | null | undefined>(undefined);
+  const [allowBlockSessionCancellation, setAllowBlockSessionCancellation] = useState<boolean | null | undefined>(
+    undefined,
+  );
   const [loading, setLoading] = useState(true);
   const [isFinishingSignup, setIsFinishingSignup] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -170,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfileError(null);
           setPracticeSettings(null);
           setRescheduleCutoffHours(undefined);
+          setAllowBlockSessionCancellation(undefined);
           prevUserIdRef.current = null;
           store.dispatch(resetStore());
           // Leave `loading` true — the SIGNED_OUT event this triggers runs
@@ -196,11 +203,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const settings = fetchPracticeSettings.fulfilled.match(settingsAction) ? settingsAction.payload : null;
         setPracticeSettings(profileData?.role === "admin" ? (settings ?? null) : null);
         setRescheduleCutoffHours(settings?.reschedule_cutoff_hours ?? null);
+        setAllowBlockSessionCancellation(settings?.allow_block_session_cancellation ?? null);
       } else {
         setUserProfile(null);
         setProfileError(null);
         setPracticeSettings(null);
         setRescheduleCutoffHours(undefined);
+        setAllowBlockSessionCancellation(undefined);
       }
     }
 
@@ -274,6 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUserProfile(null);
             setPracticeSettings(null);
             setRescheduleCutoffHours(undefined);
+            setAllowBlockSessionCancellation(undefined);
             prevUserIdRef.current = null;
             store.dispatch(resetStore());
             supabase.auth.signOut();
@@ -459,6 +469,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userProfile,
       practiceSettings,
       rescheduleCutoffHours,
+      allowBlockSessionCancellation,
       displayName,
       error,
       loading,
@@ -481,6 +492,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userProfile,
       practiceSettings,
       rescheduleCutoffHours,
+      allowBlockSessionCancellation,
       displayName,
       error,
       loading,

@@ -1386,172 +1386,154 @@ const SettingsPage = () => {
             </SettingsCard>
 
             <GroupHeading
-              title="Billing & payments"
+              title="Scheduling"
               searchQuery={practiceSearch}
-              cardTitles={["Session types & prices", "Bank details", "Card payments", "Subscription", "Refer a friend"]}
+              cardTitles={[
+                "Calendar sync",
+                "Session automation",
+                "Reschedule & cancellation cutoff",
+                "Session buffer",
+                "Session-prep reminders",
+                "Block booking cancellations",
+              ]}
             />
 
-            {/* Session types & prices */}
+            <WIP>
+              {/* Calendar sync */}
+              <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={practiceSearch}>
+                <section className={styles.businessSection}>
+                  <p>Choose how your sessions show up in your own calendar.</p>
+
+                  <div style={{ display: "grid", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
+                    <div>
+                      <h3>Built-in (.ics download)</h3>
+                      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                        Download a calendar file for any session and import it manually. Works with any calendar app —
+                        nothing is connected automatically, so changes made in-app won't update a file you've already
+                        imported.
+                      </p>
+                    </div>
+                    <div>
+                      <h3>Google Calendar (auto-sync)</h3>
+                      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                        Connect your Google account once — every session you book, reschedule, or cancel is pushed to
+                        your Google Calendar automatically. One-way only: changes made directly in Google don't come
+                        back into Clarity.
+                      </p>
+                    </div>
+                  </div>
+
+                  {googleStatus?.connected ? (
+                    <>
+                      <label className={styles.toggleRow}>
+                        <span className={styles.toggleLabel}>
+                          <strong>Sync to Google Calendar</strong>
+                          <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
+                        </span>
+                        <span
+                          className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className={styles.toggleInput}
+                            checked={googleStatus.sync_enabled}
+                            disabled={savingGoogleSync}
+                            onChange={handleToggleGoogleSync}
+                          />
+                          <span className={styles.toggleThumb} />
+                        </span>
+                      </label>
+                      <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
+                        <Button
+                          variant="ghost-danger"
+                          size="sm"
+                          onClick={() => setConfirmDisconnectGoogle(true)}
+                          disabled={disconnectingGoogle}
+                        >
+                          {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <WIP>
+                      <Button variant="primary" onClick={handleConnectGoogleCalendar}>
+                        Connect Google Calendar
+                      </Button>
+                    </WIP>
+                  )}
+                </section>
+              </SettingsCard>
+            </WIP>
+
+            {/* Session automation */}
             <SettingsCard
-              title="Session types & prices"
-              storageKey="settings:practice:packages"
+              title="Session automation"
+              storageKey="settings:practice:auto-cancel"
               searchQuery={practiceSearch}
-              id="packages"
             >
               <section className={styles.businessSection}>
                 <p>
-                  What you'll pick from when booking a client's session.{" "}
-                  <InfoTooltip
-                    variant="rich"
-                    title="Session types & prices"
-                    text={
-                      "These are booking presets — nothing here is shown to clients.\n" +
-                      "When you book a session (from '+ New session' on a client's page or in the Scheduler), picking a type fills in its price and duration. Every field stays editable on the session itself, so a one-off rate or a sliding scale still works.\n" +
-                      "Tick 'Recurring block' to make a type that books several weekly sessions in one step. The price you enter is the whole-block price — it's split evenly across the sessions, and the block is paid for as a unit."
-                    }
-                  />
+                  Off by default. When enabled, any session that remains unpaid past the cutoff date is{" "}
+                  <strong>automatically cancelled</strong> and a{" "}
+                  <strong>cancellation email is sent to the client</strong>.
                 </p>
-                {sessionPackages.length > 0 && (
-                  <ul className={styles.packageList}>
-                    {sessionPackages.map((p) => (
-                      <li key={p.id} className={styles.packageItem}>
-                        <span>
-                          {p.name}
-                          <span className={styles.packageMeta}>
-                            {" "}
-                            — £{(p.price_pence / 100).toFixed(2)}
-                            {p.is_recurring
-                              ? ` · ${p.session_count}-week block · £${(p.price_pence / 100 / p.session_count).toFixed(
-                                  2,
-                                )}/session`
-                              : ""}{" "}
-                            · {p.duration_minutes} min
-                          </span>
-                        </span>
-                        <Button variant="ghost" size="sm" onClick={() => handleRemovePackage(p.id)}>
-                          Remove
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className={styles.packageAddCard}>
-                  <p className={styles.packageAddHeading}>Add a session type</p>
-
-                  <label htmlFor="settings-pkg-recurring" className={styles.checkboxRow}>
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Auto-cancel unpaid sessions</strong>
+                    <span>
+                      {autoCancelEnabled
+                        ? "On — sessions will be cancelled and clients emailed when payment is missed."
+                        : "Off — no sessions will be automatically cancelled."}
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
                     <input
-                      id="settings-pkg-recurring"
                       type="checkbox"
-                      checked={newPackageRecurring}
-                      onChange={(e) => setNewPackageRecurring(e.target.checked)}
+                      className={styles.toggleInput}
+                      checked={autoCancelEnabled}
+                      onChange={(e) => setAutoCancelEnabled(e.target.checked)}
                     />
-                    Recurring block — several weekly sessions booked and paid for together
-                  </label>
-
-                  <div className={styles.packageRow}>
-                    <div className={styles.field}>
-                      <label htmlFor="settings-pkg-name">Name</label>
-                      <input
-                        id="settings-pkg-name"
-                        value={newPackageName}
-                        onChange={(e) => setNewPackageName(e.target.value)}
-                        placeholder="e.g. Standard session"
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label htmlFor="settings-pkg-price">
-                        {newPackageRecurring ? "Block price (£)" : "Price (£)"}
-                      </label>
-                      <input
-                        id="settings-pkg-price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={newPackagePrice}
-                        onChange={(e) => setNewPackagePrice(e.target.value)}
-                        placeholder={newPackageRecurring ? "240.00" : "60.00"}
-                      />
-                      {newPackageRecurring && newPackagePrice && Number(newPackageSessionCount) >= 2 && (
-                        <span className={styles.packageMeta}>
-                          £{(parseFloat(newPackagePrice) / Number(newPackageSessionCount)).toFixed(2)} per session ·
-                          client pays the block price once
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={styles.packageNumRow}>
-                      {newPackageRecurring && (
-                        <div className={styles.field}>
-                          <label htmlFor="settings-pkg-count">Number of weeks</label>
-                          <input
-                            id="settings-pkg-count"
-                            type="number"
-                            min="2"
-                            max="52"
-                            value={newPackageSessionCount}
-                            onChange={(e) => setNewPackageSessionCount(e.target.value)}
-                          />
-                          <span className={styles.packageMeta}>
-                            {Number(newPackageSessionCount) >= 2
-                              ? `${Number(newPackageSessionCount)} weekly sessions in total.`
-                              : "One session per week."}
-                          </span>
-                        </div>
-                      )}
-                      <div className={styles.field}>
-                        <label htmlFor="settings-pkg-duration">Duration (min)</label>
-                        <input
-                          id="settings-pkg-duration"
-                          type="number"
-                          min="5"
-                          value={newPackageDuration}
-                          onChange={(e) => setNewPackageDuration(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className={styles.packageAddActions}>
-                      <Button
-                        onClick={handleAddPackage}
-                        disabled={!newPackageName.trim() || !newPackagePrice || addingPackage}
-                      >
-                        {addingPackage ? "Adding…" : "+ Add session type"}
-                      </Button>
-                    </div>
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                {autoCancelEnabled && (
+                  <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
+                    <label htmlFor="paymentDeadlinePractice">Cutoff period</label>
+                    <select
+                      id="paymentDeadlinePractice"
+                      value={paymentDeadlineHours}
+                      onChange={(e) => setPaymentDeadlineHours(Number(e.target.value))}
+                      className={styles.select}
+                    >
+                      <option value={24}>1 day</option>
+                      <option value={48}>2 days</option>
+                      <option value={72}>3 days</option>
+                      <option value={168}>1 week</option>
+                    </select>
+                    <p className={styles.toggleHint}>
+                      How long after the session date before the session is cancelled and the cancellation email is
+                      sent.
+                    </p>
                   </div>
-                </div>
-              </section>
-            </SettingsCard>
-
-            {/* Bank details */}
-            <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={practiceSearch}>
-              <section className={styles.businessSection}>
-                <p>Shown to clients as a payment option when they pay for a session.</p>
-                <form className={styles.form}>
-                  {BANK_FIELDS.map(({ key, label, placeholder }) => (
-                    <div className={styles.field} key={key}>
-                      <label>{label}</label>
-                      <input
-                        value={bankDetails[key]}
-                        placeholder={placeholder}
-                        onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </form>
+                )}
               </section>
               <div className={styles.actions}>
-                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
-                  {savingBank ? "Saving…" : "Save bank details"}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className={styles.saveButton}
+                  onClick={handleSaveAutoCancel}
+                  disabled={savingAutoCancel}
+                >
+                  {savingAutoCancel ? "Saving…" : "Save"}
                 </Button>
               </div>
             </SettingsCard>
 
-            {/* Stripe Connect */}
+            {/* Reschedule cutoff */}
             <SettingsCard
-              title="Card payments"
-              storageKey="settings:practice:card-payments"
+              title="Reschedule & cancellation cutoff"
+              storageKey="settings:practice:cutoff"
               searchQuery={practiceSearch}
             >
               <section className={styles.businessSection}>
@@ -2371,6 +2353,394 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </SettingsCard>
+
+            <GroupHeading
+              title="Billing & payments"
+              searchQuery={practiceSearch}
+              cardTitles={["Session types & prices", "Bank details", "Card payments", "Subscription", "Refer a friend"]}
+            />
+
+            {/* Session types & prices */}
+            <SettingsCard
+              title="Session types & prices"
+              storageKey="settings:practice:packages"
+              searchQuery={practiceSearch}
+              id="packages"
+            >
+              <section className={styles.businessSection}>
+                <p>
+                  What you'll pick from when booking a client's session.{" "}
+                  <InfoTooltip
+                    variant="rich"
+                    title="Session types & prices"
+                    text={
+                      "These are booking presets — nothing here is shown to clients.\n" +
+                      "When you book a session (from '+ New session' on a client's page or in the Scheduler), picking a type fills in its price and duration. Every field stays editable on the session itself, so a one-off rate or a sliding scale still works.\n" +
+                      "Tick 'Recurring block' to make a type that books several weekly sessions in one step. The price you enter is the whole-block price — it's split evenly across the sessions, and the block is paid for as a unit."
+                    }
+                  />
+                </p>
+                {sessionPackages.length > 0 && (
+                  <ul className={styles.packageList}>
+                    {sessionPackages.map((p) => (
+                      <li key={p.id} className={styles.packageItem}>
+                        <span>
+                          {p.name}
+                          <span className={styles.packageMeta}>
+                            {" "}
+                            — £{(p.price_pence / 100).toFixed(2)}
+                            {p.is_recurring
+                              ? ` · ${p.session_count}-week block · £${(p.price_pence / 100 / p.session_count).toFixed(
+                                  2,
+                                )}/session`
+                              : ""}{" "}
+                            · {p.duration_minutes} min
+                          </span>
+                        </span>
+                        <Button variant="ghost" size="sm" onClick={() => handleRemovePackage(p.id)}>
+                          Remove
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className={styles.packageAddCard}>
+                  <p className={styles.packageAddHeading}>Add a session type</p>
+
+                  <label htmlFor="settings-pkg-recurring" className={styles.checkboxRow}>
+                    <input
+                      id="settings-pkg-recurring"
+                      type="checkbox"
+                      checked={newPackageRecurring}
+                      onChange={(e) => setNewPackageRecurring(e.target.checked)}
+                    />
+                    Recurring block — several weekly sessions booked and paid for together
+                  </label>
+
+                  <div className={styles.packageRow}>
+                    <div className={styles.field}>
+                      <label htmlFor="settings-pkg-name">Name</label>
+                      <input
+                        id="settings-pkg-name"
+                        value={newPackageName}
+                        onChange={(e) => setNewPackageName(e.target.value)}
+                        placeholder="e.g. Standard session"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="settings-pkg-price">
+                        {newPackageRecurring ? "Block price (£)" : "Price (£)"}
+                      </label>
+                      <input
+                        id="settings-pkg-price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newPackagePrice}
+                        onChange={(e) => setNewPackagePrice(e.target.value)}
+                        placeholder={newPackageRecurring ? "240.00" : "60.00"}
+                      />
+                      {newPackageRecurring && newPackagePrice && Number(newPackageSessionCount) >= 2 && (
+                        <span className={styles.packageMeta}>
+                          £{(parseFloat(newPackagePrice) / Number(newPackageSessionCount)).toFixed(2)} per session ·
+                          client pays the block price once
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={styles.packageNumRow}>
+                      {newPackageRecurring && (
+                        <div className={styles.field}>
+                          <label htmlFor="settings-pkg-count">Number of weeks</label>
+                          <input
+                            id="settings-pkg-count"
+                            type="number"
+                            min="2"
+                            max="52"
+                            value={newPackageSessionCount}
+                            onChange={(e) => setNewPackageSessionCount(e.target.value)}
+                          />
+                          <span className={styles.packageMeta}>
+                            {Number(newPackageSessionCount) >= 2
+                              ? `${Number(newPackageSessionCount)} weekly sessions in total.`
+                              : "One session per week."}
+                          </span>
+                        </div>
+                      )}
+                      <div className={styles.field}>
+                        <label htmlFor="settings-pkg-duration">Duration (min)</label>
+                        <input
+                          id="settings-pkg-duration"
+                          type="number"
+                          min="5"
+                          value={newPackageDuration}
+                          onChange={(e) => setNewPackageDuration(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.packageAddActions}>
+                      <Button
+                        onClick={handleAddPackage}
+                        disabled={!newPackageName.trim() || !newPackagePrice || addingPackage}
+                      >
+                        {addingPackage ? "Adding…" : "+ Add session type"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </SettingsCard>
+
+            {/* Bank details */}
+            <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={practiceSearch}>
+              <section className={styles.businessSection}>
+                <p>Shown to clients as a payment option when they pay for a session.</p>
+                <form className={styles.form}>
+                  {BANK_FIELDS.map(({ key, label, placeholder }) => (
+                    <div className={styles.field} key={key}>
+                      <label>{label}</label>
+                      <input
+                        value={bankDetails[key]}
+                        placeholder={placeholder}
+                        onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </form>
+              </section>
+              <div className={styles.actions}>
+                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
+                  {savingBank ? "Saving…" : "Save bank details"}
+                </Button>
+              </div>
+            </SettingsCard>
+
+            {/* Stripe Connect */}
+            <SettingsCard
+              title="Card payments"
+              storageKey="settings:practice:card-payments"
+              searchQuery={practiceSearch}
+            >
+              <section className={styles.businessSection}>
+                <p>
+                  Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
+                </p>
+                {stripeConnected ? (
+                  <>
+                    <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
+                    <label className={styles.toggleRow}>
+                      <span className={styles.toggleLabel}>
+                        <strong>Offer card payments to clients</strong>
+                        <span>
+                          Off by default even once connected — turn on when you're ready for clients to see "Pay with
+                          Stripe" as an option.
+                        </span>
+                      </span>
+                      <span className={`${styles.toggleSwitch} ${cardPaymentsEnabled ? styles.toggleSwitchOn : ""}`}>
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={cardPaymentsEnabled}
+                          disabled={savingCardPayments}
+                          onChange={handleToggleCardPayments}
+                        />
+                        <span className={styles.toggleThumb} />
+                      </span>
+                    </label>
+                    <Button variant="ghost" onClick={() => setConfirmDisconnectStripe(true)}>
+                      Disconnect Stripe
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
+                      const redirect = `${window.location.origin}/settings/stripe-callback`;
+                      window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
+                    }}
+                  >
+                    Connect Stripe account
+                  </Button>
+                )}
+              </section>
+            </SettingsCard>
+
+            {/* Subscription */}
+            {practiceSettings && (
+              <SettingsCard
+                title="Subscription"
+                storageKey="settings:practice:subscription"
+                searchQuery={practiceSearch}
+              >
+                <section className={styles.businessSection}>
+                  <p>
+                    Status:{" "}
+                    <strong
+                      style={{
+                        color: subscriptionStatusColor(
+                          practiceSettings.subscription_status,
+                          practiceSettings.subscription_cancel_at_period_end,
+                        ),
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {practiceSettings.subscription_status}
+                    </strong>
+                    {practiceSettings.subscription_cancel_at_period_end && (
+                      <>
+                        {" "}
+                        — cancels{" "}
+                        {practiceSettings.subscription_current_period_end
+                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                          : "at the end of the current billing period"}
+                      </>
+                    )}
+                  </p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
+                  </p>
+                </section>
+
+                {planLimits &&
+                  (() => {
+                    // Legacy rows still say "app"/"bundle"/"website" until the tier
+                    // migration backfills them — treat anything unrecognised as starter.
+                    const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
+                    const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey)
+                      ? (rawPlan as TierKey)
+                      : "starter";
+                    const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+                    return (
+                      <section className={styles.businessSection}>
+                        <h2>Your plan</h2>
+
+                        {planUsage && currentLimit && (
+                          <div className={styles.planUsage}>
+                            <PlanUsageBar
+                              label="Active clients"
+                              used={planUsage.active}
+                              max={currentLimit.max_active}
+                            />
+                            <PlanUsageBar
+                              label="Archived clients"
+                              used={planUsage.archived}
+                              max={currentLimit.max_archived}
+                            />
+                          </div>
+                        )}
+
+                        <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tierBilling === "monthly"}
+                            className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
+                            onClick={() => setTierBilling("monthly")}
+                          >
+                            Monthly
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={tierBilling === "annual"}
+                            className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
+                            onClick={() => setTierBilling("annual")}
+                          >
+                            Annual · 2 months free
+                          </button>
+                        </div>
+
+                        <div className={styles.tierGrid}>
+                          {TIER_ORDER.map((key) => {
+                            const d = TIER_DISPLAY[key];
+                            const limit = planLimits.find((l) => l.plan === key);
+                            const isCurrent = key === currentPlan;
+                            const price = tierBilling === "annual" ? d.annual : d.monthly;
+                            return (
+                              <div
+                                key={key}
+                                className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}
+                              >
+                                <div className={styles.tierName}>{d.label}</div>
+                                <div className={styles.tierPrice}>
+                                  £{price}
+                                  <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
+                                </div>
+                                <div className={styles.tierCap}>
+                                  {!limit || limit.max_active == null
+                                    ? "Unlimited clients"
+                                    : `${limit.max_active} active + ${limit.max_archived} archived`}
+                                </div>
+                                <div className={styles.tierBlurb}>{d.blurb}</div>
+                                {isCurrent ? (
+                                  <span className={styles.tierCurrentBadge}>Current plan</span>
+                                ) : (
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => handlePickPlan(key, tierBilling)}
+                                    disabled={!!switchingPlan || !billingCustomerId}
+                                  >
+                                    {switchingPlan === key ? "Switching…" : "Switch"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {planSwitchError && (
+                          <p className={styles.planSwitchError} role="alert">
+                            {planSwitchError}
+                          </p>
+                        )}
+                        {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
+                      </section>
+                    );
+                  })()}
+
+                {billingCustomerId && (
+                  <div className={styles.actions}>
+                    <Button
+                      variant="primary"
+                      className={styles.saveButton}
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                    >
+                      {loadingPortal ? "Opening…" : "Manage subscription"}
+                    </Button>
+                  </div>
+                )}
+              </SettingsCard>
+            )}
+
+            {/* Refer a friend */}
+            {practiceSettings?.referral_code && (
+              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
+                <section className={styles.businessSection}>
+                  <p>
+                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
+                    credited to your account automatically.
+                  </p>
+                  <div className={styles.field}>
+                    <label htmlFor="referral-link">Your referral link</label>
+                    <input
+                      id="referral-link"
+                      readOnly
+                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </div>
+                </section>
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
+                    {referralCopied ? "Copied!" : "Copy link"}
+                  </Button>
+                </div>
+              </SettingsCard>
+            )}
           </>
         )}
 
