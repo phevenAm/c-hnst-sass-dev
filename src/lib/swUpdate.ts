@@ -29,6 +29,29 @@ export function checkForServiceWorkerUpdate() {
 
 const WAIT_FOR_WORKER_MS = 8000;
 
+// Last-resort escape when "Update now" can't find a new worker to activate.
+// A plain window.location.reload() in an installed PWA is still served the
+// old precached index.html + hashed JS, so __APP_VERSION__ never changes,
+// useVersionCheck still sees a mismatch, and the banner comes straight back
+// — clicking again just repeats the same no-op reload. Tearing down every
+// registration + cache first forces the next load to the network, which
+// picks up the real new build.
+async function unregisterAndReload() {
+  try {
+    const regs = (await navigator.serviceWorker?.getRegistrations?.()) ?? [];
+    await Promise.all(regs.map((r) => r.unregister()));
+  } catch {
+    // no SW support / already gone — fall through to the reload
+  }
+  try {
+    const keys = (await globalThis.caches?.keys?.()) ?? [];
+    await Promise.all(keys.map((k) => globalThis.caches.delete(k)));
+  } catch {
+    // Cache API unavailable — fall through to the reload
+  }
+  window.location.reload();
+}
+
 // registration.update() (checkForServiceWorkerUpdate, called when
 // useVersionCheck first detects a mismatch) only kicks off the fetch/install
 // — it doesn't wait for it to finish. If "Update now" gets clicked before
@@ -81,10 +104,10 @@ export async function applyServiceWorkerUpdate() {
       return;
     }
     // Timed out without a worker ever reaching "waiting" — nothing to
-    // activate. A plain reload at least picks up a fresh index.html and
-    // version.json rather than leaving the user stuck on a banner that
-    // does nothing when they click it.
-    window.location.reload();
+    // activate, and a plain reload would just re-serve the same stale
+    // precache and bring the banner right back. Tear the SW + caches down
+    // so the next load is forced to the network.
+    await unregisterAndReload();
     return;
   }
   // No SW registered yet (e.g. dev mode) — a plain reload is the correct fallback.
