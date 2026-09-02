@@ -61,6 +61,8 @@
 .pendingCard {
   margin-bottom: var(--sp-6);
   border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  padding: var(--sp-5) var(--sp-2);
+
 }
 
 // ── Section card (white card background for chunking, matches AdminDashboard) ──
@@ -143,6 +145,7 @@
 
 .pendingClient {
   font-weight: 600;
+  font-size: .9rem;
   color: var(--text-primary);
 }
 
