@@ -200,6 +200,7 @@ const CreateSessionModal = ({
     const overlapError = await firstOverlappingDate(dates, null, null);
     if (overlapError) {
       setError(overlapError);
+      showToast(overlapError, "danger");
       setIsSaving(false);
       return;
     }
@@ -226,7 +227,12 @@ const CreateSessionModal = ({
           reference_code: referenceCode.trim(),
         });
       } catch (err: any) {
-        setError(err?.message || "Failed to save session.");
+        const raw = err?.message || String(err);
+        const text = /overlap/i.test(raw)
+          ? "That time overlaps with another session — pick a different time."
+          : raw || "Failed to save session.";
+        setError(text);
+        showToast(text, "danger");
       }
       setIsSaving(false);
       return;
@@ -271,20 +277,32 @@ const CreateSessionModal = ({
     const allSuccess = result.every((i) => i?.meta.requestStatus === "fulfilled");
 
     if (allSuccess) {
+      let emailNote = "";
       if (sendConfirmation) {
-        // One email for the whole block, not one per session.
+        // One email for the whole block, not one per session. Awaited so the
+        // toast reflects what actually happened rather than always claiming the
+        // email went out.
         const ids = result.filter((r) => r?.meta.requestStatus === "fulfilled").map((r) => (r.payload as Session).id);
+        let send: ReturnType<typeof supabase.functions.invoke> | null = null;
         if (blockId && ids.length > 1) {
-          supabase.functions.invoke("notify-block-booked", { body: { session_ids: ids } });
+          send = supabase.functions.invoke("notify-block-booked", { body: { session_ids: ids } });
         } else if (ids[0]) {
-          supabase.functions.invoke("notify-session-booked", { body: { session_id: ids[0] } });
+          send = supabase.functions.invoke("notify-session-booked", { body: { session_id: ids[0] } });
+        }
+        if (send) {
+          const res = await send.catch((e) => ({ error: e }));
+          emailNote = res.error ? " — but the confirmation email couldn't be sent" : " — confirmation email sent";
         }
       }
-      const emailNote = sendConfirmation ? " — confirmation email sent" : "";
       showToast(`${dates.length > 1 ? `${dates.length} sessions` : "Session"} scheduled${emailNote}.`);
       onClose();
     } else {
-      setError("Failed to schedule session. Please try again.");
+      const overlap = result.some((r) => /overlap/i.test(String(r?.payload ?? "")));
+      const text = overlap
+        ? "That time overlaps with another session — pick a different time."
+        : "Failed to schedule session. Please try again.";
+      setError(text);
+      showToast(text, "danger");
     }
     setIsSaving(false);
   };
@@ -304,7 +322,8 @@ const CreateSessionModal = ({
     // stub_sessions), otherwise a real session.
     const overlapError = await firstOverlappingDate([scheduledAt], onSave ? null : sess.id, onSave ? sess.id : null);
     if (overlapError) {
-      setError("This time overlaps with an existing session.");
+      setError(overlapError);
+      showToast(overlapError, "danger");
       setIsSaving(false);
       return;
     }
@@ -322,7 +341,12 @@ const CreateSessionModal = ({
         });
         onClose();
       } catch (err: any) {
-        setError(err?.message || "Failed to update session.");
+        const raw = err?.message || String(err);
+        const text = /overlap/i.test(raw)
+          ? "That time overlaps with another session — pick a different time."
+          : raw || "Failed to update session.";
+        setError(text);
+        showToast(text, "danger");
       }
       setIsSaving(false);
       return;
@@ -356,8 +380,11 @@ const CreateSessionModal = ({
       showToast("Session updated successfully.", "success");
     } catch (err: any) {
       const message = err?.message || String(err) || "oops";
-      setError(message);
-      showToast(`Something went wrong: ${message}`);
+      const text = /overlap/i.test(message)
+        ? "That time overlaps with another session — pick a different time."
+        : `Something went wrong: ${message}`;
+      setError(text);
+      showToast(text, "danger");
     }
   };
 

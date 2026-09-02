@@ -280,7 +280,12 @@ export default function AdminSidebar({
           <div className={styles.branding}>
             <span className={styles.label}>
               Powered by{" "}
-              <a href="https://clarity.app" target="_blank" rel="noopener noreferrer" className={styles.brandingLink}>
+              <a
+                href="https://withclarity.uk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.brandingLink}
+              >
                 Clarity
               </a>
               {" · "}

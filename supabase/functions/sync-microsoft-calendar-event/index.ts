@@ -127,11 +127,19 @@ Deno.serve(async (req) => {
     const start = new Date(session.scheduled_at);
     const end = new Date(start.getTime() + (session.duration_minutes ?? 50) * 60_000);
 
+    // One-way sync: edits made to this event in Outlook/Teams are never read
+    // back into Clarity, so spell that out in the event body.
+    const managedNote =
+      "Managed by Clarity. Reschedule or cancel this session in the Clarity app — " +
+      "changes made directly here are not synced back.";
+
     const eventBody: Record<string, unknown> = {
       subject: `${clientName} — Session`,
       body: {
         contentType: "HTML",
-        content: practice?.business_name ? `Practice: ${practice.business_name}` : "",
+        content: [practice?.business_name ? `Practice: ${practice.business_name}` : "", managedNote]
+          .filter(Boolean)
+          .join("<br><br>"),
       },
       start: graphTime(start),
       end: graphTime(end),

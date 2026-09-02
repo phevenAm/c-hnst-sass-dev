@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import NewTabLink from "../../../components/shared/NewTabLink/NewTabLink";
 
 import styles from "./PrivacyPage.module.scss";
 
@@ -12,9 +12,9 @@ export default function PrivacyPage() {
         <section>
           <h2>1. Who we are</h2>
           <p>
-            Clarity is operated by [Trading name — TBD], a sole trader ("we", "us", "our"). Our business address is
-            [Registered business address — TBD, pending forwarding address registration]. For privacy questions, contact
-            us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>.
+            Clarity is operated by Clarity, a sole trader ("we", "us", "our"). Our business address is [Registered
+            business address — TBD, pending forwarding address registration]. For privacy questions, contact us at{" "}
+            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>.
           </p>
         </section>
 
@@ -210,7 +210,7 @@ export default function PrivacyPage() {
           <p>
             Practitioners can optionally turn on client-side encryption for session notes. Where a practitioner has
             enabled it, Clarity cannot read the content of those notes. Where it isn't enabled, notes are stored without
-            that additional protection — see our <Link to="/security">Security page</Link> for details.
+            that additional protection — see our <NewTabLink href="/security">Security page</NewTabLink> for details.
           </p>
           <p>
             Private journal entries are encrypted client-side. Neither Clarity nor your practitioner can read your
@@ -267,8 +267,8 @@ export default function PrivacyPage() {
         <section>
           <h2>6. Who we share your data with</h2>
           <p>
-            We share data only with the subprocessors listed at <Link to="/legal/subprocessors">Subprocessors</Link>. We
-            do not sell your data.
+            We share data only with the subprocessors listed at{" "}
+            <NewTabLink href="/legal/subprocessors">Subprocessors</NewTabLink>. We do not sell your data.
           </p>
           <p>
             Where subprocessors are based outside the UK or EEA, transfers are covered by the UK International Data
@@ -300,8 +300,9 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p>
-            To exercise any of these rights, contact us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>. We
-            will respond within one calendar month.
+            To exercise any of these rights, contact us at{" "}
+            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>. We will respond within one calendar
+            month.
           </p>
           <p>
             <strong>Note for clients:</strong> rights relating to your clinical records (session notes, form responses)
@@ -344,7 +345,7 @@ export default function PrivacyPage() {
         <section>
           <h2>11. Contact</h2>
           <p>
-            For any privacy-related questions: <a href="mailto:hello@clarity.app">hello@clarity.app</a>
+            For any privacy-related questions: <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
           </p>
           <p>
             For complaints, you may also contact the ICO:{" "}
@@ -355,7 +356,7 @@ export default function PrivacyPage() {
         </section>
 
         <p className={styles.contact}>
-          Questions? Contact us at <a href="mailto:hello@clarity.app">hello@clarity.app</a>
+          Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
         </p>
       </div>
     </div>

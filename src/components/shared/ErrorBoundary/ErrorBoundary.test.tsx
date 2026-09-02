@@ -189,7 +189,7 @@ describe("ErrorBoundary", () => {
     fireEvent.click(screen.getByRole("button", { name: /send report/i }));
 
     const mailLink = await screen.findByRole("link", { name: /email the report to us/i });
-    expect(mailLink).toHaveAttribute("href", expect.stringContaining("mailto:hello@clarity.app"));
+    expect(mailLink).toHaveAttribute("href", expect.stringContaining("mailto:support@withclarity.uk"));
     expect(feedbackInsert).not.toHaveBeenCalled();
   });
 });

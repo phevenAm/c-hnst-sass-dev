@@ -1,5 +1,5 @@
 // Shared with seed-fixtures.mjs — keep both in sync if you change these.
-export const APP_URL = "https://honest-portal.vercel.app";
+export const APP_URL = "https://withclarity.uk";
 
 export const FIXTURES = {
   admin: { email: "e2e-stripe-admin@clarity-e2e-test.dev", password: "E2eStripeAdmin2026!" },

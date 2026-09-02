@@ -1,6 +1,7 @@
 import React from "react";
 
 import Modal from "../Modal/Modal";
+import NewTabLink from "../NewTabLink/NewTabLink";
 
 import styles from "./AdminTermsAndConditionsModal.module.scss";
 
@@ -106,19 +107,9 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       </section>
 
       <p className={styles.contact}>
-        This is a summary — read the full{" "}
-        <a href="/terms" target="_blank" rel="noopener noreferrer">
-          Terms of Service
-        </a>
-        ,{" "}
-        <a href="/privacy" target="_blank" rel="noopener noreferrer">
-          Privacy Policy
-        </a>
-        , and{" "}
-        <a href="/security" target="_blank" rel="noopener noreferrer">
-          Security
-        </a>{" "}
-        page. Questions? Contact us at <a href="mailto:hello@Clarity.app">hello@Clarity.app</a>
+        This is a summary — read the full <NewTabLink href="/terms">Terms of Service</NewTabLink>,{" "}
+        <NewTabLink href="/privacy">Privacy Policy</NewTabLink>, and <NewTabLink href="/security">Security</NewTabLink>{" "}
+        page. Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
       </p>
 
       <div className={styles.modalAction}>{action}</div>
