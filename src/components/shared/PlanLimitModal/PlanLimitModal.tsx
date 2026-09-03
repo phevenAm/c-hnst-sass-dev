@@ -11,7 +11,7 @@ type Props = {
   onClose: () => void;
 };
 
-const SUBSCRIPTION_SETTINGS = "/settings?tab=practice&section=subscription";
+const SUBSCRIPTION_SETTINGS = "/settings?tab=billing&section=subscription";
 
 /**
  * Shown when a client add / invite / unarchive is blocked by the plan's
