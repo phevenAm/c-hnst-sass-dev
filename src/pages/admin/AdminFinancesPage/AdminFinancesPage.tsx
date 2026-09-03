@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import dayjs, { type Dayjs } from "dayjs";
+import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
@@ -13,7 +13,7 @@ import { useAuth } from "@context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
-import type { TrendPoint } from "@/pages/admin/AdminDashboard/dashboardUtils";
+import { byMonth, ledgerRowKind, ledgerRowName, money, type Period, periodStart, personName } from "./financeOverview";
 
 import styles from "./AdminFinancesPage.module.scss";
 
@@ -30,42 +30,11 @@ const VIEWS: { key: View; label: string }[] = [
   { key: "expenses", label: "Expenses" },
 ];
 
-type Period = "30d" | "year" | "all";
-
 const PERIODS: { key: Period; label: string }[] = [
   { key: "30d", label: "Last 30 days" },
   { key: "year", label: "This tax year" },
   { key: "all", label: "All time" },
 ];
-
-const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
-
-// UK tax year runs 6 April → 5 April.
-const taxYearStart = (d = dayjs()): Dayjs => {
-  const before6Apr = d.month() < 3 || (d.month() === 3 && d.date() < 6);
-  return dayjs(`${before6Apr ? d.year() - 1 : d.year()}-04-06`);
-};
-
-const periodStart = (period: Period): Dayjs | null => {
-  if (period === "30d") return dayjs().subtract(30, "day");
-  if (period === "year") return taxYearStart();
-  return null;
-};
-
-// Bucket dated + priced rows into the last `months` calendar months.
-const byMonth = (rows: { date: string; pence: number }[], months: number): TrendPoint[] => {
-  const buckets: { label: string; key: string; value: number }[] = [];
-  for (let i = months - 1; i >= 0; i--) {
-    const m = dayjs().subtract(i, "month");
-    buckets.push({ label: m.format("MMM"), key: m.format("YYYY-MM"), value: 0 });
-  }
-  const index = new Map(buckets.map((b) => [b.key, b]));
-  for (const r of rows) {
-    const b = index.get(dayjs(r.date).format("YYYY-MM"));
-    if (b) b.value += r.pence / 100;
-  }
-  return buckets.map(({ label, value }) => ({ label, value: Math.round(value) }));
-};
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
 
@@ -95,23 +64,6 @@ type ActivityItem = {
   detail: string;
   amount: number;
   kind: "in" | "out";
-};
-
-const personName = (n: NamePart | null | undefined): string =>
-  (n?.display_name || [n?.first_name, n?.last_name].filter(Boolean).join(" ") || "").trim();
-
-const ledgerRowName = (r: LedgerRow): string =>
-  (
-    r.display_name ||
-    [r.client_first_name, r.client_last_name].filter(Boolean).join(" ") ||
-    [r.stub_first_name, r.stub_last_name].filter(Boolean).join(" ") ||
-    ""
-  ).trim();
-
-const ledgerRowKind = (source: string | null): string => {
-  if (source === "session") return "Session payment";
-  if (source === "stub-session") return "Offline session payment";
-  return "Manual payment";
 };
 
 function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
