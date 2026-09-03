@@ -96,23 +96,25 @@ export function reminderNotification(opts: {
 export interface AutoCancelConfig {
   /** practice_settings.auto_cancel_enabled — defaults to false in the DB. */
   autoCancelEnabled?: boolean | null;
-  /** practice_settings.payment_deadline_hours */
+  /** practice_settings.payment_deadline_hours — no longer used for auto-cancel. */
   paymentDeadlineHours?: number | null;
 }
+
+const DEFAULT_SESSION_MINUTES = 50;
 
 /**
  * Whether a scheduled, unpaid session should be auto-cancelled on this run.
  *
- * Gated on the practice having explicitly opted in (`autoCancelEnabled`). The
- * DB path `auto_cancel_unpaid_sessions()` already checks that flag; the
- * send-session-reminders edge function historically did not, so a practice
- * with the Settings toggle OFF still had sessions cancelled by the daily run.
- *
- * A session qualifies once its start is within (or past) the practice's
- * payment-deadline window.
+ * Mirrors the DB path `auto_cancel_unpaid_sessions()`:
+ *   * the practice has explicitly opted in (`autoCancelEnabled`), and
+ *   * the session has actually ENDED (start + duration is in the past), and
+ *   * it is still unpaid.
+ * The old "cancel N hours before the session" window is gone — a session is
+ * only ever pulled after it has been and gone unpaid.
  */
 export function shouldAutoCancelUnpaidSession(opts: {
   scheduledAt: string;
+  durationMinutes?: number | null;
   now: number;
   paid: boolean;
   config: AutoCancelConfig | undefined | null;
@@ -120,11 +122,11 @@ export function shouldAutoCancelUnpaidSession(opts: {
   if (opts.paid) return false;
   if (opts.config?.autoCancelEnabled !== true) return false;
 
-  const deadlineHours = opts.config?.paymentDeadlineHours ?? DEFAULT_PAYMENT_DEADLINE_HOURS;
   const startMs = new Date(opts.scheduledAt).getTime();
   if (Number.isNaN(startMs)) return false;
 
-  return startMs - opts.now <= deadlineHours * MS_PER_HOUR;
+  const endMs = startMs + (opts.durationMinutes ?? DEFAULT_SESSION_MINUTES) * 60_000;
+  return endMs < opts.now;
 }
 
 export function selectSessionsToRemind<S extends RemindableSession>(args: SelectRemindersArgs<S>): S[] {

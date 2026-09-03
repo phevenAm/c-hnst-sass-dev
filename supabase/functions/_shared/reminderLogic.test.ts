@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_HOURS_BEFORE,
-  DEFAULT_PAYMENT_DEADLINE_HOURS,
   isWithinReminderWindow,
   REMINDER_TYPE,
   reminderNotification,
@@ -133,41 +132,63 @@ describe("selectSessionsToRemind", () => {
 });
 
 describe("shouldAutoCancelUnpaidSession", () => {
+  // Only cancels an unpaid session once it has ENDED, and only when the
+  // practice has opted in. A session that hasn't started, or is still running,
+  // or belongs to a practice that never enabled the toggle, is left alone.
   const base = { now: NOW, paid: false };
+  const endedLongAgo = hoursFromNow(-4); // started 4h ago, 50m default → long over
 
   it("does not cancel when the practice has not enabled auto-cancel", () => {
-    // Session is well past its deadline, but the toggle is off (the default).
     expect(
-      shouldAutoCancelUnpaidSession({
-        ...base,
-        scheduledAt: hoursFromNow(1),
-        config: { autoCancelEnabled: false, paymentDeadlineHours: 48 },
-      }),
+      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: endedLongAgo, config: { autoCancelEnabled: false } }),
     ).toBe(false);
   });
 
   it("does not cancel when there is no config for the practice", () => {
-    expect(shouldAutoCancelUnpaidSession({ ...base, scheduledAt: hoursFromNow(1), config: undefined })).toBe(false);
+    expect(shouldAutoCancelUnpaidSession({ ...base, scheduledAt: endedLongAgo, config: undefined })).toBe(false);
   });
 
-  it("cancels an unpaid session inside the deadline window once opted in", () => {
+  it("cancels an unpaid session that has ended, once opted in", () => {
     expect(
-      shouldAutoCancelUnpaidSession({
-        ...base,
-        scheduledAt: hoursFromNow(47),
-        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
-      }),
+      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: endedLongAgo, config: { autoCancelEnabled: true } }),
     ).toBe(true);
   });
 
-  it("does not cancel while the session is still further out than the deadline", () => {
+  it("does not cancel a session that has not started yet", () => {
+    expect(
+      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: hoursFromNow(2), config: { autoCancelEnabled: true } }),
+    ).toBe(false);
+  });
+
+  it("does not cancel a session that has started but not finished", () => {
+    // Started 20 min ago, default 50 min duration → still running.
     expect(
       shouldAutoCancelUnpaidSession({
         ...base,
-        scheduledAt: hoursFromNow(72),
-        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
+        scheduledAt: new Date(NOW - 20 * 60_000).toISOString(),
+        config: { autoCancelEnabled: true },
       }),
     ).toBe(false);
+  });
+
+  it("uses the session's own duration to decide whether it has ended", () => {
+    const startedAt = new Date(NOW - 40 * 60_000).toISOString(); // 40 min ago
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        scheduledAt: startedAt,
+        durationMinutes: 30,
+        config: { autoCancelEnabled: true },
+      }),
+    ).toBe(true); // 30-min session ended 10 min ago
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        scheduledAt: startedAt,
+        durationMinutes: 60,
+        config: { autoCancelEnabled: true },
+      }),
+    ).toBe(false); // 60-min session still running
   });
 
   it("never cancels a paid session", () => {
@@ -175,30 +196,15 @@ describe("shouldAutoCancelUnpaidSession", () => {
       shouldAutoCancelUnpaidSession({
         ...base,
         paid: true,
-        scheduledAt: hoursFromNow(1),
-        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
+        scheduledAt: endedLongAgo,
+        config: { autoCancelEnabled: true },
       }),
-    ).toBe(false);
-  });
-
-  it("falls back to the default deadline when the practice has not set one", () => {
-    const justInside = hoursFromNow(DEFAULT_PAYMENT_DEADLINE_HOURS - 1);
-    const justOutside = hoursFromNow(DEFAULT_PAYMENT_DEADLINE_HOURS + 1);
-    expect(
-      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: justInside, config: { autoCancelEnabled: true } }),
-    ).toBe(true);
-    expect(
-      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: justOutside, config: { autoCancelEnabled: true } }),
     ).toBe(false);
   });
 
   it("does not cancel on an unparseable date", () => {
     expect(
-      shouldAutoCancelUnpaidSession({
-        ...base,
-        scheduledAt: "not-a-date",
-        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
-      }),
+      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: "not-a-date", config: { autoCancelEnabled: true } }),
     ).toBe(false);
   });
 });

@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
         if (
           !shouldAutoCancelUnpaidSession({
             scheduledAt: session.scheduled_at,
+            durationMinutes: session.duration_minutes,
             now,
             paid: session.paid,
             config: settingsMap[profile.adminId],
@@ -394,7 +395,7 @@ Deno.serve(async (req) => {
     const { data: extraSettings } = await supabase
       .from("practice_settings")
       .select(
-        "admin_id, counsellor_name, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours",
+        "admin_id, counsellor_name, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours, auto_cancel_enabled",
       )
       .in("admin_id", stubAdminIds);
     for (const ps of extraSettings ?? []) {
@@ -406,6 +407,7 @@ Deno.serve(async (req) => {
         heading: ps.reminder_email_heading ?? null,
         disabledTypes: ps.disabled_email_types ?? [],
         paymentDeadlineHours: ps.payment_deadline_hours ?? 48,
+        autoCancelEnabled: ps.auto_cancel_enabled ?? false,
       };
     }
   }
@@ -421,8 +423,17 @@ Deno.serve(async (req) => {
         const adminSettings = settingsMap[ss.admin_id];
         if (!adminSettings) return;
 
-        const msUntilSession = new Date(ss.scheduled_at).getTime() - now;
-        if (msUntilSession > adminSettings.paymentDeadlineHours * 3600 * 1000) return;
+        if (
+          !shouldAutoCancelUnpaidSession({
+            scheduledAt: ss.scheduled_at,
+            durationMinutes: ss.duration_minutes,
+            now,
+            paid: false,
+            config: adminSettings,
+          })
+        ) {
+          return;
+        }
 
         const { error } = await supabase
           .from("stub_sessions")
