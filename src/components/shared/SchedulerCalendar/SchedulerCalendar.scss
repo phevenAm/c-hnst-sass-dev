@@ -122,6 +122,15 @@
     background-size: 8px 8px;
   }
 
+  // RBC runs slotPropGetter for the time-axis column too, so the stipple lands
+  // behind the hour labels and makes them hard to read. Keep the gutter a
+  // solid fill — the dots belong only in the day columns.
+  .rbc-time-gutter .rbc-time-slot,
+  .rbc-time-gutter .rbc-time-slot.cal-slot-blocked {
+    background-image: none;
+    background-color: var(--bg-card);
+  }
+
   // We only act on a single click of an empty slot (not a drag-select), so
   // don't paint the drag-to-select range box — it would imply a duration the
   // new-session / private-event flow doesn't actually take.
