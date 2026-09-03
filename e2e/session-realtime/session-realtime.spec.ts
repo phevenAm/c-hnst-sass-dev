@@ -69,34 +69,36 @@ test.afterAll(() => {
   dbQuery(`delete from public.sessions where client_id = '${clientId}';`);
 });
 
-test("a session added elsewhere appears in an open tab without a reload", async ({ page }) => {
-  test.setTimeout(90_000);
+// Wait for the sessions list to be rendered from the initial fetch, then give
+// the realtime channel a beat to actually subscribe before we mutate the DB.
+async function openClientAndSettle(page: Page, expectCards: number) {
   await page.setViewportSize({ width: 1400, height: 900 });
   await loginAdmin(page);
   await page.goto(`${APP_URL}/admin/clients/${clientId}`, { waitUntil: "load", timeout: 20_000 });
+  await expect.poll(() => cardCount(page), { timeout: 30_000 }).toBe(expectCards);
+  await page.waitForTimeout(3_000);
+}
 
-  // one seed session so the list is definitely mounted before we test the feed
+test("a session added elsewhere appears in an open tab without a reload", async ({ page }) => {
+  test.setTimeout(120_000);
+  // one session already on the page (rendered by the initial fetch, not realtime)
   mkSession("now() + interval '2 days'");
-  await expect.poll(() => cardCount(page), { timeout: 20_000 }).toBe(1);
+  await openClientAndSettle(page, 1);
 
-  // insert another directly in the DB — the open tab must pick it up live
+  // now insert another straight into the DB — the open tab must pick it up live
   mkSession("now() + interval '4 days'");
-  await expect.poll(() => cardCount(page), { timeout: 20_000, message: "realtime INSERT adds the card" }).toBe(2);
+  await expect.poll(() => cardCount(page), { timeout: 30_000, message: "realtime INSERT adds the card" }).toBe(2);
 });
 
 test("a session deleted elsewhere disappears from an open tab without a reload", async ({ page }) => {
-  test.setTimeout(90_000);
-  await page.setViewportSize({ width: 1400, height: 900 });
+  test.setTimeout(120_000);
   const keep = mkSession("now() + interval '2 days'");
   const drop = mkSession("now() + interval '6 days'");
-
-  await loginAdmin(page);
-  await page.goto(`${APP_URL}/admin/clients/${clientId}`, { waitUntil: "load", timeout: 20_000 });
-  await expect.poll(() => cardCount(page), { timeout: 20_000 }).toBe(2);
+  await openClientAndSettle(page, 2);
 
   dbQuery(`delete from public.sessions where id = '${drop}';`);
   created.splice(created.indexOf(drop), 1);
 
-  await expect.poll(() => cardCount(page), { timeout: 20_000, message: "realtime DELETE removes the card" }).toBe(1);
+  await expect.poll(() => cardCount(page), { timeout: 30_000, message: "realtime DELETE removes the card" }).toBe(1);
   expect(created).toContain(keep);
 });
