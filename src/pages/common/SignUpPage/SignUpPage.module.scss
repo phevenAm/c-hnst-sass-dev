@@ -4,7 +4,13 @@
 // Reuses same layout as login — shared auth page structure
 .page {
   height: 100%;
-  background: var(--bg-base);
+  // Soft radial tints so the ground the photo panel doesn't reach isn't a flat
+  // grey slab (mirrors LoginPage).
+  background:
+    radial-gradient(60rem 45rem at 12% 6%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+    radial-gradient(52rem 40rem at 92% 100%, color-mix(in srgb, var(--highlight) 11%, transparent), transparent 60%),
+    var(--bg-base);
+  background-attachment: fixed;
   // display: flex;
   align-items: center;
   justify-content: center;

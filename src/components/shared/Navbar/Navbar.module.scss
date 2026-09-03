@@ -161,6 +161,30 @@
   }
 }
 
+// Bare icon action — no pill chrome (theme toggle). Matches NotificationBell.
+.plainIcon {
+  background: none;
+  border: none;
+  border-radius: var(--r-md);
+  padding: $sp-2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+}
+
 .userSection {
   display: flex;
   align-items: center;

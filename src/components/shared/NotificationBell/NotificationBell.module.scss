@@ -6,9 +6,9 @@
 
 .bell {
   position: relative;
-  background: var(--bg-muted);
-  border: 1px solid var(--border);
-  border-radius: var(--r-full);
+  background: none;
+  border: none;
+  border-radius: var(--r-md);
   padding: $sp-2;
   display: flex;
   align-items: center;
@@ -18,7 +18,7 @@
   transition: all var(--transition-base);
 
   &:hover {
-    background: var(--border);
+    background: var(--bg-muted);
     color: var(--text-primary);
   }
 
