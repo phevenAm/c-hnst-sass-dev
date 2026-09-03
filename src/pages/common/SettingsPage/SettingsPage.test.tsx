@@ -713,13 +713,13 @@ describe("SettingsPage — refer a friend", () => {
     }));
     await openBillingTab();
 
-    const link = (await screen.findByLabelText("Your referral link")) as HTMLInputElement;
-    expect(link.value).toContain("ABC12345");
+    expect(await screen.findByText(/register\?ref=ABC12345/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy referral link" }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("ABC12345")));
-    expect(await screen.findByRole("button", { name: "Copied!" })).toBeInTheDocument();
+    // the icon swaps to a tick on success
+    expect(await screen.findByText("✓")).toBeInTheDocument();
   });
 
   it("does not show the card when the admin has no referral code yet (sad path)", async () => {
