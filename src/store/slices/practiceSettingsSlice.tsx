@@ -61,10 +61,12 @@ export type PracticeSettingsCache = Pick<
   | "first_client_milestone_shown"
   | "consent_enabled"
   | "hide_client_profile_pii"
+  | "invoice_prefix"
+  | "next_invoice_number"
 >;
 
 const SELECT_COLUMNS =
-  "admin_id, business_name, onboarding_required, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, allow_block_session_cancellation, session_buffer_minutes, hidden_sections, reduce_motion, logo_url, counsellor_name, bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference, cpd_annual_target_hours, saved_locations, is_paused, paused_reason, referral_code, first_client_milestone_shown, consent_enabled, hide_client_profile_pii";
+  "admin_id, business_name, onboarding_required, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, allow_block_session_cancellation, session_buffer_minutes, hidden_sections, reduce_motion, logo_url, counsellor_name, bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference, cpd_annual_target_hours, saved_locations, is_paused, paused_reason, referral_code, first_client_milestone_shown, consent_enabled, hide_client_profile_pii, invoice_prefix, next_invoice_number";
 
 type PracticeSettingsState = {
   data: PracticeSettingsCache | null;
