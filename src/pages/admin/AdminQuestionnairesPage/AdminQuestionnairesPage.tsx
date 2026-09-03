@@ -18,6 +18,7 @@ import {
   unassignQuestionnaireByIds,
 } from "@store/slices/questionnaireAssignmentsSlice";
 import {
+  archiveQuestionnaire,
   createQuestionnaire,
   deleteQuestionnaire,
   fetchQuestionnaires,
@@ -34,12 +35,16 @@ import { supabase } from "@/lib/supabase.js";
 
 import styles from "./AdminQuestionnairesPage.module.scss";
 
-type FormTab = "outcome_measure" | "feedback";
+type FormTab = "check_in" | "outcome_measure" | "feedback";
 
 const TABS: { id: FormTab; label: string }[] = [
+  { id: "check_in", label: "Check-ins" },
   { id: "outcome_measure", label: "Outcome Measures" },
   { id: "feedback", label: "Feedback Forms" },
 ];
+
+// Only check-ins recur, carry chart tags and can be plotted on the wellbeing chart.
+const isCheckInType = (t: string | null | undefined) => t === "check_in";
 
 type OptionDraft = { label: string; value: number };
 
@@ -65,7 +70,12 @@ type QuestionnaireFormData = {
   questions: QuestionDraft[];
 };
 
-const QUESTION_TYPES = ["scale", "text", "multiple_choice"];
+const QUESTION_TYPES = ["scale", "text", "multiple_choice"] as const;
+const QUESTION_TYPE_LABELS: Record<string, string> = {
+  scale: "Scale (numeric)",
+  text: "Free text",
+  multiple_choice: "Multiple choice",
+};
 
 function makeBlankQuestion(index: number): QuestionDraft {
   return {
@@ -103,8 +113,10 @@ function QuestionnaireBuilder({
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDesc] = useState(initial?.description ?? "");
-  const [formType, setFormType] = useState<string>((initial as any)?.form_type ?? defaultFormType ?? "outcome_measure");
-  const [frequency, setFrequency] = useState<QuestionnaireFrequency | null>(initial?.frequency ?? "weekly");
+  const [formType, setFormType] = useState<string>((initial as any)?.form_type ?? defaultFormType ?? "check_in");
+  const [frequency, setFrequency] = useState<QuestionnaireFrequency | null>(
+    initial ? (initial.frequency ?? null) : "weekly",
+  );
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     initial?.questions?.map((q) => ({
       id: q.id,
@@ -184,12 +196,14 @@ function QuestionnaireBuilder({
       alert("Please fill in a title and all question texts");
       return;
     }
+    const isCheckIn = isCheckInType(formType);
     onSave({
       title,
       description,
-      frequency: frequency ?? null,
+      // Only check-ins recur or carry chart tags.
+      frequency: isCheckIn ? (frequency ?? null) : null,
       form_type: formType,
-      questions,
+      questions: isCheckIn ? questions : questions.map((q) => ({ ...q, tag_id: null })),
     });
     onClose();
   };
@@ -232,11 +246,12 @@ function QuestionnaireBuilder({
         <div className={styles.formField}>
           <label htmlFor="q-type">Form type</label>
           <select id="q-type" value={formType} onChange={(e) => setFormType(e.target.value)} disabled={isEdit}>
+            <option value="check_in">Check-in (recurring, plottable)</option>
             <option value="outcome_measure">Outcome Measure</option>
             <option value="feedback">Feedback Form</option>
           </select>
         </div>
-        {formType === "outcome_measure" && (
+        {isCheckInType(formType) && (
           <div className={styles.formField}>
             <label htmlFor="q-freq">Frequency</label>
             <select
@@ -288,7 +303,7 @@ function QuestionnaireBuilder({
               >
                 {QUESTION_TYPES.map((t) => (
                   <option key={t} value={t}>
-                    {t === "scale" ? "Scale (numeric)" : t === "text" ? "Free text" : "Multiple choice"}
+                    {QUESTION_TYPE_LABELS[t] ?? t}
                   </option>
                 ))}
               </select>
@@ -304,47 +319,49 @@ function QuestionnaireBuilder({
                     onChange={(e) => updateQuestion(q.id, "maxLabel", e.target.value)}
                     placeholder="High label"
                   />
-                  <div className={styles.tagField}>
-                    <span>Chart tag</span>
-                    {creatingTagFor === q.id ? (
-                      <div className={styles.newTagInline}>
-                        <input
-                          // biome-ignore lint/a11y/noAutofocus: intentional focus when user requests new tag
-                          autoFocus
-                          value={newTagName}
-                          onChange={(e) => setNewTagName(e.target.value)}
-                          placeholder="Tag name (e.g. Sleep)"
-                          onKeyDown={(e) => e.key === "Enter" && handleCreateTag(q.id)}
-                        />
-                        <button type="button" onClick={() => handleCreateTag(q.id)}>
-                          Add
-                        </button>
-                        <button type="button" onClick={() => setCreatingTagFor(null)}>
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <select
-                        aria-label="Chart tag"
-                        value={q.tag_id ?? ""}
-                        onChange={(e) => {
-                          if (e.target.value === "__new__") {
-                            setCreatingTagFor(q.id);
-                          } else {
-                            updateQuestion(q.id, "tag_id", e.target.value || null);
-                          }
-                        }}
-                      >
-                        <option value="">No tag</option>
-                        {tags.map((tag) => (
-                          <option key={tag.id} value={tag.id}>
-                            {tag.name}
-                          </option>
-                        ))}
-                        <option value="__new__">+ Create new tag…</option>
-                      </select>
-                    )}
-                  </div>
+                  {isCheckInType(formType) && (
+                    <div className={styles.tagField}>
+                      <span>Chart tag</span>
+                      {creatingTagFor === q.id ? (
+                        <div className={styles.newTagInline}>
+                          <input
+                            // biome-ignore lint/a11y/noAutofocus: intentional focus when user requests new tag
+                            autoFocus
+                            value={newTagName}
+                            onChange={(e) => setNewTagName(e.target.value)}
+                            placeholder="Tag name (e.g. Sleep)"
+                            onKeyDown={(e) => e.key === "Enter" && handleCreateTag(q.id)}
+                          />
+                          <button type="button" onClick={() => handleCreateTag(q.id)}>
+                            Add
+                          </button>
+                          <button type="button" onClick={() => setCreatingTagFor(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <select
+                          aria-label="Chart tag"
+                          value={q.tag_id ?? ""}
+                          onChange={(e) => {
+                            if (e.target.value === "__new__") {
+                              setCreatingTagFor(q.id);
+                            } else {
+                              updateQuestion(q.id, "tag_id", e.target.value || null);
+                            }
+                          }}
+                        >
+                          <option value="">No tag</option>
+                          {tags.map((tag) => (
+                            <option key={tag.id} value={tag.id}>
+                              {tag.name}
+                            </option>
+                          ))}
+                          <option value="__new__">+ Create new tag…</option>
+                        </select>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -666,12 +683,15 @@ export default function AdminQuestionnairesPage() {
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const tagsStatus = useAppSelector(selectTagsStatus);
 
-  const [activeTab, setActiveTab] = useState<FormTab>("outcome_measure");
+  const [activeTab, setActiveTab] = useState<FormTab>("check_in");
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingQ, setEditingQ] = useState<Questionnaire | null>(null);
   const [isAssigningQ, setIsAssigningQ] = useState<Questionnaire | null>(null);
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [showArchived, setShowArchived] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -718,6 +738,18 @@ export default function AdminQuestionnairesPage() {
   const tabQuestionnaires = questionnaires.filter(
     (q) => !q.is_system_default && ((q as any).form_type ?? "outcome_measure") === activeTab,
   );
+
+  const needle = search.trim().toLowerCase();
+  const matches = needle
+    ? tabQuestionnaires.filter(
+        (item) =>
+          (item.title ?? "").toLowerCase().includes(needle) || (item.description ?? "").toLowerCase().includes(needle),
+      )
+    : tabQuestionnaires;
+  const isArchived = (item: Questionnaire) => !!(item as { archived_at?: string | null }).archived_at;
+  const activeForms = matches.filter((item) => !isArchived(item));
+  const archivedForms = matches.filter(isArchived);
+  const shownForms = [...activeForms.slice(0, visibleCount), ...(showArchived ? archivedForms : [])];
 
   const handleCreate = (data: QuestionnaireFormData) => dispatch(createQuestionnaire(data as unknown as Questionnaire));
 
@@ -766,7 +798,8 @@ export default function AdminQuestionnairesPage() {
           <div>
             <h1>Forms</h1>
             <p>
-              {tabQuestionnaires.length} form{tabQuestionnaires.length !== 1 ? "s" : ""} in this tab
+              {activeForms.length} form{activeForms.length !== 1 ? "s" : ""} in this tab
+              {archivedForms.length > 0 ? ` · ${archivedForms.length} archived` : ""}
             </p>
           </div>
           <SplitButton
@@ -792,8 +825,24 @@ export default function AdminQuestionnairesPage() {
           ))}
         </div>
 
+        {(tabQuestionnaires.length > 0 || needle) && (
+          <input
+            className={styles.formSearch}
+            type="search"
+            placeholder="Search forms…"
+            aria-label="Search forms"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setVisibleCount(20);
+            }}
+          />
+        )}
+
         <div className={styles.list}>
-          {tabQuestionnaires.map((q) => {
+          {shownForms.map((q) => {
+            const archived = isArchived(q);
+            const isCheckIn = isCheckInType((q as any).form_type);
             const isDefault = !!(q as any).source_default_id;
             // RCADS has fixed, clinically-validated content and its own
             // dedicated fill-in/scoring flow (src/Helpers/rcadsScoring.ts) —
@@ -810,9 +859,13 @@ export default function AdminQuestionnairesPage() {
                     <div className={styles.qInfo}>
                       <div className={styles.qTitleRow}>
                         <h2>{q.title}</h2>
-                        <span className={`${styles.badge} ${q.is_active ? styles.active : styles.inactive}`}>
-                          {q.is_active ? "Active" : "Paused"}
-                        </span>
+                        {archived ? (
+                          <span className={`${styles.badge} ${styles.inactive}`}>Archived</span>
+                        ) : (
+                          <span className={`${styles.badge} ${q.is_active ? styles.active : styles.inactive}`}>
+                            {q.is_active ? "Active" : "Paused"}
+                          </span>
+                        )}
                         {isDefault && <span className={`${styles.badge} ${styles.default}`}>Default</span>}
                       </div>
                       <p className={styles.qDesc}>{q.description}</p>
@@ -843,18 +896,34 @@ export default function AdminQuestionnairesPage() {
                             {resettingId === q.id ? "Resetting…" : "Reset to default"}
                           </Button>
                         )}
+                        {!archived && (isCheckIn || !q.is_active) && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              if (isDemo) {
+                                showToast("Demo mode — changes are not saved.");
+                                return;
+                              }
+                              dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
+                            }}
+                          >
+                            {q.is_active ? "Pause" : "Activate"}
+                          </Button>
+                        )}
                         <Button
                           variant="secondary"
                           size="sm"
+                          disabled={isDemo}
                           onClick={() => {
                             if (isDemo) {
                               showToast("Demo mode — changes are not saved.");
                               return;
                             }
-                            dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
+                            dispatch(archiveQuestionnaire({ id: q.id, archived: !archived }));
                           }}
                         >
-                          {q.is_active ? "Pause" : "Activate"}
+                          {archived ? "Unarchive" : "Archive"}
                         </Button>
                         <Button
                           variant="ghost-danger"
@@ -882,14 +951,28 @@ export default function AdminQuestionnairesPage() {
                                   },
                                 ]
                               : []),
+                            ...(archived || (!isCheckIn && q.is_active)
+                              ? []
+                              : [
+                                  {
+                                    label: q.is_active ? "Pause" : "Activate",
+                                    onClick: () => {
+                                      if (isDemo) {
+                                        showToast("Demo mode — changes are not saved.");
+                                        return;
+                                      }
+                                      dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
+                                    },
+                                  },
+                                ]),
                             {
-                              label: q.is_active ? "Pause" : "Activate",
+                              label: archived ? "Unarchive" : "Archive",
                               onClick: () => {
                                 if (isDemo) {
                                   showToast("Demo mode — changes are not saved.");
                                   return;
                                 }
-                                dispatch(pauseQuestionnaire({ id: q.id, is_active: !q.is_active }));
+                                dispatch(archiveQuestionnaire({ id: q.id, archived: !archived }));
                               },
                             },
                             {
@@ -910,7 +993,24 @@ export default function AdminQuestionnairesPage() {
           {tabQuestionnaires.length === 0 && (
             <p className={styles.empty}>No forms in this tab yet. Create one above.</p>
           )}
+          {tabQuestionnaires.length > 0 && matches.length === 0 && (
+            <p className={styles.empty}>No forms match "{search}".</p>
+          )}
         </div>
+
+        {activeForms.length > visibleCount && (
+          <div className={styles.loadMore}>
+            <Button variant="secondary" size="sm" onClick={() => setVisibleCount((c) => c + 20)}>
+              Load {Math.min(20, activeForms.length - visibleCount)} more
+            </Button>
+          </div>
+        )}
+
+        {archivedForms.length > 0 && (
+          <button type="button" className={styles.archivedToggle} onClick={() => setShowArchived((v) => !v)}>
+            {showArchived ? "Hide" : "Show"} archived ({archivedForms.length})
+          </button>
+        )}
       </div>
 
       {showBuilder && (

@@ -331,6 +331,7 @@ const SettingsPage = () => {
   const [confirmDisconnectMicrosoft, setConfirmDisconnectMicrosoft] = useState(false);
 
   const [useCodenames, setUseCodenames] = useState(false);
+  const [hideProfilePii, setHideProfilePii] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
   const [savingAutoCancel, setSavingAutoCancel] = useState(false);
@@ -473,6 +474,7 @@ const SettingsPage = () => {
         setDisabledEmailTypes(data.disabled_email_types ?? []);
         setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
         setUseCodenames(data.use_client_codenames ?? false);
+        setHideProfilePii(data.hide_client_profile_pii ?? false);
         setAutoCancelEnabled(data.auto_cancel_enabled ?? false);
         setRescheduleCutoffEnabled(data.reschedule_cutoff_hours != null);
         setRescheduleCutoffHours(data.reschedule_cutoff_hours ?? 48);
@@ -597,7 +599,7 @@ const SettingsPage = () => {
     setSavingCodenames(true);
     await supabase
       .from("practice_settings")
-      .update({ use_client_codenames: useCodenames })
+      .update({ use_client_codenames: useCodenames, hide_client_profile_pii: hideProfilePii })
       .eq("admin_id", userProfile.id);
     await refreshPracticeSettings();
     setSavingCodenames(false);
@@ -1370,6 +1372,26 @@ const SettingsPage = () => {
                 <p className={styles.toggleHint}>
                   Set each client's codename from their profile page. If no codename is set, their real name is used as
                   a fallback.
+                </p>
+
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Hide age, email &amp; last seen</strong>
+                    <span>Force-hide these on every client profile, whatever each client's toggles say</span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${hideProfilePii ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={hideProfilePii}
+                      onChange={(e) => setHideProfilePii(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+                <p className={styles.toggleHint}>
+                  Age, email and last-seen are off by default and turned on per client from their profile. This switch
+                  hides all three everywhere — handy when your screen is visible to others.
                 </p>
               </section>
               <div className={styles.actions}>

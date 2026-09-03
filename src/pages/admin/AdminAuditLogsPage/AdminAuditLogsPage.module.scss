@@ -66,12 +66,28 @@
 }
 
 .entry {
-  padding: $sp-4 0;
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
   line-height: 1.5;
 
   &:last-child { border-bottom: none; }
+}
+
+.entryHead {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $sp-4;
+  padding: $sp-4 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 }
 
 .message {
@@ -82,6 +98,55 @@
 .time {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.changeCount {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.changeList {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: $sp-2;
+    font-size: 0.82rem;
+  }
+}
+
+.changeField {
+  min-width: 8rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.changeFrom {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.changeArrow { color: var(--text-muted); }
+
+.changeTo {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  padding: $sp-6 0;
 }
 
 .empty {

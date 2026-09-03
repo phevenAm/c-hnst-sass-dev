@@ -25,7 +25,7 @@ import HideableSection from "@/components/shared/HideableSection/HideableSection
 import Search from "@/components/shared/Search/Search";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import { clientDisplayName, isPageStatusLoading, maskedProfileValue } from "@/Helpers/Helpers";
 import { useAppDispatch } from "@/store/hooks";
 import InviteStubModal from "../AdminStubDetailPage/InviteStubModal";
 import { getScoreAverage } from "../utils/AdminClientsPageUtils";
@@ -53,6 +53,11 @@ function ClientRow({ user }: { user: UserProfile }) {
   const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(user.id));
   const { practiceSettings } = useAuth();
   const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
+  const emailField = maskedProfileValue(user.email, {
+    show: user.profile_show_email,
+    codenames: practiceSettings?.use_client_codenames ?? false,
+    masterHidden: practiceSettings?.hide_client_profile_pii ?? false,
+  });
 
   const questionnaireOptions = useMemo(
     () =>
@@ -114,7 +119,7 @@ function ClientRow({ user }: { user: UserProfile }) {
             <span>{displayName}</span>
             {user.disabled && <Badge variant="warning">Paused</Badge>}
           </p>
-          <p className={styles.clientEmail}>{user.email}</p>
+          {emailField && <p className={styles.clientEmail}>{emailField}</p>}
           {plottedAssignment?.questionnaires?.title && (
             <p className={styles.clientPlotted}>Charting: {plottedAssignment.questionnaires.title}</p>
           )}
@@ -197,6 +202,13 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const displayName = useCodenames
     ? stub.codename || `${stub.first_name} ${stub.last_name}`
     : `${stub.first_name} ${stub.last_name}`;
+  // Offline clients have no per-record toggle — the practice-wide hide switch and
+  // codenames still apply, so their email follows the same rule as real clients.
+  const stubEmail = maskedProfileValue(stub.email, {
+    show: true,
+    codenames: useCodenames,
+    masterHidden: practiceSettings?.hide_client_profile_pii ?? false,
+  });
 
   const handleDelete = async () => {
     if (isDemo) {
@@ -296,9 +308,8 @@ function StubRow({ stub }: { stub: ClientStub }) {
 
         <div className={styles.clientMeta}>
           <p className={styles.clientName}>{displayName}</p>
-          {stub.email ? (
-            <p className={styles.clientEmail}>{stub.email}</p>
-          ) : (
+          {stubEmail && <p className={styles.clientEmail}>{stubEmail}</p>}
+          {!stub.email && (
             <p className={styles.clientEmail} style={{ fontStyle: "italic" }}>
               No email
             </p>

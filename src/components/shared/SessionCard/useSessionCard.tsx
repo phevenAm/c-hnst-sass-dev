@@ -100,10 +100,12 @@ const useSessionCard = (session: Session) => {
       }
       case "cancelled":
         return "Cancelled";
+      case "restored":
+        return "Restored";
       case "paid":
-        return "Marked as unpaid";
-      case "unpaid":
         return "Marked as paid";
+      case "unpaid":
+        return "Marked as unpaid";
       case "attended":
         return "Attended";
       case "no_show":
@@ -119,13 +121,23 @@ const useSessionCard = (session: Session) => {
     cutoffHours != null && dayjs(session.scheduled_at).isBefore(dayjs().add(cutoffHours, "hour"));
   const rescheduleCutoffMessage = `Sessions cannot be changed within ${formatCutoffHours(cutoffHours ?? 48)} of the appointment`;
 
-  const restoreSession = () => {
+  const restoreSession = async () => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
       return;
     }
-    dispatch(updateSession({ id: session.id, status: "scheduled" }));
-    showToast("Session restored.", "success");
+    try {
+      await dispatch(updateSession({ id: session.id, status: "scheduled" })).unwrap();
+      showToast("Session restored.", "success");
+      // Tell the client their session is back on (email + in-app notification),
+      // mirroring notify-session-cancelled. Fire-and-forget — the restore itself
+      // has already succeeded.
+      supabase.functions.invoke("notify-session-restored", {
+        body: { session_id: session.id },
+      });
+    } catch {
+      showToast("Couldn't restore the session. Please try again.", "danger");
+    }
   };
 
   return {

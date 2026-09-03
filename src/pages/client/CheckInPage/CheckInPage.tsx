@@ -15,9 +15,10 @@ import { fetchResponsesByUser, selectUserResponses, submitResponse } from "../..
 
 import styles from "./CheckInPage.module.scss";
 
-type FormTab = "outcome_measure" | "feedback";
+type FormTab = "check_in" | "outcome_measure" | "feedback";
 
 const TABS: { id: FormTab; label: string }[] = [
+  { id: "check_in", label: "Check-ins" },
   { id: "outcome_measure", label: "Outcome Measures" },
   { id: "feedback", label: "Feedback" },
 ];
@@ -129,7 +130,7 @@ export default function CheckInPage() {
   const responsesStatus = useAppSelector((state) => state.responses.status);
   const assignmentsStatus = useAppSelector((state) => state.assignments.status);
 
-  const [activeTab, setActiveTab] = useState<FormTab>("outcome_measure");
+  const [activeTab, setActiveTab] = useState<FormTab>("check_in");
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -182,15 +183,24 @@ export default function CheckInPage() {
       return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(latestRcadsAt);
     }
     const latest = getLatestResponseForQuestionnaire(allUserResponses, q.id);
-    if (activeTab === "outcome_measure") {
-      if (!q.frequency) {
-        if (!latest) return true; // one-time: show until answered once
-        // admin re-opened it since the client's last response
-        return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(getResponseDate(latest));
+
+    // Check-ins recur on their frequency; a "one-time" check-in behaves like an
+    // outcome measure.
+    if (activeTab === "check_in") {
+      if (q.frequency) {
+        if (!latest) return true;
+        return isQuestionnaireCheckInDue(getResponseDate(latest), q.frequency);
       }
       if (!latest) return true;
-      return isQuestionnaireCheckInDue(getResponseDate(latest), q.frequency);
+      return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(getResponseDate(latest));
     }
+
+    if (activeTab === "outcome_measure") {
+      if (!latest) return true; // show until answered once
+      // admin re-opened it since the client's last response
+      return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(getResponseDate(latest));
+    }
+
     // feedback: show once (if never submitted)
     return !latest;
   });
@@ -218,6 +228,7 @@ export default function CheckInPage() {
   }
 
   const emptyMessages: Record<FormTab, string> = {
+    check_in: "You have no check-ins due right now.",
     outcome_measure: "You have no outcome measure forms due right now.",
     feedback: "No feedback forms to complete.",
   };

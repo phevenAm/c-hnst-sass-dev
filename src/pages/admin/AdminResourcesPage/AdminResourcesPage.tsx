@@ -226,7 +226,10 @@ export default function AdminResourcesPage() {
       {showForm && (
         <ResourceForm
           adminId={userProfile?.id ?? ""}
-          onSave={(data) => dispatch(createResource(data))}
+          onSave={async (data) => {
+            await dispatch(createResource(data)).unwrap();
+            showToast("Resource created", "success");
+          }}
           onClose={() => setShowForm(false)}
         />
       )}
@@ -235,7 +238,10 @@ export default function AdminResourcesPage() {
         <ResourceForm
           adminId={userProfile?.id ?? ""}
           resource={editingResource}
-          onSave={(data) => dispatch(updateResource({ id: editingResource.id, ...data }))}
+          onSave={async (data) => {
+            await dispatch(updateResource({ id: editingResource.id, ...data })).unwrap();
+            showToast("Resource updated", "success");
+          }}
           onClose={() => setEditingResource(null)}
         />
       )}

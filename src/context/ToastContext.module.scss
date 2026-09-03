@@ -13,7 +13,9 @@
   font-size: 0.875rem;
   box-shadow: var(--shadow-lg);
   z-index: 9999;
-  white-space: nowrap;
+  max-width: min(90vw, 26rem);
+  text-align: center;
+  overflow-wrap: anywhere;
   pointer-events: none;
   animation: slideDown 250ms ease-in-out;
 

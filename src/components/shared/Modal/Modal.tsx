@@ -5,6 +5,8 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import Button from "@components/shared/Button/Button";
 
+import { useScrollLock } from "@/Hooks/useScrollLock";
+
 import styles from "./Modal.module.scss";
 
 export type ModalProps = {
@@ -19,18 +21,15 @@ export default function Modal({ title, onClose, children, actions, size = "md" }
   const mouseDownTarget = useRef<EventTarget | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
 
+  useScrollLock();
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
 
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleEsc);
-
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleEsc);
-    };
+    return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -35,7 +35,7 @@ import { ToggleButtonTabsTypes } from "@/components/shared/ToggleButtonTabs/Togg
 import { useAuth } from "@/context/AuthContext";
 import { useEncryption } from "@/context/EncryptionContext";
 import { useToast } from "@/context/ToastContext";
-import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import { ageFromDob, clientDisplayName, isPageStatusLoading, maskedProfileValue, timeAgo } from "@/Helpers/Helpers";
 import {
   flaggedRiskItems,
   getMeasureSpec,
@@ -483,22 +483,38 @@ export default function AdminClientsPageDetailed() {
   const client = allUsers.find((u) => u.id === clientId);
 
   const [codename, setCodename] = useState(client?.admin_codename ?? "");
+  const [showAge, setShowAge] = useState(client?.profile_show_age ?? false);
+  const [showEmail, setShowEmail] = useState(client?.profile_show_email ?? false);
+  const [showLastSeen, setShowLastSeen] = useState(client?.profile_show_last_seen ?? false);
   const [savingCodename, setSavingCodename] = useState(false);
 
   useEffect(() => {
     setCodename(client?.admin_codename ?? "");
-  }, [client?.admin_codename]);
+    setShowAge(client?.profile_show_age ?? false);
+    setShowEmail(client?.profile_show_email ?? false);
+    setShowLastSeen(client?.profile_show_last_seen ?? false);
+  }, [client?.admin_codename, client?.profile_show_age, client?.profile_show_email, client?.profile_show_last_seen]);
 
   const handleSaveCodename = async () => {
     if (!clientId) return;
     setSavingCodename(true);
-    await supabase
+    const { error } = await supabase
       .from("users")
-      .update({ admin_codename: codename.trim() || null })
+      .update({
+        admin_codename: codename.trim() || null,
+        profile_show_age: showAge,
+        profile_show_email: showEmail,
+        profile_show_last_seen: showLastSeen,
+      })
       .eq("id", clientId);
     dispatch(fetchAllUsers());
     setSavingCodename(false);
-    showToast("Codename saved.");
+    if (error) {
+      showToast("Couldn't save — please try again.", "danger");
+      return;
+    }
+    setIsConfigOpen(false);
+    showToast("Client settings saved.");
   };
 
   // Pause / restore a client's access. `disabled` is enforced app-side in
@@ -553,6 +569,27 @@ export default function AdminClientsPageDetailed() {
   };
 
   const displayedClientName = client ? clientDisplayName(client, practiceSettings?.use_client_codenames ?? false) : "";
+
+  // Optional profile fields (Age / Email / Last seen). Each is off unless the
+  // counsellor turned it on for this client in the Configure client modal, and
+  // a practice-wide switch in Settings can force-hide all three. When codenames
+  // are on the value is masked rather than shown.
+  const profileMask = {
+    codenames: practiceSettings?.use_client_codenames ?? false,
+    masterHidden: practiceSettings?.hide_client_profile_pii ?? false,
+  };
+  const clientAgeField = client
+    ? maskedProfileValue(ageFromDob(client.dob) ?? undefined, { show: client.profile_show_age, ...profileMask })
+    : null;
+  const clientEmailField = client
+    ? maskedProfileValue(client.email, { show: client.profile_show_email, ...profileMask })
+    : null;
+  const clientLastSeenField = client
+    ? maskedProfileValue(client.last_seen_at ? timeAgo(client.last_seen_at) : undefined, {
+        show: client.profile_show_last_seen,
+        ...profileMask,
+      })
+    : null;
 
   let deactivateDesc =
     "Ends the working relationship and removes them from your active caseload. All history is kept — this is reversible.";
@@ -975,7 +1012,9 @@ export default function AdminClientsPageDetailed() {
             <div>
               <h1 className={styles.heroName}>{displayedClientName}</h1>
               {statusBadge && <div className={styles.heroStatus}>{statusBadge}</div>}
-              <p className={styles.heroEmail}>{client.email}</p>
+              {clientEmailField && <p className={styles.heroEmail}>{clientEmailField}</p>}
+              {clientAgeField && <p className={styles.heroSince}>Age {clientAgeField}</p>}
+              {clientLastSeenField && <p className={styles.heroSince}>Last seen {clientLastSeenField}</p>}
               {clientSince && (
                 <p className={styles.heroSince}>Client since {dayjs(clientSince).format("DD/MM/YYYY")}</p>
               )}
@@ -1084,7 +1123,9 @@ export default function AdminClientsPageDetailed() {
                     {forms.map((form) => {
                       const q = form.questionnaires;
                       const isRcads = !!q?.is_rcads;
-                      const hasScaleQs = q?.questions?.some((qn) => qn.type === "scale") ?? false;
+                      // Only check-ins are plotted on the wellbeing chart.
+                      const isCheckIn = (q as { form_type?: string } | undefined)?.form_type === "check_in";
+                      const canPlot = isCheckIn && (q?.questions?.some((qn) => qn.type === "scale") ?? false);
                       const hasResults = isRcads
                         ? hasRcadsAssessment
                         : formResultGroups.some((g) => g.questionnaire.id === q?.id);
@@ -1115,7 +1156,7 @@ export default function AdminClientsPageDetailed() {
                                 View details
                               </button>
                             )}
-                            {hasScaleQs && (
+                            {canPlot && (
                               <button
                                 type="button"
                                 className={`${styles.plotToggle}${form.is_plotted ? ` ${styles.plotToggleActive}` : ""}`}
@@ -1536,7 +1577,7 @@ export default function AdminClientsPageDetailed() {
           onClose={() => setIsConfigOpen(false)}
           actions={
             <Button variant="primary" size="sm" onClick={handleSaveCodename} disabled={savingCodename}>
-              {savingCodename ? "Saving…" : "Save codename"}
+              {savingCodename ? "Saving…" : "Save"}
             </Button>
           }
         >
@@ -1554,6 +1595,49 @@ export default function AdminClientsPageDetailed() {
             Set a codename to show instead of {client.first_name}'s real name across your admin. Leave blank to use
             their real name.
           </p>
+
+          <div className={styles.configSection}>
+            <p className={styles.configLabel}>Show on profile</p>
+            <p className={styles.configHint}>
+              Off by default. Shown as *** while codenames are on, and hidden everywhere by Settings → Practice → "Hide
+              age, email &amp; last seen".
+            </p>
+
+            {(
+              [
+                {
+                  label: "Age",
+                  detail:
+                    ageFromDob(client.dob) != null ? `currently ${ageFromDob(client.dob)}` : "no date of birth on file",
+                  checked: showAge,
+                  set: setShowAge,
+                },
+                {
+                  label: "Email address",
+                  detail: client.email || "no email on file",
+                  checked: showEmail,
+                  set: setShowEmail,
+                },
+                {
+                  label: "Last seen",
+                  detail: client.last_seen_at ? timeAgo(client.last_seen_at) : "not recorded yet",
+                  checked: showLastSeen,
+                  set: setShowLastSeen,
+                },
+              ] as const
+            ).map(({ label, detail, checked, set }) => (
+              <label key={label} className={styles.toggleRow}>
+                <span className={styles.toggleRowLabel}>
+                  {label}
+                  <small>{detail}</small>
+                </span>
+                <span className={`${styles.toggleSwitch} ${checked ? styles.toggleSwitchOn : ""}`}>
+                  <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)} />
+                  <span className={styles.toggleThumb} />
+                </span>
+              </label>
+            ))}
+          </div>
 
           <div className={styles.configSection}>
             <p className={styles.configLabel}>Account Summary</p>

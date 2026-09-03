@@ -6,6 +6,8 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 
 import Spinner from "@components/shared/Spinner/Spinner";
 
+import { useScrollLock } from "@/Hooks/useScrollLock";
+
 import styles from "./PdfViewer.module.scss";
 
 // react-pdf renders via a web worker — Vite needs the actual worker file
@@ -97,16 +99,13 @@ export default function PdfViewer({ url, title }: Props) {
   // When expanded: lock the page scroll and let Escape collapse it. The same
   // <Document> stays mounted the whole time — the PDF is loaded once and the
   // pages just re-render wider as the container grows.
+  useScrollLock(isFull);
+
   useEffect(() => {
     if (!isFull) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setIsFull(false);
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [isFull]);
 
   return (
