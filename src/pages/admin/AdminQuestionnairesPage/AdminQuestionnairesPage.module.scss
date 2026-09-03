@@ -125,6 +125,13 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: $sp-4;
+
+  // Below full desktop width (sidebar + content leaves < ~1024px) the button
+  // row no longer fits beside the text — stack the actions underneath it.
+  @include until-lg {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .qInfo {
@@ -201,7 +208,7 @@
   gap: $sp-2;
   flex-wrap: wrap;
 
-  @include until-md {
+  @include until-lg {
     display: none;
   }
 }
@@ -209,7 +216,7 @@
 .mobileActions {
   display: none;
 
-  @include until-md {
+  @include until-lg {
     display: flex;
   }
 }

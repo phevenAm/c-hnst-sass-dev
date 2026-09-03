@@ -81,6 +81,13 @@
 .clientMeta {
   flex: 1;
   min-width: 140px;
+  // let long values (stub emails) truncate instead of forcing the row wider
+  // and shoving the stat blocks onto a new line
+  max-width: 100%;
+
+  > * {
+    min-width: 0;
+  }
 }
 
 .clientName {
@@ -97,6 +104,9 @@
   font-size: 0.8rem;
   color: var(--text-muted);
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clientPlotted {

@@ -185,10 +185,20 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       </div>
 
       <div className={styles.tiles}>
-        <StatTile label="Income" value={money(incomePence)} />
-        <StatTile label="Outgoings" value={money(outgoingsPence)} />
-        <StatTile label="Outstanding" value={money(outstandingPence)} onClick={() => onJump("invoices", false)} />
-        <StatTile label="Net" value={money(netPence)} tone={netPence < 0 ? "danger" : "default"} />
+        <StatTile label="Income" value={money(incomePence)} sub="Payments received" />
+        <StatTile label="Outgoings" value={money(outgoingsPence)} sub="Expenses recorded" />
+        <StatTile
+          label="Awaiting payment"
+          value={money(outstandingPence)}
+          sub="Unpaid invoices"
+          onClick={() => onJump("invoices", false)}
+        />
+        <StatTile
+          label="Net"
+          value={money(netPence)}
+          sub="Income minus outgoings"
+          tone={netPence < 0 ? "danger" : "default"}
+        />
       </div>
 
       <div className={styles.charts}>

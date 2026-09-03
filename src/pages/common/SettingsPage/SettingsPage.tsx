@@ -1574,6 +1574,7 @@ const SettingsPage = () => {
                       imported.
                     </p>
                   </div>
+
                   <div className={styles.syncOption}>
                     <h3 className={styles.syncOptionTitle}>Google Calendar (auto-sync)</h3>
                     <p className={styles.syncOptionDesc}>
@@ -1581,7 +1582,46 @@ const SettingsPage = () => {
                       Google Calendar automatically. One-way only: changes made directly in Google don't come back into
                       Clarity.
                     </p>
+                    <div className={styles.syncOptionAction}>
+                      {googleStatus?.connected ? (
+                        <>
+                          <label className={styles.toggleRow}>
+                            <span className={styles.toggleLabel}>
+                              <strong>Sync to Google Calendar</strong>
+                              <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
+                            </span>
+                            <span
+                              className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
+                            >
+                              <input
+                                type="checkbox"
+                                className={styles.toggleInput}
+                                checked={googleStatus.sync_enabled}
+                                disabled={savingGoogleSync}
+                                onChange={handleToggleGoogleSync}
+                              />
+                              <span className={styles.toggleThumb} />
+                            </span>
+                          </label>
+                          <div className={styles.actions}>
+                            <Button
+                              variant="ghost-danger"
+                              size="sm"
+                              onClick={() => setConfirmDisconnectGoogle(true)}
+                              disabled={disconnectingGoogle}
+                            >
+                              {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <Button variant="primary" onClick={handleConnectGoogleCalendar}>
+                          Connect Google Calendar
+                        </Button>
+                      )}
+                    </div>
                   </div>
+
                   <div className={styles.syncOption}>
                     <h3 className={styles.syncOptionTitle}>Microsoft 365 / Outlook (auto-sync)</h3>
                     <p className={styles.syncOptionDesc}>
@@ -1589,104 +1629,68 @@ const SettingsPage = () => {
                       one-way, the same as Google. Online sessions also get a Microsoft Teams meeting link added
                       automatically (needs a Microsoft 365 Business account with Teams).
                     </p>
+                    <div className={styles.syncOptionAction}>
+                      {microsoftStatus?.connected ? (
+                        <>
+                          <label className={styles.toggleRow}>
+                            <span className={styles.toggleLabel}>
+                              <strong>Sync to Outlook</strong>
+                              <span>Connected as {microsoftStatus.microsoft_email ?? "unknown account"}</span>
+                            </span>
+                            <span
+                              className={`${styles.toggleSwitch} ${
+                                microsoftStatus.sync_enabled ? styles.toggleSwitchOn : ""
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className={styles.toggleInput}
+                                checked={microsoftStatus.sync_enabled}
+                                disabled={savingMicrosoftSync}
+                                onChange={handleToggleMicrosoftSync}
+                              />
+                              <span className={styles.toggleThumb} />
+                            </span>
+                          </label>
+                          <label className={styles.toggleRow}>
+                            <span className={styles.toggleLabel}>
+                              <strong>Add Teams meeting links</strong>
+                              <span>Online sessions get a Microsoft Teams join link automatically</span>
+                            </span>
+                            <span
+                              className={`${styles.toggleSwitch} ${
+                                microsoftStatus.create_teams_links ? styles.toggleSwitchOn : ""
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className={styles.toggleInput}
+                                checked={microsoftStatus.create_teams_links}
+                                disabled={savingTeamsLinks || !microsoftStatus.sync_enabled}
+                                onChange={handleToggleTeamsLinks}
+                              />
+                              <span className={styles.toggleThumb} />
+                            </span>
+                          </label>
+                          <div className={styles.actions}>
+                            <Button
+                              variant="ghost-danger"
+                              size="sm"
+                              onClick={() => setConfirmDisconnectMicrosoft(true)}
+                              disabled={disconnectingMicrosoft}
+                            >
+                              {disconnectingMicrosoft ? "Disconnecting…" : "Disconnect Microsoft calendar"}
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
+                          Connect Microsoft calendar
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {googleStatus?.connected ? (
-                  <>
-                    <label className={styles.toggleRow}>
-                      <span className={styles.toggleLabel}>
-                        <strong>Sync to Google Calendar</strong>
-                        <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
-                      </span>
-                      <span
-                        className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
-                      >
-                        <input
-                          type="checkbox"
-                          className={styles.toggleInput}
-                          checked={googleStatus.sync_enabled}
-                          disabled={savingGoogleSync}
-                          onChange={handleToggleGoogleSync}
-                        />
-                        <span className={styles.toggleThumb} />
-                      </span>
-                    </label>
-                    <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
-                      <Button
-                        variant="ghost-danger"
-                        size="sm"
-                        onClick={() => setConfirmDisconnectGoogle(true)}
-                        disabled={disconnectingGoogle}
-                      >
-                        {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <Button variant="primary" onClick={handleConnectGoogleCalendar}>
-                    Connect Google Calendar
-                  </Button>
-                )}
-
-                {microsoftStatus?.connected ? (
-                  <div style={{ marginTop: "var(--sp-6)" }}>
-                    <label className={styles.toggleRow}>
-                      <span className={styles.toggleLabel}>
-                        <strong>Sync to Outlook</strong>
-                        <span>Connected as {microsoftStatus.microsoft_email ?? "unknown account"}</span>
-                      </span>
-                      <span
-                        className={`${styles.toggleSwitch} ${
-                          microsoftStatus.sync_enabled ? styles.toggleSwitchOn : ""
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className={styles.toggleInput}
-                          checked={microsoftStatus.sync_enabled}
-                          disabled={savingMicrosoftSync}
-                          onChange={handleToggleMicrosoftSync}
-                        />
-                        <span className={styles.toggleThumb} />
-                      </span>
-                    </label>
-                    <label className={styles.toggleRow}>
-                      <span className={styles.toggleLabel}>
-                        <strong>Add Teams meeting links</strong>
-                        <span>Online sessions get a Microsoft Teams join link automatically</span>
-                      </span>
-                      <span
-                        className={`${styles.toggleSwitch} ${
-                          microsoftStatus.create_teams_links ? styles.toggleSwitchOn : ""
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className={styles.toggleInput}
-                          checked={microsoftStatus.create_teams_links}
-                          disabled={savingTeamsLinks || !microsoftStatus.sync_enabled}
-                          onChange={handleToggleTeamsLinks}
-                        />
-                        <span className={styles.toggleThumb} />
-                      </span>
-                    </label>
-                    <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
-                      <Button
-                        variant="ghost-danger"
-                        size="sm"
-                        onClick={() => setConfirmDisconnectMicrosoft(true)}
-                        disabled={disconnectingMicrosoft}
-                      >
-                        {disconnectingMicrosoft ? "Disconnecting…" : "Disconnect Microsoft calendar"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
-                    Connect Microsoft calendar
-                  </Button>
-                )}
               </section>
             </SettingsCard>
 

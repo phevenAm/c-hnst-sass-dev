@@ -231,8 +231,16 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
         </div>
 
         <div className={styles.tiles}>
-          <StatTile label="Outstanding" value={money(summary.outstanding)} />
-          <StatTile label={`Paid in ${summary.year}`} value={money(summary.paidThisYear)} />
+          <StatTile
+            label="Awaiting payment"
+            value={money(summary.outstanding)}
+            sub="Invoices sent or drafted, not yet paid"
+          />
+          <StatTile
+            label={`Paid in ${summary.year}`}
+            value={money(summary.paidThisYear)}
+            sub="Invoices marked paid this year"
+          />
         </div>
 
         <div className={styles.filters}>

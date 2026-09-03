@@ -227,7 +227,7 @@
 .syncOptions {
   display: flex;
   flex-direction: column;
-  gap: $sp-4;
+  gap: $sp-6;
   margin: $sp-2 0 $sp-6;
 
   .syncOptionTitle {
@@ -252,6 +252,16 @@
   display: flex;
   flex-direction: column;
   gap: $sp-1;
+}
+
+// The connect button / connected-state toggles for a sync option, sitting
+// directly under that option's description.
+.syncOptionAction {
+  margin-top: $sp-3;
+
+  .actions {
+    margin-top: $sp-4;
+  }
 }
 
 // ── Client consent config block ─────────────────────────────

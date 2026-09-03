@@ -53,11 +53,9 @@ function ClientRow({ user }: { user: UserProfile }) {
   const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(user.id));
   const { practiceSettings } = useAuth();
   const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
-  const emailField = maskedProfileValue(user.email, {
-    show: user.profile_show_email,
-    codenames: practiceSettings?.use_client_codenames ?? false,
-    masterHidden: practiceSettings?.hide_client_profile_pii ?? false,
-  });
+  // Email is intentionally not shown in the list row — it overflowed the layout
+  // on narrow screens and added little at a glance. It's on the client's detail
+  // page, and search still matches on it.
 
   const questionnaireOptions = useMemo(
     () =>
@@ -119,7 +117,6 @@ function ClientRow({ user }: { user: UserProfile }) {
             <span>{displayName}</span>
             {user.disabled && <Badge variant="warning">Paused</Badge>}
           </p>
-          {emailField && <p className={styles.clientEmail}>{emailField}</p>}
           {plottedAssignment?.questionnaires?.title && (
             <p className={styles.clientPlotted}>Charting: {plottedAssignment.questionnaires.title}</p>
           )}
