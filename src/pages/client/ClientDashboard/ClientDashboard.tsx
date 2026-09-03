@@ -87,23 +87,22 @@ export default function ClientDashboard() {
     return isQuestionnaireCheckInDue(getResponseDate(latestResponse), q.frequency);
   });
 
-  // Which single form the chart/stats are built from — must be the exact
-  // same one the admin picked via the "Chart"/"Charting" toggle on the
-  // client detail page (selectPlottedAssignmentByUser), not an arbitrary
-  // mix of every assigned form. Different outcome measures use different
-  // scales, so blending their responses together previously produced a
-  // meaningless average once a client had more than one assigned. Falls
-  // back to the first assigned form with any responses if the admin hasn't
-  // explicitly plotted one — same fallback the admin side uses. The fallback
-  // skips forms with no `scale` questions (CORE-10, RCADS, PHQ-9 and the other
-  // standardised built-ins): they can't be plotted, so auto-picking one just
-  // renders an empty "nothing to plot" chart.
-  const isPlottable = (q: (typeof assignedQs)[number]) => q.questions?.some((qn) => qn.type === "scale") ?? false;
+  // Which single form the wellbeing chart is built from. Only `check_in` forms
+  // are ever plotted — they're the light-touch, recurring, tagged ones. Outcome
+  // measures (CORE-10, PHQ-9, RCADS, GAD-7 …) are point-in-time assessments on
+  // fixed clinical scales and are deliberately never charted here; blending
+  // their responses in produced meaningless averages, and the admin "Chart"
+  // toggle is now hidden for them too. Prefer the form the admin explicitly
+  // plotted (selectPlottedAssignmentByUser), else the first check-in with
+  // responses.
+  const isPlottable = (q: (typeof assignedQs)[number]) =>
+    q.form_type === "check_in" && (q.questions?.some((qn) => qn.type === "scale") ?? false);
   const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(authUser?.id ?? ""));
-  const chartedQuestionnaireId =
-    plottedAssignment?.questionnaire_id ??
-    assignedQs.find((q) => isPlottable(q) && allUserResponses.some((r) => r.questionnaire_id === q.id))?.id;
-  const chartedQuestionnaire = assignedQs.find((q) => q.id === chartedQuestionnaireId);
+  const plottedQuestionnaire = assignedQs.find((q) => q.id === plottedAssignment?.questionnaire_id);
+  const chartedQuestionnaire =
+    (plottedQuestionnaire && isPlottable(plottedQuestionnaire) ? plottedQuestionnaire : undefined) ??
+    assignedQs.find((q) => isPlottable(q) && allUserResponses.some((r) => r.questionnaire_id === q.id));
+  const chartedQuestionnaireId = chartedQuestionnaire?.id;
 
   const chartResponses = allUserResponses
     .filter((r) => r.questionnaire_id === chartedQuestionnaireId)
@@ -260,7 +259,10 @@ export default function ClientDashboard() {
 
         <div className={styles.chartWrap} id="client-chart">
           <ProgressChart responses={chartResponses} questions={allAssignedQuestions} title="Your Wellbeing Over Time" />
-          {/* //!TODO: questons should really have categories like sleep, selfcare, love-tank etc etc, for each question thats made, it should map to a category. and its these cats. that will be plotted and not the long winded questions. assignment to cat. is required */}
+          {/* ProgressChart plots one line per question *tag* (category — Mood, Sleep,
+              Energy …) when the check-in's scale questions are tagged, averaging
+              every question that shares a tag; it falls back to per-question lines
+              only when no tags are set. Tag questions in the form builder. */}
         </div>
 
         <div className={styles.bottomGrid} id="client-checkins">

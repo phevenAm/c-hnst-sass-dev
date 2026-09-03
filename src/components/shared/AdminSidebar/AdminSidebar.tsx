@@ -35,7 +35,7 @@ const NAV: NavItem[] = [
   { to: "/admin/scheduler", label: "Schedule", Icon: CalendarIcon, exact: false },
   { to: "/admin/clients", label: "Clients", Icon: UsersIcon, exact: false },
   { to: "/admin/forms", label: "Forms", Icon: AssignmentClipIcon, exact: false },
-  { to: "/admin/payments", label: "Payments", Icon: MoneyIcon, exact: false },
+  { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
   {
     label: "Logs",

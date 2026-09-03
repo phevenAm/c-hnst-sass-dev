@@ -1,0 +1,207 @@
+@use "../../../styles/spacing" as *;
+
+.header {
+  margin-bottom: $sp-4;
+}
+
+.title {
+  margin: 0;
+}
+
+// ── Tab strip ─────────────────────────────────────────────
+.tabs {
+  display: flex;
+  gap: $sp-1;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: $sp-6;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: $sp-3 $sp-4;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.tabActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+// ── Overview ──────────────────────────────────────────────
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.periodRow {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.periodBtn {
+  padding: $sp-2 $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+}
+
+.periodBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $sp-4;
+
+  @media (max-width: 800px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tile {
+  padding: $sp-5;
+}
+
+.tileButton {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--r-md);
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.tileLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 $sp-1;
+}
+
+.tileValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.negative {
+  color: var(--danger);
+}
+
+.positive {
+  color: var(--accent);
+}
+
+.trends {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-4;
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Recent activity ───────────────────────────────────────
+.activityCard {
+  padding: $sp-5 $sp-6;
+}
+
+.activityHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $sp-3;
+  margin-bottom: $sp-4;
+
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+}
+
+.activityActions {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.activityList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.activityRow {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto;
+  gap: $sp-3;
+  align-items: center;
+  padding: $sp-3 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.activityDate {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.activityLabel {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activityAmount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: $sp-6;
+}

@@ -5,8 +5,16 @@ import dayjs from "dayjs";
 
 import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Avatar from "@components/shared/Avatar/Avatar";
-import { CreateSession, FormsIcon, MailIcon, RescheduleIcon } from "@components/shared/Icons/Icons";
+import {
+  ChatIcon,
+  CreateSession,
+  FormsIcon,
+  MailIcon,
+  MoneyIcon,
+  RescheduleIcon,
+} from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
+import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -56,6 +64,7 @@ export default function AdminDashboard() {
   const allStubs = useAppSelector(selectAllStubs);
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
+  const [announceOpen, setAnnounceOpen] = useState(false);
 
   const usersStatus = useAppSelector((state: RootState) => state.userDirectory.status);
   const sessionsStatus = useAppSelector((state: RootState) => state.sessions.status);
@@ -71,6 +80,7 @@ export default function AdminDashboard() {
     (UpcomingStubSession & { amount_paid: number | null; price_pence: number | null })[]
   >([]);
   const [manualPayments, setManualPayments] = useState<{ paid_at: string; amount_pence: number }[]>([]);
+  const [expenses, setExpenses] = useState<{ incurred_on: string; amount_pence: number }[]>([]);
 
   useFetchOnIdle(
     (state: RootState) => state.userDirectory.status,
@@ -106,6 +116,10 @@ export default function AdminDashboard() {
       .from("payments")
       .select("paid_at, amount_pence")
       .then(({ data }) => data && setManualPayments(data));
+    supabase
+      .from("expenses")
+      .select("incurred_on, amount_pence")
+      .then(({ data }) => data && setExpenses(data));
   }, []);
 
   useEffect(() => {
@@ -132,6 +146,14 @@ export default function AdminDashboard() {
     [allSessions, stubSessions, manualPayments],
   );
   const sessionVolumeData = useMemo(() => sessionsByWeek(allSessions, 8), [allSessions]);
+  const outgoingsData = useMemo(
+    () =>
+      revenueByMonthFromPayments(
+        expenses.map((e) => ({ paid_at: e.incurred_on, amount_pence: e.amount_pence })),
+        6,
+      ),
+    [expenses],
+  );
 
   const unpaidSessions = useMemo(
     () =>
@@ -141,6 +163,22 @@ export default function AdminDashboard() {
         .slice(0, 5),
     [allSessions],
   );
+
+  // Bank transfers a client has self-marked as paid — the admin still has to
+  // confirm each in the Income ledger. Grouped by client for the dashboard's
+  // "Needs attention" block.
+  const pendingBankTransfers = useMemo(() => {
+    const byClient = new Map<string, { clientId: string | null; count: number; pence: number }>();
+    for (const s of allSessions) {
+      if (s.manual_payment_status !== "pending" || s.status === "cancelled") continue;
+      const key = s.client_id ?? "none";
+      const prev = byClient.get(key) ?? { clientId: s.client_id, count: 0, pence: 0 };
+      prev.count += 1;
+      prev.pence += s.price_pence ?? 0;
+      byClient.set(key, prev);
+    }
+    return [...byClient.values()];
+  }, [allSessions]);
 
   const guard = isPageStatusLoading(usersStatus, sessionsStatus);
   if (guard) return guard;
@@ -185,9 +223,34 @@ export default function AdminDashboard() {
                   <RescheduleIcon />
                 </div>
               </Link>
+
+              <Link to="/admin/finances?view=invoices&new=true" title="New invoice">
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
+                  <MoneyIcon />
+                </div>
+              </Link>
+
+              <button
+                type="button"
+                className={styles.quickActionBtn}
+                onClick={() => setAnnounceOpen(true)}
+                title="Send an announcement to clients"
+              >
+                <div className={`${styles.metricIcon} ${styles.sky}`}>
+                  <ChatIcon />
+                </div>
+              </button>
             </div>
           </Card>
         </div>
+
+        {announceOpen && (
+          <SendAnnouncementModal
+            clients={allClients}
+            useCodenames={useCodenames}
+            onClose={() => setAnnounceOpen(false)}
+          />
+        )}
 
         {/* ── Primary two-column grid: Upcoming + Recent ── */}
         <div className={styles.primaryGrid}>
@@ -212,10 +275,10 @@ export default function AdminDashboard() {
             </CollapsibleSection>
           </Card>
 
-          {pendingRequests.length > 0 && (
+          {(pendingRequests.length > 0 || pendingBankTransfers.length > 0) && (
             <Card className={styles.sectionCard}>
               <CollapsibleSection
-                title={`Needs attention (${pendingRequests.length})`}
+                title={`Needs attention (${pendingRequests.length + pendingBankTransfers.length})`}
                 storageKey="dash:attention"
                 headerRight={
                   <Link to="/admin/clients" className={styles.sectionLink}>
@@ -224,6 +287,30 @@ export default function AdminDashboard() {
                 }
               >
                 <div className={styles.recentList}>
+                  {pendingBankTransfers.map((bt) => {
+                    const name = getClientName(bt.clientId);
+                    const label =
+                      bt.count > 1
+                        ? `Marked ${bt.count} bank transfers as paid — confirm them`
+                        : "Marked a bank transfer as paid — confirm it";
+                    return (
+                      <Link
+                        key={`bt-${bt.clientId ?? "none"}`}
+                        to="/admin/finances?view=income"
+                        className={styles.recentRowLink}
+                      >
+                        <div className={styles.recentRow}>
+                          <Avatar name={name} color={pickColor(bt.clientId ?? "")} size={32} />
+                          <div className={styles.recentInfo}>
+                            <p className={styles.recentName}>{name}</p>
+                            <p className={styles.recentMeta}>
+                              {label} · £{(bt.pence / 100).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                   {pendingRequests.map((r) => {
                     const name = getClientName(r.client_id);
                     const label =
@@ -261,7 +348,7 @@ export default function AdminDashboard() {
             storageKey="dash:invoices"
             headerRight={
               unpaidSessions.length > 0 ? (
-                <Link to="/admin/payments" className={styles.sectionLink}>
+                <Link to="/admin/finances?view=income" className={styles.sectionLink}>
                   View all →
                 </Link>
               ) : undefined
@@ -274,7 +361,7 @@ export default function AdminDashboard() {
                 {unpaidSessions.map((s) => {
                   const daysOverdue = dayjs().diff(dayjs(s.scheduled_at), "day");
                   return (
-                    <Link key={s.id} to="/admin/payments" className={styles.invoiceRowLink}>
+                    <Link key={s.id} to="/admin/finances?view=income" className={styles.invoiceRowLink}>
                       <div className={styles.invoiceRow}>
                         <div className={styles.invoiceInfo}>
                           <span className={styles.invoiceClient}>{getClientName(s.client_id)}</span>
@@ -301,6 +388,15 @@ export default function AdminDashboard() {
                   data={revenueData}
                   type="bar"
                   color="#4a665b"
+                  valueFormatter={(v) => `£${v.toFixed(2)}`}
+                />
+              </HideableSection>
+              <HideableSection id="dashboard-outgoings">
+                <TrendChart
+                  title="Outgoings (last 6 months)"
+                  data={outgoingsData}
+                  type="bar"
+                  color="#a8633a"
                   valueFormatter={(v) => `£${v.toFixed(2)}`}
                 />
               </HideableSection>

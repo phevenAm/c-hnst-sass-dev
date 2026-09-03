@@ -8,6 +8,7 @@ import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
 import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import AuthLoadingState from "../components/shared/AuthLoadingState/AuthLoadingState";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
+import Footer from "../components/shared/Footer/Footer";
 import Navbar from "../components/shared/Navbar/Navbar";
 import PastDueBanner from "../components/shared/PastDueBanner/PastDueBanner";
 import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
@@ -40,7 +41,7 @@ const AdminClientsPage = lazy(() => import("../pages/admin/AdminClientsPage/Admi
 const AdminClientsPageDetailed = lazy(() => import("../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed"));
 const AdminCpdPage = lazy(() => import("../pages/admin/AdminCpdPage/AdminCpdPage"));
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard/AdminDashboard"));
-const AdminPaymentsPage = lazy(() => import("../pages/admin/AdminPaymentsPage/AdminPaymentsPage"));
+const AdminFinancesPage = lazy(() => import("../pages/admin/AdminFinancesPage/AdminFinancesPage"));
 const AdminQuestionnairesPage = lazy(() => import("../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage"));
 const AdminResourcesPage = lazy(() => import("../pages/admin/AdminResourcesPage/AdminResourcesPage"));
 const AdminScheduler = lazy(() => import("../pages/admin/AdminScheduler/AdminScheduler"));
@@ -130,6 +131,7 @@ function AppLayout() {
           </Suspense>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
@@ -400,7 +402,10 @@ export default function AppRoutes() {
                 <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
                 <Route path="/admin/scheduler" element={<AdminScheduler />} />
                 <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
-                <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+                <Route path="/admin/finances" element={<AdminFinancesPage />} />
+                <Route path="/admin/payments" element={<Navigate to="/admin/finances?view=income" replace />} />
+                <Route path="/admin/invoices" element={<Navigate to="/admin/finances?view=invoices" replace />} />
+                <Route path="/admin/expenses" element={<Navigate to="/admin/finances?view=expenses" replace />} />
                 <Route path="/admin/cpd" element={<AdminCpdPage />} />
                 <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
                 {/* //! make admin/schedule/userSchedule route */}
