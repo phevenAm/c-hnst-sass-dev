@@ -77,6 +77,9 @@ export default function AdminCpdPage() {
     }
   }, [searchParams, setSearchParams]);
   const [target, setTarget] = useState(30);
+  // Separate string draft for the target input so the field can be cleared while
+  // typing without snapping to 0 (Number("") === 0). Committed on blur.
+  const [targetDraft, setTargetDraft] = useState("30");
   const [filterType, setFilterType] = useState<string>("all");
 
   const currentYear = new Date().getFullYear();
@@ -126,7 +129,10 @@ export default function AdminCpdPage() {
   useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
   const cachedTargetHours = useAppSelector((state) => state.practiceSettings.data?.cpd_annual_target_hours);
   useEffect(() => {
-    if (cachedTargetHours) setTarget(cachedTargetHours);
+    if (cachedTargetHours) {
+      setTarget(cachedTargetHours);
+      setTargetDraft(String(cachedTargetHours));
+    }
   }, [cachedTargetHours]);
 
   const handleDelete = async (log: CpdLog) => {
@@ -312,11 +318,17 @@ export default function AdminCpdPage() {
               <input
                 type="number"
                 className={styles.targetInput}
-                value={target}
+                value={targetDraft}
                 min={1}
                 max={200}
-                onChange={(e) => setTarget(Number(e.target.value))}
-                onBlur={(e) => handleSaveTarget(Number(e.target.value))}
+                onChange={(e) => setTargetDraft(e.target.value)}
+                onBlur={(e) => {
+                  const n = Math.round(Number(e.target.value));
+                  const next = Number.isFinite(n) && n >= 1 && n <= 200 ? n : target;
+                  setTarget(next);
+                  setTargetDraft(String(next));
+                  handleSaveTarget(next);
+                }}
               />{" "}
               hr target
             </span>

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { clientDisplayName, getInitials, isQuestionnaireCheckInDue } from "./Helpers";
+import {
+  ageFromDob,
+  clientDisplayName,
+  getInitials,
+  isAdultFromDob,
+  isQuestionnaireCheckInDue,
+  timeAgo,
+} from "./Helpers";
 
 describe("isQuestionnaireCheckInDue", () => {
   it("returns true when 1 day has passed", () => {
@@ -58,6 +65,49 @@ describe("isQuestionnaireCheckInDue", () => {
 //   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
 //   return (first + last).toUpperCase();
 // };
+
+describe("ageFromDob", () => {
+  it("returns null for missing or unparseable input", () => {
+    expect(ageFromDob(null)).toBeNull();
+    expect(ageFromDob(undefined)).toBeNull();
+    expect(ageFromDob("")).toBeNull();
+    expect(ageFromDob("not-a-date")).toBeNull();
+  });
+
+  it("computes a birthday-adjusted age", () => {
+    const d = new Date();
+    const hadBirthday = `${d.getFullYear() - 30}-01-01`;
+    const notYet = `${d.getFullYear() - 30}-12-31`;
+    expect(ageFromDob(hadBirthday)).toBe(d.getMonth() === 0 && d.getDate() === 1 ? 30 : 30);
+    // Someone whose birthday is 31 Dec is still 29 for most of the year.
+    expect(ageFromDob(notYet)).toBe(d.getMonth() === 11 && d.getDate() === 31 ? 30 : 29);
+  });
+
+  it("isAdultFromDob agrees with the 18 boundary", () => {
+    const y = new Date().getFullYear();
+    expect(isAdultFromDob(`${y - 20}-06-15`)).toBe(true);
+    expect(isAdultFromDob(`${y - 10}-06-15`)).toBe(false);
+  });
+});
+
+describe("timeAgo", () => {
+  const now = Date.parse("2026-03-10T12:00:00.000Z");
+  it("returns empty string for missing / unparseable input", () => {
+    expect(timeAgo(null, now)).toBe("");
+    expect(timeAgo(undefined, now)).toBe("");
+    expect(timeAgo("nonsense", now)).toBe("");
+  });
+  it("buckets recent times", () => {
+    expect(timeAgo("2026-03-10T11:59:40.000Z", now)).toBe("just now");
+    expect(timeAgo("2026-03-10T11:30:00.000Z", now)).toBe("30 minutes ago");
+    expect(timeAgo("2026-03-10T09:00:00.000Z", now)).toBe("3 hours ago");
+    expect(timeAgo("2026-03-09T12:00:00.000Z", now)).toBe("1 day ago");
+    expect(timeAgo("2026-03-05T12:00:00.000Z", now)).toBe("5 days ago");
+  });
+  it("falls back to an absolute date past ~30 days", () => {
+    expect(timeAgo("2026-01-01T12:00:00.000Z", now)).toMatch(/2026/);
+  });
+});
 
 describe("getInitials", () => {
   it("returns initials from a display name with two words", () => {

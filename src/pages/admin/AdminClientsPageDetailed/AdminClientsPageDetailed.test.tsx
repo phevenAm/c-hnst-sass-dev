@@ -280,6 +280,12 @@ const mockClient = {
   display_name: "Jane S",
   avatar_url: null,
   disabled: false,
+  // Age / email / last-seen are opt-in per client (Configure client modal).
+  profile_show_age: false,
+  profile_show_email: true,
+  profile_show_last_seen: false,
+  dob: "1990-06-15",
+  last_seen_at: null,
 };
 
 const futureISO = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -440,9 +446,20 @@ describe("AdminClientsPageDetailed", () => {
       expect(screen.getByRole("heading", { level: 1, name: /jane s/i })).toBeInTheDocument();
     });
 
-    it("renders the client's email address", () => {
+    it("renders the client's email address when the per-client toggle is on", () => {
       renderPage();
       expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+    });
+
+    it("hides the email when the per-client toggle is off", () => {
+      renderPage({
+        userDirectory: {
+          users: [{ ...mockClient, profile_show_email: false }],
+          status: "succeeded",
+          error: null,
+        },
+      });
+      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
     });
 
     it("renders the 'Client since' date formatted from created_at", () => {

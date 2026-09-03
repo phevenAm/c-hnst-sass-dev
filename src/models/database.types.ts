@@ -1162,6 +1162,7 @@ export type Database = {
           enc_data_key_salt: string | null
           first_client_milestone_shown: boolean
           hidden_sections: string[]
+          hide_client_profile_pii: boolean
           id: string
           is_paused: boolean
           logo_url: string | null
@@ -1223,6 +1224,7 @@ export type Database = {
           enc_data_key_salt?: string | null
           first_client_milestone_shown?: boolean
           hidden_sections?: string[]
+          hide_client_profile_pii?: boolean
           id?: string
           is_paused?: boolean
           logo_url?: string | null
@@ -1284,6 +1286,7 @@ export type Database = {
           enc_data_key_salt?: string | null
           first_client_milestone_shown?: boolean
           hidden_sections?: string[]
+          hide_client_profile_pii?: boolean
           id?: string
           is_paused?: boolean
           logo_url?: string | null
@@ -1369,6 +1372,7 @@ export type Database = {
       questionnaires: {
         Row: {
           admin_id: string | null
+          archived_at: string | null
           created_at: string
           description: string | null
           form_type: string
@@ -1384,6 +1388,7 @@ export type Database = {
         }
         Insert: {
           admin_id?: string | null
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           form_type?: string
@@ -1399,6 +1404,7 @@ export type Database = {
         }
         Update: {
           admin_id?: string | null
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           form_type?: string
@@ -2163,6 +2169,7 @@ export type Database = {
           disabled: boolean | null
           display_name: string | null
           dob: string | null
+          email: string | null
           email_prefs_disabled: string[]
           first_name: string | null
           focus_keywords: string[] | null
@@ -2172,7 +2179,11 @@ export type Database = {
           is_root_admin: boolean
           is_superadmin: boolean
           last_name: string | null
+          last_seen_at: string | null
           onboarding_completed: boolean
+          profile_show_age: boolean
+          profile_show_email: boolean
+          profile_show_last_seen: boolean
           role: string | null
           stripe_customer_id: string | null
           unsubscribe_token: string
@@ -2193,6 +2204,7 @@ export type Database = {
           disabled?: boolean | null
           display_name?: string | null
           dob?: string | null
+          email?: string | null
           email_prefs_disabled?: string[]
           first_name?: string | null
           focus_keywords?: string[] | null
@@ -2202,7 +2214,11 @@ export type Database = {
           is_root_admin?: boolean
           is_superadmin?: boolean
           last_name?: string | null
+          last_seen_at?: string | null
           onboarding_completed?: boolean
+          profile_show_age?: boolean
+          profile_show_email?: boolean
+          profile_show_last_seen?: boolean
           role?: string | null
           stripe_customer_id?: string | null
           unsubscribe_token?: string
@@ -2223,6 +2239,7 @@ export type Database = {
           disabled?: boolean | null
           display_name?: string | null
           dob?: string | null
+          email?: string | null
           email_prefs_disabled?: string[]
           first_name?: string | null
           focus_keywords?: string[] | null
@@ -2232,7 +2249,11 @@ export type Database = {
           is_root_admin?: boolean
           is_superadmin?: boolean
           last_name?: string | null
+          last_seen_at?: string | null
           onboarding_completed?: boolean
+          profile_show_age?: boolean
+          profile_show_email?: boolean
+          profile_show_last_seen?: boolean
           role?: string | null
           stripe_customer_id?: string | null
           unsubscribe_token?: string
@@ -2271,6 +2292,16 @@ export type Database = {
       }
     }
     Functions: {
+      _practice_slot_has_conflict_all: {
+        Args: {
+          p_admin_id: string
+          p_duration_minutes: number
+          p_exclude_session_id?: string
+          p_exclude_stub_session_id?: string
+          p_start: string
+        }
+        Returns: boolean
+      }
       active_client_count: { Args: { p_admin: string }; Returns: number }
       acts_for_admin: { Args: { p_admin: string }; Returns: boolean }
       admin_archive_client: {
@@ -2419,6 +2450,10 @@ export type Database = {
           p_assignment_id: string
           p_decline_reason?: string
         }
+        Returns: undefined
+      }
+      seed_admin_feedback_form: {
+        Args: { p_admin_id: string }
         Returns: undefined
       }
       send_admin_session_reminders: { Args: never; Returns: undefined }

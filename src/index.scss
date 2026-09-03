@@ -12,6 +12,9 @@
 
 // ── Light mode tokens ──────────────────────────────────────
 :root {
+  // Native form controls, calendar/time pop-ups and scrollbars follow this.
+  color-scheme: light;
+
   // Accent
   --accent: #{$color-accent};
   --accent-dark: #{$color-accent-dark};
@@ -102,6 +105,10 @@
 
 // ── Dark mode tokens ───────────────────────────────────────
 .dark {
+  // Renders native date/time pickers, number spinners and scrollbars dark —
+  // without this the calendar pop-up on a session event stays white in dark mode.
+  color-scheme: dark;
+
   // Accent — lighter for dark backgrounds
   --accent: #{$dark-accent};
   --accent-dark: #{$teal-400};

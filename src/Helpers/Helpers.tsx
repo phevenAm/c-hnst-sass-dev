@@ -37,13 +37,49 @@ export const isPdfUrl = (url: string): boolean => {
   }
 };
 
-export const isAdultFromDob = (dob: string | null | undefined): boolean => {
-  if (!dob) return false;
+export const ageFromDob = (dob: string | null | undefined): number | null => {
+  if (!dob) return null;
   const birth = new Date(dob);
+  if (Number.isNaN(birth.getTime())) return null;
   const now = new Date();
-  const age = now.getFullYear() - birth.getFullYear();
+  let age = now.getFullYear() - birth.getFullYear();
   const hadBirthday = now >= new Date(now.getFullYear(), birth.getMonth(), birth.getDate());
-  return age > 18 || (age === 18 && hadBirthday);
+  if (!hadBirthday) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+};
+
+export const isAdultFromDob = (dob: string | null | undefined): boolean => {
+  const age = ageFromDob(dob);
+  return age != null && age >= 18;
+};
+
+// Compact "3 days ago" style relative time. Returns "" for missing/bad input.
+// Falls back to an absolute date once past ~30 days.
+export const timeAgo = (iso: string | null | undefined, now: number = Date.now()): string => {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const secs = Math.round((now - then) / 1000);
+  if (secs < 45) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  if (days <= 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return new Date(then).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+
+// Optional client-profile fields (age, email, last seen). Returns the string to
+// render, or null to render nothing. Off unless the counsellor turned it on for
+// that client; the practice-wide `masterHidden` switch hides all of them;
+// masked as *** while codenames are on.
+export const maskedProfileValue = (
+  value: string | number | null | undefined,
+  opts: { show: boolean | null | undefined; codenames?: boolean; masterHidden?: boolean },
+): string | null => {
+  if (opts.masterHidden || !opts.show || value == null || value === "") return null;
+  return opts.codenames ? "***" : String(value);
 };
 
 export function clientDisplayName(

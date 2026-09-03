@@ -125,6 +125,16 @@ export const pauseQuestionnaire = createAsyncThunk<
   return { id, is_active };
 });
 
+export const archiveQuestionnaire = createAsyncThunk<
+  { id: string; archived_at: string | null },
+  { id: string; archived: boolean }
+>("questionnaires/archiveQuestionnaire", async ({ id, archived }, { rejectWithValue }) => {
+  const archived_at = archived ? new Date().toISOString() : null;
+  const { error } = await supabase.from("questionnaires").update({ archived_at }).eq("id", id);
+  if (error) return rejectWithValue(error.message);
+  return { id, archived_at };
+});
+
 const questionnairesSlice = createSlice({
   name: "questionnaires",
   initialState,
@@ -183,6 +193,13 @@ const questionnairesSlice = createSlice({
         if (q) q.is_active = action.payload.is_active;
       })
       .addCase(pauseQuestionnaire.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      .addCase(archiveQuestionnaire.fulfilled, (state, action) => {
+        const q = state.questionnaires.find((q) => q.id === action.payload.id);
+        if (q) (q as { archived_at: string | null }).archived_at = action.payload.archived_at;
+      })
+      .addCase(archiveQuestionnaire.rejected, (state, action) => {
         state.error = action.payload as string;
       })
       .addCase(updateQuestionTag.fulfilled, (state, action) => {

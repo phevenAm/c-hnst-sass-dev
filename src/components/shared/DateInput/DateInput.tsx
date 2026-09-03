@@ -132,7 +132,12 @@ export default function DateInput({
 }: Props) {
   const [open, setOpen] = useState(false);
 
-  const pickerProps = {
+  // Props common to all three pickers. Date-only and time-only props are added
+  // per picker below — spreading `shouldDisableTime` / `ampm` onto <DatePicker>
+  // (or `shouldDisableDate` onto <TimePicker>) leaks them to the DOM and React
+  // warns ("does not recognize the `shouldDisableTime` prop", "Received `false`
+  // for a non-boolean attribute `ampm`").
+  const commonProps = {
     value,
     onChange,
     open,
@@ -140,9 +145,6 @@ export default function DateInput({
     onClose: () => setOpen(false),
     disabled,
     disablePast,
-    shouldDisableDate,
-    shouldDisableTime,
-    ampm: false,
     format: FORMAT[mode],
     slotProps: {
       field: { readOnly: true },
@@ -155,12 +157,15 @@ export default function DateInput({
     },
   };
 
+  const dateProps = { shouldDisableDate };
+  const timeProps = { shouldDisableTime, ampm: false as const };
+
   return (
     <div className={[styles.wrapper, className].filter(Boolean).join(" ")}>
       {label && <span className={styles.label}>{label}</span>}
-      {mode === "date" && <DatePicker {...pickerProps} />}
-      {mode === "time" && <TimePicker {...pickerProps} />}
-      {mode === "datetime" && <DateTimePicker {...pickerProps} />}
+      {mode === "date" && <DatePicker {...commonProps} {...dateProps} />}
+      {mode === "time" && <TimePicker {...commonProps} {...timeProps} />}
+      {mode === "datetime" && <DateTimePicker {...commonProps} {...dateProps} {...timeProps} />}
     </div>
   );
 }

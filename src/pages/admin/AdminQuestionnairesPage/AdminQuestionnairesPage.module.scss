@@ -60,10 +60,58 @@
   border-bottom-color: var(--accent);
 }
 
+.formSearch {
+  width: 100%;
+  box-sizing: border-box;
+  padding: $sp-2 $sp-3;
+  margin-bottom: $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--border-focus);
+  }
+}
+
 .list {
   display: flex;
   flex-direction: column;
   gap: $sp-4;
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  padding: $sp-5 0 0;
+}
+
+.archivedToggle {
+  display: block;
+  margin: $sp-5 auto 0;
+  padding: $sp-2 $sp-4;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--r-md);
+
+  &:hover {
+    color: var(--text-secondary);
+    background: var(--bg-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
 }
 
 // ── Questionnaire card ─────────────────────────────────────
