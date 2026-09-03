@@ -32,8 +32,14 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  color: var(--text-secondary);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--r-full);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
   text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 
   svg {
     width: 1rem;
@@ -41,7 +47,7 @@
   }
 
   &:hover {
-    color: var(--accent);
-    text-decoration: underline;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   }
 }

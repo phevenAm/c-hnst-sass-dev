@@ -47,6 +47,17 @@ vi.mock("@context/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+// The page is rendered without a redux <Provider>; the only store access is
+// the Appearance control's theme preference. Stub it.
+const mockDispatch = vi.fn();
+vi.mock("@store/hooks", () => ({
+  useAppDispatch: () => mockDispatch,
+  useAppSelector: () => "system",
+}));
+vi.mock("@Hooks/useResolvedTheme", () => ({
+  useResolvedTheme: () => "light",
+}));
+
 // clearAllMocks (in the global afterEach) wipes call history but not a
 // standing mockImplementation, so re-arm the default before every test —
 // otherwise a test that overrides loading/userProfile would leak into the next one.

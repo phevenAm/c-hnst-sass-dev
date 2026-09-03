@@ -4,21 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { pickColor } from "@Helpers/Helpers";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
-import { useAppDispatch, useAppSelector } from "@store/hooks";
+import { useAppSelector } from "@store/hooks";
 import { selectIsAgencyManager, selectIsAgencyMember } from "@store/slices/agencySlice";
-import { selectThemeMode, toggleTheme } from "@store/slices/themeSlice";
 
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
-import { MoonIcon, RescheduleIcon, Settingsicon, SunIcon } from "../Icons/Icons";
+import { RescheduleIcon, Settingsicon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 
 import styles from "./AdminTopbar.module.scss";
 
 export default function AdminTopbar() {
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const themeMode = useAppSelector(selectThemeMode);
   const isAgencyManager = useAppSelector(selectIsAgencyManager);
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
   const { isDemo, isAdmin, loading: authLoading, signIn, signOut, userProfile, displayName } = useAuth();
@@ -75,15 +72,6 @@ export default function AdminTopbar() {
             View as client
           </button>
         )}
-
-        <button
-          type="button"
-          onClick={() => dispatch(toggleTheme())}
-          aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
-          className={styles.plainIcon}
-        >
-          {themeMode === "light" ? <MoonIcon /> : <SunIcon />}
-        </button>
 
         <NotificationBell />
 

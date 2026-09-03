@@ -29,9 +29,8 @@ import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlin
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
 import Lottie from "lottie-react";
 
+import { useResolvedTheme } from "../../../Hooks/useResolvedTheme";
 import saplingSway from "../../../LOGO Asset/sapling-sway.json";
-import { useAppSelector } from "../../../store/hooks";
-import { selectThemeMode } from "../../../store/slices/themeSlice";
 
 export const ArticleIcon = () => (
   <svg
@@ -249,9 +248,7 @@ export const SupervisionLogoMark = () => (
 );
 
 export const LeafLogoMark = ({ size = 28, color }: { size?: number; color?: string }) => {
-  const themeMode = useAppSelector(selectThemeMode);
-
-  const colorValue = color ?? (themeMode === "dark" ? "var(--text-primary)" : "var(--text-primary)");
+  const colorValue = color ?? "var(--text-primary)";
 
   return (
     <svg
@@ -275,10 +272,10 @@ export const LeafLogoMark = ({ size = 28, color }: { size?: number; color?: stri
 };
 
 export const LeafLottieLogoMark = ({ size = 48 }: { size?: number }) => {
-  const themeMode = useAppSelector(selectThemeMode);
+  const resolvedTheme = useResolvedTheme();
 
   const animationData = useMemo(() => {
-    const stroke = themeMode === "dark" ? [1, 1, 1, 1] : [0, 0, 0, 1];
+    const stroke = resolvedTheme === "dark" ? [1, 1, 1, 1] : [0, 0, 0, 1];
     const data = JSON.parse(JSON.stringify(saplingSway));
     const shapes = data.layers[0].shapes;
     shapes[0].it[2].c.k = stroke; // stem stroke
@@ -286,7 +283,7 @@ export const LeafLottieLogoMark = ({ size = 48 }: { size?: number }) => {
     // shapes[2].it[2] is the right leaf fill — teal, left as-is in JSON
     shapes[2].it[3].c.k = stroke; // right leaf stroke only
     return data;
-  }, [themeMode]);
+  }, [resolvedTheme]);
 
   return (
     <Lottie
@@ -464,6 +461,25 @@ export const MoonIcon = () => (
     aria-hidden="true"
   >
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+// "Auto / match device" — a circle with the left half filled, the usual glyph
+// for a system-driven appearance setting.
+export const ThemeAutoIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
   </svg>
 );
 

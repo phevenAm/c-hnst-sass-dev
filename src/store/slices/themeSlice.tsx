@@ -1,37 +1,37 @@
 // ============================================================
-// THEME SLICE — dark/light mode toggle
-// This persists to localStorage so the preference survives refresh
+// THEME SLICE — appearance preference: light / system / dark
+// Persists to localStorage so the choice survives refresh. "system" means
+// follow the OS `prefers-color-scheme`; the light/dark resolution of that
+// lives in useResolvedTheme so it can react to the OS changing.
 // ============================================================
 
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "system" | "dark";
 
 type ThemeState = {
   mode: ThemeMode;
 };
 
-// Read saved preference on startup (gracefully handle SSR/no localStorage)
+const isThemeMode = (v: unknown): v is ThemeMode => v === "light" || v === "system" || v === "dark";
+
+// Read saved preference on startup (gracefully handle SSR/no localStorage).
+// New visitors default to "system"; anyone who previously chose light/dark
+// keeps that exact value.
 const getSavedTheme = (): ThemeMode => {
   try {
     const saved = localStorage.getItem("theme");
-    return saved === "dark" ? "dark" : "light";
+    return isThemeMode(saved) ? saved : "system";
   } catch {
-    return "light";
+    return "system";
   }
 };
 
 const themeSlice = createSlice({
   name: "theme",
-  initialState: { mode: getSavedTheme() },
+  initialState: { mode: getSavedTheme() } as ThemeState,
   reducers: {
-    toggleTheme: (state) => {
-      state.mode = state.mode === "light" ? "dark" : "light";
-      try {
-        localStorage.setItem("theme", state.mode);
-      } catch {}
-    },
-    setTheme: (state, action) => {
+    setTheme: (state, action: PayloadAction<ThemeMode>) => {
       state.mode = action.payload;
       try {
         localStorage.setItem("theme", state.mode);
@@ -40,6 +40,6 @@ const themeSlice = createSlice({
   },
 });
 
-export const { toggleTheme, setTheme } = themeSlice.actions;
+export const { setTheme } = themeSlice.actions;
 export const selectThemeMode = (state: { theme: ThemeState }) => state.theme.mode;
 export default themeSlice.reducer;

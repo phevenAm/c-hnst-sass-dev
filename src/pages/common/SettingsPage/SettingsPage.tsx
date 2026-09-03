@@ -5,16 +5,18 @@ import { KEYWORDS } from "@constants/constants";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
 import { isPdfUrl, pickColor } from "@Helpers/Helpers";
+import { useResolvedTheme } from "@Hooks/useResolvedTheme";
 import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import FeedbackModal from "@components/shared/FeedbackModal/FeedbackModal";
-import { ChevronDown, CopyIcon } from "@components/shared/Icons/Icons";
+import { ChevronDown, CopyIcon, MoonIcon, SunIcon, ThemeAutoIcon } from "@components/shared/Icons/Icons";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
+import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
@@ -22,6 +24,8 @@ import { useEncryption } from "@context/EncryptionContext";
 import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
+import { useAppDispatch, useAppSelector } from "@store/hooks";
+import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
 import {
@@ -234,12 +238,23 @@ function GroupHeading({
   return <h3 className={styles.groupHeading}>{title}</h3>;
 }
 
+const APPEARANCE_OPTIONS = [
+  { value: "light", label: "Light", icon: <SunIcon /> },
+  { value: "system", label: "Match device", icon: <ThemeAutoIcon /> },
+  { value: "dark", label: "Dark", icon: <MoonIcon /> },
+] as const;
+
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
   const { status: encStatus, encryptPII, decryptPII } = useEncryption();
   const { hiddenSections, toggleSection, reduceMotion, setReduceMotion, appZoom, setAppZoom } = useInterfacePrefs();
   const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
   const { showToast } = useToast();
+  const dispatch = useAppDispatch();
+  const themeMode = useAppSelector(selectThemeMode);
+  const resolvedTheme = useResolvedTheme();
+  const appearanceHint =
+    themeMode === "system" ? `Matching your device — currently ${resolvedTheme}` : `Always ${themeMode}`;
 
   // Every save/action handler on this page starts with this — practice_settings
   // itself isn't covered by the DB's block_demo_write trigger (it has to stay
@@ -1220,6 +1235,19 @@ const SettingsPage = () => {
             <section className={styles.clientPrefs}>
               <h2>Interface</h2>
               <p>These settings only affect this device.</p>
+
+              <div className={styles.settingRow}>
+                <span className={styles.toggleLabel}>
+                  <strong>Appearance</strong>
+                  <span>{appearanceHint}</span>
+                </span>
+                <ThreeWayToggle
+                  ariaLabel="Appearance"
+                  options={APPEARANCE_OPTIONS}
+                  value={themeMode}
+                  onChange={(v) => dispatch(setTheme(v))}
+                />
+              </div>
 
               <label className={styles.toggleRow}>
                 <span className={styles.toggleLabel}>
@@ -2544,6 +2572,18 @@ const SettingsPage = () => {
             >
               <section className={styles.businessSection}>
                 <p>Adjust how the app looks and moves. These settings only affect your own browser.</p>
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Appearance</strong>
+                    <span>{appearanceHint}</span>
+                  </span>
+                  <ThreeWayToggle
+                    ariaLabel="Appearance"
+                    options={APPEARANCE_OPTIONS}
+                    value={themeMode}
+                    onChange={(v) => dispatch(setTheme(v))}
+                  />
+                </div>
                 <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
                     <strong>Stop animations</strong>

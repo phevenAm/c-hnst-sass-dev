@@ -5,22 +5,19 @@ import { pickColor } from "@Helpers/Helpers";
 
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
-import { useAppDispatch, useAppSelector, useFetchOnIdle } from "../../../store/hooks";
+import { useAppSelector, useFetchOnIdle } from "../../../store/hooks";
 import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
-import { selectThemeMode, toggleTheme } from "../../../store/slices/themeSlice";
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
-import { CloseIcon, DarkmodeIcon, LeafLogoMark, LightmodeIcon, MenuIcon, Settingsicon } from "../Icons/Icons";
+import { CloseIcon, LeafLogoMark, MenuIcon, Settingsicon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
 import SkipToMain from "../SkipToMain/SkipToMain";
 
 import styles from "./Navbar.module.scss";
 
 export default function Navbar() {
-  const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const themeMode = useAppSelector(selectThemeMode);
   const [menuOpen, setMenuOpen] = useState(false);
   const { isAdmin, isDemo, loading: authLoading, signIn, signOut, userProfile, displayName } = useAuth();
   const [switchingDemoRole, setSwitchingDemoRole] = useState<"admin" | "client" | null>(null);
@@ -149,15 +146,6 @@ export default function Navbar() {
               View as {isAdmin ? "client" : "therapist"}
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() => dispatch(toggleTheme())}
-            aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
-            className={styles.plainIcon}
-          >
-            {themeMode === "light" ? <DarkmodeIcon /> : <LightmodeIcon />}
-          </button>
 
           <NotificationBell />
 

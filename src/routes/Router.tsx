@@ -24,12 +24,12 @@ import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
 import { useConsentPending } from "../Hooks/useConsentPending";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
+import { useResolvedTheme } from "../Hooks/useResolvedTheme";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
 import { selectAgencyBootstrapStatus, selectAgencyMembership } from "../store/slices/agencySlice";
-import { selectThemeMode } from "../store/slices/themeSlice";
 
 // Every routed page is lazy-loaded so it ships as its own chunk — the initial
 // bundle carries only the shell plus whichever page you land on. LoginPage and
@@ -84,10 +84,10 @@ const AgencyOnboardingPage = lazy(() => import("../pages/agency/AgencyOnboarding
 const AgencySettingsPage = lazy(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
-  const mode = useAppSelector(selectThemeMode);
+  const resolvedTheme = useResolvedTheme();
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", mode === "dark");
-  }, [mode]);
+    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+  }, [resolvedTheme]);
   return <>{children}</>;
 }
 

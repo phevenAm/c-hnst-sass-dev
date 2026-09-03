@@ -11,10 +11,9 @@ import { AuthProvider } from "./context/AuthContext";
 import { EncryptionProvider } from "./context/EncryptionContext";
 import { InterfacePrefsProvider } from "./context/InterfacePrefsContext";
 import { ToastProvider } from "./context/ToastContext";
+import { useResolvedTheme } from "./Hooks/useResolvedTheme";
 import AppRoutes from "./routes/Router";
-import { useAppSelector } from "./store/hooks";
 import { store } from "./store/index";
-import { selectThemeMode } from "./store/slices/themeSlice";
 
 // MUI themes that mirror the app's design tokens.
 // Primary = accent, paper = card background, text matches token values.
@@ -45,8 +44,8 @@ const darkTheme = createTheme({
 // Reads the app's Redux theme state and provides the matching MUI theme.
 // Must sit inside <Provider> so it can call useAppSelector.
 function MuiThemeWrapper({ children }: { children: ReactNode }) {
-  const mode = useAppSelector(selectThemeMode);
-  return <ThemeProvider theme={mode === "dark" ? darkTheme : lightTheme}>{children}</ThemeProvider>;
+  const resolvedTheme = useResolvedTheme();
+  return <ThemeProvider theme={resolvedTheme === "dark" ? darkTheme : lightTheme}>{children}</ThemeProvider>;
 }
 
 export default function App() {

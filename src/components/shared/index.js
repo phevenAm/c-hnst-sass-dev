@@ -61,6 +61,7 @@ export { SessionCard } from "./SessionCard/SessionCard";
 export { default as SkipToMain } from "./SkipToMain/SkipToMain";
 export { default as SplitButton } from "./SplitButton/SplitButton";
 export { default as StatTile } from "./StatTile/StatTile";
+export { default as ThreeWayToggle } from "./ThreeWayToggle/ThreeWayToggle";
 export { default as ToggleButtonTabs } from "./ToggleButtonTabs/ToggleButtonTabs";
 export { default as UploadAndDisplayImage } from "./UploadAndDisplayImage/UploadAndDisplayImage";
 export { default as WIP } from "./WIP/WIP";
