@@ -105,8 +105,26 @@
 
 .chartsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: $sp-5;
+  grid-template-columns: 1fr;
+
+  // 2-up on medium screens; an odd trailing chart spans the full row rather
+  // than sitting alone beside empty space.
+  @media (min-width: 720px) {
+    grid-template-columns: 1fr 1fr;
+
+    > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (min-width: 1160px) {
+    grid-template-columns: repeat(3, 1fr);
+
+    > :last-child:nth-child(odd) {
+      grid-column: auto;
+    }
+  }
 }
 
 .sectionLink {
@@ -195,7 +213,7 @@
 }
 
 .metricLabel {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin: 0;
 }
@@ -385,7 +403,7 @@
 }
 
 .invoiceClient {
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -400,7 +418,7 @@
 }
 
 .invoiceAmount {
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
