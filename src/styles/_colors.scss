@@ -41,7 +41,9 @@ $terracotta-100: #f8e0d3;
 $terracotta-50: #fdf2ec;
 
 // ── Semantic aliases ───────────────────────────────────────
-$color-accent: $teal-600;
+// teal-700 (not 600) so white text on a filled accent button/toggle clears
+// WCAG AA comfortably (~7.6:1 vs ~5.7:1 for teal-600).
+$color-accent: $teal-700;
 $color-accent-dark: $teal-800;
 $color-accent-light: $teal-100;
 $color-accent-subtle: $teal-50;
