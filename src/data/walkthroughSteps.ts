@@ -243,7 +243,7 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
         id: "admin-alerts",
         order: 3,
         title: "Sections you can fold away",
-        body: "Below are your upcoming sessions, anything that needs attention, unpaid invoices, practice trends, and your to-do list. Click a section's title to fold it — the app remembers which ones you closed.",
+        body: "Below are your upcoming sessions, anything that needs attention, outstanding payments, practice trends, and your to-do list. Click a section's title to fold it — the app remembers which ones you closed.",
       },
     ],
   },
@@ -408,15 +408,15 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
       {
         id: "payments-intro",
         order: 1,
-        title: "Income, invoices and expenses",
-        body: "Everything money-related lives here. The Overview tab summarises income, outgoings and what you're owed; the other tabs are the full ledgers. Click a column title to sort.",
+        title: "Income and expenses",
+        body: "Everything money-related lives here. The Overview tab summarises income and outgoings; the Income and Expenses tabs are the full ledgers. Click a column title to sort.",
         target: "#main-content h1",
       },
       {
         id: "payments-actions",
         order: 2,
-        title: "Record payments and raise invoices",
-        body: "On the Income tab, 'Add payment' records a cash or bank transfer by hand. The Invoices tab raises and sends invoices; marking one paid also drops it into your income ledger.",
+        title: "Record payments and expenses",
+        body: "On the Income tab, 'Add payment' records a cash or bank transfer by hand. On the Expenses tab, 'Add expense' logs a cost against the practice.",
         actions: [{ label: "Record a payment", to: "/admin/finances?view=income&new=true" }],
       },
       {

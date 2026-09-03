@@ -64,6 +64,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
+    // Already cancelled — treat as success. A stale card (e.g. one that hasn't
+    // caught the realtime update yet) or a double-click shouldn't throw a
+    // scary error; the desired end state is already true.
+    if (session.status === "cancelled") {
+      return new Response(
+        JSON.stringify({ ok: true, already_cancelled: true, refund_issued: false, refund_amount_pence: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const canRefund = session.paid && !!session.stripe_payment_intent_id;
 
     let refundIssued = false;

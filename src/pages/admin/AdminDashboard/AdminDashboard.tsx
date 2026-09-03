@@ -224,7 +224,7 @@ export default function AdminDashboard() {
                 </div>
               </Link>
 
-              <Link to="/admin/finances?view=invoices&new=true" title="New invoice">
+              <Link to="/admin/finances?view=income&new=true" title="Record a payment">
                 <div className={`${styles.metricIcon} ${styles.sky}`}>
                   <MoneyIcon />
                 </div>

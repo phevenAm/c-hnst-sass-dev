@@ -406,7 +406,7 @@ export default function AppRoutes() {
                 <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
                 <Route path="/admin/finances" element={<AdminFinancesPage />} />
                 <Route path="/admin/payments" element={<Navigate to="/admin/finances?view=income" replace />} />
-                <Route path="/admin/invoices" element={<Navigate to="/admin/finances?view=invoices" replace />} />
+                <Route path="/admin/invoices" element={<Navigate to="/admin/finances" replace />} />
                 <Route path="/admin/expenses" element={<Navigate to="/admin/finances?view=expenses" replace />} />
                 <Route path="/admin/cpd" element={<AdminCpdPage />} />
                 <Route path="/admin/supervision" element={<AdminSupervisionPage />} />

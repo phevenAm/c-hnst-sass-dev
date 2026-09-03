@@ -13,20 +13,18 @@ import { useAuth } from "@context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
-import { byMonth, ledgerRowKind, ledgerRowName, money, type Period, periodStart, personName } from "./financeOverview";
+import { byMonth, ledgerRowKind, ledgerRowName, money, type Period, periodStart } from "./financeOverview";
 
 import styles from "./AdminFinancesPage.module.scss";
 
 const AdminPaymentsPage = lazy(() => import("../AdminPaymentsPage/AdminPaymentsPage"));
-const AdminInvoicesPage = lazy(() => import("../AdminInvoicesPage/AdminInvoicesPage"));
 const AdminExpensesPage = lazy(() => import("../AdminExpensesPage/AdminExpensesPage"));
 
-type View = "overview" | "income" | "invoices" | "expenses";
+type View = "overview" | "income" | "expenses";
 
 const VIEWS: { key: View; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "income", label: "Income" },
-  { key: "invoices", label: "Invoices" },
   { key: "expenses", label: "Expenses" },
 ];
 
@@ -38,17 +36,6 @@ const PERIODS: { key: Period; label: string }[] = [
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
 
-type NamePart = { first_name: string | null; last_name: string | null; display_name?: string | null };
-type InvoiceRow = {
-  id: string;
-  reference: string;
-  status: string;
-  total_pence: number;
-  issue_date: string;
-  paid_at: string | null;
-  client: NamePart | null;
-  stub: NamePart | null;
-};
 type ExpenseRow = {
   id: string;
   incurred_on: string;
@@ -71,27 +58,19 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const [period, setPeriod] = useState<Period>("30d");
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
-  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!userProfile?.id) return;
-    const [{ data: l }, { data: inv }, { data: exp }] = await Promise.all([
+    const [{ data: l }, { data: exp }] = await Promise.all([
       supabase.from("payment_ledger_rows").select("*"),
-      supabase
-        .from("invoices")
-        .select(
-          "id, reference, status, total_pence, issue_date, paid_at, client:client_id(first_name,last_name,display_name,admin_codename), stub:stub_id(first_name,last_name,admin_codename:codename)",
-        )
-        .eq("admin_id", userProfile.id),
       supabase
         .from("expenses")
         .select("id, incurred_on, category, amount_pence, description")
         .eq("admin_id", userProfile.id),
     ]);
     setLedger((l as LedgerRow[]) ?? []);
-    setInvoices((inv as unknown as InvoiceRow[]) ?? []);
     setExpenses((exp as ExpenseRow[]) ?? []);
     setLoading(false);
   }, [userProfile?.id]);
@@ -107,9 +86,6 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
     .filter((r) => r.is_paid && inPeriod(r.date))
     .reduce((s, r) => s + (r.amount_pence ?? 0), 0);
   const outgoingsPence = expenses.filter((e) => inPeriod(e.incurred_on)).reduce((s, e) => s + e.amount_pence, 0);
-  const outstandingPence = invoices
-    .filter((i) => i.status === "draft" || i.status === "sent")
-    .reduce((s, i) => s + i.total_pence, 0);
   const netPence = incomePence - outgoingsPence;
 
   const incomeTrend = useMemo(
@@ -144,18 +120,6 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
             kind: "in" as const,
           };
         }),
-      ...invoices.map((inv) => {
-        const who = personName(inv.client, useCodenames) || personName(inv.stub, useCodenames);
-        const statusLabel = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
-        return {
-          id: `i${inv.id}`,
-          date: inv.paid_at ?? inv.issue_date,
-          title: `Invoice ${inv.reference}`,
-          detail: who ? `${statusLabel} · ${who}` : statusLabel,
-          amount: inv.total_pence,
-          kind: inv.status === "paid" ? ("in" as const) : ("out" as const),
-        };
-      }),
       ...expenses.map((e) => ({
         id: `e${e.id}`,
         date: e.incurred_on,
@@ -166,7 +130,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       })),
     ];
     return items.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()).slice(0, 10);
-  }, [ledger, invoices, expenses, useCodenames]);
+  }, [ledger, expenses, useCodenames]);
 
   if (loading) return null;
 
@@ -188,12 +152,6 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       <div className={styles.tiles}>
         <StatTile label="Income" value={money(incomePence)} sub="Payments received" />
         <StatTile label="Outgoings" value={money(outgoingsPence)} sub="Expenses recorded" />
-        <StatTile
-          label="Awaiting payment"
-          value={money(outstandingPence)}
-          sub="Unpaid invoices"
-          onClick={() => onJump("invoices", false)}
-        />
         <StatTile
           label="Net"
           value={money(netPence)}
@@ -226,9 +184,6 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
         <div className={styles.activityHead}>
           <h2>Recent activity</h2>
           <div className={styles.activityActions}>
-            <Button size="sm" variant="secondary" onClick={() => onJump("invoices", true)}>
-              New invoice
-            </Button>
             <Button size="sm" variant="secondary" onClick={() => onJump("income", true)}>
               Record payment
             </Button>
@@ -263,7 +218,8 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
 
 export default function AdminFinancesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = (searchParams.get("view") as View) || "overview";
+  const rawView = searchParams.get("view");
+  const view: View = rawView === "income" || rawView === "expenses" ? rawView : "overview";
   const [openNewFor, setOpenNewFor] = useState<View | null>(null);
 
   const setView = (v: View) => {
@@ -311,7 +267,6 @@ export default function AdminFinancesPage() {
         <Suspense fallback={<Spinner />}>
           {view === "overview" && <Overview onJump={jump} />}
           {view === "income" && <AdminPaymentsPage embedded openNew={openNewFor === "income"} />}
-          {view === "invoices" && <AdminInvoicesPage embedded openNew={openNewFor === "invoices"} />}
           {view === "expenses" && <AdminExpensesPage embedded openNew={openNewFor === "expenses"} />}
         </Suspense>
       </div>
