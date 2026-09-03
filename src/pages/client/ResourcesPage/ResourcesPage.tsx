@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { isAdultFromDob, isPageStatusLoading } from "@Helpers/Helpers";
 import AgreementView from "@components/Consent/AgreementView";
@@ -31,7 +32,18 @@ function getResourceButtonLabel(type: string): string {
 // Exported so the admin Resources page can reuse it for a client's-eye
 // "Preview" of a resource before it's published.
 export function ResourceModal({ resource, onClose }: { resource: Resource; onClose: () => void }) {
-  return (
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Portalled to <body> so the fixed overlay is measured against the viewport,
+  // not the admin content column — otherwise the always-on 60px mobile sidebar
+  // (z-index 200) sits over the modal's left edge and clips the text.
+  return createPortal(
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss — close button provides keyboard path
     <div className={styles.modalOverlay} onClick={onClose} role="presentation">
       <div
@@ -92,7 +104,8 @@ export function ResourceModal({ resource, onClose }: { resource: Resource; onClo
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

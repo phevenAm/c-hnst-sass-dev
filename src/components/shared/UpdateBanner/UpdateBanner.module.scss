@@ -1,6 +1,11 @@
 @use '../../../styles/mixins' as *;
 
 .banner {
+  // Rendered at the app root, outside the admin content column — sit above the
+  // fixed admin sidebar (z-index 200 / arrow 201) so its left edge isn't
+  // clipped behind the always-on mobile icon strip.
+  position: relative;
+  z-index: 210;
   display: flex;
   align-items: center;
   justify-content: space-between;

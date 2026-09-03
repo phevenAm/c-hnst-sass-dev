@@ -170,11 +170,17 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  // Above the admin sidebar (200) and its flyouts (300); matches the shared
+  // Modal so a resource preview isn't hidden behind the mobile icon strip.
+  z-index: 500;
   background: rgba(0, 0, 0, 0.45);
   display: grid;
   place-items: center;
   padding: 24px;
+
+  @include until-sm {
+    padding: 12px;
+  }
 }
 
 .modal {
