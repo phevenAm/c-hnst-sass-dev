@@ -249,6 +249,16 @@
     padding-right: var(--sp-2);
   }
 
+  // The time-axis column keeps a solid fill in every theme (the .dark block
+  // below only did this for dark mode) so the day columns' grid lines and the
+  // blocked-slot dot pattern never read through behind the hour labels.
+  .rbc-time-gutter,
+  .rbc-time-header-gutter {
+    background-color: var(--bg-card);
+    position: relative;
+    z-index: 2;
+  }
+
   // Sparser grid in BOTH themes: on-theme hour lines, no half-hour sub-line.
   // (The .dark block used to do this for dark mode only, leaving light mode
   // with RBC's shipped #f7f7f7 lines and a busier half-hour grid.)

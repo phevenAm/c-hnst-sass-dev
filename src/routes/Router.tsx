@@ -55,6 +55,7 @@ const ResourcesPage = lazy(() => import("../pages/client/ResourcesPage/Resources
 const AdminSetupPage = lazy(() => import("../pages/common/AdminSetupPage/AdminSetupPage"));
 const CounsellorSignupPage = lazy(() => import("../pages/common/CounsellorSignupPage/CounsellorSignupPage"));
 const DemoPage = lazy(() => import("../pages/common/DemoPage/DemoPage"));
+const HelpSupportPage = lazy(() => import("../pages/common/HelpSupportPage/HelpSupportPage"));
 const GoogleCalendarCallbackPage = lazy(
   () => import("../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage"),
 );
@@ -330,6 +331,7 @@ export default function AppRoutes() {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/security" element={<SecurityPage />} />
+              <Route path="/help" element={<HelpSupportPage />} />
               <Route path="/legal/subprocessors" element={<SubprocessorsPage />} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
 

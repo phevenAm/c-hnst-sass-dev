@@ -76,14 +76,14 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
           className={`${styles.typeBtn} ${type === "bug" ? styles.active : ""}`}
           onClick={() => setType("bug")}
         >
-          🐛 Bug
+          Bug
         </button>
         <button
           type="button"
           className={`${styles.typeBtn} ${type === "feature" ? styles.active : ""}`}
           onClick={() => setType("feature")}
         >
-          💡 Feature idea
+          Feature idea
         </button>
       </div>
 

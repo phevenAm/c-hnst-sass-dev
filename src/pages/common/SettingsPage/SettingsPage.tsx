@@ -10,6 +10,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import FeedbackModal from "@components/shared/FeedbackModal/FeedbackModal";
 import { ChevronDown, CopyIcon } from "@components/shared/Icons/Icons";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
@@ -263,6 +264,7 @@ const SettingsPage = () => {
   const [billingSearch, setBillingSearch] = useState("");
   const [interfaceSearch, setInterfaceSearch] = useState("");
   const [announceOpen, setAnnounceOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // Deep-link to a tab via ?tab=practice (used by FirstClientTipsModal, etc.).
   // Only consume `tab` here — `section` is left in place for the matching
@@ -1186,6 +1188,11 @@ const SettingsPage = () => {
               {!isDemo && (
                 <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
                   Change password
+                </Button>
+              )}
+              {!isAdmin && (
+                <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
+                  Report a problem
                 </Button>
               )}
               {!isDemo && isAdmin && (encStatus === "unlocked" || encStatus === "locked") && (
@@ -2830,6 +2837,7 @@ const SettingsPage = () => {
         )}
       </div>
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
       {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}
       {announceOpen && (
