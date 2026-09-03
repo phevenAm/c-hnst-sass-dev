@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_HOURS_BEFORE,
+  DEFAULT_PAYMENT_DEADLINE_HOURS,
   isWithinReminderWindow,
   REMINDER_TYPE,
   reminderNotification,
   selectSessionsToRemind,
+  shouldAutoCancelUnpaidSession,
   WINDOW_HALF_HOURS,
 } from "./reminderLogic";
 
@@ -127,6 +129,77 @@ describe("selectSessionsToRemind", () => {
     };
 
     expect(selectSessionsToRemind(args).map((s) => s.id)).toEqual(["s1", "s2"]);
+  });
+});
+
+describe("shouldAutoCancelUnpaidSession", () => {
+  const base = { now: NOW, paid: false };
+
+  it("does not cancel when the practice has not enabled auto-cancel", () => {
+    // Session is well past its deadline, but the toggle is off (the default).
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        scheduledAt: hoursFromNow(1),
+        config: { autoCancelEnabled: false, paymentDeadlineHours: 48 },
+      }),
+    ).toBe(false);
+  });
+
+  it("does not cancel when there is no config for the practice", () => {
+    expect(shouldAutoCancelUnpaidSession({ ...base, scheduledAt: hoursFromNow(1), config: undefined })).toBe(false);
+  });
+
+  it("cancels an unpaid session inside the deadline window once opted in", () => {
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        scheduledAt: hoursFromNow(47),
+        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
+      }),
+    ).toBe(true);
+  });
+
+  it("does not cancel while the session is still further out than the deadline", () => {
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        scheduledAt: hoursFromNow(72),
+        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
+      }),
+    ).toBe(false);
+  });
+
+  it("never cancels a paid session", () => {
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        paid: true,
+        scheduledAt: hoursFromNow(1),
+        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
+      }),
+    ).toBe(false);
+  });
+
+  it("falls back to the default deadline when the practice has not set one", () => {
+    const justInside = hoursFromNow(DEFAULT_PAYMENT_DEADLINE_HOURS - 1);
+    const justOutside = hoursFromNow(DEFAULT_PAYMENT_DEADLINE_HOURS + 1);
+    expect(
+      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: justInside, config: { autoCancelEnabled: true } }),
+    ).toBe(true);
+    expect(
+      shouldAutoCancelUnpaidSession({ ...base, scheduledAt: justOutside, config: { autoCancelEnabled: true } }),
+    ).toBe(false);
+  });
+
+  it("does not cancel on an unparseable date", () => {
+    expect(
+      shouldAutoCancelUnpaidSession({
+        ...base,
+        scheduledAt: "not-a-date",
+        config: { autoCancelEnabled: true, paymentDeadlineHours: 48 },
+      }),
+    ).toBe(false);
   });
 });
 

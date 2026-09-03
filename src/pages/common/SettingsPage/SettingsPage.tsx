@@ -1909,11 +1909,9 @@ const SettingsPage = () => {
                     </div>
                   </div>
                 ) : (
-                  <WIP>
-                    <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
-                      Connect Microsoft calendar
-                    </Button>
-                  </WIP>
+                  <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
+                    Connect Microsoft calendar
+                  </Button>
                 )}
               </section>
             </SettingsCard>
