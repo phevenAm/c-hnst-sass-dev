@@ -13,6 +13,7 @@ import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { ChevronDown } from "@components/shared/Icons/Icons";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
+import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
@@ -36,13 +37,15 @@ import RegenerateCodeModal from "./RegenerateCodeModal/RegenerateCodeModal";
 
 import styles from "./SettingsPage.module.scss";
 
-type AdminTab = "profile" | "practice" | "emails" | "interface";
+type AdminTab = "profile" | "practice" | "schedule" | "billing" | "emails" | "interface";
 
 const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "practice", label: "Practice" },
+  { id: "schedule", label: "Schedule & bookings" },
+  { id: "billing", label: "Billing" },
   { id: "emails", label: "Emails" },
-  { id: "interface", label: "Interface" },
+  { id: "interface", label: "Interface & accessibility" },
 ];
 
 // Display-only pricing for the subscription tier switcher. Capacity comes from
@@ -256,7 +259,10 @@ const SettingsPage = () => {
   const [showRegenerateCodeModal, setShowRegenerateCodeModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
   const [practiceSearch, setPracticeSearch] = useState("");
+  const [scheduleSearch, setScheduleSearch] = useState("");
+  const [billingSearch, setBillingSearch] = useState("");
   const [interfaceSearch, setInterfaceSearch] = useState("");
+  const [announceOpen, setAnnounceOpen] = useState(false);
 
   // Deep-link to a tab via ?tab=practice (used by FirstClientTipsModal, etc.).
   // Only consume `tab` here — `section` is left in place for the matching
@@ -1295,12 +1301,6 @@ const SettingsPage = () => {
               </div>
             )}
 
-            <GroupHeading
-              title="Business details"
-              searchQuery={practiceSearch}
-              cardTitles={["Business information", "Client codenames"]}
-            />
-
             {/* Business info */}
             <SettingsCard
               title="Business information"
@@ -1345,6 +1345,25 @@ const SettingsPage = () => {
                   {savingBusiness ? "Saving…" : "Save business info"}
                 </Button>
               </div>
+            </SettingsCard>
+
+            {/* Client announcements */}
+            <SettingsCard
+              title="Client announcements"
+              storageKey="settings:practice:announcements"
+              searchQuery={practiceSearch}
+            >
+              <section className={styles.businessSection}>
+                <p>
+                  Send a one-off email to some or all of your clients — a closure notice, a waiting-list update, or
+                  general practice news. Clients who have opted out of practice emails are skipped automatically.
+                </p>
+                <div className={styles.actions}>
+                  <Button variant="primary" onClick={() => setAnnounceOpen(true)}>
+                    Compose announcement
+                  </Button>
+                </div>
+              </section>
             </SettingsCard>
 
             {/* Client codenames */}
@@ -1407,135 +1426,103 @@ const SettingsPage = () => {
               </div>
             </SettingsCard>
 
-            <GroupHeading
-              title="Scheduling"
-              searchQuery={practiceSearch}
-              cardTitles={[
-                "Calendar sync",
-                "Session automation",
-                "Reschedule & cancellation cutoff",
-                "Session buffer",
-                "Session-prep reminders",
-                "Block booking cancellations",
-              ]}
-            />
-
-            <WIP>
-              {/* Calendar sync */}
-              <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={practiceSearch}>
-                <section className={styles.businessSection}>
-                  <p>Choose how your sessions show up in your own calendar.</p>
-
-                  <div style={{ display: "grid", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
-                    <div>
-                      <h3>Built-in (.ics download)</h3>
-                      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                        Download a calendar file for any session and import it manually. Works with any calendar app —
-                        nothing is connected automatically, so changes made in-app won't update a file you've already
-                        imported.
-                      </p>
-                    </div>
-                    <div>
-                      <h3>Google Calendar (auto-sync)</h3>
-                      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                        Connect your Google account once — every session you book, reschedule, or cancel is pushed to
-                        your Google Calendar automatically. One-way only: changes made directly in Google don't come
-                        back into Clarity.
-                      </p>
-                    </div>
-                  </div>
-
-                  {googleStatus?.connected ? (
-                    <>
-                      <label className={styles.toggleRow}>
-                        <span className={styles.toggleLabel}>
-                          <strong>Sync to Google Calendar</strong>
-                          <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
-                        </span>
-                        <span
-                          className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
-                        >
-                          <input
-                            type="checkbox"
-                            className={styles.toggleInput}
-                            checked={googleStatus.sync_enabled}
-                            disabled={savingGoogleSync}
-                            onChange={handleToggleGoogleSync}
-                          />
-                          <span className={styles.toggleThumb} />
-                        </span>
-                      </label>
-                      <div className={styles.actions} style={{ marginTop: "var(--sp-4)" }}>
-                        <Button
-                          variant="ghost-danger"
-                          size="sm"
-                          onClick={() => setConfirmDisconnectGoogle(true)}
-                          disabled={disconnectingGoogle}
-                        >
-                          {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <WIP>
-                      <Button variant="primary" onClick={handleConnectGoogleCalendar}>
-                        Connect Google Calendar
-                      </Button>
-                    </WIP>
-                  )}
-                </section>
-              </SettingsCard>
-            </WIP>
-
-            {/* Session automation */}
-            <SettingsCard
-              title="Session automation"
-              storageKey="settings:practice:auto-cancel"
-              searchQuery={practiceSearch}
-            >
+            {/* Client consent */}
+            <SettingsCard title="Client consent" storageKey="settings:practice:consent" searchQuery={practiceSearch}>
               <section className={styles.businessSection}>
                 <p>
-                  Off by default. When enabled, any session that remains unpaid past the cutoff date is{" "}
-                  <strong>automatically cancelled</strong> and a{" "}
-                  <strong>cancellation email is sent to the client</strong>.
+                  When enabled, new clients must read and agree to your terms before they can access the app. Existing
+                  clients who signed up before this was turned on are not affected.
                 </p>
                 <label className={styles.toggleRow}>
                   <span className={styles.toggleLabel}>
-                    <strong>Auto-cancel unpaid sessions</strong>
+                    <strong>Require consent before app access</strong>
                     <span>
-                      {autoCancelEnabled
-                        ? "On — sessions will be cancelled and clients emailed when payment is missed."
-                        : "Off — no sessions will be automatically cancelled."}
+                      {consentEnabled
+                        ? "On — new clients will see this screen before they can continue."
+                        : "Off — clients can access the app immediately after signing up."}
                     </span>
                   </span>
-                  <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
+                  <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
                     <input
                       type="checkbox"
                       className={styles.toggleInput}
-                      checked={autoCancelEnabled}
-                      onChange={(e) => setAutoCancelEnabled(e.target.checked)}
+                      checked={consentEnabled}
+                      onChange={(e) => setConsentEnabled(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
-                {autoCancelEnabled && (
-                  <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
-                    <label htmlFor="paymentDeadlinePractice">Cutoff period</label>
-                    <select
-                      id="paymentDeadlinePractice"
-                      value={paymentDeadlineHours}
-                      onChange={(e) => setPaymentDeadlineHours(Number(e.target.value))}
-                      className={styles.select}
-                    >
-                      <option value={24}>1 day</option>
-                      <option value={48}>2 days</option>
-                      <option value={72}>3 days</option>
-                      <option value={168}>1 week</option>
-                    </select>
+
+                {consentEnabled && (
+                  <div className={styles.consentConfig}>
                     <p className={styles.toggleHint}>
-                      How long after the session date before the session is cancelled and the cancellation email is
-                      sent.
+                      This is the agreement new clients must read and sign (typing their name) before they can use the
+                      app. Add a heading, the agreement text, and optionally a PDF.
                     </p>
+
+                    <div className={styles.field}>
+                      <label htmlFor="consentTitle">Heading</label>
+                      <input
+                        id="consentTitle"
+                        value={consentTitle}
+                        onChange={(e) => setConsentTitle(e.target.value)}
+                        placeholder="Before you continue"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="consentBody">Agreement text</label>
+                      <textarea
+                        id="consentBody"
+                        className={styles.textarea}
+                        rows={6}
+                        value={consentBody}
+                        onChange={(e) => setConsentBody(e.target.value)}
+                        placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="consentPdfUrl">
+                        PDF link <small>(optional — must end in .pdf — clients can read this document in-app)</small>
+                      </label>
+                      <input
+                        id="consentPdfUrl"
+                        type="url"
+                        value={consentPdfUrl}
+                        onChange={(e) => {
+                          setConsentPdfUrl(e.target.value);
+                          if (consentPdfUrlError) setConsentPdfUrlError("");
+                        }}
+                        placeholder="https://example.com/document.pdf"
+                        aria-invalid={!!consentPdfUrlError}
+                      />
+                      {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
+                      <PdfUpload
+                        adminId={userProfile?.id ?? ""}
+                        value={consentPdfUrl}
+                        onChange={(url) => {
+                          setConsentPdfUrl(url);
+                          if (consentPdfUrlError) setConsentPdfUrlError("");
+                        }}
+                      />
+                      <p className={styles.toggleHint}>
+                        Upload a PDF, or paste a direct link ending in .pdf (a Dropbox share link works if it points at
+                        the file itself; a Google Drive "view" link will not). Clients will see it embedded in-app
+                        alongside your agreement text.
+                      </p>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="consentCta">Footer message</label>
+                      <input
+                        id="consentCta"
+                        value={consentCounsellorCta}
+                        onChange={(e) => setConsentCounsellorCta(e.target.value)}
+                        placeholder="If you have any questions, speak to your counsellor."
+                      />
+                      <p className={styles.toggleHint}>Shown below the agree button as a soft prompt.</p>
+                    </div>
                   </div>
                 )}
               </section>
@@ -1544,254 +1531,30 @@ const SettingsPage = () => {
                   variant="primary"
                   size="sm"
                   className={styles.saveButton}
-                  onClick={handleSaveAutoCancel}
-                  disabled={savingAutoCancel}
+                  onClick={handleSaveConsent}
+                  disabled={savingConsent}
                 >
-                  {savingAutoCancel ? "Saving…" : "Save"}
+                  {savingConsent ? "Saving…" : "Save consent settings"}
                 </Button>
               </div>
             </SettingsCard>
+          </>
+        )}
 
-            {/* Reschedule cutoff */}
-            <SettingsCard
-              title="Reschedule & cancellation cutoff"
-              storageKey="settings:practice:cutoff"
-              searchQuery={practiceSearch}
-            >
-              <section className={styles.businessSection}>
-                <p>
-                  Connect your Stripe account so clients can pay by card. Money goes directly to you — no platform cut.
-                </p>
-                {stripeConnected ? (
-                  <>
-                    <p style={{ color: "var(--color-success)", fontWeight: 600 }}>Stripe connected</p>
-                    <label className={styles.toggleRow}>
-                      <span className={styles.toggleLabel}>
-                        <strong>Offer card payments to clients</strong>
-                        <span>
-                          Off by default even once connected — turn on when you're ready for clients to see "Pay with
-                          Stripe" as an option.
-                        </span>
-                      </span>
-                      <span className={`${styles.toggleSwitch} ${cardPaymentsEnabled ? styles.toggleSwitchOn : ""}`}>
-                        <input
-                          type="checkbox"
-                          className={styles.toggleInput}
-                          checked={cardPaymentsEnabled}
-                          disabled={savingCardPayments}
-                          onChange={handleToggleCardPayments}
-                        />
-                        <span className={styles.toggleThumb} />
-                      </span>
-                    </label>
-                    <Button variant="ghost" onClick={() => setConfirmDisconnectStripe(true)}>
-                      Disconnect Stripe
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
-                      const redirect = `${window.location.origin}/settings/stripe-callback`;
-                      window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
-                    }}
-                  >
-                    Connect Stripe account
-                  </Button>
-                )}
-              </section>
-            </SettingsCard>
-
-            {/* Subscription */}
-            {practiceSettings && (
-              <SettingsCard
-                title="Subscription"
-                storageKey="settings:practice:subscription"
-                searchQuery={practiceSearch}
-              >
-                <section className={styles.businessSection}>
-                  <p>
-                    Status:{" "}
-                    <strong
-                      style={{
-                        color: subscriptionStatusColor(
-                          practiceSettings.subscription_status,
-                          practiceSettings.subscription_cancel_at_period_end,
-                        ),
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {practiceSettings.subscription_status}
-                    </strong>
-                    {practiceSettings.subscription_cancel_at_period_end && (
-                      <>
-                        {" "}
-                        — cancels{" "}
-                        {practiceSettings.subscription_current_period_end
-                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                          : "at the end of the current billing period"}
-                      </>
-                    )}
-                  </p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
-                  </p>
-                </section>
-
-                {planLimits &&
-                  (() => {
-                    // Legacy rows still say "app"/"bundle"/"website" until the tier
-                    // migration backfills them — treat anything unrecognised as starter.
-                    const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
-                    const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey)
-                      ? (rawPlan as TierKey)
-                      : "starter";
-                    const currentLimit = planLimits.find((l) => l.plan === currentPlan);
-                    return (
-                      <section className={styles.businessSection}>
-                        <h2>Your plan</h2>
-
-                        {planUsage && currentLimit && (
-                          <div className={styles.planUsage}>
-                            <PlanUsageBar
-                              label="Active clients"
-                              used={planUsage.active}
-                              max={currentLimit.max_active}
-                            />
-                            <PlanUsageBar
-                              label="Archived clients"
-                              used={planUsage.archived}
-                              max={currentLimit.max_archived}
-                            />
-                          </div>
-                        )}
-
-                        <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={tierBilling === "monthly"}
-                            className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
-                            onClick={() => setTierBilling("monthly")}
-                          >
-                            Monthly
-                          </button>
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={tierBilling === "annual"}
-                            className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
-                            onClick={() => setTierBilling("annual")}
-                          >
-                            Annual · 2 months free
-                          </button>
-                        </div>
-
-                        <div className={styles.tierGrid}>
-                          {TIER_ORDER.map((key) => {
-                            const d = TIER_DISPLAY[key];
-                            const limit = planLimits.find((l) => l.plan === key);
-                            const isCurrent = key === currentPlan;
-                            const price = tierBilling === "annual" ? d.annual : d.monthly;
-                            return (
-                              <div
-                                key={key}
-                                className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}
-                              >
-                                <div className={styles.tierName}>{d.label}</div>
-                                <div className={styles.tierPrice}>
-                                  £{price}
-                                  <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
-                                </div>
-                                <div className={styles.tierCap}>
-                                  {!limit || limit.max_active == null
-                                    ? "Unlimited clients"
-                                    : `${limit.max_active} active + ${limit.max_archived} archived`}
-                                </div>
-                                <div className={styles.tierBlurb}>{d.blurb}</div>
-                                {isCurrent ? (
-                                  <span className={styles.tierCurrentBadge}>Current plan</span>
-                                ) : (
-                                  <Button
-                                    variant="secondary"
-                                    onClick={() => handlePickPlan(key, tierBilling)}
-                                    disabled={!!switchingPlan || !billingCustomerId}
-                                  >
-                                    {switchingPlan === key ? "Switching…" : "Switch"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {planSwitchError && (
-                          <p className={styles.planSwitchError} role="alert">
-                            {planSwitchError}
-                          </p>
-                        )}
-                        {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
-                      </section>
-                    );
-                  })()}
-
-                {billingCustomerId && (
-                  <div className={styles.actions}>
-                    <Button
-                      variant="primary"
-                      className={styles.saveButton}
-                      onClick={handleManageSubscription}
-                      disabled={loadingPortal}
-                    >
-                      {loadingPortal ? "Opening…" : "Manage subscription"}
-                    </Button>
-                  </div>
-                )}
-              </SettingsCard>
-            )}
-
-            {/* Refer a friend */}
-            {practiceSettings?.referral_code && (
-              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
-                <section className={styles.businessSection}>
-                  <p>
-                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
-                    credited to your account automatically.
-                  </p>
-                  <div className={styles.field}>
-                    <label htmlFor="referral-link">Your referral link</label>
-                    <input
-                      id="referral-link"
-                      readOnly
-                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
-                      onFocus={(e) => e.target.select()}
-                    />
-                  </div>
-                </section>
-                <div className={styles.actions}>
-                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
-                    {referralCopied ? "Copied!" : "Copy link"}
-                  </Button>
-                </div>
-              </SettingsCard>
-            )}
-
-            <GroupHeading
-              title="Scheduling"
-              searchQuery={practiceSearch}
-              cardTitles={[
-                "Calendar sync",
-                "Session automation",
-                "Reschedule & cancellation cutoff",
-                "Session buffer",
-                "Session-prep reminders",
-                "Block booking cancellations",
-              ]}
+        {/* ── Schedule tab (admin only) ── */}
+        {isAdmin && activeTab === "schedule" && (
+          <>
+            <input
+              type="search"
+              className={styles.sectionSearch}
+              placeholder="Search schedule settings…"
+              value={scheduleSearch}
+              onChange={(e) => setScheduleSearch(e.target.value)}
+              aria-label="Search schedule settings"
             />
 
             {/* Calendar sync */}
-            <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={practiceSearch}>
+            <SettingsCard title="Calendar sync" storageKey="settings:practice:calendar" searchQuery={scheduleSearch}>
               <section className={styles.businessSection}>
                 <p>Choose how your sessions show up in your own calendar.</p>
 
@@ -1924,7 +1687,7 @@ const SettingsPage = () => {
             <SettingsCard
               title="Session automation"
               storageKey="settings:practice:auto-cancel"
-              searchQuery={practiceSearch}
+              searchQuery={scheduleSearch}
             >
               <section className={styles.businessSection}>
                 <p>
@@ -1989,7 +1752,7 @@ const SettingsPage = () => {
             <SettingsCard
               title="Reschedule & cancellation cutoff"
               storageKey="settings:practice:cutoff"
-              searchQuery={practiceSearch}
+              searchQuery={scheduleSearch}
             >
               <section className={styles.businessSection}>
                 <p>
@@ -2050,7 +1813,7 @@ const SettingsPage = () => {
             </SettingsCard>
 
             {/* Session buffer strip on the scheduler calendar */}
-            <SettingsCard title="Session buffer" storageKey="settings:practice:buffer" searchQuery={practiceSearch}>
+            <SettingsCard title="Session buffer" storageKey="settings:practice:buffer" searchQuery={scheduleSearch}>
               <section className={styles.businessSection}>
                 <p>
                   A shaded strip drawn on your scheduler calendar after every booked session — a visual gap for notes
@@ -2090,7 +1853,7 @@ const SettingsPage = () => {
             <SettingsCard
               title="Session-prep reminders"
               storageKey="settings:practice:prep-reminders"
-              searchQuery={practiceSearch}
+              searchQuery={scheduleSearch}
             >
               <section className={styles.businessSection}>
                 <p>
@@ -2216,7 +1979,7 @@ const SettingsPage = () => {
             <SettingsCard
               title="Block booking cancellations"
               storageKey="settings:practice:block-cancellation"
-              searchQuery={practiceSearch}
+              searchQuery={scheduleSearch}
             >
               <section className={styles.businessSection}>
                 <p>
@@ -2258,133 +2021,40 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </SettingsCard>
+          </>
+        )}
 
-            <GroupHeading title="Client compliance" searchQuery={practiceSearch} cardTitles={["Client consent"]} />
-
-            {/* Client consent */}
-            <SettingsCard title="Client consent" storageKey="settings:practice:consent" searchQuery={practiceSearch}>
-              <section className={styles.businessSection}>
-                <p>
-                  When enabled, new clients must read and agree to your terms before they can access the app. Existing
-                  clients who signed up before this was turned on are not affected.
-                </p>
-                <label className={styles.toggleRow}>
-                  <span className={styles.toggleLabel}>
-                    <strong>Require consent before app access</strong>
-                    <span>
-                      {consentEnabled
-                        ? "On — new clients will see this screen before they can continue."
-                        : "Off — clients can access the app immediately after signing up."}
-                    </span>
-                  </span>
-                  <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
-                    <input
-                      type="checkbox"
-                      className={styles.toggleInput}
-                      checked={consentEnabled}
-                      onChange={(e) => setConsentEnabled(e.target.checked)}
-                    />
-                    <span className={styles.toggleThumb} />
-                  </span>
-                </label>
-
-                {consentEnabled && (
-                  <div className={styles.consentConfig}>
-                    <p className={styles.toggleHint}>
-                      This is the agreement new clients must read and sign (typing their name) before they can use the
-                      app. Add a heading, the agreement text, and optionally a PDF.
-                    </p>
-
-                    <div className={styles.field}>
-                      <label htmlFor="consentTitle">Heading</label>
-                      <input
-                        id="consentTitle"
-                        value={consentTitle}
-                        onChange={(e) => setConsentTitle(e.target.value)}
-                        placeholder="Before you continue"
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label htmlFor="consentBody">Agreement text</label>
-                      <textarea
-                        id="consentBody"
-                        className={styles.textarea}
-                        rows={6}
-                        value={consentBody}
-                        onChange={(e) => setConsentBody(e.target.value)}
-                        placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label htmlFor="consentPdfUrl">
-                        PDF link <small>(optional — must end in .pdf — clients can read this document in-app)</small>
-                      </label>
-                      <input
-                        id="consentPdfUrl"
-                        type="url"
-                        value={consentPdfUrl}
-                        onChange={(e) => {
-                          setConsentPdfUrl(e.target.value);
-                          if (consentPdfUrlError) setConsentPdfUrlError("");
-                        }}
-                        placeholder="https://example.com/document.pdf"
-                        aria-invalid={!!consentPdfUrlError}
-                      />
-                      {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
-                      <PdfUpload
-                        adminId={userProfile?.id ?? ""}
-                        value={consentPdfUrl}
-                        onChange={(url) => {
-                          setConsentPdfUrl(url);
-                          if (consentPdfUrlError) setConsentPdfUrlError("");
-                        }}
-                      />
-                      <p className={styles.toggleHint}>
-                        Upload a PDF, or paste a direct link ending in .pdf (a Dropbox share link works if it points at
-                        the file itself; a Google Drive "view" link will not). Clients will see it embedded in-app
-                        alongside your agreement text.
-                      </p>
-                    </div>
-
-                    <div className={styles.field}>
-                      <label htmlFor="consentCta">Footer message</label>
-                      <input
-                        id="consentCta"
-                        value={consentCounsellorCta}
-                        onChange={(e) => setConsentCounsellorCta(e.target.value)}
-                        placeholder="If you have any questions, speak to your counsellor."
-                      />
-                      <p className={styles.toggleHint}>Shown below the agree button as a soft prompt.</p>
-                    </div>
-                  </div>
-                )}
-              </section>
-              <div className={styles.actions}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className={styles.saveButton}
-                  onClick={handleSaveConsent}
-                  disabled={savingConsent}
-                >
-                  {savingConsent ? "Saving…" : "Save consent settings"}
-                </Button>
-              </div>
-            </SettingsCard>
-
-            <GroupHeading
-              title="Billing & payments"
-              searchQuery={practiceSearch}
-              cardTitles={["Session types & prices", "Bank details", "Card payments", "Subscription", "Refer a friend"]}
+        {/* ── Billing tab (admin only) ── */}
+        {isAdmin && activeTab === "billing" && (
+          <>
+            <input
+              type="search"
+              className={styles.sectionSearch}
+              placeholder="Search billing settings…"
+              value={billingSearch}
+              onChange={(e) => setBillingSearch(e.target.value)}
+              aria-label="Search billing settings"
             />
+            {piiLocked && (
+              <div
+                style={{
+                  padding: "var(--sp-3) var(--sp-4)",
+                  background: "var(--surface-secondary)",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: "var(--sp-4)",
+                  fontSize: "0.875rem",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Bank details are encrypted. Open any client note and unlock encryption to view or edit them.
+              </div>
+            )}
 
             {/* Session types & prices */}
             <SettingsCard
               title="Session types & prices"
               storageKey="settings:practice:packages"
-              searchQuery={practiceSearch}
+              searchQuery={billingSearch}
               id="packages"
             >
               <section className={styles.businessSection}>
@@ -2514,7 +2184,7 @@ const SettingsPage = () => {
             </SettingsCard>
 
             {/* Bank details */}
-            <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={practiceSearch}>
+            <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={billingSearch}>
               <section className={styles.businessSection}>
                 <p>Shown to clients as a payment option when they pay for a session.</p>
                 <form className={styles.form}>
@@ -2541,7 +2211,7 @@ const SettingsPage = () => {
             <SettingsCard
               title="Card payments"
               storageKey="settings:practice:card-payments"
-              searchQuery={practiceSearch}
+              searchQuery={billingSearch}
             >
               <section className={styles.businessSection}>
                 <p>
@@ -2593,7 +2263,8 @@ const SettingsPage = () => {
               <SettingsCard
                 title="Subscription"
                 storageKey="settings:practice:subscription"
-                searchQuery={practiceSearch}
+                searchQuery={billingSearch}
+                id="subscription"
               >
                 <section className={styles.businessSection}>
                   <p>
@@ -2738,7 +2409,7 @@ const SettingsPage = () => {
 
             {/* Refer a friend */}
             {practiceSettings?.referral_code && (
-              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={practiceSearch}>
+              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={billingSearch}>
                 <section className={styles.businessSection}>
                   <p>
                     Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
@@ -3153,6 +2824,12 @@ const SettingsPage = () => {
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
       {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}
+      {announceOpen && (
+        <SendAnnouncementModal
+          useCodenames={practiceSettings?.use_client_codenames ?? false}
+          onClose={() => setAnnounceOpen(false)}
+        />
+      )}
       {confirmDisconnectGoogle && (
         <ConfirmModal
           title="Disconnect Google Calendar?"

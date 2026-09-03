@@ -281,7 +281,7 @@ async function openPracticeTab() {
   render(<SettingsPage />);
   fireEvent.click(screen.getByRole("button", { name: "Practice" }));
   // wait for the initial practice_settings fetch to populate the form
-  await waitFor(() => expect(getFieldInput("Bank name")).toHaveValue(initialRow.bank_name));
+  await waitFor(() => expect(getFieldInput("Business name")).toHaveValue(initialRow.business_name));
 }
 
 // The reminders mute picker's clientOptions/stubOptions/reminderMutes loads
@@ -301,8 +301,35 @@ async function openEmailsTab() {
 
 async function openInterfaceTab() {
   render(<SettingsPage />);
-  fireEvent.click(screen.getByRole("button", { name: "Interface" }));
+  fireEvent.click(screen.getByRole("button", { name: /^interface/i }));
   await screen.findByText("Hide search bar");
+}
+
+// Billing settings (session types & prices, bank details, card payments,
+// subscription, referrals) have their own tab. Mirrors openPracticeTab's
+// wait — the Bank details card is on this tab now.
+async function openBillingTab() {
+  render(<SettingsPage />);
+  fireEvent.click(screen.getByRole("button", { name: "Billing" }));
+  await waitFor(() => expect(getFieldInput("Bank name")).toHaveValue(initialRow.bank_name));
+}
+
+// Scheduling settings (calendar sync, auto-cancel, reschedule cutoff, session
+// buffer, session-prep reminders, block-booking cancellation) live under their
+// own "Schedule" tab. Wait on a toggle the practice_settings fetch populates —
+// reschedule_cutoff_hours is 48 (not null) in initialRow, so "Enforce a cutoff"
+// loads checked.
+async function openScheduleTab() {
+  render(<SettingsPage />);
+  fireEvent.click(screen.getByRole("button", { name: /^schedule & bookings/i }));
+  await waitFor(() => expect(screen.getByRole("checkbox", { name: /enforce a cutoff/i })).toBeChecked());
+}
+
+// As above, plus a flush of the mute picker's clientOptions/stubOptions/
+// reminderMutes effects (see openPracticeTabAndFlushReminders).
+async function openScheduleTabAndFlushReminders() {
+  await openScheduleTab();
+  await screen.findByText("Grace Hopper (offline)");
 }
 
 function getEmailRowToggle(templateLabel: string) {
@@ -347,7 +374,7 @@ describe("SettingsPage — loading", () => {
 
 describe("SettingsPage — bank details (client payment info)", () => {
   it("saves a changed bank account number", async () => {
-    await openPracticeTab();
+    await openBillingTab();
 
     fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
     fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
@@ -360,7 +387,7 @@ describe("SettingsPage — bank details (client payment info)", () => {
 
 describe("SettingsPage — session automation (auto-cancel unpaid sessions)", () => {
   it("turns auto-cancel on with a chosen deadline and saves it", async () => {
-    await openPracticeTab();
+    await openScheduleTab();
 
     fireEvent.click(screen.getByRole("checkbox", { name: /auto-cancel unpaid sessions/i }));
     fireEvent.change(screen.getByLabelText("Cutoff period"), { target: { value: "168" } });
@@ -376,7 +403,7 @@ describe("SettingsPage — session automation (auto-cancel unpaid sessions)", ()
 
 describe("SettingsPage — reschedule & cancellation cutoff", () => {
   it("turning the cutoff off clears reschedule_cutoff_hours so clients can act right up to session start", async () => {
-    await openPracticeTab();
+    await openScheduleTab();
 
     // Fetched practice_settings has reschedule_cutoff_hours: 48 (not null), so the
     // toggle loads on — switch it off and save.
@@ -393,7 +420,7 @@ describe("SettingsPage — reschedule & cancellation cutoff", () => {
 
 describe("SettingsPage — session-prep reminders", () => {
   it("turns reminders off, changes nothing else, and saves", async () => {
-    await openPracticeTab();
+    await openScheduleTab();
 
     await waitFor(() => expect(screen.getByRole("checkbox", { name: /remind me before sessions/i })).toBeChecked());
     fireEvent.click(screen.getByRole("checkbox", { name: /remind me before sessions/i }));
@@ -407,7 +434,7 @@ describe("SettingsPage — session-prep reminders", () => {
   });
 
   it("changes the lead time and saves it", async () => {
-    await openPracticeTab();
+    await openScheduleTab();
 
     await screen.findByLabelText("Remind me");
     fireEvent.change(screen.getByLabelText("Remind me"), { target: { value: "60" } });
@@ -421,7 +448,7 @@ describe("SettingsPage — session-prep reminders", () => {
   });
 
   it("mutes a client picked from the dropdown", async () => {
-    await openPracticeTabAndFlushReminders();
+    await openScheduleTabAndFlushReminders();
 
     const select = await screen.findByDisplayValue("— mute a client —");
     fireEvent.change(select, { target: { value: "client:client-1" } });
@@ -434,14 +461,14 @@ describe("SettingsPage — session-prep reminders", () => {
   });
 
   it("the Mute button stays disabled until a candidate is selected", async () => {
-    await openPracticeTab();
+    await openScheduleTab();
     await screen.findByDisplayValue("— mute a client —");
     expect(screen.getByRole("button", { name: "Mute" })).toBeDisabled();
   });
 
   it("unmutes an already-muted client", async () => {
     reminderMutesRows.push({ id: "mute-1", client_id: "client-1", stub_id: null });
-    await openPracticeTab();
+    await openScheduleTab();
 
     const unmuteButton = await screen.findByRole("button", { name: "Unmute" });
     fireEvent.click(unmuteButton);
@@ -552,13 +579,13 @@ describe("SettingsPage — business information", () => {
 
 describe("SettingsPage — Stripe Connect", () => {
   it("shows a connect button when Stripe isn't linked yet", async () => {
-    await openPracticeTab();
+    await openBillingTab();
     expect(screen.getByRole("button", { name: "Connect Stripe account" })).toBeInTheDocument();
   });
 
   it("shows a connected message once Stripe is linked", async () => {
     currentRow.stripe_connect_onboarded = true;
-    await openPracticeTab();
+    await openBillingTab();
     expect(screen.getByText("Stripe connected")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Connect Stripe account" })).not.toBeInTheDocument();
   });
@@ -566,13 +593,13 @@ describe("SettingsPage — Stripe Connect", () => {
 
 describe("SettingsPage — Google Calendar sync", () => {
   it("shows a connect button when no calendar is linked", async () => {
-    await openPracticeTab();
+    await openScheduleTab();
     expect(screen.getByRole("button", { name: "Connect Google Calendar" })).toBeInTheDocument();
   });
 
   it("pauses sync for an already-connected calendar", async () => {
     setGoogleStatusRow({ connected: true, google_email: "admin@example.com", sync_enabled: true });
-    await openPracticeTab();
+    await openScheduleTab();
 
     const syncToggle = await screen.findByRole("checkbox", { name: /sync to google calendar/i });
     fireEvent.click(syncToggle);
@@ -584,7 +611,7 @@ describe("SettingsPage — Google Calendar sync", () => {
 
   it("disconnects Google Calendar after confirming", async () => {
     setGoogleStatusRow({ connected: true, google_email: "admin@example.com", sync_enabled: true });
-    await openPracticeTab();
+    await openScheduleTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Disconnect Google Calendar" }));
     fireEvent.click(await screen.findByRole("button", { name: "Yes, disconnect" }));
@@ -598,7 +625,7 @@ describe("SettingsPage — Google Calendar sync", () => {
 describe("SettingsPage — subscription", () => {
   it("opens the Stripe billing portal", async () => {
     currentRow.billing_customer_id = "cus_123";
-    await openPracticeTab();
+    await openBillingTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
 
@@ -613,7 +640,7 @@ describe("SettingsPage — subscription", () => {
   it("never calls Stripe when the account is a demo account", async () => {
     currentRow.billing_customer_id = "cus_123";
     mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
-    await openPracticeTab();
+    await openBillingTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
 
@@ -624,7 +651,7 @@ describe("SettingsPage — subscription", () => {
 
 describe("SettingsPage — session types & prices", () => {
   it("adds a session type and lists it with price and duration (happy path)", async () => {
-    await openPracticeTab();
+    await openBillingTab();
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
     fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "65" } });
@@ -636,7 +663,7 @@ describe("SettingsPage — session types & prices", () => {
   });
 
   it("adds a recurring block type and lists the per-session breakdown (happy path)", async () => {
-    await openPracticeTab();
+    await openBillingTab();
 
     fireEvent.click(screen.getByLabelText(/Recurring block/i));
     // Price label switches to make clear it's the whole-block price.
@@ -655,7 +682,7 @@ describe("SettingsPage — session types & prices", () => {
 
   it("does not add a session type in demo mode (sad path)", async () => {
     mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
-    await openPracticeTab();
+    await openBillingTab();
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Standard session" } });
     fireEvent.change(screen.getByLabelText("Price (£)"), { target: { value: "65" } });
@@ -667,7 +694,7 @@ describe("SettingsPage — session types & prices", () => {
 
   it("removes a session type (happy path)", async () => {
     sessionPackagesRows.push({ id: "pkg-existing", name: "Extended session", price_pence: 9000, duration_minutes: 80 });
-    await openPracticeTab();
+    await openBillingTab();
 
     expect(await screen.findByText(/Extended session/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
@@ -684,7 +711,7 @@ describe("SettingsPage — refer a friend", () => {
       ...defaultAuthValue,
       practiceSettings: { ...defaultAuthValue.practiceSettings, referral_code: "ABC12345" },
     }));
-    await openPracticeTab();
+    await openBillingTab();
 
     const link = (await screen.findByLabelText("Your referral link")) as HTMLInputElement;
     expect(link.value).toContain("ABC12345");
@@ -696,7 +723,7 @@ describe("SettingsPage — refer a friend", () => {
   });
 
   it("does not show the card when the admin has no referral code yet (sad path)", async () => {
-    await openPracticeTab();
+    await openBillingTab();
     expect(screen.queryByText("Refer a friend")).not.toBeInTheDocument();
   });
 });
@@ -714,7 +741,7 @@ describe("SettingsPage — demo mode blocks every save action", () => {
   });
 
   it("does not save bank details", async () => {
-    await openPracticeTab();
+    await openBillingTab();
     fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
     fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
     expect(updateSpy).not.toHaveBeenCalled();
@@ -732,7 +759,7 @@ describe("SettingsPage — demo mode blocks every save action", () => {
 
   it("does not disconnect Stripe Connect", async () => {
     currentRow.stripe_connect_onboarded = true;
-    await openPracticeTab();
+    await openBillingTab();
     fireEvent.click(await screen.findByRole("button", { name: /disconnect/i }));
     expect(invokeSpy).not.toHaveBeenCalledWith("disconnect-stripe");
   });
