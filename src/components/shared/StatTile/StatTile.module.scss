@@ -1,10 +1,8 @@
-@use "../../../styles/spacing" as *;
-
 .tile {
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
-  padding: $sp-5;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
   background: var(--bg-card);
   // Explicit reset — when the tile is clickable it renders as a <button>, which
   // otherwise carries the UA default border.
@@ -34,9 +32,9 @@
 
 .label {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -45,9 +43,9 @@
   // Serif, matching the app's display-number convention (headings, donut
   // centres). tabular-nums keeps a row of figures aligned.
   font-family: var(--font-serif);
-  font-size: 1.6rem;
-  font-weight: 500;
-  line-height: 1.15;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -62,6 +60,6 @@
 
 .sub {
   font-family: var(--font-sans);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }

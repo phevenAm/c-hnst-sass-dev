@@ -1,7 +1,5 @@
-@use "../../../styles/spacing" as *;
-
 .header {
-  margin-bottom: $sp-4;
+  margin-bottom: var(--sp-4);
 }
 
 .title {
@@ -11,20 +9,20 @@
 // ── Tab strip ─────────────────────────────────────────────
 .tabs {
   display: flex;
-  gap: $sp-1;
+  gap: var(--sp-1);
   border-bottom: 1px solid var(--border);
-  margin-bottom: $sp-6;
+  margin-bottom: var(--sp-6);
   overflow-x: auto;
 }
 
 .tab {
-  padding: $sp-3 $sp-4;
+  padding: var(--sp-3) var(--sp-4);
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--transition-fast);
@@ -43,22 +41,22 @@
 .overview {
   display: flex;
   flex-direction: column;
-  gap: $sp-6;
+  gap: var(--sp-6);
 }
 
 .periodRow {
   display: flex;
-  gap: $sp-2;
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
 .periodBtn {
-  padding: $sp-2 $sp-4;
+  padding: var(--sp-2) var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
   background: transparent;
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
 
   &:hover {
@@ -76,7 +74,7 @@
 .tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: $sp-4;
+  gap: var(--sp-4);
   align-items: stretch;
 
   @media (max-width: 1000px) {
@@ -95,12 +93,12 @@
 .charts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: $sp-4;
+  gap: var(--sp-4);
 }
 
 // ── Recent activity ───────────────────────────────────────
 .activityCard {
-  padding: $sp-5 $sp-6;
+  padding: var(--sp-5) var(--sp-6);
 }
 
 .activityHead {
@@ -108,18 +106,18 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: $sp-3;
-  margin-bottom: $sp-4;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
 
   h2 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: var(--fs-md);
   }
 }
 
 .activityActions {
   display: flex;
-  gap: $sp-2;
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
@@ -134,11 +132,11 @@
 .activityRow {
   display: grid;
   grid-template-columns: 3.5rem 1fr auto;
-  gap: $sp-3;
+  gap: var(--sp-3);
   align-items: baseline;
-  padding: $sp-3 0;
+  padding: var(--sp-3) 0;
   border-bottom: 1px solid var(--border);
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 
   &:last-child {
     border-bottom: none;
@@ -147,7 +145,7 @@
 
 .activityDate {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   white-space: nowrap;
 }
 
@@ -167,7 +165,7 @@
 
 .activityDetail {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -175,12 +173,12 @@
 
 .activityAmount {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
 
 .empty {
   color: var(--text-muted);
   text-align: center;
-  padding: $sp-6;
+  padding: var(--sp-6);
 }

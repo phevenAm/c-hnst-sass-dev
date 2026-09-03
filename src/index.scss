@@ -79,7 +79,37 @@
   --font-serif: #{$font-serif};
   --font-sans: #{$font-sans};
 
-  // Spacing 
+  // Type scale (1.250 Major Third) — always use these for font-size
+  --fs-xs: #{$text-xs};
+  --fs-sm: #{$text-sm};
+  --fs-base: #{$text-base};
+  --fs-md: #{$text-md};
+  --fs-lg: #{$text-lg};
+  --fs-xl: #{$text-xl};
+  --fs-2xl: #{$text-2xl};
+  --fs-3xl: #{$text-3xl};
+
+  // Font weights
+  --fw-light: #{$weight-light};
+  --fw-regular: #{$weight-regular};
+  --fw-medium: #{$weight-medium};
+  --fw-semibold: #{$weight-semibold};
+  --fw-bold: #{$weight-bold};
+
+  // Line heights
+  --lh-tight: #{$leading-tight};
+  --lh-snug: #{$leading-snug};
+  --lh-normal: #{$leading-normal};
+  --lh-relaxed: #{$leading-relaxed};
+
+  // Letter spacing
+  --tracking-tight: #{$tracking-tight};
+  --tracking-normal: #{$tracking-normal};
+  --tracking-wide: #{$tracking-wide};
+  --tracking-wider: #{$tracking-wider};
+  --tracking-widest: #{$tracking-widest};
+
+  // Spacing
   --sp-1: #{$sp-1};
   --sp-2: #{$sp-2};
   --sp-3: #{$sp-3};

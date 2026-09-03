@@ -1,37 +1,36 @@
-@use "../../../styles/spacing" as *;
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: $sp-4;
+  gap: var(--sp-4);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
+  gap: var(--sp-2);
 
   label {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
     color: var(--text-secondary);
   }
 
   input,
   textarea {
     width: 100%;
-    padding: $sp-2 $sp-3;
+    padding: var(--sp-2) var(--sp-3);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     background: var(--bg-input, var(--bg-card));
     color: var(--text-primary);
-    font-size: 0.92rem;
+    font-size: var(--fs-base);
     font-family: inherit;
   }
 }
 
 .optional {
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   color: var(--text-muted);
 }
 
@@ -45,10 +44,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $sp-2 $sp-3;
+  padding: var(--sp-2) var(--sp-3);
   background: var(--bg-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--text-secondary);
 }
 
@@ -56,7 +55,7 @@
   background: none;
   border: none;
   color: var(--accent);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
   padding: 0;
 
@@ -68,32 +67,32 @@
 .list {
   list-style: none;
   margin: 0;
-  padding: $sp-2 $sp-3;
+  padding: var(--sp-2) var(--sp-3);
   max-height: 200px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: $sp-1;
+  gap: var(--sp-1);
 }
 
 .checkRow {
   display: flex;
   align-items: center;
-  gap: $sp-2;
-  font-size: 0.9rem;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
   color: var(--text-primary);
   cursor: pointer;
 }
 
 .empty {
-  padding: $sp-4;
+  padding: var(--sp-4);
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 }
 
 .note {
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin: 0;
 }

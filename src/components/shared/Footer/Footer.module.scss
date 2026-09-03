@@ -1,22 +1,21 @@
-@use "../../../styles/spacing" as *;
 
 .footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: $sp-3;
-  padding: $sp-4 $sp-6;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-6);
   border-top: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
 }
 
 .brand {
   display: inline-flex;
   align-items: baseline;
-  gap: $sp-2;
+  gap: var(--sp-2);
 
   em {
     font-style: italic;
@@ -32,7 +31,7 @@
 .helpLink {
   display: inline-flex;
   align-items: center;
-  gap: $sp-2;
+  gap: var(--sp-2);
   color: var(--text-secondary);
   text-decoration: none;
 

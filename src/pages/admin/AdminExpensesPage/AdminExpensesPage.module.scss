@@ -1,10 +1,9 @@
-@use "../../../styles/spacing" as *;
 @use "../../../styles/mixins" as *;
 
 .page {
   display: flex;
   flex-direction: column;
-  gap: $sp-6;
+  gap: var(--sp-6);
 }
 
 // Embedded in the Finances page: shed the route-level page/inner padding,
@@ -14,13 +13,13 @@
 .contents {
   display: flex;
   flex-direction: column;
-  gap: $sp-6;
+  gap: var(--sp-6);
 }
 
 .header {
   @include flex-between;
   flex-wrap: wrap;
-  gap: $sp-4;
+  gap: var(--sp-4);
 }
 
 .title {
@@ -29,15 +28,15 @@
 
 .sub {
   color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-top: $sp-1;
+  font-size: var(--fs-sm);
+  margin-top: var(--sp-1);
 }
 
 // ── Summary ───────────────────────────────────────────────
 .tiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 260px));
-  gap: $sp-4;
+  gap: var(--sp-4);
 
   @media (max-width: 620px) {
     grid-template-columns: 1fr;
@@ -47,17 +46,17 @@
 // ── Filters ───────────────────────────────────────────────
 .filters {
   display: flex;
-  gap: $sp-2;
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
 .filterBtn {
-  padding: $sp-2 $sp-4;
+  padding: var(--sp-2) var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
   background: transparent;
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
 
@@ -82,22 +81,22 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 
   th {
-    padding: $sp-3 $sp-4;
+    padding: var(--sp-3) var(--sp-4);
     text-align: left;
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-semibold);
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--tracking-wide);
     border-bottom: 1px solid var(--border);
     background: var(--bg-muted);
   }
 
   td {
-    padding: $sp-4;
+    padding: var(--sp-4);
     border-bottom: 1px solid var(--border);
     vertical-align: top;
   }
@@ -114,7 +113,7 @@
 .dateCell {
   white-space: nowrap;
   color: var(--text-secondary);
-  font-size: 0.84rem;
+  font-size: var(--fs-sm);
   width: 6rem;
 }
 
@@ -131,17 +130,17 @@
 
 .badge {
   display: inline-block;
-  padding: 2px $sp-3;
+  padding: 2px var(--sp-3);
   border-radius: var(--r-full);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
   background: var(--bg-muted);
   color: var(--text-secondary);
 }
 
 .link {
   color: var(--accent);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
 
   &:hover {
     text-decoration: underline;
@@ -154,14 +153,14 @@
 
 .actionsCell {
   display: flex;
-  gap: $sp-3;
+  gap: var(--sp-3);
 }
 
 .editBtn {
   background: none;
   border: none;
   color: var(--accent);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
   padding: 0;
 
@@ -174,7 +173,7 @@
   background: none;
   border: none;
   color: var(--danger);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
   padding: 0;
 
@@ -184,9 +183,9 @@
 }
 
 .empty {
-  padding: $sp-8;
+  padding: var(--sp-8);
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   margin: 0;
 }

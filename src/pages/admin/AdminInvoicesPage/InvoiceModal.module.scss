@@ -1,15 +1,14 @@
-@use "../../../styles/spacing" as *;
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: $sp-4;
+  gap: var(--sp-4);
 }
 
 .row {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
-  gap: $sp-4;
+  gap: var(--sp-4);
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
@@ -19,11 +18,11 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
+  gap: var(--sp-2);
 
   label {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
     color: var(--text-secondary);
   }
 
@@ -31,24 +30,24 @@
   input,
   textarea {
     width: 100%;
-    padding: $sp-2 $sp-3;
+    padding: var(--sp-2) var(--sp-3);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     background: var(--bg-input, var(--bg-card));
     color: var(--text-primary);
-    font-size: 0.92rem;
+    font-size: var(--fs-base);
     font-family: inherit;
   }
 }
 
 .optional {
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   color: var(--text-muted);
 }
 
 .sectionLabel {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   color: var(--text-secondary);
 }
 
@@ -56,14 +55,14 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-top: $sp-2;
+  margin-top: var(--sp-2);
 }
 
 .textBtn {
   background: none;
   border: none;
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
   padding: 0;
   align-self: flex-start;
@@ -81,8 +80,8 @@
 .sessionPicker {
   display: flex;
   flex-direction: column;
-  gap: $sp-1;
-  padding: $sp-2;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--bg-muted);
@@ -93,13 +92,13 @@
 .sessionRow {
   display: flex;
   justify-content: space-between;
-  gap: $sp-4;
-  padding: $sp-2 $sp-3;
+  gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
   border: none;
   border-radius: var(--r-sm);
   background: var(--bg-card);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
 
   &:hover {
@@ -111,13 +110,13 @@
 .lines {
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
+  gap: var(--sp-2);
 }
 
 .lineItem {
   display: grid;
   grid-template-columns: 1fr 4rem 6rem 5rem 1.5rem;
-  gap: $sp-2;
+  gap: var(--sp-2);
   align-items: center;
 
   @media (max-width: 600px) {
@@ -128,19 +127,19 @@
 .lineDesc,
 .lineQty,
 .lineUnit {
-  padding: $sp-2;
+  padding: var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--bg-input, var(--bg-card));
   color: var(--text-primary);
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 }
 
 .lineTotal {
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 
 .removeLine {
@@ -148,7 +147,7 @@
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
 
   &:hover:not(:disabled) {
     color: var(--danger);
@@ -163,15 +162,15 @@
 .grandTotal {
   display: flex;
   justify-content: flex-end;
-  gap: $sp-4;
-  padding-top: $sp-3;
+  gap: var(--sp-4);
+  padding-top: var(--sp-3);
   border-top: 1px solid var(--border);
-  font-size: 1.05rem;
+  font-size: var(--fs-md);
   color: var(--text-primary);
 }
 
 .muted {
   color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: $sp-2;
+  font-size: var(--fs-sm);
+  padding: var(--sp-2);
 }
