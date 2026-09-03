@@ -57,6 +57,7 @@ export { default as PlanLimitModal } from "./PlanLimitModal/PlanLimitModal";
 export { default as ProgressChart } from "./ProgressChart/ProgressChart";
 export { default as ProtectedRoute } from "./ProtectedRoute/ProtectedRoute";
 export { default as Search } from "./Search/Search";
+export { default as SegmentedTabs } from "./SegmentedTabs/SegmentedTabs";
 export { SessionCard } from "./SessionCard/SessionCard";
 export { default as SkipToMain } from "./SkipToMain/SkipToMain";
 export { default as SplitButton } from "./SplitButton/SplitButton";

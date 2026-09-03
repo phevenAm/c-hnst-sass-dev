@@ -1,0 +1,43 @@
+// Matches ToggleButtonTabs (the two-tab version) so session lists share one look.
+.tabs {
+  display: flex;
+  gap: 2px;
+  width: fit-content;
+  padding: 3px;
+  background: var(--bg-muted);
+  border-radius: var(--r-md);
+}
+
+.tab,
+.tabActive {
+  padding: var(--sp-2) var(--sp-5);
+  border: none;
+  border-radius: calc(var(--r-md) - 1px);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.tab {
+  background: transparent;
+  color: var(--text-muted);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.tabActive {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+}
+
+.fullWidth {
+  width: 100%;
+
+  button {
+    flex: 1;
+  }
+}

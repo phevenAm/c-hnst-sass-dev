@@ -55,7 +55,13 @@ const CreateSessionModal = ({
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
-  const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(session ? dayjs(session.scheduled_at) : initialStart);
+  const [scheduledAt, setScheduledAt] = useState<Dayjs | null>(() => {
+    if (!session) return initialStart;
+    // Never seed the picker with an unparseable date — MUI then falls back to
+    // its 1900 minDate, which is how an edited session once ended up dated 1900.
+    const parsed = dayjs(session.scheduled_at);
+    return parsed.isValid() ? parsed : (initialStart ?? dayjs());
+  });
 
   const [isSaving, setIsSaving] = useState(false);
   // Whether the picked session type is a recurring block, and how many
@@ -185,7 +191,7 @@ const CreateSessionModal = ({
       onClose();
       return;
     }
-    if (!authUser || !scheduledAt) return;
+    if (!authUser || !scheduledAt || !scheduledAt.isValid()) return;
     setIsSaving(true);
     setError("");
 
@@ -314,7 +320,7 @@ const CreateSessionModal = ({
       return;
     }
 
-    if (!authUser || !scheduledAt) return;
+    if (!authUser || !scheduledAt || !scheduledAt.isValid()) return;
     setError("");
     setIsSaving(true);
 
@@ -400,11 +406,14 @@ const CreateSessionModal = ({
               Cancel
             </Button>
             {session ? (
-              <Button onClick={() => handleSessionUpdate(session)} disabled={!scheduledAt || isSaving}>
+              <Button
+                onClick={() => handleSessionUpdate(session)}
+                disabled={!scheduledAt || !scheduledAt.isValid() || isSaving}
+              >
                 {isSaving ? "Updating session..." : "Update session"}
               </Button>
             ) : (
-              <Button onClick={handleSave} disabled={!scheduledAt || isSaving}>
+              <Button onClick={handleSave} disabled={!scheduledAt || !scheduledAt.isValid() || isSaving}>
                 {/** biome-ignore lint/style/noNestedTernary: <explanation> */}
                 {isSaving ? "Scheduling…" : isRecurring ? "Schedule sessions" : "Schedule session"}
               </Button>

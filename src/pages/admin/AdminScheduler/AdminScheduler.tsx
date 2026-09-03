@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 
 import DonutChart, { type DonutSlice } from "@components/shared/DonutChart/DonutChart";
-import { Button, Card, CollapsibleSection, SplitButton } from "@components/shared/index";
+import { Button, Card, CollapsibleSection, SegmentedTabs, SplitButton } from "@components/shared/index";
 import SchedulerCalendar, { type EventInteractionArgs } from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import {
   availabilityEvents,
@@ -736,18 +736,7 @@ const AdminScheduler = () => {
             headerRight={<span className={styles.historyMeta}>{selectedClientLabel}</span>}
           >
             <div className={styles.totalsHeader}>
-              <div className={styles.periodToggle}>
-                {SCOPES.map((sc) => (
-                  <button
-                    key={sc.value}
-                    type="button"
-                    className={`${styles.periodBtn} ${scope === sc.value ? styles.periodActive : ""}`}
-                    onClick={() => setScope(sc.value)}
-                  >
-                    {sc.label}
-                  </button>
-                ))}
-              </div>
+              <SegmentedTabs tabs={SCOPES} value={scope} onChange={setScope} ariaLabel="Session list scope" />
             </div>
             {pageRows.length > 0 ? (
               <div className={styles.historyList}>
