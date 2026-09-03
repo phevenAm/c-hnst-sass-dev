@@ -3,12 +3,10 @@
 .tile {
   display: flex;
   flex-direction: column;
-  gap: $sp-1;
+  gap: $sp-2;
   padding: $sp-5;
   background: var(--bg-card);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
   text-align: left;
   font-family: var(--font-sans);
   min-width: 0;
@@ -38,9 +36,11 @@
 }
 
 .value {
-  font-family: var(--font-sans);
-  font-size: 1.5rem;
-  font-weight: 600;
+  // Serif, matching the app's display-number convention (headings, donut
+  // centres). tabular-nums keeps a row of figures aligned.
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 500;
   line-height: 1.15;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;

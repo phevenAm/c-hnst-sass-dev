@@ -6,7 +6,7 @@
 
 .bell {
   position: relative;
-  background: none;
+  background: var(--bg-muted);
   border: none;
   border-radius: var(--r-md);
   padding: $sp-2;
@@ -18,7 +18,7 @@
   transition: all var(--transition-base);
 
   &:hover {
-    background: var(--bg-muted);
+    background: var(--border);
     color: var(--text-primary);
   }
 
