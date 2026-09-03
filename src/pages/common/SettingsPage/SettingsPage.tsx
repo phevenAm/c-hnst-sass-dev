@@ -10,7 +10,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
-import { ChevronDown } from "@components/shared/Icons/Icons";
+import { ChevronDown, CopyIcon } from "@components/shared/Icons/Icons";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
@@ -1558,26 +1558,26 @@ const SettingsPage = () => {
               <section className={styles.businessSection}>
                 <p>Choose how your sessions show up in your own calendar.</p>
 
-                <div style={{ display: "grid", gap: "var(--sp-3)", marginBottom: "var(--sp-5)" }}>
-                  <div>
-                    <h3>Built-in (.ics download)</h3>
-                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                <div className={styles.syncOptions}>
+                  <div className={styles.syncOption}>
+                    <h3 className={styles.syncOptionTitle}>Built-in (.ics download)</h3>
+                    <p className={styles.syncOptionDesc}>
                       Download a calendar file for any session and import it manually. Works with any calendar app —
                       nothing is connected automatically, so changes made in-app won't update a file you've already
                       imported.
                     </p>
                   </div>
-                  <div>
-                    <h3>Google Calendar (auto-sync)</h3>
-                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                  <div className={styles.syncOption}>
+                    <h3 className={styles.syncOptionTitle}>Google Calendar (auto-sync)</h3>
+                    <p className={styles.syncOptionDesc}>
                       Connect your Google account once — every session you book, reschedule, or cancel is pushed to your
                       Google Calendar automatically. One-way only: changes made directly in Google don't come back into
                       Clarity.
                     </p>
                   </div>
-                  <div>
-                    <h3>Microsoft 365 / Outlook (auto-sync)</h3>
-                    <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                  <div className={styles.syncOption}>
+                    <h3 className={styles.syncOptionTitle}>Microsoft 365 / Outlook (auto-sync)</h3>
+                    <p className={styles.syncOptionDesc}>
                       Connect your Microsoft account once — sessions push to your Outlook calendar automatically,
                       one-way, the same as Google. Online sessions also get a Microsoft Teams meeting link added
                       automatically (needs a Microsoft 365 Business account with Teams).
@@ -2412,24 +2412,29 @@ const SettingsPage = () => {
               <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={billingSearch}>
                 <section className={styles.businessSection}>
                   <p>
-                    Share your link — when a colleague subscribes using it, you get <strong>2 months free</strong>{" "}
-                    credited to your account automatically.
+                    Share your link — when a colleague subscribes with it, you get <strong>2 months free</strong>{" "}
+                    credited to your account.
+                  </p>
+                  <p>
+                    The credit lands automatically once their subscription <strong>renews into its second month</strong>
+                    , so a sign-up that's cancelled straight away doesn't count — and you need to still be subscribed
+                    yourself when it lands.
                   </p>
                   <div className={styles.field}>
-                    <label htmlFor="referral-link">Your referral link</label>
-                    <input
-                      id="referral-link"
-                      readOnly
-                      value={`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
-                      onFocus={(e) => e.target.select()}
-                    />
+                    <label>Your referral link</label>
+                    <button
+                      type="button"
+                      className={styles.copyField}
+                      onClick={handleCopyReferralLink}
+                      title="Click to copy"
+                    >
+                      <span className={styles.copyFieldValue}>
+                        {`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
+                      </span>
+                      <span className={styles.copyFieldIcon}>{referralCopied ? "Copied ✓" : <CopyIcon />}</span>
+                    </button>
                   </div>
                 </section>
-                <div className={styles.actions}>
-                  <Button variant="primary" className={styles.saveButton} onClick={handleCopyReferralLink}>
-                    {referralCopied ? "Copied!" : "Copy link"}
-                  </Button>
-                </div>
               </SettingsCard>
             )}
           </>

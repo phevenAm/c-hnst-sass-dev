@@ -177,6 +177,74 @@
   }
 }
 
+// Read-only value that copies on click — same grey box as an input, with a
+// trailing copy icon. Mirrors the CopyRow pattern in PaymentModal.
+.copyField {
+  @include input-base;
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.copyFieldValue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copyFieldIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-1;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+
+  .copyField:hover & {
+    color: var(--accent);
+  }
+}
+
+// ── Calendar-sync option list (Schedule tab) ───────────────
+.syncOptions {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+  margin: $sp-2 0 $sp-6;
+
+  .syncOptionTitle {
+    font-family: var(--font-serif);
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  // beats `.businessSection p`
+  .syncOptionDesc {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-normal);
+  }
+}
+
+.syncOption {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
 // ── Client consent config block ─────────────────────────────
 // Only rendered while the toggle above is on — visually set apart from it
 // with a divider rather than sitting in the same flat run of fields.
