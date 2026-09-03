@@ -30,6 +30,9 @@ const getLatestResponseForQuestionnaire = (responses: Response[], questionnaireI
     .filter((response) => response.questionnaire_id === questionnaireId)
     .sort((a, b) => new Date(getResponseDate(b)).getTime() - new Date(getResponseDate(a)).getTime())[0];
 
+// The form types /check-in can actually render for a client.
+const CLIENT_FILLABLE_FORM_TYPES = new Set(["check_in", "outcome_measure", "feedback"]);
+
 export default function ClientDashboard() {
   const { authUser, userProfile, displayName } = useAuth();
   const dispatch = useAppDispatch();
@@ -53,7 +56,15 @@ export default function ClientDashboard() {
     [taggedQuotes],
   );
 
-  const assignedQs = questionnaires.filter((q) => q.assignedTo.includes(authUser?.id ?? ""));
+  // Only the form types a client can actually fill from /check-in. A stray
+  // 'onboarding' (or any unknown) type would otherwise show as an "available
+  // check-in" whose Start link lands on a page with no tab for it — blank.
+  const assignedQs = questionnaires.filter(
+    (q) =>
+      q.assignedTo.includes(authUser?.id ?? "") &&
+      ((q as { is_rcads?: boolean }).is_rcads ||
+        CLIENT_FILLABLE_FORM_TYPES.has((q as { form_type?: string }).form_type ?? "outcome_measure")),
+  );
   const allAssignments = useAppSelector(selectAllAssignments);
 
   // RCADS answers live in rcads_assessments, not `responses` — the generic
