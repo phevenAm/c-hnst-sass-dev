@@ -2,10 +2,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { emailTemplate, logEmail, para, sendEmail } from "../_shared/email.ts";
 
-// Daily nudge: email an admin when they're within one client of their plan's
-// active-client cap, or over it. Invoked by pg_cron (trigger_client_cap_warnings)
-// with an x-internal-secret header. Deduped per admin on a 14-day cooldown via
-// email_logs, and skippable via users.email_prefs_disabled.
+// Daily nudge: email + in-app notification for an admin who is within one
+// client of their plan's active-client cap, or over it. Invoked by pg_cron
+// (trigger_client_cap_warnings) with an x-internal-secret header. Deduped per
+// admin on a 14-day cooldown via email_logs, skippable via
+// users.email_prefs_disabled. Deploy with --no-verify-jwt (cron sends no JWT).
 
 const EMAIL_TYPE = "client_cap_warning";
 const INTERNAL_SECRET = Deno.env.get("INTERNAL_CLIENT_CAP_SECRET") ?? "";
@@ -14,7 +15,11 @@ const COOLDOWN_DAYS = 14;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200 });
 
-  if (!INTERNAL_SECRET || (req.headers.get("x-internal-secret") ?? "") !== INTERNAL_SECRET) {
+  const gotSecret = req.headers.get("x-internal-secret") ?? "";
+  if (!INTERNAL_SECRET || gotSecret !== INTERNAL_SECRET) {
+    console.log(
+      `notify-client-cap: 401 — secret ${!INTERNAL_SECRET ? "env var missing" : gotSecret ? "mismatch" : "not sent"}`,
+    );
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -40,21 +45,39 @@ Deno.serve(async (req) => {
 
   const cutoff = new Date(Date.now() - COOLDOWN_DAYS * 86_400_000).toISOString();
   const notified: unknown[] = [];
+  const skipped: unknown[] = [];
 
   for (const ps of settings ?? []) {
     const max = maxByPlan.get(ps.subscription_plan);
-    if (max == null) continue; // unlimited plan or unknown
+    if (max == null) {
+      skipped.push({
+        admin_id: ps.admin_id,
+        plan: ps.subscription_plan,
+        reason: "unlimited / plan not in plan_limits",
+      });
+      continue;
+    }
 
-    const { data: active } = await supabase.rpc("active_client_count", { p_admin: ps.admin_id });
-    if (typeof active !== "number" || active < max - 1) continue; // only 1-slot-left or over
+    // active_client_count = real clients (incl. paused, excl. archived/deleted)
+    // + non-linked, non-archived offline stubs.
+    const { data: active, error: cntErr } = await supabase.rpc("active_client_count", { p_admin: ps.admin_id });
+    if (typeof active !== "number" || active < max - 1) {
+      skipped.push({ admin_id: ps.admin_id, plan: ps.subscription_plan, max, active, cntErr: cntErr?.message ?? null });
+      continue;
+    }
 
-    const { data: admin } = await supabase
+    // email is on auth.users; prefs + unsubscribe token are on public.users
+    const { data: adminRow } = await supabase
       .from("users")
-      .select("email, email_prefs_disabled, unsubscribe_token")
+      .select("email_prefs_disabled, unsubscribe_token")
       .eq("id", ps.admin_id)
       .single();
-    if (!admin?.email) continue;
-    if ((admin.email_prefs_disabled ?? []).includes(EMAIL_TYPE)) continue;
+    const { data: adminAuth } = await supabase.auth.admin.getUserById(ps.admin_id);
+    const adminEmail = adminAuth?.user?.email;
+    if ((adminRow?.email_prefs_disabled ?? []).includes(EMAIL_TYPE)) {
+      skipped.push({ admin_id: ps.admin_id, reason: "opted out" });
+      continue;
+    }
 
     const { data: recent } = await supabase
       .from("email_logs")
@@ -64,12 +87,26 @@ Deno.serve(async (req) => {
       .eq("status", "sent")
       .gte("created_at", cutoff)
       .limit(1);
-    if (recent && recent.length > 0) continue;
+    if (recent && recent.length > 0) {
+      skipped.push({ admin_id: ps.admin_id, reason: "within 14-day cooldown" });
+      continue;
+    }
 
     const over = active > max;
     const subject = over
       ? `You're over your ${ps.subscription_plan} plan's client limit`
       : `You're using ${active} of ${max} client slots`;
+    const settingsUrl = `${appUrl}/settings?tab=practice&section=subscription`;
+
+    // In-app notification — mirrors the email so it shows in the bell too.
+    await supabase.from("notifications").insert({
+      user_id: ps.admin_id,
+      type: EMAIL_TYPE,
+      message: over
+        ? `You have ${active} active clients on the ${ps.subscription_plan} plan (${max} included). Archive a client or upgrade.`
+        : `You're using ${active} of ${max} client slots on the ${ps.subscription_plan} plan.`,
+      url: settingsUrl,
+    });
 
     const html = emailTemplate({
       label: "Subscription",
@@ -80,17 +117,21 @@ Deno.serve(async (req) => {
             ? `You now have <strong>${active} active clients</strong> on the ${ps.subscription_plan} plan, which includes ${max}.`
             : `You're using <strong>${active} of ${max}</strong> active client slots on the ${ps.subscription_plan} plan.`,
         ) + para("Archive a client you're no longer seeing to free a slot, or move to a larger plan to add more."),
-      cta: { label: "Review your plan", url: `${appUrl}/settings?tab=practice&section=subscription` },
+      cta: { label: "Review your plan", url: settingsUrl },
       footerNote: "You're receiving this because you manage a Clarity practice.",
-      unsubscribeUrl: admin.unsubscribe_token
-        ? `${appUrl}/unsubscribe?token=${admin.unsubscribe_token}&type=${EMAIL_TYPE}`
+      unsubscribeUrl: adminRow?.unsubscribe_token
+        ? `${appUrl}/unsubscribe?token=${adminRow.unsubscribe_token}&type=${EMAIL_TYPE}`
         : undefined,
       counsellorName: ps.counsellor_name ?? undefined,
     });
 
-    const logBase = { adminId: ps.admin_id, emailType: EMAIL_TYPE, recipientEmail: admin.email, subject };
+    const logBase = { adminId: ps.admin_id, emailType: EMAIL_TYPE, recipientEmail: adminEmail ?? "", subject };
+    if (!adminEmail) {
+      skipped.push({ admin_id: ps.admin_id, reason: "no auth email (in-app notification still sent)" });
+      continue;
+    }
     try {
-      const resendId = await sendEmail({ to: admin.email, subject, html, resendKey, fromEmail });
+      const resendId = await sendEmail({ to: adminEmail, subject, html, resendKey, fromEmail });
       await logEmail(supabase, { ...logBase, resendEmailId: resendId, status: "sent" });
       notified.push({ admin_id: ps.admin_id, active, max, over });
     } catch (err) {
@@ -99,7 +140,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ practices_checked: (settings ?? []).length, notified }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  const result = { practices_checked: (settings ?? []).length, notified, skipped };
+  console.log(`notify-client-cap: ${JSON.stringify(result)}`);
+  return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
 });
