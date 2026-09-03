@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import Card from "@components/shared/Card/Card";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
+import StatTile from "@components/shared/StatTile/StatTile";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
@@ -166,38 +167,28 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
           />
         </div>
 
-        <Card className={styles.summaryCard}>
-          <div>
-            <p className={styles.summaryLabel}>{currentYear} total</p>
-            <p className={styles.summaryValue}>{money(thisYearTotal)}</p>
-          </div>
-          <div>
-            <p className={styles.summaryLabel}>Entries this year</p>
-            <p className={styles.summaryValue}>{thisYear.length}</p>
-          </div>
-        </Card>
+        <div className={styles.tiles}>
+          <StatTile label={`${currentYear} total`} value={money(thisYearTotal)} />
+          <StatTile label="Entries this year" value={thisYear.length} />
+        </div>
 
         {categories.length > 0 && (
-          <Card className={styles.filtersCard}>
-            <div className={styles.filters}>
-              {["all", ...categories].map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`${styles.filterBtn} ${filter === c ? styles.filterBtnActive : ""}`}
-                  onClick={() => setFilter(c)}
-                >
-                  {c === "all" ? "All" : c}
-                </button>
-              ))}
-            </div>
-          </Card>
+          <div className={styles.filters}>
+            {["all", ...categories].map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`${styles.filterBtn} ${filter === c ? styles.filterBtnActive : ""}`}
+                onClick={() => setFilter(c)}
+              >
+                {c === "all" ? "All" : c}
+              </button>
+            ))}
+          </div>
         )}
 
         {visible.length === 0 ? (
-          <Card className={styles.empty}>
-            <p>No expenses yet. Add your first one to get started.</p>
-          </Card>
+          <p className={styles.empty}>No expenses yet. Add your first one to get started.</p>
         ) : (
           <Card className={styles.tableCard}>
             <table className={styles.table}>

@@ -6,10 +6,16 @@
   gap: $sp-2;
   padding: $sp-5;
   background: var(--bg-card);
+  // Explicit reset — when the tile is clickable it renders as a <button>, which
+  // otherwise carries the UA default border.
+  border: none;
   border-radius: var(--r-lg);
   text-align: left;
+  font: inherit;
+  color: inherit;
   font-family: var(--font-sans);
   min-width: 0;
+  width: 100%;
 }
 
 .clickable {

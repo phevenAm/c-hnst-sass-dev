@@ -5,6 +5,7 @@ import { clientDisplayName } from "@Helpers/Helpers";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
+import StatTile from "@components/shared/StatTile/StatTile";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 import type { RootState } from "@/store";
@@ -229,36 +230,26 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
           />
         </div>
 
-        <Card className={styles.summaryCard}>
-          <div>
-            <p className={styles.summaryLabel}>Outstanding</p>
-            <p className={styles.summaryValue}>{money(summary.outstanding)}</p>
-          </div>
-          <div>
-            <p className={styles.summaryLabel}>Paid in {summary.year}</p>
-            <p className={styles.summaryValue}>{money(summary.paidThisYear)}</p>
-          </div>
-        </Card>
+        <div className={styles.tiles}>
+          <StatTile label="Outstanding" value={money(summary.outstanding)} />
+          <StatTile label={`Paid in ${summary.year}`} value={money(summary.paidThisYear)} />
+        </div>
 
-        <Card className={styles.filtersCard}>
-          <div className={styles.filters}>
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={`${styles.filterBtn} ${filter === f ? styles.filterBtnActive : ""}`}
-                onClick={() => setFilter(f)}
-              >
-                {f === "all" ? "All" : f[0].toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
-        </Card>
+        <div className={styles.filters}>
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`${styles.filterBtn} ${filter === f ? styles.filterBtnActive : ""}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === "all" ? "All" : f[0].toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
 
         {visible.length === 0 ? (
-          <Card className={styles.empty}>
-            <p>No invoices here yet.</p>
-          </Card>
+          <p className={styles.empty}>No invoices here yet.</p>
         ) : (
           <Card className={styles.tableCard}>
             <table className={styles.table}>

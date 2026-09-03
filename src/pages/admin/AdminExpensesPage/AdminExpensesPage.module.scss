@@ -34,33 +34,17 @@
 }
 
 // ── Summary ───────────────────────────────────────────────
-.summaryCard {
-  display: flex;
-  gap: $sp-10;
-  padding: $sp-5 $sp-6;
-  flex-wrap: wrap;
-}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  gap: $sp-4;
 
-.summaryLabel {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  margin: 0 0 $sp-1;
-}
-
-.summaryValue {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 // ── Filters ───────────────────────────────────────────────
-.filtersCard {
-  padding: $sp-4 $sp-6;
-}
-
 .filters {
   display: flex;
   gap: $sp-2;
@@ -200,7 +184,9 @@
 }
 
 .empty {
-  padding: $sp-10;
+  padding: $sp-8;
   text-align: center;
   color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
 }
