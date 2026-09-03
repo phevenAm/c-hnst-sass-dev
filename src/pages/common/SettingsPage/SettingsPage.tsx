@@ -2422,17 +2422,20 @@ const SettingsPage = () => {
                   </p>
                   <div className={styles.field}>
                     <label>Your referral link</label>
-                    <button
-                      type="button"
-                      className={styles.copyField}
-                      onClick={handleCopyReferralLink}
-                      title="Click to copy"
-                    >
+                    <div className={styles.copyField}>
                       <span className={styles.copyFieldValue}>
                         {`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
                       </span>
-                      <span className={styles.copyFieldIcon}>{referralCopied ? "Copied ✓" : <CopyIcon />}</span>
-                    </button>
+                      <button
+                        type="button"
+                        className={styles.copyFieldBtn}
+                        onClick={handleCopyReferralLink}
+                        aria-label="Copy referral link"
+                        title="Copy referral link"
+                      >
+                        {referralCopied ? <span className={styles.copyFieldDone}>✓</span> : <CopyIcon />}
+                      </button>
+                    </div>
                   </div>
                 </section>
               </SettingsCard>

@@ -177,19 +177,13 @@
   }
 }
 
-// Read-only value that copies on click — same grey box as an input, with a
-// trailing copy icon. Mirrors the CopyRow pattern in PaymentModal.
+// Grey input-style box holding a read-only value with a trailing copy button.
 .copyField {
   @include input-base;
   display: flex;
   align-items: center;
-  gap: $sp-3;
-  cursor: pointer;
-  text-align: left;
-
-  &:hover {
-    border-color: var(--accent);
-  }
+  gap: $sp-2;
+  padding-right: $sp-2; // tighten so the icon button's own padding does the work
 }
 
 .copyFieldValue {
@@ -200,18 +194,33 @@
   white-space: nowrap;
 }
 
-.copyFieldIcon {
+.copyFieldBtn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: $sp-1;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 500;
+  justify-content: center;
+  padding: $sp-2;
+  border: none;
+  background: none;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 
-  .copyField:hover & {
-    color: var(--accent);
+  &:hover {
+    background: var(--border);
+    color: var(--text-primary);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
+  }
+}
+
+.copyFieldDone {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 // ── Calendar-sync option list (Schedule tab) ───────────────
