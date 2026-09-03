@@ -560,6 +560,8 @@
   width: 100%;
   display: flex;
   align-items: center;
+  gap: $sp-4;
+  padding-right: $sp-6; // matches the label's $sp-6 left inset below
   transition: background 0.15s;
 
   &:hover {
@@ -572,7 +574,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $sp-4 $sp-4 $sp-4 $sp-6;
+  padding: $sp-4 0 $sp-4 $sp-6;
   background: none;
   border: none;
   cursor: pointer;
@@ -589,8 +591,6 @@
 }
 
 .emailRowToggle {
-  margin-right: $sp-5;
-  margin-left: $sp-4;
   flex-shrink: 0;
 }
 

@@ -80,7 +80,7 @@ export default function AdminTopbar() {
           type="button"
           onClick={() => dispatch(toggleTheme())}
           aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
-          className={styles.iconBtn}
+          className={styles.plainIcon}
         >
           {themeMode === "light" ? <MoonIcon /> : <SunIcon />}
         </button>

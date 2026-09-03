@@ -43,6 +43,31 @@
   }
 }
 
+// Bare icon action (theme toggle) — soft fill, no border. Matches Navbar and
+// NotificationBell; the 1px border read as a hard "button circle".
+.plainIcon {
+  background: var(--bg-muted);
+  border: none;
+  border-radius: var(--r-md);
+  padding: $sp-2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+}
+
 .modeSwitch {
   display: inline-flex;
   align-items: center;
