@@ -139,10 +139,12 @@
   // without this the calendar pop-up on a session event stays white in dark mode.
   color-scheme: dark;
 
-  // Accent — lighter for dark backgrounds
-  --accent: #{$dark-accent};
-  --accent-dark: #{$teal-400};
-  --accent-hover: #{$teal-400};
+  // Accent — lighter for dark backgrounds, but teal-400 not teal-300: the
+  // paler mint read as washed-out on filled primary buttons. Dark text on
+  // teal-400 is ~8:1; accent-as-text on the dark ground is still ~6:1.
+  --accent: #{$teal-400};
+  --accent-dark: #{$teal-500};
+  --accent-hover: #{$teal-500};
   --accent-light: #{$dark-accent-light};
   --accent-subtle: #{$dark-accent-light};
 
@@ -177,7 +179,7 @@
   --border-focus: #{$teal-300};
 
   // Feedback — adjusted for dark bg contrast
-  --danger: #fca5a5;
+  --danger: #f87171; // red-400 — reads as a real warning; #fca5a5 was too pink/soft
   --danger-light: rgba(185, 28, 28, 0.2);
   --danger-border: rgba(185, 28, 28, 0.4);
   --success: #{$teal-300};
