@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe";
+import { postAgencyTeamsCard } from "../_shared/agencyTeams.ts";
 import { detailsTable, emailTemplate, formatDate, logEmail, para, sendEmail } from "../_shared/email.ts";
 
 const REFUND_EMAIL_TYPE = "refund_issued";
@@ -396,6 +398,11 @@ Deno.serve(async (req) => {
             user_id: adminId,
             type: "payment_received",
             message: `${clientName} paid £${amountPounds} for ${sessionDescription}`,
+          }),
+          postAgencyTeamsCard(supabase, adminId, {
+            event: "paid",
+            clientName,
+            detail: `£${amountPounds} — ${sessionDescription}`,
           }),
           adminUser?.email && resendKey && fromEmail
             ? sendEmail({

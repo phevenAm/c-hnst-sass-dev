@@ -6,6 +6,7 @@ import {
   REMINDER_TYPE,
   reminderNotification,
   selectSessionsToRemind,
+  shouldAutoCancelUnpaidSession,
   WINDOW_HALF_HOURS,
 } from "../_shared/reminderLogic.ts";
 
@@ -66,6 +67,7 @@ Deno.serve(async (req) => {
       heading: string | null;
       disabledTypes: string[];
       paymentDeadlineHours: number;
+      autoCancelEnabled: boolean;
     }
   > = {};
   const emailMap: Record<string, string> = {};
@@ -96,7 +98,7 @@ Deno.serve(async (req) => {
     const { data: practiceRows } = await supabase
       .from("practice_settings")
       .select(
-        "admin_id, counsellor_name, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours",
+        "admin_id, counsellor_name, reminder_hours_before, reminder_email_subject, reminder_email_body, reminder_email_heading, disabled_email_types, payment_deadline_hours, auto_cancel_enabled",
       )
       .in("admin_id", adminIds);
 
@@ -109,6 +111,7 @@ Deno.serve(async (req) => {
         heading: ps.reminder_email_heading ?? null,
         disabledTypes: ps.disabled_email_types ?? [],
         paymentDeadlineHours: ps.payment_deadline_hours ?? 48,
+        autoCancelEnabled: ps.auto_cancel_enabled ?? false,
       };
     }
 
@@ -121,6 +124,8 @@ Deno.serve(async (req) => {
   }
 
   // ── AUTO-CANCEL: real sessions past their payment deadline ─────────────────
+  // Only for practices that have opted in via practice_settings.auto_cancel_enabled
+  // (default false) — same gate the DB path auto_cancel_unpaid_sessions() uses.
 
   const autoCancelledIds = new Set<string>();
   let autoCancelEmailsSent = 0;
@@ -132,9 +137,16 @@ Deno.serve(async (req) => {
         const profile = profileMap[session.client_id];
         if (!profile) return;
 
-        const deadlineHours = settingsMap[profile.adminId]?.paymentDeadlineHours ?? 48;
-        const msUntilSession = new Date(session.scheduled_at).getTime() - now;
-        if (msUntilSession > deadlineHours * 3600 * 1000) return; // deadline not yet passed
+        if (
+          !shouldAutoCancelUnpaidSession({
+            scheduledAt: session.scheduled_at,
+            now,
+            paid: session.paid,
+            config: settingsMap[profile.adminId],
+          })
+        ) {
+          return;
+        }
 
         const { error } = await supabase
           .from("sessions")

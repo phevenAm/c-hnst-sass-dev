@@ -13,6 +13,11 @@ export const REMINDER_TYPE = "session_reminder";
 export const DEFAULT_HOURS_BEFORE = 120; // 5 days
 export const WINDOW_HALF_HOURS = 12;
 
+// Fallback for practice_settings.payment_deadline_hours — how long after a
+// session is booked (well, before it starts) an unpaid session may be
+// auto-cancelled. Mirrors the DB default on that column.
+export const DEFAULT_PAYMENT_DEADLINE_HOURS = 48;
+
 const MS_PER_HOUR = 3_600_000;
 
 export interface RemindableSession {
@@ -86,6 +91,40 @@ export function reminderNotification(opts: {
         type: "session_payment_due",
         message: `Session on ${opts.dateStr} (in ${opts.timeLabel}) — not paid yet.`,
       };
+}
+
+export interface AutoCancelConfig {
+  /** practice_settings.auto_cancel_enabled — defaults to false in the DB. */
+  autoCancelEnabled?: boolean | null;
+  /** practice_settings.payment_deadline_hours */
+  paymentDeadlineHours?: number | null;
+}
+
+/**
+ * Whether a scheduled, unpaid session should be auto-cancelled on this run.
+ *
+ * Gated on the practice having explicitly opted in (`autoCancelEnabled`). The
+ * DB path `auto_cancel_unpaid_sessions()` already checks that flag; the
+ * send-session-reminders edge function historically did not, so a practice
+ * with the Settings toggle OFF still had sessions cancelled by the daily run.
+ *
+ * A session qualifies once its start is within (or past) the practice's
+ * payment-deadline window.
+ */
+export function shouldAutoCancelUnpaidSession(opts: {
+  scheduledAt: string;
+  now: number;
+  paid: boolean;
+  config: AutoCancelConfig | undefined | null;
+}): boolean {
+  if (opts.paid) return false;
+  if (opts.config?.autoCancelEnabled !== true) return false;
+
+  const deadlineHours = opts.config?.paymentDeadlineHours ?? DEFAULT_PAYMENT_DEADLINE_HOURS;
+  const startMs = new Date(opts.scheduledAt).getTime();
+  if (Number.isNaN(startMs)) return false;
+
+  return startMs - opts.now <= deadlineHours * MS_PER_HOUR;
 }
 
 export function selectSessionsToRemind<S extends RemindableSession>(args: SelectRemindersArgs<S>): S[] {

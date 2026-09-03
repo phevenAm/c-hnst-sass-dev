@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import { useAuth } from "@context/AuthContext";
 
 import styles from "./SignUpPage.module.scss";
@@ -136,8 +137,25 @@ export default function SignUpPage() {
             <div className={styles.formGrid}>
               {FIELDS.map((field) => (
                 <div key={field.id} className={`${styles.field} ${HALF_WIDTH.has(field.id) ? "" : styles.fieldFull}`}>
-                  <label htmlFor={field.id} className={styles.label}>
+                  <label
+                    htmlFor={field.id}
+                    className={styles.label}
+                    style={field.id === "dob" ? { display: "flex", alignItems: "center", gap: "6px" } : undefined}
+                  >
                     {field.label}
+                    {field.id === "dob" && (
+                      <InfoTooltip
+                        variant="rich"
+                        trigger="click"
+                        title="Why we ask for your date of birth"
+                        text={
+                          "Your date of birth is only used to work out your age. That lets your counsellor's resource " +
+                          "library automatically show you age-appropriate material and hold back anything they've " +
+                          "marked as suitable for adults only.\n\nIt isn't shown to other clients, and your counsellor " +
+                          "chooses whether to display it on your profile."
+                        }
+                      />
+                    )}
                   </label>
                   <input
                     id={field.id}

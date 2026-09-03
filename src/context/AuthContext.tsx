@@ -58,6 +58,7 @@ type PracticeSettings = {
   subscription_plan: string;
   stripe_connect_onboarded: boolean;
   use_client_codenames: boolean;
+  hide_client_profile_pii: boolean;
   referral_code: string | null;
 };
 
@@ -440,6 +441,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updatePracticeSettingsLocal = useCallback((updates: Partial<PracticeSettings>) => {
     setPracticeSettings((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
+
+  // "Last seen": stamp users.last_seen_at when a client loads the app so their
+  // counsellor can optionally show it on the client's profile. Throttled to
+  // once per ~6h, fire-and-forget, never blocks sign-in or surfaces an error.
+  useEffect(() => {
+    if (!authUser || userProfile?.role !== "client" || userProfile?.is_demo) return;
+    const last = userProfile.last_seen_at ? new Date(userProfile.last_seen_at).getTime() : 0;
+    if (Date.now() - last < 6 * 60 * 60 * 1000) return;
+    supabase
+      .from("users")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", authUser.id)
+      .then(
+        () => {},
+        () => {},
+      );
+  }, [authUser, userProfile?.role, userProfile?.is_demo, userProfile?.last_seen_at]);
 
   const retryProfile = useCallback(() => {
     if (!authUser) return;

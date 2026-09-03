@@ -139,6 +139,77 @@
   }
 }
 
+// Toggle-switch rows in the Configure client modal — same visual language as
+// SettingsPage.module.scss so the two screens match.
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-3 0;
+  cursor: pointer;
+
+  & + & {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.toggleRowLabel {
+  font-size: 0.83rem;
+  color: var(--text-primary);
+  line-height: 1.35;
+
+  small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.toggleThumb {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: var(--r-full);
+  transition: background 0.2s;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+  }
+}
+
+.toggleSwitchOn .toggleThumb {
+  background: var(--accent);
+
+  &::after {
+    transform: translateX(18px);
+  }
+}
+
 // ── Stats bar ────────────────────────────────────────────────
 .statsRow {
   display: flex;

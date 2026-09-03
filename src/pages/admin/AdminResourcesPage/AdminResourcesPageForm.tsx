@@ -18,7 +18,7 @@ export function ResourceForm({
 }: {
   adminId: string;
   // biome-ignore lint/suspicious/noExplicitAny: resource form data shape varies based on resource type
-  onSave: (data: any) => void;
+  onSave: (data: any) => void | Promise<void>;
   onClose: () => void;
   resource?: Resource | null;
 }) {
@@ -50,7 +50,9 @@ export function ResourceForm({
     });
   }, [resource]);
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!form.title.trim() || !form.summary.trim()) {
       alert("Title and summary are required");
       return;
@@ -66,9 +68,20 @@ export function ResourceForm({
       return;
     }
 
-    onSave(form);
-    onClose();
+    // Await the save so a failed write (RLS, paused practice, network) surfaces
+    // its reason and the modal stays open, instead of silently closing.
+    setSaving(true);
+    try {
+      await onSave(form);
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Couldn't save the resource. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const saveLabel = resource ? "Update resource" : "Save resource";
 
   const modalObj = {
     title: resource ? "Edit resource" : "New resource",
@@ -80,7 +93,9 @@ export function ResourceForm({
           Cancel
         </Button>
 
-        <Button onClick={handleSave}>{resource ? "Update resource" : "Save resource"}</Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : saveLabel}
+        </Button>
       </div>
     ),
   };
