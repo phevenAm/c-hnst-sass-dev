@@ -606,7 +606,7 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
     },
     {
       key: "actions",
-      label: "",
+      label: "Actions",
       render: (r) => (
         // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops the row-click from firing when an action button is used; the buttons are the real controls
         <div className={styles.actionsCell} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>

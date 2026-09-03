@@ -262,7 +262,7 @@
   padding-top: $sp-5;
   border-top: 1px solid var(--border);
 
-  > * + * {
+  >*+* {
     margin-top: $sp-4;
   }
 }
@@ -318,7 +318,7 @@
     @extend .sectionTitle;
   }
 
-  > p {
+  >p {
     font-size: 0.85rem;
     color: var(--text-muted);
     margin: 0;
@@ -364,7 +364,7 @@
   // own bottom) — giving this its own top padding too would stack on top of
   // that and open a bigger gap under an expanded card than a collapsed one
   // has around its button, which is what threw off the "centered" look.
-  padding: 0 $sp-6 $sp-6;
+  padding: $sp-6;
 
   h2 {
     @extend .sectionTitle;
@@ -823,6 +823,7 @@
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
+
 // ── Subscription tier switcher ─────────────────────────────
 .planUsage {
   display: grid;
