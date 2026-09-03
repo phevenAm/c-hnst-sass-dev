@@ -5,7 +5,7 @@ import { useAuth } from "@context/AuthContext";
 
 import styles from "./ClientCapBanner.module.scss";
 
-const SUBSCRIPTION_SETTINGS = "/settings?tab=practice&section=subscription";
+const SUBSCRIPTION_SETTINGS = "/settings?tab=billing&section=subscription";
 
 /**
  * Warns an admin when they're at (or one away from) their plan's active-client

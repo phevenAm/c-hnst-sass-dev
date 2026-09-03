@@ -19,9 +19,9 @@ import { createSession, updateSession } from "@/store/slices/sessionsSlice";
 
 import styles from "./CreateSessionModal.module.scss";
 
-// Deep-links to the Practice tab and scrolls the "Session types & prices"
+// Deep-links to the Billing tab and scrolls the "Session types & prices"
 // card into view (see SettingsCard's `id`/`?section=` handling).
-const SESSION_TYPES_SETTINGS_URL = "/settings?tab=practice&section=packages";
+const SESSION_TYPES_SETTINGS_URL = "/settings?tab=billing&section=packages";
 
 export type StubSavePayload = {
   dates: string[];
