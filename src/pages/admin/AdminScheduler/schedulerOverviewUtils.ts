@@ -53,7 +53,8 @@ export function filterAndSortByScope<T extends { scheduled_at: string }>(
   };
   const byDate = (a: T, b: T) => {
     const diff = new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
-    return scope === "past" ? -diff : diff;
+    // upcoming reads best soonest-first; past and "all" read best newest-first.
+    return scope === "upcoming" ? diff : -diff;
   };
   return items.filter((s) => inScope(s.scheduled_at)).sort(byDate);
 }

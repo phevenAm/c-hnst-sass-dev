@@ -127,8 +127,8 @@ describe("filterAndSortByScope", () => {
     expect(filterAndSortByScope(all, "upcoming", NOW)).toEqual([future1, future2]);
   });
 
-  it("all: keeps everything, soonest first", () => {
-    expect(filterAndSortByScope(all, "all", NOW)).toEqual([past2, past1, future1, future2]);
+  it("all: keeps everything, most recent first", () => {
+    expect(filterAndSortByScope(all, "all", NOW)).toEqual([future2, future1, past1, past2]);
   });
 
   it("treats a session exactly at now as past", () => {

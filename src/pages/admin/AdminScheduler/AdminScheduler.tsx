@@ -147,8 +147,8 @@ const AdminScheduler = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   // Session-totals period filter.
   const [period, setPeriod] = useState<SchedulerPeriod>("all");
-  // Session list scope: past (default), upcoming, or everything.
-  const [scope, setScope] = useState<ListScope>("past");
+  // Session list scope: upcoming (default), past, or everything.
+  const [scope, setScope] = useState<ListScope>("upcoming");
   // Whether to email the client when confirming a drag-and-drop reschedule.
   const [notifyOnDrop, setNotifyOnDrop] = useState(true);
 
@@ -311,9 +311,9 @@ const AdminScheduler = () => {
   const stats = useMemo(() => computeOverviewStats(overviewSessions), [overviewSessions]);
 
   // Session list below the calendar. `scope` decides which slice shows:
+  //   upcoming — still to come, soonest first (the default)
   //   past     — already happened, most recent first (the old "history" view)
-  //   upcoming — still to come, soonest first
-  //   all      — everything, soonest first
+  //   all      — everything, most recent first
   const HISTORY_PAGE_SIZE = 10;
   const [historyPage, setHistoryPage] = useState(1);
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset the page only when the client filter or scope changes, not on every realtime session update
@@ -328,8 +328,8 @@ const AdminScheduler = () => {
   );
 
   // Real and offline-client (stub) sessions interleaved into one list, sorted the
-  // same way filterAndSortByScope sorts each: past = most recent first, otherwise
-  // soonest first. Both `filtered*` arrays already respect the client filter, so
+  // same way filterAndSortByScope sorts each: upcoming = soonest first, past and
+  // all = most recent first. Both `filtered*` arrays already respect the client filter, so
   // "All clients" shows both, a real client shows only real, a stub only stub.
   type SessionListRow = { kind: "real"; session: Session } | { kind: "stub"; session: StubSession };
   const scopedRows = useMemo<SessionListRow[]>(() => {
@@ -339,7 +339,7 @@ const AdminScheduler = () => {
     ];
     return rows.sort((a, b) => {
       const diff = new Date(a.session.scheduled_at).getTime() - new Date(b.session.scheduled_at).getTime();
-      return scope === "past" ? -diff : diff;
+      return scope === "upcoming" ? diff : -diff;
     });
   }, [scopedSessions, scopedStubSessions, scope]);
 
