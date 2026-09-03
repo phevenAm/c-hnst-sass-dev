@@ -5,10 +5,13 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import DonutChart from "@components/shared/DonutChart/DonutChart";
 import Spinner from "@components/shared/Spinner/Spinner";
+import StatTile from "@components/shared/StatTile/StatTile";
 import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
+import type { Database } from "@/models/database.types";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
 import type { TrendPoint } from "@/pages/admin/AdminDashboard/dashboardUtils";
 
@@ -64,12 +67,9 @@ const byMonth = (rows: { date: string; pence: number }[], months: number): Trend
   return buckets.map(({ label, value }) => ({ label, value: Math.round(value) }));
 };
 
-type LedgerRow = {
-  date: string | null;
-  amount_pence: number | null;
-  is_paid: boolean | null;
-  description: string | null;
-};
+type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
+
+type NamePart = { first_name: string | null; last_name: string | null; display_name?: string | null };
 type InvoiceRow = {
   id: string;
   reference: string;
@@ -77,10 +77,42 @@ type InvoiceRow = {
   total_pence: number;
   issue_date: string;
   paid_at: string | null;
+  client: NamePart | null;
+  stub: NamePart | null;
 };
-type ExpenseRow = { id: string; incurred_on: string; category: string; amount_pence: number };
+type ExpenseRow = {
+  id: string;
+  incurred_on: string;
+  category: string;
+  amount_pence: number;
+  description: string | null;
+};
 
-type ActivityItem = { id: string; date: string; label: string; amount: number; kind: "in" | "out" };
+type ActivityItem = {
+  id: string;
+  date: string;
+  title: string;
+  detail: string;
+  amount: number;
+  kind: "in" | "out";
+};
+
+const personName = (n: NamePart | null | undefined): string =>
+  (n?.display_name || [n?.first_name, n?.last_name].filter(Boolean).join(" ") || "").trim();
+
+const ledgerRowName = (r: LedgerRow): string =>
+  (
+    r.display_name ||
+    [r.client_first_name, r.client_last_name].filter(Boolean).join(" ") ||
+    [r.stub_first_name, r.stub_last_name].filter(Boolean).join(" ") ||
+    ""
+  ).trim();
+
+const ledgerRowKind = (source: string | null): string => {
+  if (source === "session") return "Session payment";
+  if (source === "stub-session") return "Offline session payment";
+  return "Manual payment";
+};
 
 function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
   const { userProfile } = useAuth();
@@ -93,15 +125,20 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
   const load = useCallback(async () => {
     if (!userProfile?.id) return;
     const [{ data: l }, { data: inv }, { data: exp }] = await Promise.all([
-      supabase.from("payment_ledger_rows").select("date, amount_pence, is_paid, description"),
+      supabase.from("payment_ledger_rows").select("*"),
       supabase
         .from("invoices")
-        .select("id, reference, status, total_pence, issue_date, paid_at")
+        .select(
+          "id, reference, status, total_pence, issue_date, paid_at, client:client_id(first_name,last_name,display_name), stub:stub_id(first_name,last_name)",
+        )
         .eq("admin_id", userProfile.id),
-      supabase.from("expenses").select("id, incurred_on, category, amount_pence").eq("admin_id", userProfile.id),
+      supabase
+        .from("expenses")
+        .select("id, incurred_on, category, amount_pence, description")
+        .eq("admin_id", userProfile.id),
     ]);
     setLedger((l as LedgerRow[]) ?? []);
-    setInvoices((inv as InvoiceRow[]) ?? []);
+    setInvoices((inv as unknown as InvoiceRow[]) ?? []);
     setExpenses((exp as ExpenseRow[]) ?? []);
     setLoading(false);
   }, [userProfile?.id]);
@@ -143,29 +180,39 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
     const items: ActivityItem[] = [
       ...ledger
         .filter((r) => r.is_paid && r.date)
-        .map((r, i) => ({
-          id: `l${i}`,
-          date: r.date as string,
-          label: r.description || "Payment received",
-          amount: r.amount_pence ?? 0,
-          kind: "in" as const,
-        })),
-      ...invoices.map((inv) => ({
-        id: `i${inv.id}`,
-        date: inv.paid_at ?? inv.issue_date,
-        label: `Invoice ${inv.reference} — ${inv.status}`,
-        amount: inv.total_pence,
-        kind: inv.status === "paid" ? ("in" as const) : ("out" as const),
-      })),
+        .map((r, i) => {
+          const who = ledgerRowName(r);
+          return {
+            id: `l${i}`,
+            date: r.date as string,
+            title: who ? `Payment from ${who}` : "Payment received",
+            detail: r.description?.trim() || ledgerRowKind(r.source),
+            amount: r.amount_pence ?? 0,
+            kind: "in" as const,
+          };
+        }),
+      ...invoices.map((inv) => {
+        const who = personName(inv.client) || personName(inv.stub);
+        const statusLabel = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
+        return {
+          id: `i${inv.id}`,
+          date: inv.paid_at ?? inv.issue_date,
+          title: `Invoice ${inv.reference}`,
+          detail: who ? `${statusLabel} · ${who}` : statusLabel,
+          amount: inv.total_pence,
+          kind: inv.status === "paid" ? ("in" as const) : ("out" as const),
+        };
+      }),
       ...expenses.map((e) => ({
         id: `e${e.id}`,
         date: e.incurred_on,
-        label: `Expense — ${e.category}`,
+        title: e.category || "Expense",
+        detail: e.description?.trim() || "Expense",
         amount: e.amount_pence,
         kind: "out" as const,
       })),
     ];
-    return items.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()).slice(0, 8);
+    return items.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()).slice(0, 10);
   }, [ledger, invoices, expenses]);
 
   if (loading) return null;
@@ -186,33 +233,33 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       </div>
 
       <div className={styles.tiles}>
-        <Card className={styles.tile}>
-          <p className={styles.tileLabel}>Income</p>
-          <p className={styles.tileValue}>{money(incomePence)}</p>
-        </Card>
-        <Card className={styles.tile}>
-          <p className={styles.tileLabel}>Outgoings</p>
-          <p className={styles.tileValue}>{money(outgoingsPence)}</p>
-        </Card>
-        <button type="button" className={styles.tileButton} onClick={() => onJump("invoices", false)}>
-          <Card className={styles.tile}>
-            <p className={styles.tileLabel}>Outstanding</p>
-            <p className={styles.tileValue}>{money(outstandingPence)}</p>
-          </Card>
-        </button>
-        <Card className={styles.tile}>
-          <p className={styles.tileLabel}>Net</p>
-          <p className={`${styles.tileValue} ${netPence < 0 ? styles.negative : ""}`}>{money(netPence)}</p>
-        </Card>
+        <StatTile label="Income" value={money(incomePence)} />
+        <StatTile label="Outgoings" value={money(outgoingsPence)} />
+        <StatTile
+          label="Outstanding"
+          value={money(outstandingPence)}
+          sub="Unpaid invoices"
+          onClick={() => onJump("invoices", false)}
+        />
+        <StatTile label="Net" value={money(netPence)} tone={netPence < 0 ? "danger" : "default"} />
       </div>
 
-      <div className={styles.trends}>
+      <div className={styles.charts}>
+        <DonutChart
+          title="Income vs outgoings"
+          slices={[
+            { name: "Income", value: incomePence / 100, color: "#4a665b" },
+            { name: "Outgoings", value: outgoingsPence / 100, color: "#a8633a" },
+          ]}
+          centerValue={money(netPence)}
+          centerLabel="net"
+        />
         <TrendChart title="Income — last 6 months" data={incomeTrend} type="bar" valueFormatter={(v) => `£${v}`} />
         <TrendChart
           title="Outgoings — last 6 months"
           data={outgoingsTrend}
           type="bar"
-          color="var(--danger)"
+          color="#a8633a"
           valueFormatter={(v) => `£${v}`}
         />
       </div>
@@ -239,7 +286,10 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
             {activity.map((a) => (
               <li key={a.id} className={styles.activityRow}>
                 <span className={styles.activityDate}>{dayjs(a.date).format("D MMM")}</span>
-                <span className={styles.activityLabel}>{a.label}</span>
+                <span className={styles.activityText}>
+                  <span className={styles.activityTitle}>{a.title}</span>
+                  <span className={styles.activityDetail}>{a.detail}</span>
+                </span>
                 <span className={`${styles.activityAmount} ${a.kind === "out" ? styles.negative : styles.positive}`}>
                   {a.kind === "out" ? "−" : "+"}
                   {money(a.amount)}

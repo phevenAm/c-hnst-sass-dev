@@ -3,7 +3,14 @@
 
 .page {
   min-height: 100vh;
-  background: var(--bg-base);
+  // The photo panel only covers part of the viewport on wide layouts — a pair
+  // of very soft radial tints (teal top-left, warm bottom-right) keeps the
+  // uncovered ground from reading as a flat grey slab.
+  background:
+    radial-gradient(60rem 45rem at 12% 6%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+    radial-gradient(52rem 40rem at 92% 100%, color-mix(in srgb, var(--highlight) 11%, transparent), transparent 60%),
+    var(--bg-base);
+  background-attachment: fixed;
   display: flex;
   // `safe center` still centres when there's room, but falls back to top
   // alignment once the content is taller than the viewport — otherwise flexbox

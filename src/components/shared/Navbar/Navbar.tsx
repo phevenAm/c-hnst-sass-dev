@@ -154,7 +154,7 @@ export default function Navbar() {
             type="button"
             onClick={() => dispatch(toggleTheme())}
             aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
-            className={styles.iconBtn}
+            className={styles.plainIcon}
           >
             {themeMode === "light" ? <DarkmodeIcon /> : <LightmodeIcon />}
           </button>
