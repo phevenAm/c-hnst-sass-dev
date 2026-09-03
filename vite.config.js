@@ -116,6 +116,15 @@ export default defineConfig({
     },
   },
 
+  // jspdf + jspdf-autotable are only ever reached through `await import(...)`
+  // in export handlers (invoices, expenses, CPD). Vite's dep scanner doesn't
+  // always discover import-only-on-demand deps on the first pass, so the first
+  // click can 500 with "Failed to fetch dynamically imported module:
+  // .vite/deps/jspdf.js". Pre-bundling them removes the discovery race.
+  optimizeDeps: {
+    include: ["jspdf", "jspdf-autotable"],
+  },
+
   css: {
     devSourcemap: true,
   },
