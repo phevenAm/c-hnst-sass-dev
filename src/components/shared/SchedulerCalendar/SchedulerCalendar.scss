@@ -109,9 +109,17 @@
     }
   }
 
-  // Client calendar: darken time slots outside the admin's availability windows.
+  // Client calendar: mark time slots outside the admin's availability windows
+  // with a faint dotted stipple rather than a flat grey wash, so the hour grid
+  // lines stay readable through it.
   .rbc-time-slot.cal-slot-blocked {
-    background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+    background-color: transparent;
+    background-image: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--text-muted) 45%, transparent) 0.9px,
+      transparent 0.9px
+    );
+    background-size: 8px 8px;
   }
 
   // We only act on a single click of an empty slot (not a drag-select), so

@@ -1,45 +1,26 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { useAuth } from "../../../context/AuthContext";
-import FeedbackModal from "../FeedbackModal/FeedbackModal";
+import { HelpIcon } from "../Icons/Icons";
 
 import styles from "./Footer.module.scss";
 
+/**
+ * Slim client-facing footer, rendered by AppLayout. Shows the app version and a
+ * link through to Resources, where every practice's pinned "Crisis & urgent
+ * support" card lives.
+ */
 export default function Footer() {
-  const { isAdmin } = useAuth();
-  const [now, setNow] = useState(new Date());
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
   return (
     <footer className={styles.footer}>
-      <span>
-        <em>Clarity:</em> Counselling Practice Management
+      <span className={styles.brand}>
+        <em>Clarity</em>
+        <span className={styles.version}>v{__APP_VERSION__}</span>
       </span>
 
-      {isAdmin && (
-        <div className={styles.right}>
-          <button
-            type="button"
-            className={styles.feedbackBtn}
-            onClick={() => setFeedbackOpen(true)}
-            title="Report a bug or request a feature"
-            aria-label="Report a bug or request a feature"
-          >
-            ?
-          </button>
-          <Link to="/admin/audit-logs" className={styles.auditLink}>
-            {now.toLocaleString()}
-          </Link>
-        </div>
-      )}
-
-      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
+      <Link to="/resources" className={styles.helpLink}>
+        <HelpIcon />
+        Help &amp; support
+      </Link>
     </footer>
   );
 }

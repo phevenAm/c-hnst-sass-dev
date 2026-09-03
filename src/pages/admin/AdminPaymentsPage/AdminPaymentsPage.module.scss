@@ -1,3 +1,13 @@
+// Embedded in the Finances page: drop the route-level page/inner padding but
+// keep a real flex container. `display: contents` let the shared Card's
+// `height: 100%` resolve against the tall scroll viewport and stretch every
+// card, stranding the action button above a huge gap.
+.contents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
 .header {
   display: flex;
   align-items: flex-start;

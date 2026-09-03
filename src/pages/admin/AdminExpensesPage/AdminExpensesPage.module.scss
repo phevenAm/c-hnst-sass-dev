@@ -1,0 +1,206 @@
+@use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+// Embedded in the Finances page: shed the route-level page/inner padding,
+// but keep the same vertical rhythm as the standalone route — `display:
+// contents` dropped the flex gap entirely, leaving the action button
+// floating far from the summary card.
+.contents {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.header {
+  @include flex-between;
+  flex-wrap: wrap;
+  gap: $sp-4;
+}
+
+.title {
+  margin: 0;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: $sp-1;
+}
+
+// ── Summary ───────────────────────────────────────────────
+.summaryCard {
+  display: flex;
+  gap: $sp-10;
+  padding: $sp-5 $sp-6;
+  flex-wrap: wrap;
+}
+
+.summaryLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 $sp-1;
+}
+
+.summaryValue {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+// ── Filters ───────────────────────────────────────────────
+.filtersCard {
+  padding: $sp-4 $sp-6;
+}
+
+.filters {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  padding: $sp-2 $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+}
+
+.filterBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+// ── Table ─────────────────────────────────────────────────
+.tableCard {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th {
+    padding: $sp-3 $sp-4;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-muted);
+  }
+
+  td {
+    padding: $sp-4;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-muted);
+  }
+}
+
+.dateCell {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  width: 6rem;
+}
+
+.textCell {
+  color: var(--text-primary);
+  max-width: 320px;
+}
+
+.amountCell {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px $sp-3;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.link {
+  color: var(--accent);
+  font-size: 0.82rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.actionsCell {
+  display: flex;
+  gap: $sp-3;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.empty {
+  padding: $sp-10;
+  text-align: center;
+  color: var(--text-muted);
+}

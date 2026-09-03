@@ -1,0 +1,44 @@
+@use "../../../styles/spacing" as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-4;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  input {
+    width: 100%;
+    padding: $sp-2 $sp-3;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-input, var(--bg-card));
+    color: var(--text-primary);
+    font-size: 0.92rem;
+  }
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}

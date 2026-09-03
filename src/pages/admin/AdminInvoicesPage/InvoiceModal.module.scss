@@ -1,0 +1,177 @@
+@use "../../../styles/spacing" as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: $sp-4;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  select,
+  input,
+  textarea {
+    width: 100%;
+    padding: $sp-2 $sp-3;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-input, var(--bg-card));
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    font-family: inherit;
+  }
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.sectionLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.linesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: $sp-2;
+}
+
+.textBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.sessionPicker {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+  padding: $sp-2;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-muted);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.sessionRow {
+  display: flex;
+  justify-content: space-between;
+  gap: $sp-4;
+  padding: $sp-2 $sp-3;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--accent);
+    color: var(--text-inverse);
+  }
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.lineItem {
+  display: grid;
+  grid-template-columns: 1fr 4rem 6rem 5rem 1.5rem;
+  gap: $sp-2;
+  align-items: center;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr 3rem 4.5rem 4rem 1.5rem;
+  }
+}
+
+.lineDesc,
+.lineQty,
+.lineUnit {
+  padding: $sp-2;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-input, var(--bg-card));
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+.lineTotal {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.removeLine {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    color: var(--danger);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+}
+
+.grandTotal {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-4;
+  padding-top: $sp-3;
+  border-top: 1px solid var(--border);
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: $sp-2;
+}

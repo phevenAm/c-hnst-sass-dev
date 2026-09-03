@@ -1,0 +1,210 @@
+@use "../../../styles/spacing" as *;
+@use "../../../styles/mixins" as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+// Embedded in the Finances page: drop the route-level page/inner padding but
+// keep a real flex container — `display: contents` let the shared Card's
+// `height: 100%` resolve against the tall scroll viewport, stretching every
+// card and leaving the action button stranded above a huge gap.
+.contents {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.header {
+  @include flex-between;
+  flex-wrap: wrap;
+  gap: $sp-4;
+}
+
+.title {
+  margin: 0;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: $sp-1;
+}
+
+.summaryCard {
+  display: flex;
+  gap: $sp-10;
+  padding: $sp-5 $sp-6;
+  flex-wrap: wrap;
+}
+
+.summaryLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 $sp-1;
+}
+
+.summaryValue {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.filtersCard {
+  padding: $sp-4 $sp-6;
+}
+
+.filters {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  padding: $sp-2 $sp-4;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+}
+
+.filterBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.tableCard {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th {
+    padding: $sp-3 $sp-4;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-muted);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: $sp-4;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: var(--bg-muted);
+  }
+}
+
+.refCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.textCell {
+  color: var(--text-primary);
+  max-width: 220px;
+}
+
+.dateCell {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.amountCell {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px $sp-3;
+  border-radius: var(--r-full);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.pill_draft {
+  background: var(--bg-muted);
+  color: var(--text-muted);
+}
+
+.pill_sent {
+  background: #e8f0fe;
+  color: #1a56a0;
+}
+
+.pill_paid {
+  background: #e3f5ec;
+  color: #1c7a4a;
+}
+
+.pill_void {
+  background: #f6e5e5;
+  color: #9a3030;
+}
+
+:global(.dark) {
+  .pill_sent {
+    background: #1e3a5f;
+    color: #93c5fd;
+  }
+  .pill_paid {
+    background: #133a29;
+    color: #6ee7a8;
+  }
+  .pill_void {
+    background: #3d1a1a;
+    color: #fca5a5;
+  }
+}
+
+.actionsCell {
+  display: flex;
+  gap: $sp-3;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.empty {
+  padding: $sp-10;
+  text-align: center;
+  color: var(--text-muted);
+}

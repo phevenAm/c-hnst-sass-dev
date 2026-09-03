@@ -54,10 +54,21 @@
   margin-bottom: $sp-5;
   padding: $sp-3;
   padding-left: 0;
+  border-radius: var(--r-xl);
 
   @media screen and (max-width: 800px) {
     fill: white !important;
     stroke: white !important;
+  }
+
+  // On wider layouts the logo + tagline float on the plain page ground next to
+  // the photo panel — a faint frosted plate keeps the text legible there.
+  @media screen and (min-width: 801px) {
+    padding: $sp-3 $sp-4;
+    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   }
 }
 
@@ -234,6 +245,17 @@
   align-items: center;
   gap: 5px;
   flex-direction: column;
+  border-radius: var(--r-xl);
+
+  // Matches .logoWrap: a frosted plate so the "take a tour" prompt reads on the
+  // plain ground beside the photo panel.
+  @media screen and (min-width: 801px) {
+    padding: $sp-4 $sp-5;
+    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  }
 
   p {
     margin: 0;

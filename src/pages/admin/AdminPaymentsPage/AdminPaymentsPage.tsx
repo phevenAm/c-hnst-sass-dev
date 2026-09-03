@@ -45,6 +45,12 @@ export type ManualPayment = {
 
 type StatusFilter = "all" | "paid" | "unpaid";
 
+function ledgerSourceLabel(source: PaymentRow["source"]): string {
+  if (source === "session") return "Session";
+  if (source === "stub-session") return "Offline session";
+  return "—";
+}
+
 function respondConfirmMessage(target: { sessions: Session[]; approved: boolean }): string {
   if (!target.approved) {
     return "The client will need to re-check the transfer details or contact you directly.";
@@ -121,7 +127,14 @@ function toPaymentRow(row: LedgerRow, useCodenames: boolean): PaymentRow {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-const AdminPaymentsPage = () => {
+type AdminPaymentsPageProps = {
+  /** Rendered inside the Finances page rather than as its own route. */
+  embedded?: boolean;
+  /** Open the "record payment" modal on mount (Finances overview action button). */
+  openNew?: boolean;
+};
+
+const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsPageProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isDemo, practiceSettings } = useAuth();
@@ -137,9 +150,19 @@ const AdminPaymentsPage = () => {
   useEffect(() => {
     if (searchParams.get("new") === "true") {
       setAddPaymentOpen(true);
-      setSearchParams({});
+      setSearchParams(
+        (p) => {
+          p.delete("new");
+          return p;
+        },
+        { replace: true },
+      );
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (openNew) setAddPaymentOpen(true);
+  }, [openNew]);
   const [stubSessions, setStubSessions] = useState<StubSession[]>([]);
   const [manualPayments, setManualPayments] = useState<ManualPayment[]>([]);
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
@@ -572,12 +595,7 @@ const AdminPaymentsPage = () => {
       key: "description",
       label: "Description",
       mobileHide: true,
-      render: (r) => (
-        <span className={styles.descCell}>
-          {r.description ||
-            (r.source === "session" ? "Session" : r.source === "stub-session" ? "Offline session" : "—")}
-        </span>
-      ),
+      render: (r) => <span className={styles.descCell}>{r.description || ledgerSourceLabel(r.source)}</span>,
     },
     {
       key: "status",
@@ -590,7 +608,8 @@ const AdminPaymentsPage = () => {
       key: "actions",
       label: "",
       render: (r) => (
-        <div className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
+        // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops the row-click from firing when an action button is used; the buttons are the real controls
+        <div className={styles.actionsCell} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
           {!r.isPaid && r.source === "session" && (
             <Button size="sm" variant="ghost" onClick={(e) => handleMarkPaid(e, r.id)}>
               Mark paid
@@ -646,14 +665,16 @@ const AdminPaymentsPage = () => {
   if (guard) return guard;
 
   return (
-    <div className="page">
-      <div className="inner">
+    <div className={embedded ? styles.contents : "page"}>
+      <div className={embedded ? styles.contents : "inner"}>
         {/* ── Header ── */}
         <div className={styles.header}>
-          <div>
-            <h1 className={styles.heading}>Payments</h1>
-            <p className={styles.subheading}>Revenue collected, outstanding balances, and payment history.</p>
-          </div>
+          {!embedded && (
+            <div>
+              <h1 className={styles.heading}>Payments</h1>
+              <p className={styles.subheading}>Revenue collected, outstanding balances, and payment history.</p>
+            </div>
+          )}
           <div className={styles.headerActions}>
             <label className={styles.filter}>
               <span className={styles.filterLabel}>Client</span>

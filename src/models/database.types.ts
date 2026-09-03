@@ -915,6 +915,42 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          admin_id: string
+          amount_pence: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          incurred_on: string
+          receipt_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string
+          amount_pence?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          incurred_on?: string
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          amount_pence?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          incurred_on?: string
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string
@@ -952,6 +988,116 @@ export type Database = {
             columns: ["submitter_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_line_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          session_id: string | null
+          sort_order: number
+          unit_amount_pence: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          session_id?: string | null
+          sort_order?: number
+          unit_amount_pence?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          session_id?: string | null
+          sort_order?: number
+          unit_amount_pence?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          admin_id: string
+          client_id: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          issue_date: string
+          notes: string | null
+          number: number
+          paid_at: string | null
+          reference: string
+          sent_at: string | null
+          status: string
+          stub_id: string | null
+          total_pence: number
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string
+          client_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          issue_date?: string
+          notes?: string | null
+          number: number
+          paid_at?: string | null
+          reference: string
+          sent_at?: string | null
+          status?: string
+          stub_id?: string | null
+          total_pence?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          client_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          issue_date?: string
+          notes?: string | null
+          number?: number
+          paid_at?: string | null
+          reference?: string
+          sent_at?: string | null
+          status?: string
+          stub_id?: string | null
+          total_pence?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_stub_id_fkey"
+            columns: ["stub_id"]
+            isOneToOne: false
+            referencedRelation: "client_stubs"
             referencedColumns: ["id"]
           },
         ]
@@ -1164,8 +1310,10 @@ export type Database = {
           hidden_sections: string[]
           hide_client_profile_pii: boolean
           id: string
+          invoice_prefix: string
           is_paused: boolean
           logo_url: string | null
+          next_invoice_number: number
           onboarding_required: boolean
           paused_at: string | null
           paused_reason: string | null
@@ -1226,8 +1374,10 @@ export type Database = {
           hidden_sections?: string[]
           hide_client_profile_pii?: boolean
           id?: string
+          invoice_prefix?: string
           is_paused?: boolean
           logo_url?: string | null
+          next_invoice_number?: number
           onboarding_required?: boolean
           paused_at?: string | null
           paused_reason?: string | null
@@ -1288,8 +1438,10 @@ export type Database = {
           hidden_sections?: string[]
           hide_client_profile_pii?: boolean
           id?: string
+          invoice_prefix?: string
           is_paused?: boolean
           logo_url?: string | null
+          next_invoice_number?: number
           onboarding_required?: boolean
           paused_at?: string | null
           paused_reason?: string | null
@@ -2320,6 +2472,7 @@ export type Database = {
         Args: { p_from?: string; p_to?: string }
         Returns: Json
       }
+      allocate_invoice_number: { Args: never; Returns: number }
       anonymise_client: { Args: { p_user_id: string }; Returns: undefined }
       archived_client_count: { Args: { p_admin: string }; Returns: number }
       auto_cancel_unpaid_sessions: { Args: never; Returns: undefined }
@@ -2398,6 +2551,10 @@ export type Database = {
           p_scheduled_at: string
         }
         Returns: boolean
+      }
+      mark_invoice_paid: {
+        Args: { p_invoice_id: string; p_paid_at?: string }
+        Returns: undefined
       }
       merge_stub_into_client: {
         Args: { p_real_user_id: string; p_stub_id: string }

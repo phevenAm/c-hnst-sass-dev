@@ -74,7 +74,7 @@ export default function Navbar() {
     { to: "/admin", label: "Dashboard" },
     { to: "/admin/clients", label: "Clients" },
     { to: "/admin/scheduler", label: "Schedule" },
-    { to: "/admin/payments", label: "Payments" },
+    { to: "/admin/finances", label: "Finances" },
     { to: "/admin/forms", label: "Forms" },
     { to: "/admin/resources", label: "Resources" },
     { to: "/admin/cpd", label: "CPD Log" },

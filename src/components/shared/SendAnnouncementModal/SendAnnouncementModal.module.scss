@@ -1,0 +1,99 @@
+@use "../../../styles/spacing" as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: $sp-2 $sp-3;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-input, var(--bg-card));
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    font-family: inherit;
+  }
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.recipients {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.recipientsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $sp-2 $sp-3;
+  background: var(--bg-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: $sp-2 $sp-3;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.empty {
+  padding: $sp-4;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
