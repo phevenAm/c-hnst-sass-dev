@@ -8,6 +8,7 @@ export type NamePart = {
   first_name?: string | null;
   last_name?: string | null;
   display_name?: string | null;
+  admin_codename?: string | null;
 };
 
 /** The name-bearing fields of a `payment_ledger_rows` row. */
@@ -15,8 +16,10 @@ export type LedgerName = {
   display_name?: string | null;
   client_first_name?: string | null;
   client_last_name?: string | null;
+  admin_codename?: string | null;
   stub_first_name?: string | null;
   stub_last_name?: string | null;
+  stub_codename?: string | null;
 };
 
 export const money = (pence: number): string => `£${(pence / 100).toFixed(2)}`;
@@ -49,18 +52,29 @@ export const byMonth = (rows: { date: string; pence: number }[], months: number)
   return buckets.map(({ label, value }) => ({ label, value: Math.round(value) }));
 };
 
-/** display_name → "First Last" → "" (an embedded users/stubs row). */
-export const personName = (n: NamePart | null | undefined): string =>
-  (n?.display_name || [n?.first_name, n?.last_name].filter(Boolean).join(" ") || "").trim();
+/**
+ * display_name → "First Last" → "" for an embedded users/stubs row.
+ * When the practice uses codenames, the codename wins (falling back to the real
+ * name only when no codename is set — matching clientDisplayName).
+ */
+export const personName = (n: NamePart | null | undefined, useCodenames = false): string => {
+  if (useCodenames && n?.admin_codename) return n.admin_codename.trim();
+  return (n?.display_name || [n?.first_name, n?.last_name].filter(Boolean).join(" ") || "").trim();
+};
 
-/** Best name for a ledger row: its own display_name, else client, else stub. */
-export const ledgerRowName = (r: LedgerName): string =>
-  (
+/** Best name for a ledger row: codename (if on), else display_name, else client, else stub. */
+export const ledgerRowName = (r: LedgerName, useCodenames = false): string => {
+  if (useCodenames) {
+    const codename = r.admin_codename || r.stub_codename;
+    if (codename) return codename.trim();
+  }
+  return (
     r.display_name ||
     [r.client_first_name, r.client_last_name].filter(Boolean).join(" ") ||
     [r.stub_first_name, r.stub_last_name].filter(Boolean).join(" ") ||
     ""
   ).trim();
+};
 
 /** Human label for a ledger row's `source`. */
 export const ledgerRowKind = (source: string | null): string => {

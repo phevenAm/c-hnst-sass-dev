@@ -122,6 +122,11 @@ const sessionsSlice = createSlice({
       // it needs to move to its new chronological position, not stay put.
       state.sessions.sort(byScheduledAt);
     },
+    // Drop a session from local state — used by the realtime DELETE feed so a
+    // session removed elsewhere disappears without a manual reload.
+    removeSession: (state, action: { payload: string }) => {
+      state.sessions = state.sessions.filter((s) => s.id !== action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -225,7 +230,7 @@ const sessionsSlice = createSlice({
   },
 });
 
-export const { clearResponseError, upsertSession } = sessionsSlice.actions;
+export const { clearResponseError, upsertSession, removeSession } = sessionsSlice.actions;
 export default sessionsSlice.reducer;
 
 // Returns a map of session id → creation-order number (1-based, stable across renders)

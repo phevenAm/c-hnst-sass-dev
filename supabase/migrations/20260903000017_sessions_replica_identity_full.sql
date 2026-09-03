@@ -1,0 +1,12 @@
+-- Realtime DELETE events only carry the columns in the table's replica
+-- identity. With the default (primary key only), a filtered subscription like
+-- `filter: created_by=eq.<admin>` drops every DELETE because `created_by`
+-- isn't in the payload — so a session deleted in one tab never disappears
+-- from another open tab / the calendar without a manual reload, and a stale
+-- card can fire a cancel/delete for a row that's already gone (→ "session not
+-- found" 404).
+--
+-- REPLICA IDENTITY FULL makes the pre-image carry every column, so the
+-- client-side filter matches and we know which id to drop. WAL overhead is
+-- negligible at this scale.
+alter table public.sessions replica identity full;

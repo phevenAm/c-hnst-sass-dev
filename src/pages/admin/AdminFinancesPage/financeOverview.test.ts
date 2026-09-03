@@ -84,6 +84,16 @@ describe("personName", () => {
     expect(personName({})).toBe("");
     expect(personName(null)).toBe("");
   });
+
+  it("uses the codename when the practice is in codename mode", () => {
+    expect(personName({ first_name: "Marcus", last_name: "Webb", admin_codename: "Falcon" }, true)).toBe("Falcon");
+    // no codename set → still falls back to the real name
+    expect(personName({ first_name: "Marcus", last_name: "Webb" }, true)).toBe("Marcus Webb");
+    // codename mode off → real name even if a codename exists
+    expect(personName({ first_name: "Marcus", last_name: "Webb", admin_codename: "Falcon" }, false)).toBe(
+      "Marcus Webb",
+    );
+  });
 });
 
 describe("ledgerRowName", () => {
@@ -92,6 +102,15 @@ describe("ledgerRowName", () => {
     expect(ledgerRowName({ client_first_name: "Marcus", client_last_name: "Webb" })).toBe("Marcus Webb");
     expect(ledgerRowName({ stub_first_name: "Offline", stub_last_name: "Person" })).toBe("Offline Person");
     expect(ledgerRowName({})).toBe("");
+  });
+
+  it("prefers the codename (client or stub) in codename mode", () => {
+    expect(ledgerRowName({ display_name: "Jo", admin_codename: "Falcon" }, true)).toBe("Falcon");
+    expect(ledgerRowName({ stub_first_name: "Offline", stub_last_name: "Person", stub_codename: "Otter" }, true)).toBe(
+      "Otter",
+    );
+    // codename mode on but none set → real name
+    expect(ledgerRowName({ client_first_name: "Marcus", client_last_name: "Webb" }, true)).toBe("Marcus Webb");
   });
 });
 

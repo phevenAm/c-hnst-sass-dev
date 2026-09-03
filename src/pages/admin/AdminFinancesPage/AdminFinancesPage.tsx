@@ -67,7 +67,8 @@ type ActivityItem = {
 };
 
 function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
-  const { userProfile } = useAuth();
+  const { userProfile, practiceSettings } = useAuth();
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const [period, setPeriod] = useState<Period>("30d");
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
@@ -81,7 +82,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       supabase
         .from("invoices")
         .select(
-          "id, reference, status, total_pence, issue_date, paid_at, client:client_id(first_name,last_name,display_name), stub:stub_id(first_name,last_name)",
+          "id, reference, status, total_pence, issue_date, paid_at, client:client_id(first_name,last_name,display_name,admin_codename), stub:stub_id(first_name,last_name,admin_codename:codename)",
         )
         .eq("admin_id", userProfile.id),
       supabase
@@ -133,7 +134,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       ...ledger
         .filter((r) => r.is_paid && r.date)
         .map((r, i) => {
-          const who = ledgerRowName(r);
+          const who = ledgerRowName(r, useCodenames);
           return {
             id: `l${i}`,
             date: r.date as string,
@@ -144,7 +145,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
           };
         }),
       ...invoices.map((inv) => {
-        const who = personName(inv.client) || personName(inv.stub);
+        const who = personName(inv.client, useCodenames) || personName(inv.stub, useCodenames);
         const statusLabel = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
         return {
           id: `i${inv.id}`,
@@ -165,7 +166,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       })),
     ];
     return items.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()).slice(0, 10);
-  }, [ledger, invoices, expenses]);
+  }, [ledger, invoices, expenses, useCodenames]);
 
   if (loading) return null;
 
