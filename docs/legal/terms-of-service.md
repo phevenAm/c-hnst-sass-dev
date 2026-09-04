@@ -122,15 +122,41 @@ By using Clarity you warrant that you have a valid lawful basis under UK GDPR fo
 
 ### 8.1 Deleting client accounts
 
-You may delete a client's Clarity account at any time from your admin dashboard. Deletion removes the client's login credentials and profile. Encrypted session notes and session records may be retained in your Clarity account in line with your professional record-keeping obligations.
+You may delete a client's Clarity account at any time from your admin dashboard. Deletion removes the client's login and personal details (name, date of birth, contact details, profile photo).
+
+Their session history, attendance, payments, and session notes are **kept in your practice as an anonymised record** — the client's name is replaced with a codename so that your appointment history, statistics, and clinical notes stay intact and attributable. This is retained for as long as your practice account exists, in line with your professional record-keeping obligations (section 8.2). It is removed if and when you delete your Practitioner account (section 8.3).
+
+If a client closes their own account from their client portal, the same thing happens: their login is disabled, their personal details are scrubbed, and the anonymised record stays with your practice.
 
 ### 8.2 Your record-keeping obligations
 
 As a data controller, you are responsible for retaining clinical records for the period required by your professional body (typically 8 years for adult clients under BACP, UKCP, and similar guidance). Clarity's deletion tools do not override your legal obligations. Do not delete records you are required to retain.
 
-### 8.3 Account deletion
+### 8.3 Deleting your Practitioner account
 
-If you delete your Practitioner account, your account data and your clients' profiles will be deleted in accordance with our retention schedule (see our Privacy Policy). You should export any data you need to retain before deleting your account.
+Deleting your Practitioner account is **permanent and immediate**. When you delete your account we erase:
+
+- your Practitioner profile and login;
+- your practice settings and subscription record;
+- every client and offline-client record in your practice, including their sessions, attendance, payments, and session notes.
+
+There is **no retention period and no grace period**. Once deletion completes, the data is gone and we cannot recover it — for you or for anyone else. Your Stripe subscription is cancelled as part of the same step.
+
+Before deletion runs, we offer you a one-click export of your whole practice (clients, sessions, attendance and session notes as a spreadsheet and PDF; payments as a spreadsheet and PDF). **It is your responsibility to take this export and store it securely if you need to keep any records** — for example to meet the record-keeping obligations in section 8.2. Encrypted session notes are included only where your browser can still decrypt them at the time of export.
+
+If your reason for leaving is that you have stopped practising but may need access to your records later, **pause your practice instead of deleting it** (section 8.4). Deletion is for when you want the data gone.
+
+### 8.4 Pausing your practice
+
+You may pause your practice at any time from Settings → Subscription. While paused:
+
+- you can still sign in to read and export your records;
+- you cannot create or change anything — the practice is read-only;
+- your clients cannot sign in;
+- billing is paused and you are not charged;
+- nothing is deleted.
+
+You can resume at any time, which lifts the read-only lock, restores your clients' access, and resumes billing on your normal cycle. Pausing is the supported way to retain access to your records over the long term without an active subscription.
 
 ---
 

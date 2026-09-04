@@ -7,7 +7,7 @@ export default function PrivacyPage() {
     <div className="page">
       <div className={`inner ${styles.container}`}>
         <h1>Privacy Policy</h1>
-        <p className={styles.updated}>Last updated: 24 August 2026</p>
+        <p className={styles.updated}>Last updated: 4 September 2026</p>
 
         <section>
           <h2>1. Who we are</h2>
@@ -233,20 +233,31 @@ export default function PrivacyPage() {
                 <td>Held for the duration of the account</td>
               </tr>
               <tr>
+                <td>Paused practitioner accounts</td>
+                <td>Retained in full while paused (read-only); nothing is deleted until the account is deleted</td>
+              </tr>
+              <tr>
                 <td>Deleted practitioner accounts</td>
-                <td>Deleted within 30 days of account deletion</td>
+                <td>
+                  Erased immediately on deletion — the practitioner profile, practice settings, and all client records
+                  in that practice (sessions, attendance, payments, session notes). No retention period. A full export
+                  is offered to the practitioner immediately before deletion. Backups containing the data are
+                  overwritten within 30 days.
+                </td>
               </tr>
               <tr>
                 <td>Deleted client accounts</td>
                 <td>
-                  Client profile deleted immediately on deletion; session records and any encrypted notes may be
-                  retained by the practitioner in line with their clinical record-keeping obligations (typically 8 years
-                  for adult records under NHS / professional body guidance)
+                  Login and personal details (name, date of birth, contact details, photo) removed immediately. Session
+                  history, attendance, payments and encrypted notes are kept by the practitioner as an{" "}
+                  <strong>anonymised</strong> record (name replaced with a codename) in line with their clinical
+                  record-keeping obligations (typically 8 years for adult records under NHS / professional body
+                  guidance). This anonymised record is erased if the practitioner deletes their account.
                 </td>
               </tr>
               <tr>
                 <td>Billing records</td>
-                <td>7 years (UK tax law)</td>
+                <td>7 years (UK tax law) — held by our payment processor (Stripe), not in the deleted practice</td>
               </tr>
               <tr>
                 <td>Email delivery logs</td>

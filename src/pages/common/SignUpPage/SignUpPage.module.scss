@@ -1,110 +1,7 @@
-// SignUpPage.scss
+// SignUpPage.scss — page chrome (background, centred column, logo card header)
+// now lives in the shared <AuthShell>. What's left styles the card body.
+// CounsellorSignupPage imports this module too.
 @use "../../../styles/spacing" as *;
-
-// Reuses same layout as login — shared auth page structure
-.page {
-  height: 100%;
-  // Soft radial tints so the ground the photo panel doesn't reach isn't a flat
-  // grey slab (mirrors LoginPage).
-  background:
-    radial-gradient(60rem 45rem at 12% 6%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
-    radial-gradient(52rem 40rem at 92% 100%, color-mix(in srgb, var(--highlight) 11%, transparent), transparent 60%),
-    var(--bg-base);
-  background-attachment: fixed;
-  // display: flex;
-  align-items: center;
-  justify-content: center;
-  // padding: $sp-6;
-  position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  @media (max-width: 640px) {
-    align-items: flex-start;
-    // padding: $sp-4;
-  }
-}
-
-.container {
-  width: 100%;
-  max-width: 420px;
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  display: grid;
-  place-content: center;
-}
-
-.photoCredit {
-  position: absolute;
-  left: $sp-4;
-  bottom: $sp-4;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.75rem;
-  z-index: 2;
-
-  a {
-    color: rgba(255, 255, 255, 0.92);
-    text-decoration: underline;
-  }
-}
-
-.logoWrap {
-  display: flex;
-  align-items: center;
-  gap: $sp-3;
-  margin-bottom: $sp-5;
-
-  @media (max-width: 640px) {
-    margin-bottom: $sp-3;
-    padding-top: $sp-3;
-  }
-}
-
-.logoText {
-  text-align: left;
-}
-
-@media (max-width: 800px) {
-
-  .logoTitle,
-  .logoSub,
-  .heading,
-  .label,
-  .footer,
-  .demoDivider,
-  .demoRole,
-  .demoDesc,
-  .link {
-    color: white;
-  }
-}
-
-.logoTitle {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.1;
-}
-
-.logoSub {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: $sp-6 $sp-8;
-  box-shadow: var(--shadow-lg);
-
-  @media (max-width: 640px) {
-    padding: $sp-4 $sp-5;
-    border-radius: var(--r-lg);
-  }
-}
 
 .heading {
   font-family: var(--font-serif);
@@ -310,16 +207,6 @@
   }
 }
 
-.link {
-  color: var(--accent);
-  font-weight: 500;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 // ── Email confirmation screen ──────────────────────────────
 .confirmPage {
   height: 100%;
@@ -381,10 +268,3 @@
   }
 }
 
-.logoSub,
-.demoDivider,
-.logoTitle {
-  @media (max-width: 1000px) {
-    color: white;
-  }
-}

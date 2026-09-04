@@ -634,7 +634,7 @@ export async function deriveKEK(secret: string, salt: Uint8Array): Promise<Crypt
 
 // Generates a fresh random AES-256-GCM data key.
 export async function generateDataKey(): Promise<CryptoKey> {
-  return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+  return await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
 
 // Wraps (encrypts) a data key with a KEK. Returns base64-encoded iv + ciphertext.

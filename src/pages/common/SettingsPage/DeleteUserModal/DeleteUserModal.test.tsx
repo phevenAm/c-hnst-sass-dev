@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DeleteUserModal from "./DeleteUserModal";
 
@@ -13,7 +13,12 @@ const mockUseAuth = vi.fn();
 vi.mock("@context/AuthContext", () => ({ useAuth: () => mockUseAuth() }));
 
 const mockDispatch = vi.fn();
-vi.mock("@store/hooks", () => ({ useAppDispatch: () => mockDispatch }));
+// practice_settings cache — business_name drives the admin "type to confirm" phrase.
+let mockPracticeSettings: { business_name?: string | null } | null = { business_name: "Willow Counselling" };
+vi.mock("@store/hooks", () => ({
+  useAppDispatch: () => mockDispatch,
+  useAppSelector: (sel: (s: unknown) => unknown) => sel({ practiceSettings: { data: mockPracticeSettings } }),
+}));
 
 // The real thunk isn't invoked (dispatch itself is mocked) — this just needs
 // to exist as an importable action creator.
@@ -33,13 +38,42 @@ function setAuth(overrides: Partial<{ isAdmin: boolean }> = {}) {
   });
 }
 
+beforeEach(() => {
+  mockPracticeSettings = { business_name: "Willow Counselling" };
+});
+
+// Walk an admin from the intro step to the type-to-confirm step and satisfy
+// the confirmation input, so the final "Delete account" button is enabled.
+function advanceAdminToArmedConfirm(phrase = "Willow Counselling") {
+  fireEvent.click(screen.getByRole("button", { name: "continue to delete confirmation" }));
+  fireEvent.change(screen.getByLabelText(/type/i), { target: { value: phrase } });
+}
+
 describe("DeleteUserModal — happy paths", () => {
-  it("admin: cancels billing, then deletes the account and signs out", async () => {
+  it("admin: exports, then cancels billing, then deletes the account and signs out", async () => {
     setAuth({ isAdmin: true });
-    mockInvoke.mockResolvedValue({ data: { success: true, errors: [] }, error: null });
+    mockInvoke.mockImplementation((fn: string) => {
+      if (fn === "export-practice-archive") {
+        return Promise.resolve({
+          data: { data_base64: btoa("zip-bytes"), filename: "clarity-export-2026-09-04.zip" },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: { success: true, errors: [] }, error: null });
+    });
     mockDispatch.mockReturnValue({ unwrap: () => Promise.resolve() });
+    // jsdom has no real object-URL / anchor download plumbing.
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:x");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
 
     render(<DeleteUserModal onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "continue to delete confirmation" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Export my data" }));
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("export-practice-archive", { body: {} }));
+    expect(await screen.findByText(/Downloaded clarity-export-2026-09-04\.zip/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/type/i), { target: { value: "willow counselling" } }); // case-insensitive
     fireEvent.click(screen.getByRole("button", { name: "confirm user deletion" }));
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("cancel-billing-before-delete"));
@@ -48,9 +82,23 @@ describe("DeleteUserModal — happy paths", () => {
 
     // Billing cancel happened strictly before the account delete, not after —
     // otherwise practice_settings (which holds the Stripe IDs) is already gone.
-    const invokeOrder = mockInvoke.mock.invocationCallOrder[0];
+    const billingOrder = mockInvoke.mock.calls.findIndex((c) => c[0] === "cancel-billing-before-delete");
+    const billingInvocation = mockInvoke.mock.invocationCallOrder[billingOrder];
     const dispatchOrder = mockDispatch.mock.invocationCallOrder[0];
-    expect(invokeOrder).toBeLessThan(dispatchOrder);
+    expect(billingInvocation).toBeLessThan(dispatchOrder);
+  });
+
+  it("admin: can delete without exporting first (export is offered, not forced)", async () => {
+    setAuth({ isAdmin: true });
+    mockInvoke.mockResolvedValue({ data: { success: true, errors: [] }, error: null });
+    mockDispatch.mockReturnValue({ unwrap: () => Promise.resolve() });
+
+    render(<DeleteUserModal onClose={vi.fn()} />);
+    advanceAdminToArmedConfirm();
+    fireEvent.click(screen.getByRole("button", { name: "confirm user deletion" }));
+
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
+    expect(mockInvoke).not.toHaveBeenCalledWith("export-practice-archive", expect.anything());
   });
 
   it("client: skips the billing-cancel call entirely, just deletes and signs out", async () => {
@@ -74,12 +122,15 @@ describe("DeleteUserModal — happy paths", () => {
     expect(screen.getByText(/won't be able to sign in again/i)).toBeInTheDocument();
   });
 
-  it("admin: keeps the permanent-delete framing", () => {
+  it("admin: intro step spells out that it's permanent and points at pausing instead", () => {
     setAuth({ isAdmin: true });
     render(<DeleteUserModal onClose={vi.fn()} />);
 
     expect(screen.getByText("Delete your account forever?")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "confirm user deletion" })).toHaveTextContent("Delete");
+    expect(screen.getByText(/permanent and immediate/i)).toBeInTheDocument();
+    expect(screen.getByText(/pause your practice instead/i)).toBeInTheDocument();
+    // No delete trigger on the intro step — only "Continue".
+    expect(screen.queryByRole("button", { name: "confirm user deletion" })).not.toBeInTheDocument();
   });
 
   it("Cancel closes the modal without deleting anything", () => {
@@ -95,13 +146,63 @@ describe("DeleteUserModal — happy paths", () => {
 });
 
 describe("DeleteUserModal — sad paths", () => {
+  it("admin: the Delete button stays disabled until the practice name is typed correctly", () => {
+    setAuth({ isAdmin: true });
+    render(<DeleteUserModal onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "continue to delete confirmation" }));
+    const del = screen.getByRole("button", { name: "confirm user deletion" });
+    expect(del).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/type/i), { target: { value: "wrong name" } });
+    expect(del).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/type/i), { target: { value: "Willow Counselling" } });
+    expect(del).toBeEnabled();
+  });
+
+  it("admin with no practice name: confirmation phrase falls back to DELETE", () => {
+    setAuth({ isAdmin: true });
+    mockPracticeSettings = { business_name: null };
+    render(<DeleteUserModal onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "continue to delete confirmation" }));
+    fireEvent.change(screen.getByLabelText(/type/i), { target: { value: "DELETE" } });
+    expect(screen.getByRole("button", { name: "confirm user deletion" })).toBeEnabled();
+  });
+
+  it("admin: a failed export surfaces an error and does not block deletion", async () => {
+    setAuth({ isAdmin: true });
+    mockInvoke.mockImplementation((fn: string) => {
+      if (fn === "export-practice-archive") return Promise.resolve({ data: null, error: new Error("boom") });
+      return Promise.resolve({ data: { success: true }, error: null });
+    });
+    mockDispatch.mockReturnValue({ unwrap: () => Promise.resolve() });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    render(<DeleteUserModal onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "continue to delete confirmation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export my data" }));
+
+    expect(await screen.findByText(/Couldn't build the export/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/type/i), { target: { value: "Willow Counselling" } });
+    fireEvent.click(screen.getByRole("button", { name: "confirm user deletion" }));
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
+  });
+
   it("admin: a failed billing cancellation doesn't block deletion (best-effort)", async () => {
     setAuth({ isAdmin: true });
-    mockInvoke.mockResolvedValue({ data: null, error: new Error("Stripe is down") });
+    mockInvoke.mockImplementation((fn: string) => {
+      if (fn === "cancel-billing-before-delete")
+        return Promise.resolve({ data: null, error: new Error("Stripe is down") });
+      return Promise.resolve({ data: {}, error: null });
+    });
     mockDispatch.mockReturnValue({ unwrap: () => Promise.resolve() });
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     render(<DeleteUserModal onClose={vi.fn()} />);
+    advanceAdminToArmedConfirm();
     fireEvent.click(screen.getByRole("button", { name: "confirm user deletion" }));
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
@@ -121,7 +222,7 @@ describe("DeleteUserModal — sad paths", () => {
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  it("disables both buttons while a deletion is in flight", async () => {
+  it("disables both buttons while a deletion is in flight (client)", async () => {
     setAuth();
     let resolveUnwrap: () => void = () => {};
     mockDispatch.mockReturnValue({ unwrap: () => new Promise<void>((res) => (resolveUnwrap = res)) });

@@ -6,11 +6,12 @@ function toIcsDate(date: Date): string {
 
 function fold(line: string): string {
   const chunks: string[] = [];
-  while (line.length > 75) {
-    chunks.push(line.slice(0, 75));
-    line = ` ${line.slice(75)}`;
+  let rest = line;
+  while (rest.length > 75) {
+    chunks.push(rest.slice(0, 75));
+    rest = ` ${rest.slice(75)}`;
   }
-  chunks.push(line);
+  chunks.push(rest);
   return chunks.join("\r\n");
 }
 

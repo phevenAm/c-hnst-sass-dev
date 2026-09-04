@@ -7,7 +7,7 @@ export default function TermsPage() {
     <div className="page">
       <div className={`inner ${styles.container}`}>
         <h1>Terms of Service</h1>
-        <p className={styles.updated}>Last updated: 24 August 2026</p>
+        <p className={styles.updated}>Last updated: 4 September 2026</p>
 
         <section>
           <h2>1. About these terms</h2>
@@ -169,18 +169,54 @@ export default function TermsPage() {
           <h2>8. Client data and deletion</h2>
           <p>
             You may delete a client's Clarity account at any time from your admin dashboard. Deletion removes the
-            client's login credentials and profile. Session records and any encrypted notes may be retained in your
-            Clarity account in line with your professional record-keeping obligations.
+            client's login and personal details (name, date of birth, contact details, profile photo).
+          </p>
+          <p>
+            Their session history, attendance, payments and session notes are kept in your practice as an{" "}
+            <strong>anonymised record</strong> — the client's name is replaced with a codename so your history,
+            statistics and clinical notes stay intact. This is retained for as long as your practice account exists, and
+            is removed if you delete your own Practitioner account. If a client closes their own account from their
+            portal, the same thing happens.
           </p>
           <p>
             As a data controller, you are responsible for retaining clinical records for the period required by your
             professional body (typically 8 years for adult clients under BACP, UKCP, and similar guidance). Clarity's
             deletion tools do not override your legal obligations. Do not delete records you are required to retain.
           </p>
+
+          <h3>8.1 Deleting your Practitioner account</h3>
           <p>
-            If you delete your Practitioner account, your account data and your clients' profiles will be deleted in
-            accordance with our retention schedule (see our <NewTabLink href="/privacy">Privacy Policy</NewTabLink>).
-            You should export any data you need to retain before deleting your account.
+            Deleting your Practitioner account is <strong>permanent and immediate</strong>. It erases your profile, your
+            practice settings and subscription, and every client and offline-client record in your practice — including
+            their sessions, attendance, payments and session notes. There is{" "}
+            <strong>no retention period and no grace period</strong>. Once deletion completes we cannot recover the
+            data, for you or anyone else. Your Stripe subscription is cancelled in the same step.
+          </p>
+          <p>
+            Before deletion runs, we offer you a one-click export of your whole practice (clients, sessions, attendance
+            and session notes as a spreadsheet and PDF; payments as a spreadsheet and PDF). It is your responsibility to
+            take this export and store it securely if you need to keep any records. Encrypted session notes are included
+            only where your browser can still decrypt them at the time of export.
+          </p>
+          <p>
+            If you have stopped practising but may need access to your records later,{" "}
+            <strong>pause your practice instead of deleting it</strong> (section 8.2). Deletion is for when you want the
+            data gone.
+          </p>
+
+          <h3>8.2 Pausing your practice</h3>
+          <p>You may pause your practice at any time from Settings → Billing. While paused:</p>
+          <ul>
+            <li>you can still sign in to read and export your records;</li>
+            <li>you cannot create or change anything — the practice is read-only;</li>
+            <li>your clients cannot sign in;</li>
+            <li>billing is paused and you are not charged;</li>
+            <li>nothing is deleted.</li>
+          </ul>
+          <p>
+            You can resume at any time, which lifts the read-only lock, restores your clients' access, and resumes
+            billing on your normal cycle. Pausing is the supported way to retain access to your records over the long
+            term without an active subscription.
           </p>
         </section>
 

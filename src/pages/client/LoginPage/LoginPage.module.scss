@@ -1,110 +1,6 @@
-// LoginPage.scss
+// LoginPage.scss — page chrome (background, centred column, logo card header)
+// now lives in the shared <AuthShell>. What's left here styles the card body.
 @use '../../../styles/spacing' as *;
-
-.page {
-  min-height: 100vh;
-  // The photo panel only covers part of the viewport on wide layouts — a pair
-  // of very soft radial tints (teal top-left, warm bottom-right) keeps the
-  // uncovered ground from reading as a flat grey slab.
-  background:
-    radial-gradient(60rem 45rem at 12% 6%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
-    radial-gradient(52rem 40rem at 92% 100%, color-mix(in srgb, var(--highlight) 11%, transparent), transparent 60%),
-    var(--bg-base);
-  background-attachment: fixed;
-  display: flex;
-  // `safe center` still centres when there's room, but falls back to top
-  // alignment once the content is taller than the viewport — otherwise flexbox
-  // centring pushes the logo off the top edge where it can't be scrolled to
-  // (mobile / short windows, especially with the demo section showing).
-  align-items: safe center;
-  justify-content: center;
-  padding: $sp-6 $sp-4;
-  position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-// Subtle background shapes — teal + warm highlight tints
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-
-  &Top {
-    top: -8%;
-    right: -6%;
-    width: clamp(200px, 30vw, 400px);
-    height: clamp(200px, 30vw, 400px);
-    background: radial-gradient(circle, rgba(#bfe5df, 0.55), transparent 70%);
-  }
-
-  &Bottom {
-    bottom: -6%;
-    left: -4%;
-    width: clamp(180px, 26vw, 360px);
-    height: clamp(180px, 26vw, 360px);
-    background: radial-gradient(circle, rgba(var(--highlight-rgb), 0.35), transparent 70%);
-  }
-}
-
-.container {
-  width: 100%;
-  max-width: 400px;
-  position: relative;
-}
-
-// ── Logo ───────────────────────────────────────────────────
-.logoWrap {
-  display: flex;
-  align-items: center;
-  gap: $sp-3;
-  margin-bottom: $sp-5;
-  padding: $sp-3;
-  padding-left: 0;
-  border-radius: var(--r-xl);
-
-  @media screen and (max-width: 800px) {
-    fill: white !important;
-    stroke: white !important;
-  }
-
-  // On wider layouts the logo + tagline float on the plain page ground next to
-  // the photo panel — a faint frosted plate keeps the text legible there.
-  @media screen and (min-width: 801px) {
-    padding: $sp-3 $sp-4;
-    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  }
-}
-
-.logoText {
-  text-align: left;
-}
-
-.logoTitle {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.1;
-}
-
-.logoSub {
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-// ── Card ───────────────────────────────────────────────────
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: $sp-8;
-  box-shadow: var(--shadow-lg);
-
-}
 
 .heading {
   font-family: var(--font-serif);
@@ -203,11 +99,13 @@
   width: 100%;
   text-align: right;
   font-size: 0.8rem;
-  color: var(--accent);
+  color: inherit;
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 
   &:hover {
-    text-decoration: underline;
+    color: var(--accent);
   }
 }
 
@@ -224,69 +122,6 @@
   margin-top: $sp-5;
   font-size: 0.85rem;
   color: var(--text-muted);
-}
-
-.link {
-  color: var(--accent);
-  font-weight: 500;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-    border-radius: 2px;
-  }
-}
-
-// ── Demo accounts ──────────────────────────────────────────
-.demoSection {
-  margin-top: $sp-4;
-  margin-bottom: $sp-4;
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-direction: column;
-  border-radius: var(--r-xl);
-
-  // Matches .logoWrap: a frosted plate so the "take a tour" prompt reads on the
-  // plain ground beside the photo panel.
-  @media screen and (min-width: 801px) {
-    padding: $sp-4 $sp-5;
-    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  }
-
-  p {
-    margin: 0;
-    margin-top: 1px;
-  }
-
-  a {
-    text-decoration: underline;
-
-    @media (max-width: 800px) {
-      color: white;
-      stroke: white;
-
-    }
-  }
-}
-
-.demoDivider {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 0 $sp-3;
 }
 
 .demoCards {
@@ -335,12 +170,3 @@
   line-height: 1.4;
 }
 
-.logoSub,
-.demoDivider,
-.logoWrap svg,
-.logoTitle {
-  @media (max-width: 800px) {
-    color: white;
-    stroke: white;
-  }
-}

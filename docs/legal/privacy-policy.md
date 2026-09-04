@@ -85,9 +85,10 @@ Private journal entries are also encrypted client-side. Neither Clarity nor your
 | Data | Retention |
 |---|---|
 | Active account data | Held for the duration of the account |
-| Deleted practitioner accounts | Deleted within 30 days of account deletion |
-| Deleted client accounts | Client profile deleted immediately on deletion; session records and encrypted notes may be retained by the practitioner in line with their clinical record-keeping obligations (typically 8 years for adult records under NHS / professional body guidance) |
-| Billing records | 7 years (UK tax law) |
+| Paused practitioner accounts | Retained in full while paused (read-only); nothing is deleted until the account is deleted |
+| Deleted practitioner accounts | Erased immediately on deletion — the practitioner profile, practice settings, and **all client records in that practice** (sessions, attendance, payments, session notes). No retention period. A full export is offered to the practitioner immediately before deletion. Backups containing the data are overwritten within 30 days. |
+| Deleted client accounts | Login and personal details (name, date of birth, contact details, photo) removed immediately. Session history, attendance, payments and encrypted notes are kept by the practitioner as an **anonymised** record (client name replaced with a codename) in line with their clinical record-keeping obligations (typically 8 years for adult records under NHS / professional body guidance). This anonymised record is erased if the practitioner deletes their account. |
+| Billing records | 7 years (UK tax law) — held by our payment processor (Stripe), not in the deleted practice |
 | Email delivery logs | 90 days |
 | Audit logs | 12 months |
 | Access / hosting logs | Up to 30 days (managed by Netlify) |

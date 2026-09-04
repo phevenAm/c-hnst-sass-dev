@@ -422,6 +422,26 @@ $admin-sidebar-collapsed-w: 3.75rem; // 60px at 100%
   width: 100%;
 }
 
+// Inline text link — anything that navigates but isn't a <button>. Inherits
+// the colour and weight of the text it sits in; the underline is the only
+// thing marking it as a link. Accent is the hover only.
+.link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: from-font;
+
+  &:hover {
+    color: var(--accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
 // ── MUI x-date-pickers — structural overrides ──────────────
 // Colours come from the MUI ThemeProvider in App.tsx.
 // This block only handles things the theme can't express:

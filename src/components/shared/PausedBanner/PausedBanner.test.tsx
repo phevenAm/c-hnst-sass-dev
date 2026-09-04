@@ -2,7 +2,7 @@ import { Provider } from "react-redux";
 
 import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import practiceSettingsReducer, { type PracticeSettingsCache } from "@store/slices/practiceSettingsSlice";
 
@@ -10,7 +10,11 @@ import PausedBanner from "./PausedBanner";
 
 afterEach(cleanup);
 
-function renderWithPausedState(isPaused: boolean | undefined) {
+const mockUseAuth = vi.fn(() => ({ isAdmin: false }));
+vi.mock("@context/AuthContext", () => ({ useAuth: () => mockUseAuth() }));
+
+function renderWithPausedState(isPaused: boolean | undefined, isAdmin = false) {
+  mockUseAuth.mockReturnValue({ isAdmin });
   const store = configureStore({
     reducer: { practiceSettings: practiceSettingsReducer },
     preloadedState: {
@@ -34,16 +38,27 @@ function renderWithPausedState(isPaused: boolean | undefined) {
 describe("PausedBanner", () => {
   it("shows the read-only banner when the practice is paused (happy path)", () => {
     renderWithPausedState(true);
-    expect(screen.getByText(/this account is paused/i)).toBeInTheDocument();
+    expect(screen.getByText(/this practice is paused/i)).toBeInTheDocument();
+  });
+
+  it("tells an admin they can resume it themselves from Settings (happy path)", () => {
+    renderWithPausedState(true, true);
+    expect(screen.getByText(/Settings → Billing/i)).toBeInTheDocument();
+  });
+
+  it("tells a client to contact their practitioner, not to look in Settings (sad path)", () => {
+    renderWithPausedState(true, false);
+    expect(screen.getByText(/contact them directly/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Settings → Billing/i)).not.toBeInTheDocument();
   });
 
   it("renders nothing when the practice is not paused (sad path)", () => {
     renderWithPausedState(false);
-    expect(screen.queryByText(/this account is paused/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/this practice is paused/i)).not.toBeInTheDocument();
   });
 
   it("renders nothing before practice_settings has loaded (sad path)", () => {
     renderWithPausedState(undefined);
-    expect(screen.queryByText(/this account is paused/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/this practice is paused/i)).not.toBeInTheDocument();
   });
 });

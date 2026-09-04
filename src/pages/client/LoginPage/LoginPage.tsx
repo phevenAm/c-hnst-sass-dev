@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
+import AuthShell from "@components/shared/AuthShell/AuthShell";
 import Button from "@components/shared/Button/Button";
-import { LeafLogoMark } from "@components/shared/Icons/Icons";
-import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import Modal from "@components/shared/Modal/Modal";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
@@ -45,7 +44,7 @@ function ResetPasswordForm() {
 
   if (done) {
     return (
-      <div className={styles.card}>
+      <>
         <h2 className={styles.heading}>Password updated</h2>
         <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
           Your password has been changed. If note encryption is set up, use your 4-word encryption code to re-link
@@ -54,12 +53,12 @@ function ResetPasswordForm() {
         <button type="button" className={styles.submitBtn} onClick={() => navigate(isAdmin ? "/admin" : "/dashboard")}>
           Go to dashboard
         </button>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className={styles.card}>
+    <>
       <h2 className={styles.heading}>Set new password</h2>
       {error && (
         <div role="alert" className={styles.error}>
@@ -97,7 +96,7 @@ function ResetPasswordForm() {
           {submitting ? "Saving…" : "Set password"}
         </button>
       </form>
-    </div>
+    </>
   );
 }
 
@@ -229,26 +228,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className={`${styles.page} page`}>
-      <ImageBlurBlock
-        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
-        photographer="Amirali Shaghaghi"
-        sourceLabel="Pexels"
-        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
-      />
-      <div className={`${styles.container} container`}>
-        <div className={styles.containerInner}>
-          <div className={styles.logoWrap}>
-            <LeafLogoMark size={48} />
-            <div className={styles.logoText}>
-              <h1 className={styles.logoTitle}>Clarity</h1>
-              <p className={styles.logoSub}>A safe space for your journey</p>
-            </div>
-          </div>
-
-          {resetMode ? <ResetPasswordForm /> : null}
-
-          <div className={styles.card} style={resetMode ? { display: "none" } : undefined}>
+    <>
+      <AuthShell
+        tagline="A safe space for your journey"
+        footer={
+          resetMode ? undefined : (
+            <>
+              Curious to explore first?{" "}
+              <Link to="/demo" className="link">
+                Take a quick tour
+              </Link>
+            </>
+          )
+        }
+      >
+        {resetMode ? (
+          <ResetPasswordForm />
+        ) : (
+          <>
             <h2 className={styles.heading}>Welcome back</h2>
 
             {error && (
@@ -299,27 +296,20 @@ export default function LoginPage() {
 
             <p className={styles.footer}>
               Don't have an account?{" "}
-              <Link to="/signup" className={styles.link}>
+              <Link to="/signup" className="link">
                 Sign up
               </Link>
             </p>
             <p className={styles.footer}>
               Are you a therapist?{" "}
-              <Link to="/register" className={styles.link}>
+              <Link to="/register" className="link">
                 Register your practice
               </Link>
             </p>
-          </div>
-
-          <div className={styles.demoSection}>
-            <p className={styles.demoDivider}>Curious to explore first?</p>
-            <Link to="/demo" className={styles.link} style={{ display: "block", textAlign: "center" }}>
-              Take a quick tour
-            </Link>
-          </div>
-        </div>
-      </div>
+          </>
+        )}
+      </AuthShell>
       {showForgotModal && <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />}
-    </main>
+    </>
   );
 }
