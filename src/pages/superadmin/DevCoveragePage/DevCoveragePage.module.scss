@@ -48,8 +48,71 @@
 
 .stats {
   display: flex;
+  flex-wrap: wrap;
   gap: $sp-6;
+  margin-bottom: $sp-4;
+}
+
+.suiteNote {
+  font-size: 0.82rem;
+  color: var(--text-muted);
   margin-bottom: $sp-8;
+
+  p {
+    margin: 0 0 $sp-1;
+  }
+
+  code {
+    background: var(--bg-muted);
+    padding: 0.05rem 0.35rem;
+    border-radius: var(--r-sm, 4px);
+    font-size: 0.8rem;
+  }
+}
+
+.groupHeading {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: $sp-8 0 $sp-1;
+}
+
+.groupSubheading {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 $sp-4;
+}
+
+.inventory {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: $sp-4 $sp-5;
+  margin-bottom: $sp-4;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+  }
+
+  &[open] summary {
+    margin-bottom: $sp-3;
+  }
+
+  .table {
+    max-height: 28rem;
+    display: block;
+    overflow-y: auto;
+  }
+
+  .table thead,
+  .table tbody {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
 }
 
 .stat {
