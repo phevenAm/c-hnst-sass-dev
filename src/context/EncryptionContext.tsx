@@ -70,7 +70,10 @@ async function loadKeyFromSession(): Promise<CryptoKey | null> {
   if (!stored) return null;
   try {
     const raw = fromBase64(stored);
-    return crypto.subtle.importKey("raw", raw, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+    // `await` so a rejected importKey (corrupt stored key) is caught here and
+    // falls back to null, rather than propagating to the caller's catch and
+    // leaving status stuck on "checking".
+    return await crypto.subtle.importKey("raw", raw, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
   } catch {
     return null;
   }
@@ -274,12 +277,12 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
 
   const encryptNote = useCallback(async (content: string) => {
     if (!dataKeyRef.current) throw new Error("Notes are locked.");
-    return cryptoEncrypt(content, dataKeyRef.current);
+    return await cryptoEncrypt(content, dataKeyRef.current);
   }, []);
 
   const decryptNote = useCallback(async (ciphertext: string, iv: string) => {
     if (!dataKeyRef.current) throw new Error("Notes are locked.");
-    return cryptoDecrypt(ciphertext, iv, dataKeyRef.current);
+    return await cryptoDecrypt(ciphertext, iv, dataKeyRef.current);
   }, []);
 
   const encryptPII = useCallback(async (value: string): Promise<string> => {

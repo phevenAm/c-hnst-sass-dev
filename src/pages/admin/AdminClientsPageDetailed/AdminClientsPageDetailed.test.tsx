@@ -78,6 +78,7 @@ const { makeChain, supabaseMock, mockShowToast } = vi.hoisted(() => {
       single: vi.fn(() => result),
       maybeSingle: vi.fn(() => result),
       // then + catch make this a "thenable", so Promise.all and await both work
+      // biome-ignore lint/suspicious/noThenProperty: deliberate — this stub mimics a PostgREST query builder, which is itself thenable
       then: (res: (...args: unknown[]) => unknown, rej?: (...args: unknown[]) => unknown) =>
         result.then(res as never, rej as never),
       catch: (rej: (...args: unknown[]) => unknown) => result.catch(rej as never),
