@@ -92,12 +92,27 @@ export function InterfacePrefsProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!isAdmin || !cachedPrefs) return;
     if (cachedPrefs.hidden_sections) setHiddenSections(cachedPrefs.hidden_sections);
-    if (cachedPrefs.reduce_motion) applyMotion(true);
+    // Always resolve, not just when true — otherwise an admin who turns
+    // reduce-motion back off never gets applyMotion(false) called, leaving
+    // both the DOM class and the boot-splash's localStorage cache stale.
+    applyMotion(!!cachedPrefs.reduce_motion);
   }, [isAdmin, cachedPrefs]);
 
   const applyMotion = (reduce: boolean) => {
     setReduceMotionState(reduce);
     document.documentElement.classList.toggle("no-motion", reduce);
+    // Admins' real preference lives in practice_settings (DB), not
+    // localStorage — but /src/bootSplash.ts runs before React/Supabase have
+    // even loaded, so it can't wait on that fetch. Mirroring the resolved
+    // value here (every time it's determined, for both roles) gives it a
+    // synchronously-readable cache: possibly one page load stale right after
+    // the setting changes on another device, corrected the moment this
+    // effect runs again.
+    try {
+      window.localStorage.setItem(REDUCE_MOTION_STORAGE_KEY, reduce ? "1" : "0");
+    } catch {
+      // private mode / storage disabled — motion still applies for this load
+    }
   };
 
   const toggleSection = async (id: string) => {
@@ -108,15 +123,9 @@ export function InterfacePrefsProvider({ children }: { children: React.ReactNode
   };
 
   const setReduceMotion = async (v: boolean) => {
+    // applyMotion already mirrors to localStorage for both roles.
     applyMotion(v);
-    if (!isAdmin) {
-      try {
-        window.localStorage.setItem(REDUCE_MOTION_STORAGE_KEY, v ? "1" : "0");
-      } catch {
-        // private mode / storage disabled — still applies for this load
-      }
-      return;
-    }
+    if (!isAdmin) return;
     if (!userProfile?.id) return;
     await supabase.from("practice_settings").update({ reduce_motion: v }).eq("admin_id", userProfile.id);
   };

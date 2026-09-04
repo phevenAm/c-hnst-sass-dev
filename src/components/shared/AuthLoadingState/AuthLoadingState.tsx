@@ -1,4 +1,8 @@
+import { useSyncExternalStore } from "react";
+
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
+
+import { isHeroSplashDone, subscribeHeroSplashDone } from "@/lib/heroSplashState";
 
 import styles from "./AuthLoadingState.module.css";
 
@@ -11,6 +15,13 @@ type Props = {
 };
 
 export default function AuthLoadingState({ variant = "splash" }: Props) {
+  // <HeroSplash> owns the cold-boot moment — while it's still up (or hasn't
+  // rendered yet), every other "loading" gate defers to it instead of
+  // popping its own splash on top of/behind it. See heroSplashState.ts.
+  const heroSplashDone = useSyncExternalStore(subscribeHeroSplashDone, isHeroSplashDone, () => true);
+
+  if (variant === "splash" && !heroSplashDone) return null;
+
   if (variant === "plain") {
     return (
       <div className={styles.wrapper}>

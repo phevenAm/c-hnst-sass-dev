@@ -9,6 +9,7 @@ import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
 import AuthLoadingState from "../components/shared/AuthLoadingState/AuthLoadingState";
 import DemoBanner from "../components/shared/DemoBanner/DemoBanner";
 import Footer from "../components/shared/Footer/Footer";
+import HeroSplashBridge from "../components/shared/HeroSplashBridge/HeroSplashBridge";
 import Navbar from "../components/shared/Navbar/Navbar";
 import PastDueBanner from "../components/shared/PastDueBanner/PastDueBanner";
 import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
@@ -316,6 +317,7 @@ export default function AppRoutes() {
   return (
     <ThemeWrapper>
       <BrowserRouter>
+        <HeroSplashBridge />
         <WalkthroughProvider>
           <UpdateBanner />
           <ViewportWarningBanner />
