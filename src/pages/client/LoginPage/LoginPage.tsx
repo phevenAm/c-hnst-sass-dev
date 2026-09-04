@@ -229,7 +229,19 @@ export default function LoginPage() {
 
   return (
     <>
-      <AuthShell tagline="A safe space for your journey">
+      <AuthShell
+        tagline="A safe space for your journey"
+        footer={
+          resetMode ? undefined : (
+            <>
+              Curious to explore first?{" "}
+              <Link to="/demo" className="link">
+                Take a quick tour
+              </Link>
+            </>
+          )
+        }
+      >
         {resetMode ? (
           <ResetPasswordForm />
         ) : (
@@ -292,13 +304,6 @@ export default function LoginPage() {
               Are you a therapist?{" "}
               <Link to="/register" className="link">
                 Register your practice
-              </Link>
-            </p>
-
-            <p className={styles.demoSection}>
-              Curious to explore first?{" "}
-              <Link to="/demo" className="link">
-                Take a quick tour
               </Link>
             </p>
           </>

@@ -27,13 +27,18 @@
   z-index: 2;
 }
 
-// ── Card: one flat plate, no tint ─────────────────────────
+// ── Card: outer plate. Header + footer sit on this; the form
+//    gets its own bordered panel inside .body. ──────────────
 .card {
-  background: var(--bg-card);
+  background: var(--bg-muted);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  padding: $sp-3;
+
+  @media (max-width: 640px) {
+    padding: $sp-2;
+  }
 }
 
 .cardWide {
@@ -44,16 +49,12 @@
   max-width: 460px;
 }
 
-// ── Header: logo + wordmark, top of the card ──────────────
+// ── Header: logo + wordmark, on the outer plate ───────────
 .header {
   display: flex;
   align-items: center;
   gap: $sp-3;
-  padding: $sp-6 $sp-6 $sp-2;
-
-  @media (max-width: 640px) {
-    padding: $sp-5 $sp-5 $sp-2;
-  }
+  padding: $sp-3 $sp-3 $sp-4;
 }
 
 .headerText {
@@ -79,10 +80,22 @@
   margin-left: auto;
 }
 
+// ── Body: the form, in its own bordered panel ─────────────
 .body {
-  padding: $sp-3 $sp-6 $sp-6;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: $sp-6;
 
   @media (max-width: 640px) {
-    padding: $sp-3 $sp-5 $sp-5;
+    padding: $sp-5;
   }
+}
+
+// ── Footer: one quiet line under the panel, on the plate ──
+.footer {
+  padding: $sp-4 $sp-3 $sp-2;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }

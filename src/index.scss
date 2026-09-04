@@ -422,16 +422,18 @@ $admin-sidebar-collapsed-w: 3.75rem; // 60px at 100%
   width: 100%;
 }
 
-// Inline text link — anything that navigates but isn't a <button>. Always
-// underlined so it reads as a link without leaning on colour alone.
+// Inline text link — anything that navigates but isn't a <button>. Uses the
+// primary text colour (full contrast on any surface) and leans on the
+// underline + weight, not hue, to read as a link. Accent is only the hover.
 .link {
-  color: var(--accent);
+  color: var(--text-primary);
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 0.15em;
+  text-decoration-thickness: from-font;
 
   &:hover {
-    color: var(--accent-dark);
+    color: var(--accent);
   }
 
   &:focus-visible {
