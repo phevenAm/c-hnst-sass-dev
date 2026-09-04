@@ -131,4 +131,11 @@ describe("SessionCard — client actions on a cancelled session", () => {
     expect(screen.getByRole("button", { name: "Pay" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reschedule" })).toBeInTheDocument();
   });
+
+  // admin_todos 57101fb3 — "no option to cancel sessions". The admin gets a
+  // direct Cancel action on a live scheduled session.
+  it("offers a Cancel action on a scheduled session for the admin", () => {
+    renderWithStore(<SessionCard session={{ ...baseSession, status: "scheduled", paid: false }} isAdmin />);
+    expect(screen.getAllByText("Cancel").length).toBeGreaterThan(0);
+  });
 });

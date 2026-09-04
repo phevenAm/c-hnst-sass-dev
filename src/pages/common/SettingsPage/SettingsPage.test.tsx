@@ -786,6 +786,9 @@ describe("SettingsPage — interface preferences", () => {
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ use_client_codenames: true }));
     });
+    // and re-pulls practice settings into the store so names on already-open
+    // views flip immediately (admin_todos fad008cc / 28986dbf).
+    expect(defaultAuthValue.refreshPracticeSettings).toHaveBeenCalled();
   });
 
   it("moves the sidebar expand button and persists the choice", async () => {
