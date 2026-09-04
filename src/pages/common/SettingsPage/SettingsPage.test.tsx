@@ -47,12 +47,14 @@ vi.mock("@context/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-// The page is rendered without a redux <Provider>; the only store access is
-// the Appearance control's theme preference. Stub it.
+// The page is rendered without a redux <Provider>; store access is the
+// Appearance control's theme preference and the pause card's is_paused flag.
+// Run each selector against a small fake state built from currentRow.
 const mockDispatch = vi.fn();
 vi.mock("@store/hooks", () => ({
   useAppDispatch: () => mockDispatch,
-  useAppSelector: () => "system",
+  useAppSelector: (sel: (s: unknown) => unknown) =>
+    sel({ theme: { mode: "system" }, practiceSettings: { data: currentRow } }),
 }));
 vi.mock("@Hooks/useResolvedTheme", () => ({
   useResolvedTheme: () => "light",
@@ -130,6 +132,7 @@ const {
     disabled_email_types: [] as string[],
     payment_deadline_hours: 48,
     use_client_codenames: false,
+    is_paused: false,
     auto_cancel_enabled: false,
     reschedule_cutoff_hours: 48,
     consent_enabled: false,
@@ -657,6 +660,59 @@ describe("SettingsPage — subscription", () => {
 
     expect(invokeSpy).not.toHaveBeenCalledWith("create-billing-portal-session");
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+  });
+});
+
+describe("SettingsPage — pause / resume practice", () => {
+  async function openPauseConfirm(cardButtonName: RegExp) {
+    await openBillingTab();
+    fireEvent.click(await screen.findByRole("button", { name: cardButtonName }));
+    return within(await screen.findByRole("dialog"));
+  }
+
+  it("pauses the practice: confirm dialog → pause-practice({paused:true}) → success toast (happy path)", async () => {
+    const dialog = await openPauseConfirm(/^Pause practice$/);
+    fireEvent.click(dialog.getByRole("button", { name: /^Pause practice$/ }));
+
+    await waitFor(() => expect(invokeSpy).toHaveBeenCalledWith("pause-practice", { body: { paused: true } }));
+    expect(defaultAuthValue.refreshPracticeSettings).toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/paused/i));
+  });
+
+  it("resumes when already paused: card reads Resume and calls pause-practice({paused:false}) (happy path)", async () => {
+    currentRow.is_paused = true;
+    const dialog = await openPauseConfirm(/^Resume practice$/);
+    fireEvent.click(dialog.getByRole("button", { name: /^Resume practice$/ }));
+
+    await waitFor(() => expect(invokeSpy).toHaveBeenCalledWith("pause-practice", { body: { paused: false } }));
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/active again/i));
+  });
+
+  it("does nothing in demo mode (sad path)", async () => {
+    mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
+    const dialog = await openPauseConfirm(/^Pause practice$/);
+    fireEvent.click(dialog.getByRole("button", { name: /^Pause practice$/ }));
+
+    expect(invokeSpy).not.toHaveBeenCalledWith("pause-practice", expect.anything());
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+  });
+
+  it("warns when the DB flipped but Stripe didn't (sad path)", async () => {
+    const original = invokeSpy.getMockImplementation();
+    invokeSpy.mockImplementation((fn: string) =>
+      fn === "pause-practice"
+        ? Promise.resolve({ data: { stripeErrors: ["card declined"] }, error: null })
+        : Promise.resolve({ data: { url: fn }, error: null }),
+    );
+    try {
+      const dialog = await openPauseConfirm(/^Pause practice$/);
+      fireEvent.click(dialog.getByRole("button", { name: /^Pause practice$/ }));
+      await waitFor(() =>
+        expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/couldn't pause stripe/i), "error"),
+      );
+    } finally {
+      invokeSpy.mockImplementation(original!);
+    }
   });
 });
 
