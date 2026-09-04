@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
+import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
@@ -70,9 +71,8 @@ export default function ChangePasswordModal({ onClose }: Props) {
 
         <div className={styles.field}>
           <label htmlFor="new-password">New password</label>
-          <input
+          <PasswordInput
             id="new-password"
-            type="password"
             autoComplete="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -80,9 +80,8 @@ export default function ChangePasswordModal({ onClose }: Props) {
         </div>
         <div className={styles.field}>
           <label htmlFor="confirm-password">Confirm new password</label>
-          <input
+          <PasswordInput
             id="confirm-password"
-            type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

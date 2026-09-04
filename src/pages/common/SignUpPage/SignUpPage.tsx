@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
+import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
 import styles from "./SignUpPage.module.scss";
@@ -157,19 +158,31 @@ export default function SignUpPage() {
                       />
                     )}
                   </label>
-                  <input
-                    id={field.id}
-                    type={field.type}
-                    value={form[field.id]}
-                    onChange={(e) => set(field.id, e.target.value)}
-                    placeholder={field.ph}
-                    required
-                    autoComplete={getAutoComplete(field.id)}
-                    {...(field.type === "date" && {
-                      max: new Date().toISOString().split("T")[0],
-                    })}
-                    className={styles.input}
-                  />
+                  {field.type === "password" ? (
+                    <PasswordInput
+                      id={field.id}
+                      value={form[field.id]}
+                      onChange={(e) => set(field.id, e.target.value)}
+                      placeholder={field.ph}
+                      required
+                      autoComplete={getAutoComplete(field.id)}
+                      className={styles.input}
+                    />
+                  ) : (
+                    <input
+                      id={field.id}
+                      type={field.type}
+                      value={form[field.id]}
+                      onChange={(e) => set(field.id, e.target.value)}
+                      placeholder={field.ph}
+                      required
+                      autoComplete={getAutoComplete(field.id)}
+                      {...(field.type === "date" && {
+                        max: new Date().toISOString().split("T")[0],
+                      })}
+                      className={styles.input}
+                    />
+                  )}
                 </div>
               ))}
             </div>

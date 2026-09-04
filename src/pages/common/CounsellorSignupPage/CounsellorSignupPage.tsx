@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
 import { captureReferralCode } from "@/Helpers/referral";
@@ -281,15 +282,26 @@ export default function CounsellorSignupPage() {
                     <label htmlFor={id} className={styles.label}>
                       {label}
                     </label>
-                    <input
-                      id={id}
-                      type={type}
-                      value={form[id]}
-                      onChange={(e) => set(id, e.target.value)}
-                      required
-                      readOnly={!!invite && id === "email"}
-                      className={styles.input}
-                    />
+                    {type === "password" ? (
+                      <PasswordInput
+                        id={id}
+                        value={form[id]}
+                        onChange={(e) => set(id, e.target.value)}
+                        required
+                        autoComplete="new-password"
+                        className={styles.input}
+                      />
+                    ) : (
+                      <input
+                        id={id}
+                        type={type}
+                        value={form[id]}
+                        onChange={(e) => set(id, e.target.value)}
+                        required
+                        readOnly={!!invite && id === "email"}
+                        className={styles.input}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

@@ -6,6 +6,7 @@ import Button from "@components/shared/Button/Button";
 import { LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import Modal from "@components/shared/Modal/Modal";
+import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
@@ -70,9 +71,8 @@ function ResetPasswordForm() {
           <label htmlFor="new-pw" className={styles.label}>
             New password
           </label>
-          <input
+          <PasswordInput
             id="new-pw"
-            type="password"
             autoComplete="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -84,9 +84,8 @@ function ResetPasswordForm() {
           <label htmlFor="confirm-pw" className={styles.label}>
             Confirm password
           </label>
-          <input
+          <PasswordInput
             id="confirm-pw"
-            type="password"
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -279,9 +278,8 @@ export default function LoginPage() {
                 <label htmlFor="password" className={styles.label}>
                   Password
                 </label>
-                <input
+                <PasswordInput
                   id="password"
-                  type="password"
                   required
                   autoComplete="current-password"
                   value={password}
