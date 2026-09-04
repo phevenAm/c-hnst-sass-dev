@@ -427,9 +427,37 @@
   padding: $sp-2 $sp-4 0;
 }
 
+// Arrow-scroll wrapper: the tab list can't be trusted to signal its own
+// overflow (the scrollbar is hidden below, and trackpad/mouse users on a
+// small screen won't reliably discover two-finger/shift-scroll). Real
+// buttons that appear only on the side that still has clipped tabs replace
+// that signal instead of just hinting at it.
+.tabsWrap {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabsArrow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  border: none;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--border);
+  flex: 1 1 auto;
+  min-width: 0;
   gap: 0;
   overflow-x: auto;
   scrollbar-width: none;

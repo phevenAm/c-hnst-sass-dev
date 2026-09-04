@@ -52,7 +52,7 @@ describe("DevCoveragePage", () => {
   it("surfaces known gaps rather than only the good news (sad path)", () => {
     renderPage();
     expect(screen.getAllByText("Known gaps").length).toBeGreaterThan(0);
-    expect(screen.getByText(/No video recording of any Playwright run/)).toBeInTheDocument();
+    expect(screen.getByText(/Static legal copy/)).toBeInTheDocument();
   });
 
   // Regression: the top stat once read SUITE_SUMMARY.unit.filesPassed (60,
