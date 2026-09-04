@@ -120,6 +120,28 @@ describe("BlockSessionCard tab numbering", () => {
     expect(screen.getByText(/4 session block · £240\.00 total/)).toBeInTheDocument();
   });
 
+  // admin_todos 07a724dc — a client must not be shown the block price.
+  it("hides the block total from a non-admin (client) view", () => {
+    const meta = (pos: number) => ({
+      block_id: "blk",
+      block_pos: pos,
+      block_total: 3,
+      block_start: "",
+      block_price_pence: 18000,
+    });
+    const sessions = [
+      makeSession({ id: "a", scheduled_at: "2026-06-01T09:00:00.000Z", price_pence: 6000, metadata: meta(1) }),
+      makeSession({ id: "b", scheduled_at: "2026-06-08T09:00:00.000Z", price_pence: 6000, metadata: meta(2) }),
+      makeSession({ id: "c", scheduled_at: "2026-06-15T09:00:00.000Z", price_pence: 6000, metadata: meta(3) }),
+    ];
+
+    renderWithStore(<BlockSessionCard sessions={sessions} />);
+
+    expect(screen.getByText(/3 session block/)).toBeInTheDocument();
+    expect(screen.queryByText(/total/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/£180\.00/)).not.toBeInTheDocument();
+  });
+
   it("falls back to summing live rows when metadata has no block price", () => {
     const meta = (pos: number) => ({ block_id: "blk", block_pos: pos, block_total: 2, block_start: "" });
     const sessions = [
