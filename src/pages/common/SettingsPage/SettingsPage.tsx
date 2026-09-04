@@ -12,7 +12,15 @@ import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import FeedbackModal from "@components/shared/FeedbackModal/FeedbackModal";
-import { ChevronDown, CopyIcon, MoonIcon, SunIcon, ThemeAutoIcon } from "@components/shared/Icons/Icons";
+import {
+  ChevronDown,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  MoonIcon,
+  SunIcon,
+  ThemeAutoIcon,
+} from "@components/shared/Icons/Icons";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
@@ -294,6 +302,34 @@ const SettingsPage = () => {
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  // Tab bar scroll arrows — the tab list scrolls horizontally on a narrow
+  // screen but gives no visual hint that it does (native scrollbar is
+  // hidden). Track whether there's more to see on either side so the arrow
+  // buttons only render where they're actually useful.
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
+
+  const updateTabsScrollState = () => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    setCanScrollTabsLeft(el.scrollLeft > 1);
+    setCanScrollTabsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+
+  // Re-checked on isAdmin flipping true too — the tab bar (and its ref) only
+  // exists in the DOM once that's the case, which can land after this
+  // component's first mount.
+  useEffect(() => {
+    updateTabsScrollState();
+    window.addEventListener("resize", updateTabsScrollState);
+    return () => window.removeEventListener("resize", updateTabsScrollState);
+  }, [isAdmin]);
+
+  const scrollTabsBy = (direction: 1 | -1) => {
+    tabsScrollRef.current?.scrollBy({ left: direction * 120, behavior: "smooth" });
+  };
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
     business_name: "",
@@ -1153,17 +1189,39 @@ const SettingsPage = () => {
         {/* ── Tab bar (admin only) ── */}
         {isAdmin && (
           <Card className={styles.tabsCard}>
-            <div className={styles.tabs} id="settings-tabs">
-              {ADMIN_TABS.map((tab) => (
+            <div className={styles.tabsWrap}>
+              {canScrollTabsLeft && (
                 <button
-                  key={tab.id}
                   type="button"
-                  className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-                  onClick={() => setActiveTab(tab.id)}
+                  className={styles.tabsArrow}
+                  onClick={() => scrollTabsBy(-1)}
+                  aria-label="Scroll tabs left"
                 >
-                  {tab.label}
+                  <ChevronLeftIcon />
                 </button>
-              ))}
+              )}
+              <div className={styles.tabs} id="settings-tabs" ref={tabsScrollRef} onScroll={updateTabsScrollState}>
+                {ADMIN_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {canScrollTabsRight && (
+                <button
+                  type="button"
+                  className={styles.tabsArrow}
+                  onClick={() => scrollTabsBy(1)}
+                  aria-label="Scroll tabs right"
+                >
+                  <ChevronRightIcon />
+                </button>
+              )}
             </div>
           </Card>
         )}
