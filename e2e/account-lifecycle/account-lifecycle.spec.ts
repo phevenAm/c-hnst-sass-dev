@@ -11,7 +11,7 @@ import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 import { FIXTURES, SUPABASE_ANON_KEY, SUPABASE_URL } from "../settings/constants";
-import { dbQuery } from "../settings/db";
+import { createAuthUser, dbQuery } from "../settings/db";
 
 test.describe.configure({ mode: "serial" });
 
@@ -157,4 +157,35 @@ test("pause: a client (non-owner) cannot pause the practice (sad path)", async (
   const res = await invoke("pause-practice", await tokenFor("client"), { paused: true });
   expect(res.status).toBe(403);
   expect(isPaused()).toBe(false);
+});
+
+// Regression for 20260904000000: block_paused_write also guards public.users,
+// so before the carve-out a paused owner tripped the trigger inside
+// delete_own_account() and couldn't actually delete. Uses a throwaway admin —
+// the RPC really deletes the account.
+test("pause: a paused owner can still delete their own account (carve-out)", async () => {
+  const email = `e2e-pausedel-${Date.now()}@clarity-e2e-test.dev`;
+  const password = "E2ePausedDelete2026!";
+  const uid = createAuthUser({ email, password, meta: { role: "admin", practice_name: "Throwaway Practice" } });
+
+  try {
+    dbQuery(`update public.practice_settings set is_paused = true, paused_at = now() where admin_id = '${uid}';`);
+
+    const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await anon.auth.signInWithPassword({ email, password });
+    if (error || !data.session) throw new Error(`throwaway sign-in failed: ${error?.message}`);
+
+    const authed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${data.session.access_token}` } },
+    });
+    const { error: rpcErr } = await authed.rpc("delete_own_account");
+    expect(rpcErr?.message ?? null, "delete_own_account must not be blocked by the pause lock").toBeNull();
+
+    const left = dbQuery<{ n: number }>(`select count(*)::int as n from public.users where id = '${uid}';`).rows[0].n;
+    expect(left).toBe(0);
+  } finally {
+    // No-ops if the RPC already removed them; safety net if it didn't.
+    dbQuery(`delete from public.practice_settings where admin_id = '${uid}';`);
+    dbQuery(`delete from auth.users where id = '${uid}';`);
+  }
 });
