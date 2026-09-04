@@ -284,23 +284,23 @@ export default function LoginPage() {
 
             <p className={styles.footer}>
               Don't have an account?{" "}
-              <Link to="/signup" className={styles.link}>
+              <Link to="/signup" className="link">
                 Sign up
               </Link>
             </p>
             <p className={styles.footer}>
               Are you a therapist?{" "}
-              <Link to="/register" className={styles.link}>
+              <Link to="/register" className="link">
                 Register your practice
               </Link>
             </p>
 
-            <div className={styles.demoSection}>
-              <p className={styles.demoDivider}>Curious to explore first?</p>
-              <Link to="/demo" className={styles.link} style={{ display: "block", textAlign: "center" }}>
+            <p className={styles.demoSection}>
+              Curious to explore first?{" "}
+              <Link to="/demo" className="link">
                 Take a quick tour
               </Link>
-            </div>
+            </p>
           </>
         )}
       </AuthShell>

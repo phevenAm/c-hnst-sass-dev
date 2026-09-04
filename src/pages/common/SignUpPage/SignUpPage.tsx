@@ -181,7 +181,7 @@ export default function SignUpPage() {
 
       <p className={styles.footer}>
         Already have an account?{" "}
-        <Link to="/login" className={styles.link}>
+        <Link to="/login" className="link">
           Sign in
         </Link>
       </p>

@@ -109,7 +109,7 @@ export default function DemoPage() {
             <Link to="/register" className={styles.submitBtn} style={{ textAlign: "center" }}>
               Register your practice
             </Link>
-            <a href="mailto:support@withclarity.uk" className={styles.link}>
+            <a href="mailto:support@withclarity.uk" className="link">
               Have questions? Email us
             </a>
           </div>
@@ -160,7 +160,7 @@ export default function DemoPage() {
 
             <p className={styles.footer}>
               Already have an account?{" "}
-              <Link to="/login" className={styles.link}>
+              <Link to="/login" className="link">
                 Sign in
               </Link>
             </p>

@@ -149,16 +149,6 @@
   color: var(--text-muted);
 }
 
-.link {
-  color: var(--accent);
-  font-weight: 500;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 .successBox {
   text-align: center;
   padding: $sp-4 0;

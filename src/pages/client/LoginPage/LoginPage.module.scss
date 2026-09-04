@@ -101,9 +101,11 @@
   font-size: 0.8rem;
   color: var(--accent);
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 
   &:hover {
-    text-decoration: underline;
+    color: var(--accent-dark);
   }
 }
 
@@ -122,48 +124,14 @@
   color: var(--text-muted);
 }
 
-.link {
-  color: var(--accent);
-  font-weight: 500;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-    border-radius: 2px;
-  }
-}
-
-// ── Demo prompt (sits at the foot of the card body) ────────
+// ── Demo prompt (one quiet line at the foot of the card body) ──
 .demoSection {
-  margin-top: $sp-6;
-  padding-top: $sp-5;
+  margin: $sp-5 0 0;
+  padding-top: $sp-4;
   border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-direction: column;
-
-  p {
-    margin: 0;
-  }
-
-  a {
-    text-decoration: underline;
-  }
-}
-
-.demoDivider {
   text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 0 $sp-3;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .demoCards {

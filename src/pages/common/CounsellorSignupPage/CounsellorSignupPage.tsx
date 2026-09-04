@@ -320,7 +320,7 @@ export default function CounsellorSignupPage() {
 
       <p className={styles.footer}>
         Already have an account?{" "}
-        <Link to="/login" className={styles.link}>
+        <Link to="/login" className="link">
           Sign in
         </Link>
       </p>
@@ -328,7 +328,7 @@ export default function CounsellorSignupPage() {
       {!invite && (
         <p className={styles.footer}>
           Running an agency with several counsellors?{" "}
-          <Link to="/register/agency" className={styles.link}>
+          <Link to="/register/agency" className="link">
             Create an agency
           </Link>
         </p>
