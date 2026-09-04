@@ -7,10 +7,9 @@ import Modal from "@components/shared/Modal/Modal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
-import type { ClientStub, Questionnaire, QuestionnaireFrequency, Tag, UserProfile } from "@models/globalTypes";
+import type { Questionnaire, QuestionnaireFrequency, Tag, UserProfile } from "@models/globalTypes";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
-import { fetchClientStubs, selectAllStubs } from "@store/slices/clientStubsSlice";
 import {
   assignQuestionnaire,
   fetchAssignmentsByQuestionnaire,
@@ -413,12 +412,10 @@ function QuestionnaireBuilder({
 function AssignModal({
   questionnaire,
   clients,
-  stubs,
   onClose,
 }: {
   questionnaire: Questionnaire;
   clients: UserProfile[];
-  stubs: ClientStub[];
   onClose: () => void;
 }) {
   const dispatch = useAppDispatch();
@@ -427,19 +424,6 @@ function AssignModal({
   const { showToast } = useToast();
   const assignments = useAppSelector(selectAssignmentsByQuestionnaire(questionnaire.id));
   const assignedIds = new Set(assignments.map((a) => a.user_id));
-
-  const [stubAssignedIds, setStubAssignedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    supabase
-      .from("questionnaire_assignments")
-      .select("stub_id")
-      .eq("questionnaire_id", questionnaire.id)
-      .not("stub_id", "is", null)
-      .then(({ data }) => {
-        if (data) setStubAssignedIds(new Set(data.map((r: { stub_id: string }) => r.stub_id)));
-      });
-  }, [questionnaire.id]);
 
   const toggle = (userId: string) => {
     if (isDemo) {
@@ -456,99 +440,41 @@ function AssignModal({
     }
   };
 
-  const toggleStub = async (stubId: string) => {
-    if (isDemo) {
-      showToast("Demo mode — changes are not saved.");
-      return;
-    }
-    if (stubAssignedIds.has(stubId)) {
-      await supabase
-        .from("questionnaire_assignments")
-        .delete()
-        .eq("questionnaire_id", questionnaire.id)
-        .eq("stub_id", stubId);
-      setStubAssignedIds((prev) => {
-        const s = new Set(prev);
-        s.delete(stubId);
-        return s;
-      });
-    } else {
-      await supabase.from("questionnaire_assignments").insert({
-        questionnaire_id: questionnaire.id,
-        stub_id: stubId,
-      });
-      setStubAssignedIds((prev) => new Set([...prev, stubId]));
-    }
-  };
-
-  const stubDisplayName = (s: ClientStub) =>
-    useCodenames ? s.codename || `${s.first_name} ${s.last_name}` : `${s.first_name} ${s.last_name}`;
-
   return (
     <Modal title="Assign clients" onClose={onClose}>
       <p className={styles.assignSubtitle}>
         Select which clients should receive <strong>{questionnaire.title}</strong>.
       </p>
 
-      {clients.length === 0 && stubs.length === 0 ? (
+      {/* Offline (stub) clients aren't shown here — they can't fill a form in,
+          and any pre-assignment carried more confusion than value. They pick up
+          the practice's forms when they sign up as a real client. */}
+      {clients.length === 0 ? (
         <p className={styles.emptyText}>No clients found.</p>
       ) : (
-        <>
-          {clients.length > 0 && (
-            <ul className={styles.clientList}>
-              {clients.map((client) => {
-                const assigned = assignedIds.has(client.id);
-                return (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: checkbox inside handles keyboard interaction
-                  <li
-                    key={client.id}
-                    className={`${styles.clientRow} ${assigned ? styles.clientRowAssigned : ""}`}
-                    onClick={() => toggle(client.id)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={assigned}
-                      onChange={() => toggle(client.id)}
-                      className={styles.clientCheckbox}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <span className={styles.clientName}>{clientDisplayName(client, useCodenames)}</span>
-                    {assigned && <span className={styles.assignedBadge}>Assigned</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-
-          {stubs.length > 0 && (
-            <>
-              <p className={styles.sectionLabel}>Offline clients</p>
-              <ul className={styles.clientList}>
-                {stubs.map((stub) => {
-                  const assigned = stubAssignedIds.has(stub.id);
-                  return (
-                    // biome-ignore lint/a11y/useKeyWithClickEvents: checkbox inside handles keyboard interaction
-                    <li
-                      key={stub.id}
-                      className={`${styles.clientRow} ${assigned ? styles.clientRowAssigned : ""}`}
-                      onClick={() => toggleStub(stub.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={assigned}
-                        onChange={() => toggleStub(stub.id)}
-                        className={styles.clientCheckbox}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <span className={styles.clientName}>{stubDisplayName(stub)}</span>
-                      {assigned && <span className={styles.assignedBadge}>Assigned</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </>
+        <ul className={styles.clientList}>
+          {clients.map((client) => {
+            const assigned = assignedIds.has(client.id);
+            return (
+              // biome-ignore lint/a11y/useKeyWithClickEvents: checkbox inside handles keyboard interaction
+              <li
+                key={client.id}
+                className={`${styles.clientRow} ${assigned ? styles.clientRowAssigned : ""}`}
+                onClick={() => toggle(client.id)}
+              >
+                <input
+                  type="checkbox"
+                  checked={assigned}
+                  onChange={() => toggle(client.id)}
+                  className={styles.clientCheckbox}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className={styles.clientName}>{clientDisplayName(client, useCodenames)}</span>
+                {assigned && <span className={styles.assignedBadge}>Assigned</span>}
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       <div className={styles.modalActions}>
@@ -676,7 +602,6 @@ export default function AdminQuestionnairesPage() {
   const { showToast } = useToast();
   const questionnaires = useAppSelector(selectAllQuestionnaires);
   const clients = useAppSelector(selectClientUsers);
-  const stubs = useAppSelector(selectAllStubs);
   const tags = useAppSelector(selectAllTags);
 
   const questionnairesStatus = useAppSelector((state: RootState) => state.questionnaires.status);
@@ -718,12 +643,6 @@ export default function AdminQuestionnairesPage() {
     (state: RootState) => state.tags.status,
     () => fetchTags(),
     "Failed to fetch tags:",
-  );
-
-  useFetchOnIdle(
-    (state: RootState) => state.clientStubs.status,
-    () => fetchClientStubs(),
-    "Failed to fetch offline clients:",
   );
 
   useEffect(() => {
@@ -1027,12 +946,7 @@ export default function AdminQuestionnairesPage() {
       )}
 
       {isAssigningQ && (
-        <AssignModal
-          questionnaire={isAssigningQ}
-          clients={clients}
-          stubs={stubs}
-          onClose={() => setIsAssigningQ(null)}
-        />
+        <AssignModal questionnaire={isAssigningQ} clients={clients} onClose={() => setIsAssigningQ(null)} />
       )}
 
       {showTagsModal && <TagsModal tags={tags} onClose={() => setShowTagsModal(false)} />}
