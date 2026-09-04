@@ -55,10 +55,10 @@ export const SUITE_SUMMARY = {
     ranAt: "2026-09-04",
   },
   e2e: {
-    files: 16,
-    tests: 68,
+    files: 17,
+    tests: 70,
     command: "npx playwright test",
-    note: "Counted from source (test() calls per spec) — not every suite was re-run this session. Suites actually re-run and confirmed green today: account-lifecycle (8).",
+    note: "Counted from source (test() calls per spec) — not every suite was re-run this session. Suites actually re-run and confirmed green today: account-lifecycle (8, API-level) and account-lifecycle-ui (2, browser-driven with video).",
     ranAt: "2026-09-04",
   },
 };
@@ -144,6 +144,7 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "unit", file: "supabase/functions/notify-client-lifecycle/lifecycleEmail.test.ts", count: 13 },
 
   { kind: "e2e", file: "e2e/account-lifecycle/account-lifecycle.spec.ts", count: 8 },
+  { kind: "e2e", file: "e2e/account-lifecycle/account-lifecycle-ui.spec.ts", count: 2 },
   { kind: "e2e", file: "e2e/auto-cancel/auto-cancel.spec.ts", count: 4 },
   { kind: "e2e", file: "e2e/axe-scan.spec.ts", count: 6 },
   { kind: "e2e", file: "e2e/change-plan/change-plan.spec.ts", count: 2 },
@@ -186,18 +187,23 @@ export const COVERAGE: CoverageEntry[] = [
       {
         file: "e2e/account-lifecycle/account-lifecycle.spec.ts",
         count: 8,
-        note: "real Supabase project, self-cleaning fixture + throwaway accounts",
+        note: "API-level (fetch/dbQuery, no browser) — real Supabase project, self-cleaning fixture + throwaway accounts",
+      },
+      {
+        file: "e2e/account-lifecycle/account-lifecycle-ui.spec.ts",
+        count: 2,
+        note: "browser-driven, video recorded — real login, real clicks, one deletes a throwaway admin start to finish",
       },
     ],
     verifiedAt: "2026-09-04",
     verification: [
       "Live probe against the deployed DB: created a fresh throwaway admin, called delete_own_account with its real JWT. Before the fix it failed — both paused and unpaused — with an audit_logs FK violation and nothing was deleted. After the fix it succeeds both ways, and public.users + auth.users rows are both confirmed gone.",
+      'account-lifecycle-ui.spec.ts drives an actual browser: signs in for real, clicks Settings -> Billing -> Pause practice -> confirms in the dialog -> sees both the card copy and the app-wide PausedBanner -> resumes; separately, a fresh throwaway admin clicks Delete account -> Continue -> Export my data -> types the practice name -> Delete account, ends up back at /login, and the DB row is confirmed gone. video: "on" in playwright.config.ts records both — open the report (npx playwright show-report) to watch them.',
       "npm run build — green",
     ],
     gaps: [
-      "No browser-driven click-through of the Pause/Resume button or the DeleteUserModal steps — coverage above is unit (mocked) + e2e (API-level HTTP calls), not a UI walkthrough",
-      "No video recording of any Playwright run",
       "Static legal copy (Terms/Privacy/FAQ wording) has no test coverage",
+      'Video is retained locally under test-results/ / playwright-report/ from whoever\'s machine last ran the suite — nothing is uploaded anywhere, so "the video" is only as fresh as the last local run',
     ],
   },
   {
