@@ -1,3 +1,4 @@
+export { default as AuthShell } from "./AuthShell/AuthShell";
 export { default as Avatar } from "./Avatar/Avatar";
 export { default as Badge } from "./Badge/Badge";
 export { default as BlockSessionCard } from "./BlockSessionCard/BlockSessionCard";

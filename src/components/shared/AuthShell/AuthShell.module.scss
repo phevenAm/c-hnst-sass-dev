@@ -1,0 +1,90 @@
+@use "../../../styles/spacing" as *;
+
+.page {
+  min-height: 100vh;
+  // Soft radial tints (teal top-left, warm bottom-right) so the ground the
+  // photo panel doesn't cover isn't a flat grey slab.
+  background:
+    radial-gradient(60rem 45rem at 12% 6%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+    radial-gradient(52rem 40rem at 92% 100%, color-mix(in srgb, var(--highlight) 11%, transparent), transparent 60%),
+    var(--bg-base);
+  background-attachment: fixed;
+  display: flex;
+  // `safe center` still centres when there's room but falls back to top
+  // alignment once the card is taller than the viewport, so it stays scrollable.
+  align-items: safe center;
+  justify-content: center;
+  padding: $sp-6 $sp-4;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  z-index: 2;
+}
+
+// ── Card ───────────────────────────────────────────────────
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  // Clip the header band's top corners to the card radius.
+  overflow: hidden;
+}
+
+.cardWide {
+  max-width: none;
+}
+
+.container:has(.cardWide) {
+  max-width: 460px;
+}
+
+// ── Header band (logo + tagline) ───────────────────────────
+.header {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-5 $sp-8;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+
+  @media (max-width: 640px) {
+    padding: $sp-4 $sp-5;
+  }
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.title {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.tagline {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.headerAside {
+  margin-left: auto;
+}
+
+// ── Body (the page-supplied card content) ──────────────────
+.body {
+  padding: $sp-8;
+
+  @media (max-width: 640px) {
+    padding: $sp-5;
+  }
+}

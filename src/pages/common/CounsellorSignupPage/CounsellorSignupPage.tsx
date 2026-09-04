@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
-import { LeafLogoMark, MailIcon } from "@components/shared/Icons/Icons";
-import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import AuthShell from "@components/shared/AuthShell/AuthShell";
+import { MailIcon } from "@components/shared/Icons/Icons";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
@@ -211,146 +211,128 @@ export default function CounsellorSignupPage() {
   }
 
   return (
-    <main className={`${styles.page} page`}>
-      <ImageBlurBlock
-        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
-        photographer="Amirali Shaghaghi"
-        sourceLabel="Pexels"
-        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
-      />
-      <div className={`${styles.container} container`}>
-        <div className={styles.logoWrap}>
-          <LeafLogoMark size={48} />
-          <div className={styles.logoText}>
-            <h1 className={styles.logoTitle}>Clarity</h1>
-            <p className={styles.logoSub}>{invite ? `Join ${invite.agencyName}` : "Register your practice"}</p>
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <div className={styles.stepDots} aria-label={`Step ${step} of 2`}>
-            <div className={`${styles.stepDot} ${step >= 1 ? styles.stepDotActive : ""}`} />
-            <div className={`${styles.stepDot} ${step >= 2 ? styles.stepDotActive : ""}`} />
-          </div>
-
-          <h2 className={styles.heading}>{step === 2 ? "Your account" : step1Heading}</h2>
-
-          {invite && step === 1 && (
-            <p className={styles.processNote}>
-              You've been invited to join <strong>{invite.agencyName}</strong> as a {invite.role}.
-            </p>
-          )}
-
-          {error && (
-            <div role="alert" className={styles.error}>
-              {error}
-            </div>
-          )}
-
-          {step === 1 ? (
-            <form onSubmit={handleContinue} noValidate>
-              <div className={styles.formGrid}>
-                {STEP1_FIELDS.filter((f) => !(invite && f.id === "practiceName")).map(({ id, label, type }) => (
-                  <div
-                    key={id}
-                    className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
-                  >
-                    <label htmlFor={id} className={styles.label}>
-                      {label}
-                    </label>
-                    <input
-                      id={id}
-                      type={type}
-                      value={form[id]}
-                      onChange={(e) => set(id, e.target.value)}
-                      required
-                      className={styles.input}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <button type="submit" disabled={!step1Valid} className={styles.submitBtn}>
-                Continue
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmit} noValidate>
-              <div className={styles.formGrid}>
-                {STEP2_FIELDS.map(({ id, label, type }) => (
-                  <div key={id} className={`${styles.field} ${styles.fieldFull}`}>
-                    <label htmlFor={id} className={styles.label}>
-                      {label}
-                    </label>
-                    {type === "password" ? (
-                      <PasswordInput
-                        id={id}
-                        value={form[id]}
-                        onChange={(e) => set(id, e.target.value)}
-                        required
-                        autoComplete="new-password"
-                        className={styles.input}
-                      />
-                    ) : (
-                      <input
-                        id={id}
-                        type={type}
-                        value={form[id]}
-                        onChange={(e) => set(id, e.target.value)}
-                        required
-                        readOnly={!!invite && id === "email"}
-                        className={styles.input}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.stepNav}>
-                <button
-                  type="button"
-                  className={styles.backBtn}
-                  onClick={() => {
-                    setError("");
-                    setStep(1);
-                  }}
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !form.email || !form.password || !form.confirm}
-                  className={styles.stepSubmitBtn}
-                >
-                  {submitting ? "Creating account…" : "Create account"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          <p className={styles.processNote}>
-            {step === 1
-              ? "You'll set up login details on the next step."
-              : "Check your email for a confirmation link — once confirmed, pick a plan."}
-          </p>
-
-          <p className={styles.footer}>
-            Already have an account?{" "}
-            <Link to="/login" className={styles.link}>
-              Sign in
-            </Link>
-          </p>
-
-          {!invite && (
-            <p className={styles.footer}>
-              Running an agency with several counsellors?{" "}
-              <Link to="/register/agency" className={styles.link}>
-                Create an agency
-              </Link>
-            </p>
-          )}
-        </div>
+    <AuthShell tagline={invite ? `Join ${invite.agencyName}` : "Register your practice"} wide>
+      <div className={styles.stepDots} aria-label={`Step ${step} of 2`}>
+        <div className={`${styles.stepDot} ${step >= 1 ? styles.stepDotActive : ""}`} />
+        <div className={`${styles.stepDot} ${step >= 2 ? styles.stepDotActive : ""}`} />
       </div>
-    </main>
+
+      <h2 className={styles.heading}>{step === 2 ? "Your account" : step1Heading}</h2>
+
+      {invite && step === 1 && (
+        <p className={styles.processNote}>
+          You've been invited to join <strong>{invite.agencyName}</strong> as a {invite.role}.
+        </p>
+      )}
+
+      {error && (
+        <div role="alert" className={styles.error}>
+          {error}
+        </div>
+      )}
+
+      {step === 1 ? (
+        <form onSubmit={handleContinue} noValidate>
+          <div className={styles.formGrid}>
+            {STEP1_FIELDS.filter((f) => !(invite && f.id === "practiceName")).map(({ id, label, type }) => (
+              <div
+                key={id}
+                className={`${styles.field} ${id === "firstName" || id === "lastName" ? "" : styles.fieldFull}`}
+              >
+                <label htmlFor={id} className={styles.label}>
+                  {label}
+                </label>
+                <input
+                  id={id}
+                  type={type}
+                  value={form[id]}
+                  onChange={(e) => set(id, e.target.value)}
+                  required
+                  className={styles.input}
+                />
+              </div>
+            ))}
+          </div>
+
+          <button type="submit" disabled={!step1Valid} className={styles.submitBtn}>
+            Continue
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleSubmit} noValidate>
+          <div className={styles.formGrid}>
+            {STEP2_FIELDS.map(({ id, label, type }) => (
+              <div key={id} className={`${styles.field} ${styles.fieldFull}`}>
+                <label htmlFor={id} className={styles.label}>
+                  {label}
+                </label>
+                {type === "password" ? (
+                  <PasswordInput
+                    id={id}
+                    value={form[id]}
+                    onChange={(e) => set(id, e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    className={styles.input}
+                  />
+                ) : (
+                  <input
+                    id={id}
+                    type={type}
+                    value={form[id]}
+                    onChange={(e) => set(id, e.target.value)}
+                    required
+                    readOnly={!!invite && id === "email"}
+                    className={styles.input}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.stepNav}>
+            <button
+              type="button"
+              className={styles.backBtn}
+              onClick={() => {
+                setError("");
+                setStep(1);
+              }}
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || !form.email || !form.password || !form.confirm}
+              className={styles.stepSubmitBtn}
+            >
+              {submitting ? "Creating account…" : "Create account"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <p className={styles.processNote}>
+        {step === 1
+          ? "You'll set up login details on the next step."
+          : "Check your email for a confirmation link — once confirmed, pick a plan."}
+      </p>
+
+      <p className={styles.footer}>
+        Already have an account?{" "}
+        <Link to="/login" className={styles.link}>
+          Sign in
+        </Link>
+      </p>
+
+      {!invite && (
+        <p className={styles.footer}>
+          Running an agency with several counsellors?{" "}
+          <Link to="/register/agency" className={styles.link}>
+            Create an agency
+          </Link>
+        </p>
+      )}
+    </AuthShell>
   );
 }

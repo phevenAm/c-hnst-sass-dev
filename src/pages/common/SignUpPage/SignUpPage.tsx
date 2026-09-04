@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
-import { LeafLogoMark } from "@components/shared/Icons/Icons";
-import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
+import AuthShell from "@components/shared/AuthShell/AuthShell";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
@@ -109,101 +108,83 @@ export default function SignUpPage() {
   };
 
   return (
-    <main className={`${styles.page} page`}>
-      <ImageBlurBlock
-        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
-        photographer="Amirali Shaghaghi"
-        sourceLabel="Pexels"
-        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
-      />
-      <div className={`${styles.container} container`}>
-        <div className={styles.logoWrap}>
-          <LeafLogoMark size={48} />
-          <div className={styles.logoText}>
-            <h1 className={styles.logoTitle}>Clarity</h1>
-            <p className={styles.logoSub}>Create your account</p>
-          </div>
+    <AuthShell tagline="Create your account" wide>
+      <h2 className={styles.heading}>Get started</h2>
+
+      {error && (
+        <div role="alert" className={styles.error}>
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate>
+        <div className={styles.formGrid}>
+          {FIELDS.map((field) => (
+            <div key={field.id} className={`${styles.field} ${HALF_WIDTH.has(field.id) ? "" : styles.fieldFull}`}>
+              <label
+                htmlFor={field.id}
+                className={styles.label}
+                style={field.id === "dob" ? { display: "flex", alignItems: "center", gap: "6px" } : undefined}
+              >
+                {field.label}
+                {field.id === "dob" && (
+                  <InfoTooltip
+                    variant="rich"
+                    trigger="click"
+                    title="Why we ask for your date of birth"
+                    text={
+                      "Your date of birth is only used to work out your age. That lets your counsellor's resource " +
+                      "library automatically show you age-appropriate material and hold back anything they've " +
+                      "marked as suitable for adults only.\n\nIt isn't shown to other clients, and your counsellor " +
+                      "chooses whether to display it on your profile."
+                    }
+                  />
+                )}
+              </label>
+              {field.type === "password" ? (
+                <PasswordInput
+                  id={field.id}
+                  value={form[field.id]}
+                  onChange={(e) => set(field.id, e.target.value)}
+                  placeholder={field.ph}
+                  required
+                  autoComplete={getAutoComplete(field.id)}
+                  className={styles.input}
+                />
+              ) : (
+                <input
+                  id={field.id}
+                  type={field.type}
+                  value={form[field.id]}
+                  onChange={(e) => set(field.id, e.target.value)}
+                  placeholder={field.ph}
+                  required
+                  autoComplete={getAutoComplete(field.id)}
+                  {...(field.type === "date" && {
+                    max: new Date().toISOString().split("T")[0],
+                  })}
+                  className={styles.input}
+                />
+              )}
+            </div>
+          ))}
         </div>
 
-        <div className={styles.card}>
-          <h2 className={styles.heading}>Get started</h2>
+        <button
+          type="submit"
+          disabled={loading || !form.email || !form.dob || !form.password || !form.confirm || !form.accessToken}
+          className={styles.submitBtn}
+        >
+          {loading ? "Creating account…" : "Create account"}
+        </button>
+      </form>
 
-          {error && (
-            <div role="alert" className={styles.error}>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div className={styles.formGrid}>
-              {FIELDS.map((field) => (
-                <div key={field.id} className={`${styles.field} ${HALF_WIDTH.has(field.id) ? "" : styles.fieldFull}`}>
-                  <label
-                    htmlFor={field.id}
-                    className={styles.label}
-                    style={field.id === "dob" ? { display: "flex", alignItems: "center", gap: "6px" } : undefined}
-                  >
-                    {field.label}
-                    {field.id === "dob" && (
-                      <InfoTooltip
-                        variant="rich"
-                        trigger="click"
-                        title="Why we ask for your date of birth"
-                        text={
-                          "Your date of birth is only used to work out your age. That lets your counsellor's resource " +
-                          "library automatically show you age-appropriate material and hold back anything they've " +
-                          "marked as suitable for adults only.\n\nIt isn't shown to other clients, and your counsellor " +
-                          "chooses whether to display it on your profile."
-                        }
-                      />
-                    )}
-                  </label>
-                  {field.type === "password" ? (
-                    <PasswordInput
-                      id={field.id}
-                      value={form[field.id]}
-                      onChange={(e) => set(field.id, e.target.value)}
-                      placeholder={field.ph}
-                      required
-                      autoComplete={getAutoComplete(field.id)}
-                      className={styles.input}
-                    />
-                  ) : (
-                    <input
-                      id={field.id}
-                      type={field.type}
-                      value={form[field.id]}
-                      onChange={(e) => set(field.id, e.target.value)}
-                      placeholder={field.ph}
-                      required
-                      autoComplete={getAutoComplete(field.id)}
-                      {...(field.type === "date" && {
-                        max: new Date().toISOString().split("T")[0],
-                      })}
-                      className={styles.input}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || !form.email || !form.dob || !form.password || !form.confirm || !form.accessToken}
-              className={styles.submitBtn}
-            >
-              {loading ? "Creating account…" : "Create account"}
-            </button>
-          </form>
-
-          <p className={styles.footer}>
-            Already have an account?{" "}
-            <Link to="/login" className={styles.link}>
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
-    </main>
+      <p className={styles.footer}>
+        Already have an account?{" "}
+        <Link to="/login" className={styles.link}>
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
