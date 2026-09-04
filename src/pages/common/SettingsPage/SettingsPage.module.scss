@@ -434,23 +434,32 @@
 // that signal instead of just hinting at it.
 .tabsWrap {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  gap: $sp-1;
   border-bottom: 1px solid var(--border);
 }
 
+// A tinted, bordered circle rather than a bare icon on the card background
+// — the flat version was too close in contrast to the card to read as a
+// button at a glance, especially in dark mode.
 .tabsArrow {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 1.75rem;
-  border: none;
-  background: var(--bg-card);
-  color: var(--text-muted);
+  height: 1.75rem;
+  margin: $sp-1 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  color: var(--accent-dark);
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 
   &:hover {
-    color: var(--text-primary);
+    background: var(--accent-light);
+    border-color: var(--accent);
   }
 }
 
