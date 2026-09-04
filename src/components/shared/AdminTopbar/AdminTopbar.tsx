@@ -73,9 +73,8 @@ export default function AdminTopbar() {
           </button>
         )}
 
-        <NotificationBell />
-
         <EncryptionStatusPill />
+        <NotificationBell />
 
         {userProfile && (
           <Link to="/settings" className={styles.avatarLink} aria-label="Settings">
