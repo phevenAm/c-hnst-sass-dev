@@ -12,28 +12,42 @@ import { expect, type Page, test } from "@playwright/test";
 
 const BASE = "http://localhost:5174";
 
-async function dismissOnboarding(page: Page) {
-  try {
-    await page.waitForSelector('[role="dialog"]', { timeout: 2000 });
-    const dismissBtn = page
-      .locator('button:has-text("Save"), button:has-text("Skip"), button:has-text("No thanks")')
-      .first();
-    if (await dismissBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-      await dismissBtn.click();
-    }
-    await page.waitForTimeout(600);
-  } catch {
-    // no onboarding modal
-  }
+// Clicking through OnboardingModal doesn't work for the demo account: per
+// 20260831000000_reset_demo_onboarding.sql, AuthContext.updateProfile
+// short-circuits for is_demo and never writes onboarding_completed to the
+// DB, so the modal reappears on every fresh navigation — and this spec's
+// beforeEach does a fresh page.goto() before every single test. A one-time
+// click in beforeAll (the old approach) only ever dismissed it for the very
+// first test. Remove the dialog from the DOM instead, permanently, for the
+// life of this page — addInitScript + a MutationObserver survive every
+// subsequent navigation without needing to re-run per test.
+async function suppressOnboardingModal(page: Page) {
+  await page.addInitScript(() => {
+    const remove = () => {
+      document.querySelectorAll('[aria-label="Personalize your account"]').forEach((dialog) => {
+        (dialog.parentElement ?? dialog).remove();
+      });
+    };
+    // addInitScript runs before the page's own markup/scripts — document.body
+    // (and possibly documentElement) may not exist yet, so observing it
+    // immediately can silently no-op. Defer setup to DOMContentLoaded, which
+    // still fires well before React mounts and renders the modal.
+    const start = () => {
+      remove();
+      new MutationObserver(remove).observe(document.body, { childList: true, subtree: true });
+    };
+    if (document.body) start();
+    else document.addEventListener("DOMContentLoaded", start, { once: true });
+  });
 }
 
 async function loginAsDemoAdmin(page: Page) {
+  await suppressOnboardingModal(page);
   await page.goto(`${BASE}/login`, { waitUntil: "load" });
   await page.fill('input[type="email"]', "demo-admin@honest.com");
   await page.fill('input[type="password"]', "DemoAdmin2026");
   await page.click('button[type="submit"]');
   await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 10000 });
-  await dismissOnboarding(page);
 }
 
 test.describe("Admin settings", () => {
@@ -52,13 +66,12 @@ test.describe("Admin settings", () => {
 
   test.beforeEach(async () => {
     await page.goto(`${BASE}/settings`, { waitUntil: "load" });
-    await dismissOnboarding(page);
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 10000 });
   });
 
   test("Profile tab is the default and shows the edit-profile form", async () => {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-    await expect(page.getByLabel(/display name/i)).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /display name/i })).toBeVisible();
     await expect(page.getByRole("button", { name: "Update profile" })).toBeVisible();
   });
 
@@ -106,7 +119,9 @@ test.describe("Admin settings", () => {
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Accessibility" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Guided tours" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Sidebar" })).toBeVisible();
+    // "Sidebar" was never its own section — the sidebar expand-button
+    // control lives as a row inside "Accessibility" (asserted above).
+    await expect(page.getByText("Sidebar expand button")).toBeVisible();
   });
 
   test("Sidebar expand-button position is a local preference, not a server save", async () => {

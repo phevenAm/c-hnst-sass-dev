@@ -67,6 +67,15 @@
          (Router.tsx) reports auth is ready. React never touches this
          element (see the comment on #boot-splash below for why). -->
     <style>
+      /* Belt-and-braces: paint the same solid colour on html/body too, so
+         there's never a default-white frame visible before/around
+         #boot-splash regardless of paint timing or storage quirks. */
+      html, body {
+        background: #f3f1ea;
+      }
+      html.dark, html.dark body {
+        background: #162622;
+      }
       #boot-splash {
         position: fixed;
         inset: 0;
@@ -79,26 +88,10 @@
         background: #162622;
         color: #2d5047;
       }
-      /* The mark's own SMIL animation always runs from t=0 — rather than
-         chase every edge case in how browsers render its very first instants
-         (a stroke-dasharray "growing line" trick can render as a stray dot
-         for a moment before it's visually obvious what's forming), it just
-         stays invisible for the first second and fades in — by which point
-         the SMIL animation has already progressed somewhere recognisable. */
+      /* No fade-in delay: the mark is visible immediately, the SMIL
+         animation just plays from t=0. */
       #boot-splash-mark {
-        opacity: 0;
-        animation: heroMarkFadeIn 400ms ease 1000ms forwards;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        #boot-splash-mark {
-          opacity: 1;
-          animation: none;
-        }
-      }
-      @keyframes heroMarkFadeIn {
-        to {
-          opacity: 1;
-        }
+        opacity: 1;
       }
     </style>
   </head>

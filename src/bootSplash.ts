@@ -21,7 +21,9 @@ declare global {
   }
 }
 
-const FADE_MS = 480;
+// No exit fade — the splash is removed instantly once done, rather than
+// cross-fading into the app underneath.
+const FADE_MS = 0;
 // "sapling animated.svg"'s keyTimes were rescaled so it starts moving
 // immediately instead of opening on ~0.6s of a static dot before the stem/
 // leaves visibly moved. Growth now finishes by ~32% of the 5s loop (~1.6s);
@@ -84,12 +86,6 @@ function boot() {
       // SMIL control unsupported — the SVG just keeps looping, which is a
       // motion-preference miss but not a broken splash.
     }
-    // The CSS fade-in (app.html, #boot-splash-mark) has its own
-    // prefers-reduced-motion media query for the OS setting, but can't see
-    // the app's own "Stop animations" toggle — cancel it here so that case
-    // is instant too, not stuck invisible for the fade's 1s delay.
-    mark.style.animation = "none";
-    mark.style.opacity = "1";
     animDone = true;
     maybeFinish();
     return;
