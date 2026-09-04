@@ -170,9 +170,11 @@ const sessionsSlice = createSlice({
         state.error = action.payload as string;
       })
       //-----update session
-      .addCase(updateSession.pending, (state) => {
-        state.status = "loading";
-      })
+      // Like delete, update is a mutation and deliberately does NOT touch `status`.
+      // Page-level guards (isPageStatusLoading) key off it, so flipping it to
+      // "loading" here flashed the whole scheduler — and any open session modal —
+      // to its loading spinner on every "mark attended", "mark paid", save-notes,
+      // or in-place reschedule.
       .addCase(updateSession.fulfilled, (state, action) => {
         const targetIndex = state.sessions.findIndex((s) => s.id === action.payload.id);
 
@@ -208,11 +210,8 @@ const sessionsSlice = createSlice({
             }
           }
         }
-
-        state.status = "succeeded";
       })
       .addCase(updateSession.rejected, (state, action) => {
-        state.status = "failed";
         state.error = action.payload as string;
       })
       //---------------delete session

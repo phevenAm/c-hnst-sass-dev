@@ -27,14 +27,16 @@
   z-index: 2;
 }
 
-// ── Card ───────────────────────────────────────────────────
+// ── Card: one soft-green plate ─────────────────────────────
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: var(--accent-subtle);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-lg);
-  // Clip the header band's top corners to the card radius.
-  overflow: hidden;
+  padding: $sp-3;
+
+  @media (max-width: 640px) {
+    padding: $sp-2;
+  }
 }
 
 .cardWide {
@@ -45,18 +47,12 @@
   max-width: 460px;
 }
 
-// ── Header band (logo + tagline) ───────────────────────────
+// ── Header (logo + tagline, sits on the green) ─────────────
 .header {
   display: flex;
   align-items: center;
   gap: $sp-3;
-  padding: $sp-5 $sp-8;
-  background: var(--bg-muted);
-  border-bottom: 1px solid var(--border);
-
-  @media (max-width: 640px) {
-    padding: $sp-4 $sp-5;
-  }
+  padding: $sp-3 $sp-4 $sp-4;
 }
 
 .headerText {
@@ -73,16 +69,19 @@
 
 .tagline {
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .headerAside {
   margin-left: auto;
 }
 
-// ── Body (the page-supplied card content) ──────────────────
+// ── Body: the form, in its own lighter container ───────────
 .body {
-  padding: $sp-8;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: $sp-7;
 
   @media (max-width: 640px) {
     padding: $sp-5;
