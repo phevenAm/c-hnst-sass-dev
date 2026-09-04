@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
@@ -152,9 +153,14 @@ export default function SuperAdminPage() {
           <h1 className={styles.title}>Honest Portal</h1>
           <p className={styles.subtitle}>Superadmin — all practices</p>
         </div>
-        <button type="button" className={styles.signOutBtn} onClick={signOut}>
-          Sign out
-        </button>
+        <div className={styles.headerActions}>
+          <Link to="/dev" className={styles.signOutBtn}>
+            Test coverage
+          </Link>
+          <button type="button" className={styles.signOutBtn} onClick={signOut}>
+            Sign out
+          </button>
+        </div>
       </div>
 
       <div className={styles.stats}>

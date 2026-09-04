@@ -33,6 +33,12 @@
   margin: 0;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+}
+
 .signOutBtn {
   font-size: 0.82rem;
   color: var(--text-muted);
@@ -41,6 +47,8 @@
   border-radius: var(--r-md);
   padding: $sp-2 $sp-4;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
   transition: color 0.15s, border-color 0.15s;
 
   &:hover {

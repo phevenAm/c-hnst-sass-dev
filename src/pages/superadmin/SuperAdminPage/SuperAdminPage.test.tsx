@@ -1,7 +1,18 @@
+import { MemoryRouter } from "react-router-dom";
+
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SuperAdminPage from "./SuperAdminPage";
+
+// The header's "Test coverage" link needs a Router context.
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <SuperAdminPage />
+    </MemoryRouter>,
+  );
+}
 
 afterEach(() => {
   cleanup();
@@ -67,7 +78,7 @@ describe("SuperAdminPage — pausing a practice", () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<SuperAdminPage />);
+    renderPage();
 
     const pauseBtn = await screen.findByRole("button", { name: /pause/i });
     fireEvent.click(pauseBtn);
@@ -94,7 +105,7 @@ describe("SuperAdminPage — pausing a practice", () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<SuperAdminPage />);
+    renderPage();
 
     expect(await screen.findByText("Paused")).toBeInTheDocument();
     const resumeBtn = screen.getByRole("button", { name: /resume/i });
@@ -119,7 +130,7 @@ describe("SuperAdminPage — pausing a practice", () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<SuperAdminPage />);
+    renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: /pause/i }));
     const dialog = await screen.findByRole("dialog");

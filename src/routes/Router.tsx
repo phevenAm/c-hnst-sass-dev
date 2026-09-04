@@ -72,6 +72,7 @@ const SubscribePage = lazy(() => import("../pages/common/SubscribePage/Subscribe
 const TermsPage = lazy(() => import("../pages/common/TermsPage/TermsPage"));
 const UnsubscribePage = lazy(() => import("../pages/common/UnsubscribePage/UnsubscribePage"));
 const SuperAdminPage = lazy(() => import("../pages/superadmin/SuperAdminPage/SuperAdminPage"));
+const DevCoveragePage = lazy(() => import("../pages/superadmin/DevCoveragePage/DevCoveragePage"));
 
 const AgencyLayout = lazy(() => import("../components/agency/AgencyLayout/AgencyLayout"));
 const CreateAgencyPage = lazy(() => import("../pages/agency/CreateAgencyPage/CreateAgencyPage"));
@@ -419,6 +420,17 @@ export default function AppRoutes() {
                   <ProtectedRoute>
                     <SuperAdminGate>
                       <SuperAdminPage />
+                    </SuperAdminGate>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/dev"
+                element={
+                  <ProtectedRoute>
+                    <SuperAdminGate>
+                      <DevCoveragePage />
                     </SuperAdminGate>
                   </ProtectedRoute>
                 }

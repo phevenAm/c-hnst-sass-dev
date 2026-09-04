@@ -1,0 +1,207 @@
+@use "../../../styles/spacing" as *;
+
+.page {
+  min-height: 100vh;
+  background: var(--bg-base);
+  padding: $sp-8 $sp-10;
+  max-width: 1100px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    padding: $sp-6 $sp-4;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-4;
+  margin-bottom: $sp-6;
+}
+
+.title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 $sp-1;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 46rem;
+}
+
+.backLink {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+// ── Summary stats ────────────────────────────────────────────────────────
+
+.stats {
+  display: flex;
+  gap: $sp-6;
+  margin-bottom: $sp-8;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+// ── Entries ───────────────────────────────────────────────────────────────
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: $sp-5;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $sp-3;
+  flex-wrap: wrap;
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.verifiedAt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.summary {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  margin: $sp-2 0 0;
+}
+
+.section {
+  margin-top: $sp-4;
+}
+
+.sectionTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 0 0 $sp-2;
+}
+
+.list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+// Gaps get a slightly warmer, "pay attention" treatment without being a full
+// alert banner — this section exists specifically to not be glossed over.
+.gaps {
+  background: color-mix(in srgb, var(--warning, #b8860b) 8%, transparent);
+  border-radius: var(--r-md);
+  padding: $sp-3 $sp-4;
+  margin-top: $sp-4;
+
+  .sectionTitle {
+    color: var(--warning, #b8860b);
+  }
+}
+
+// ── Test table ────────────────────────────────────────────────────────────
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    padding: 0 $sp-2 $sp-1 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: $sp-2 $sp-2 $sp-2 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.fileCell {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.noteCell {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.pillUnit,
+.pillE2e {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--r-full, 999px);
+}
+
+.pillUnit {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.pillE2e {
+  background: color-mix(in srgb, var(--highlight, var(--accent)) 18%, transparent);
+  color: var(--text-primary);
+}
