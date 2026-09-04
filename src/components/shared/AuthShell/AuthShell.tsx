@@ -43,9 +43,11 @@ export default function AuthShell({
         />
       )}
       <div className={`${styles.container} container`}>
-        <div className={[styles.card, wide ? styles.cardWide : ""].filter(Boolean).join(" ")}>
+        <div
+          className={[styles.card, wide ? styles.cardWide : "", photo ? styles.onPhoto : ""].filter(Boolean).join(" ")}
+        >
           <header className={styles.header}>
-            <LeafLogoMark size={40} color="var(--accent)" />
+            <LeafLogoMark size={40} color="var(--logo-color, var(--accent))" />
             <div className={styles.headerText}>
               <span className={styles.title}>Clarity</span>
               <span className={styles.tagline}>{tagline}</span>

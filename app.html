@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+    <!-- Resolve dark mode before first paint, synchronously, from the same
+         source the app itself uses (src/store/slices/themeSlice.tsx) — not
+         just the OS prefers-color-scheme. Someone who explicitly picked
+         light/dark (rather than "system") sees that choice everywhere,
+         including here; #boot-splash's CSS below keys off html.dark, not a
+         prefers-color-scheme media query, so it can never disagree with it. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("theme");
+          var dark = saved === "dark" || (saved !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+
     <title>Clarity: Counselling Practice Management</title>
     <meta name="description" content="A counselling client portal for tracking personal growth and wellbeing." />
 
@@ -40,11 +56,16 @@
     <!-- Preload auth background image for faster paint -->
     <link rel="preload" as="image" href="/pexels-amirali-shaghaghi-18428647.jpg">
 
-    <!-- Boot splash: painted instantly on navigation (e.g. the marketing site's
-         "Log in" link) so there's no white gap while the app bundle loads and
-         React mounts. React clears #root on first render, which removes it; the
-         app's own <AuthLoadingState variant="splash"> then carries the same look
-         through the session check. -->
+    <!-- Boot splash: painted instantly on navigation (e.g. the marketing
+         site's "Log in" link). The mark is "src/LOGO Asset/sapling
+         animated.svg", inlined verbatim below — it's self-animating (SMIL
+         <animate>), no JS/fetch/library needed, so it's playing the instant
+         the browser has this HTML, before the ~1 MB main app bundle
+         (/src/index.tsx) has even downloaded. /src/bootSplash.ts (a small,
+         separate script) just coordinates *when the splash goes away*: it
+         removes the whole node once the animation's settled AND the app
+         (Router.tsx) reports auth is ready. React never touches this
+         element (see the comment on #boot-splash below for why). -->
     <style>
       #boot-splash {
         position: fixed;
@@ -53,30 +74,54 @@
         place-items: center;
         background: #f3f1ea;
         color: #2d7264;
-        animation: bootSplashPulse 6s ease-in-out infinite;
       }
-      @keyframes bootSplashPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.55; }
+      html.dark #boot-splash {
+        background: #162622;
+        color: #2d5047;
       }
-      @media (prefers-color-scheme: dark) {
-        #boot-splash { background: #1c1a16; color: #6cae9f; }
+      /* The mark's own SMIL animation always runs from t=0 — rather than
+         chase every edge case in how browsers render its very first instants
+         (a stroke-dasharray "growing line" trick can render as a stray dot
+         for a moment before it's visually obvious what's forming), it just
+         stays invisible for the first second and fades in — by which point
+         the SMIL animation has already progressed somewhere recognisable. */
+      #boot-splash-mark {
+        opacity: 0;
+        animation: heroMarkFadeIn 400ms ease 1000ms forwards;
       }
       @media (prefers-reduced-motion: reduce) {
-        #boot-splash { animation: none; }
+        #boot-splash-mark {
+          opacity: 1;
+          animation: none;
+        }
+      }
+      @keyframes heroMarkFadeIn {
+        to {
+          opacity: 1;
+        }
       }
     </style>
   </head>
   <body>
-    <div id="root">
-      <div id="boot-splash">
-        <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Clarity" role="img">
-          <path d="M12 22V12" />
-          <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
-          <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
-        </svg>
+    <!-- Sibling of #root, not a child of it: React's first render replaces
+         #root's entire contents (it doesn't hydrate/preserve existing DOM),
+         so anything placed inside #root would get wiped the instant React
+         mounts — regardless of whether bootSplash.ts is still animating.
+         Living outside #root means bootSplash.ts owns this node's entire
+         lifecycle itself; React never touches it. -->
+    <div id="boot-splash">
+      <!-- src/LOGO Asset/sapling animated.svg, inlined verbatim — a self-
+           animating SVG (SMIL <animate>), so it plays the instant the browser
+           has this HTML, no JS/lottie-web/fetch needed at all. It loops
+           (repeatCount="indefinite"); bootSplash.ts leaves it running and
+           just times the fade-out, and freezes it at a held frame instead for
+           reduced-motion. Regenerate this block from that file if it changes. -->
+      <div id="boot-splash-mark" style="width: 96px; height: 96px;" aria-label="Clarity" role="img">
+        <svg fill="none" height="100%" width="100%" viewBox="0 0 96 96" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(4,0,0,4,0,0)" display="none" id="i0"><animate repeatCount="indefinite" begin="0s" calcMode="discrete" dur="5s" values="none; inline; inline" keyTimes="0; 0.105682; 1" attributeName="display" /><g id="i1"><path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="#184030" fill="#184030" fill-opacity="0" d="M12,12C12,7,17,3,22,3C22,8,18,12,12,12C12,12,12,12,12,12Z"><animate repeatCount="indefinite" attributeName="fill-opacity" dur="5s" begin="0s" fill="freeze" values="0; 0; 0; 0.88; 0.88" keyTimes="0; 0.242424; 0.280303; 0.318182; 1" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1; 0 0 1 1" calcMode="spline" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1" keyTimes="0; 0.022727; 0.303031; 1" values="0 100; 0 100; 100 0; 100 0" attributeName="stroke-dasharray" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1" keyTimes="0; 0.022727; 0.303031; 1" values="0; 0; 0; 0" attributeName="stroke-dashoffset" /></path></g></g><g transform="matrix(4,0,0,4,0,0)" id="i2"><g id="i3"><path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="#2c4f41" d="M12,22C12,22,12,12,12,12"><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0.37 0 0 1; 0.37 0 0 1; 0 0 1 1" keyTimes="0; 0; 0.015151; 1" values="0 100; 98.719 1.281; 98.99 1.01; 98.99 1.01" attributeName="stroke-dasharray" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0.37 0 0 1; 0.37 0 0 1; 0 0 1 1" keyTimes="0; 0; 0.015151; 1" values="0; 0; 0; 0" attributeName="stroke-dashoffset" /></path></g></g><g transform="matrix(4,0,0,4,0,0)" display="none" id="i4"><animate repeatCount="indefinite" begin="0s" calcMode="discrete" dur="5s" values="none; inline; inline" keyTimes="0; 0; 1" attributeName="display" /><g id="i5"><path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="#2c4f41" d="M12,12C12,7,7,3,2,3C2,8,6,12,12,12C12,12,12,12,12,12Z"><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0.76 0 0.24 1; 0 0 1 1" keyTimes="0; 0; 0.113636; 1" values="0 100; 0 100; 100 0; 100 0" attributeName="stroke-dasharray" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0.76 0 0.24 1; 0 0 1 1" keyTimes="0; 0; 0.113636; 1" values="0; 0; 0; 0" attributeName="stroke-dashoffset" /></path></g></g></svg>
       </div>
     </div>
+    <div id="root"></div>
+    <script type="module" src="/src/bootSplash.ts"></script>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

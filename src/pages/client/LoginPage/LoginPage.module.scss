@@ -99,7 +99,7 @@
   width: 100%;
   text-align: right;
   font-size: 0.8rem;
-  color: inherit;
+  color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.15em;
@@ -169,4 +169,3 @@
   color: var(--text-muted);
   line-height: 1.4;
 }
-

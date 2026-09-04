@@ -62,16 +62,32 @@ test.describe("Admin settings", () => {
     await expect(page.getByRole("button", { name: "Update profile" })).toBeVisible();
   });
 
-  test("Practice tab renders business, payment, and automation sections", async () => {
+  // The 2026-09-03 tab rework (6 tabs: Profile / Practice / Schedule & bookings
+  // / Billing / Emails / Interface & accessibility) split what used to be one
+  // "Practice" tab across three — this spec wasn't updated to match at the
+  // time, so it kept clicking "Practice" and asserting headings that had
+  // actually moved to Schedule & bookings / Billing. Split to match reality.
+  test("Practice tab renders business info and client consent", async () => {
     await page.getByRole("button", { name: "Practice" }).click();
 
     await expect(page.getByRole("heading", { name: "Business information" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Bank details" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Card payments" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Client consent" })).toBeVisible();
+  });
+
+  test("Schedule & bookings tab renders calendar sync and session automation", async () => {
+    await page.getByRole("button", { name: "Schedule & bookings" }).click();
+
     await expect(page.getByRole("heading", { name: "Calendar sync" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Session automation" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Reschedule & cancellation cutoff" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Client consent" })).toBeVisible();
+  });
+
+  test("Billing tab renders bank details, card payments, and the pause/delete card", async () => {
+    await page.getByRole("button", { name: "Billing" }).click();
+
+    await expect(page.getByRole("heading", { name: "Bank details" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Card payments" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pause or close your practice" })).toBeVisible();
   });
 
   test("Emails tab lists the transactional email templates", async () => {

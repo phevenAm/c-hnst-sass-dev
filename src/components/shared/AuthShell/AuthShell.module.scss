@@ -99,3 +99,41 @@
   font-size: 0.8rem;
   color: var(--text-secondary);
 }
+
+// ── Mobile with the photo on: <ImageBlurBlock> goes full-bleed behind
+//    everything at this same width (its own 800px breakpoint), so the outer
+//    plate would otherwise sit as a washed-out box on top of the photo.
+//    Drop it and float the header/footer text in white instead — the .body
+//    panel (the actual form) keeps its own card background so fields stay
+//    legible.
+@media (max-width: 800px) {
+  .onPhoto {
+    background: none;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .onPhoto .header {
+    --logo-color: #ffffff;
+  }
+
+  .onPhoto .title {
+    color: #ffffff;
+  }
+
+  .onPhoto .tagline {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .onPhoto .footer {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .onPhoto .footer :global(.link) {
+    color: #ffffff;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+}
