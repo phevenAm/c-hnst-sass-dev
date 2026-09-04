@@ -100,44 +100,51 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
   const thisYear = expenses.filter((e) => new Date(e.incurred_on).getFullYear() === currentYear);
   const thisYearTotal = thisYear.reduce((sum, e) => sum + e.amount_pence, 0);
 
-  const exportCsv = () => {
-    const headers = ["Date", "Category", "Description", "Amount", "Receipt"];
-    const rows = visible.map((e) => [
-      e.incurred_on,
-      e.category,
-      e.description ?? "",
-      (e.amount_pence / 100).toFixed(2),
-      e.receipt_url ?? "",
-    ]);
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `expenses-${currentYear}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportCsv = async () => {
+    const { downloadBrandedCsv } = await import("../../../Helpers/csvExport");
+    downloadBrandedCsv({
+      filename: `expenses-${currentYear}`,
+      title: "Expenses export",
+      meta: [
+        ["Practice", userProfile?.display_name ?? "Practice"],
+        ["Year", currentYear],
+        ["Total shown", money(visible.reduce((s, e) => s + e.amount_pence, 0))],
+      ],
+      headers: ["Date", "Category", "Description", "Amount", "Receipt"],
+      rows: visible.map((e) => [
+        e.incurred_on,
+        e.category,
+        e.description ?? "",
+        (e.amount_pence / 100).toFixed(2),
+        e.receipt_url ?? "",
+      ]),
+    });
   };
 
   const exportPdf = async () => {
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
+    const { addCoverPage, runningHeader, stampChrome, tableBlock } = await import("../../../Helpers/pdfBranding");
     const doc = new jsPDF();
     const name = userProfile?.display_name ?? "Practice";
-    doc.setFontSize(16);
-    doc.text("Expenses", 14, 18);
+
+    addCoverPage(doc, { title: "Expenses", subtitle: `${name} · ${currentYear}` });
+    doc.addPage();
+
+    const y = runningHeader(doc, `Expenses · ${currentYear}`);
     doc.setFontSize(10);
-    doc.text(`${name} · ${currentYear}`, 14, 26);
-    doc.text(`Total shown: ${money(visible.reduce((s, e) => s + e.amount_pence, 0))}`, 14, 32);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total shown: ${money(visible.reduce((s, e) => s + e.amount_pence, 0))}`, 14, y + 8);
 
     autoTable(doc, {
-      startY: 40,
+      startY: y + 16,
       head: [["Date", "Category", "Description", "Amount"]],
       body: visible.map((e) => [e.incurred_on, e.category, e.description ?? "", money(e.amount_pence)]),
       styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [45, 114, 100] },
+      ...tableBlock(),
     });
 
+    stampChrome(doc, { title: `Expenses · ${currentYear}`, footer: `Expenses ${currentYear}` });
     doc.save(`expenses-${currentYear}.pdf`);
   };
 
@@ -161,7 +168,7 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
               setModalOpen(true);
             }}
             options={[
-              { label: "Export CSV", onClick: exportCsv },
+              { label: "Export CSV", onClick: () => void exportCsv() },
               { label: "Export PDF", onClick: () => void exportPdf() },
             ]}
           />

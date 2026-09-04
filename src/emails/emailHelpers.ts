@@ -3,8 +3,10 @@
 // Palette from src/styles/_colors.scss (Clarity teal/sage).
 
 const C = {
-  pageBg: "#f5f5ee",
-  cardBg: "#fffdf9",
+  // Warm stone ground + a pure-white card with a hairline border, so the body
+  // always reads as its own panel. Mirrors supabase/functions/_shared/email.ts.
+  pageBg: "#e9e6da",
+  cardBg: "#ffffff",
   header: "#1f4940",
   footer: "#1a3a35",
   accent: "#1f4940",
@@ -99,23 +101,23 @@ export function emailTemplate({
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.pageBg};">
   <tr>
     <td align="center" style="padding:36px 16px;">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:100%;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:100%;border-radius:14px;box-shadow:0 12px 32px rgba(26,58,53,0.14);">
 
         <tr>
-          <td style="background:${C.header};border-radius:14px 14px 0 0;padding:18px 40px;">
+          <td style="background:${C.header};border-radius:14px 14px 0 0;padding:22px 40px;">
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="vertical-align:middle;padding-right:9px;">
-                  <img src="${LOGO_URL}" width="24" height="24" alt="" style="display:block;border:0;" />
+                <td style="vertical-align:middle;padding-right:10px;">
+                  <img src="${LOGO_URL}" width="26" height="26" alt="" style="display:block;border:0;" />
                 </td>
-                <td style="vertical-align:middle;font-family:${SERIF};font-size:20px;font-weight:400;color:#ffffff;letter-spacing:-0.01em;">Clarity</td>
+                <td style="vertical-align:middle;font-family:${SERIF};font-size:21px;font-weight:400;color:#ffffff;letter-spacing:-0.01em;">Clarity</td>
               </tr>
             </table>
           </td>
         </tr>
 
         <tr>
-          <td style="background:${C.cardBg};padding:36px 40px 30px;border-left:1px solid ${C.hairline};border-right:1px solid ${C.hairline};">
+          <td style="background:${C.cardBg};padding:36px 40px 30px;border:1px solid ${C.hairline};border-top:0;border-bottom:0;">
             <p style="font-family:${SANS};font-size:11px;font-weight:600;color:${C.caption};margin:0 0 10px;text-transform:uppercase;letter-spacing:0.12em;">${label}</p>
             <h2 style="font-family:${SERIF};font-size:24px;font-weight:400;color:${C.text};margin:0 0 20px;line-height:1.35;">${title}</h2>
             ${body}
