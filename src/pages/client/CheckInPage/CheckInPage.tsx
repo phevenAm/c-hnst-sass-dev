@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import Button from "../../../components/shared/Button/Button";
 import Card from "../../../components/shared/Card/Card";
@@ -122,6 +122,7 @@ function MultipleChoiceQuestion({
 export default function CheckInPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { authUser, userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
 
@@ -130,7 +131,12 @@ export default function CheckInPage() {
   const responsesStatus = useAppSelector((state) => state.responses.status);
   const assignmentsStatus = useAppSelector((state) => state.assignments.status);
 
-  const [activeTab, setActiveTab] = useState<FormTab>("check_in");
+  // ClientDashboard's "Start" links pass ?tab=<form_type> so a client lands
+  // directly on the right tab instead of always defaulting to Check-ins.
+  const [activeTab, setActiveTab] = useState<FormTab>(() => {
+    const requested = searchParams.get("tab");
+    return TABS.some((t) => t.id === requested) ? (requested as FormTab) : "check_in";
+  });
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -171,11 +177,10 @@ export default function CheckInPage() {
 
   const activeAssignments = assignments.filter((a) => a.questionnaires?.is_active);
 
-  const tabAssignments = activeAssignments.filter(
-    (a) => (a.questionnaires?.form_type ?? "outcome_measure") === activeTab,
-  );
-
-  const availableAssignments = tabAssignments.filter((a) => {
+  // Pulled out of the tabAssignments filter (which used to hardcode
+  // activeTab) so the "anything left to do?" check after a submit — which
+  // needs to look at every tab, not just the current one — can reuse it.
+  const isAssignmentAvailable = (a: AssignmentWithQuestionnaire, tab: FormTab): boolean => {
     const q = a.questionnaires;
     if (!q) return false;
     if ((q as any).is_rcads) {
@@ -186,7 +191,7 @@ export default function CheckInPage() {
 
     // Check-ins recur on their frequency; a "one-time" check-in behaves like an
     // outcome measure.
-    if (activeTab === "check_in") {
+    if (tab === "check_in") {
       if (q.frequency) {
         if (!latest) return true;
         return isQuestionnaireCheckInDue(getResponseDate(latest), q.frequency);
@@ -195,7 +200,7 @@ export default function CheckInPage() {
       return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(getResponseDate(latest));
     }
 
-    if (activeTab === "outcome_measure") {
+    if (tab === "outcome_measure") {
       if (!latest) return true; // show until answered once
       // admin re-opened it since the client's last response
       return !!a.prompt_again_at && new Date(a.prompt_again_at) > new Date(getResponseDate(latest));
@@ -203,9 +208,40 @@ export default function CheckInPage() {
 
     // feedback: show once (if never submitted)
     return !latest;
-  });
+  };
+
+  const tabAssignments = activeAssignments.filter(
+    (a) => (a.questionnaires?.form_type ?? "outcome_measure") === activeTab,
+  );
+
+  const availableAssignments = tabAssignments.filter((a) => isAssignmentAvailable(a, activeTab));
 
   const questionnaire = availableAssignments[0]?.questionnaires;
+
+  // Once the current form is submitted: is there another one due, either
+  // still in this tab or in a different one? Checked eagerly (not just
+  // inside the `submitted` branch) so it reflects the redux state from the
+  // response that was just recorded.
+  const nextInSameTab = availableAssignments.length > 0;
+  const nextTab = !nextInSameTab
+    ? TABS.find(
+        (t) =>
+          t.id !== activeTab &&
+          activeAssignments.some(
+            (a) => (a.questionnaires?.form_type ?? "outcome_measure") === t.id && isAssignmentAvailable(a, t.id),
+          ),
+      )
+    : undefined;
+
+  const handleStartNext = (tab?: FormTab) => {
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab); // the effect below resets answers/currentStep/submitted
+      return;
+    }
+    setAnswers({});
+    setCurrentStep(0);
+    setSubmitted(false);
+  };
 
   const guard = isPageStatusLoading(responsesStatus, assignmentsStatus);
   if (guard) return guard;
@@ -219,7 +255,16 @@ export default function CheckInPage() {
           </div>
           <h2 className={styles.completeTitle}>Thank you, {userProfile?.first_name}</h2>
           <p className={styles.completeText}>Your response has been recorded.</p>
-          <Button onClick={() => navigate("/dashboard")} fullWidth>
+          {(nextInSameTab || nextTab) && (
+            <Button onClick={() => handleStartNext(nextTab?.id)} fullWidth style={{ marginBottom: "var(--sp-3)" }}>
+              {nextInSameTab ? "Next form" : `Next: ${nextTab?.label}`}
+            </Button>
+          )}
+          <Button
+            onClick={() => navigate("/dashboard")}
+            variant={nextInSameTab || nextTab ? "secondary" : "primary"}
+            fullWidth
+          >
             View my progress
           </Button>
         </Card>
