@@ -9,6 +9,9 @@ import { jsPDF } from "npm:jspdf@2.5.2";
 import "npm:jspdf-autotable@3.8.2";
 import JSZip from "npm:jszip@3.10.1";
 import * as XLSX from "npm:xlsx@0.18.5";
+import { PDF_COVER_JPEG } from "../_shared/coverImage.ts";
+
+const TEAL: [number, number, number] = [31, 73, 64];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -232,29 +235,73 @@ Deno.serve(async (req) => {
     const exportedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
     const buildPdf = (title: string, tables: { heading: string; columns: string[]; rows: Dict[] }[]) => {
       const doc = new jsPDF({ orientation: "landscape" });
-      doc.setFontSize(14);
-      doc.text(`${practiceName} — ${title}`, 14, 16);
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+
+      // ── Cover page (frosted login art + teal block) ──────────────
+      // The cover JPEG is a portrait A4 crop; on this landscape page draw it
+      // "cover"-fit (full width, overflowing top/bottom) so it isn't stretched.
+      const coverH = W * 1.414;
+      doc.addImage(PDF_COVER_JPEG, "JPEG", 0, (H - coverH) / 2, W, coverH, undefined, "FAST");
+      const bandTop = H - 70;
+      doc.setFillColor(...TEAL);
+      doc.rect(0, bandTop, W, H - bandTop, "F");
+      doc.setFont("times", "normal");
+      doc.setFontSize(28);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Clarity", 16, bandTop + 22);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(`${practiceName} — ${title}`, 16, bandTop + 40);
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(`Exported ${exportedAt} UTC from Clarity`, 14, 22);
-      let y = 28;
+      doc.setTextColor(198, 216, 211);
+      doc.text(`Exported ${exportedAt} UTC`, 16, bandTop + 52);
+
+      doc.addPage();
+      doc.setTextColor(45, 41, 38);
+      let y = 24;
       for (const t of tables) {
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
+        doc.setTextColor(...TEAL);
         doc.text(`${t.heading} (${t.rows.length})`, 14, y);
+        doc.setTextColor(45, 41, 38);
+        doc.setFont("helvetica", "normal");
         // deno-lint-ignore no-explicit-any
         (doc as any).autoTable({
           startY: y + 3,
           head: [t.columns],
           body: t.rows.map((r) => t.columns.map((c) => String(r[c] ?? ""))),
           styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak" },
-          headStyles: { fillColor: [70, 70, 70] },
-          margin: { left: 14, right: 14 },
+          headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold" },
+          margin: { top: 22, left: 14, right: 14 },
         });
         // deno-lint-ignore no-explicit-any
         y = ((doc as any).lastAutoTable?.finalY ?? y + 20) + 10;
         if (y > 180) {
           doc.addPage();
-          y = 20;
+          y = 24;
         }
+      }
+
+      // ── Header band + footer on every sheet except the cover ─────
+      // deno-lint-ignore no-explicit-any
+      const pages = (doc as any).internal.getNumberOfPages();
+      for (let p = 2; p <= pages; p++) {
+        doc.setPage(p);
+        doc.setFillColor(...TEAL);
+        doc.rect(0, 0, W, 14, "F");
+        doc.setFont("times", "normal");
+        doc.setFontSize(11);
+        doc.setTextColor(255, 255, 255);
+        doc.text("Clarity", 14, 9.5);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`${practiceName} — ${title}`, W - 14, 9.5, { align: "right" });
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Clarity · ${practiceName} — ${title} · Exported ${exportedAt} UTC`, 14, H - 8);
+        doc.text(`Page ${p - 1} of ${pages - 1}`, W - 14, H - 8, { align: "right" });
       }
       return new Uint8Array(doc.output("arraybuffer"));
     };
