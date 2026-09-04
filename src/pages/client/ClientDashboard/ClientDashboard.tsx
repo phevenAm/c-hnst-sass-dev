@@ -290,20 +290,30 @@ export default function ClientDashboard() {
                 }
                 return (
                   <div className={styles.checkInList}>
-                    {availableAssignedQs.map((q) => (
-                      <div key={q.id} className={styles.checkInRow}>
-                        <div>
-                          <p className={styles.checkInTitle}>{q.title}</p>
-                          <p className={styles.checkInFreq}>{q.frequency}</p>
-                        </div>
+                    {availableAssignedQs.map((q) => {
+                      // RCADS lives on its own page, not a /check-in tab.
+                      // Every other form type maps 1:1 to a CheckInPage tab —
+                      // send the client straight there instead of dropping
+                      // them on the (unrelated) default Check-ins tab.
+                      const isRcads = (q as { is_rcads?: boolean }).is_rcads;
+                      const formType = (q as { form_type?: string }).form_type ?? "outcome_measure";
+                      const startPath = isRcads ? "/rcads" : `/check-in?tab=${formType}`;
 
-                        <Link to="/check-in" style={{ textDecoration: "none" }}>
-                          <Button size="sm" variant="secondary">
-                            Start
-                          </Button>
-                        </Link>
-                      </div>
-                    ))}
+                      return (
+                        <div key={q.id} className={styles.checkInRow}>
+                          <div>
+                            <p className={styles.checkInTitle}>{q.title}</p>
+                            <p className={styles.checkInFreq}>{q.frequency}</p>
+                          </div>
+
+                          <Link to={startPath} style={{ textDecoration: "none" }}>
+                            <Button size="sm" variant="secondary">
+                              Start
+                            </Button>
+                          </Link>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })()}
