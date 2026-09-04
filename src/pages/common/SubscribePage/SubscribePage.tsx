@@ -98,7 +98,7 @@ const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
   },
   {
     title: "4. Data & privacy",
-    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. Clarity acts as data processor on your behalf. If your subscription lapses, data is retained for 12 months before permanent deletion.",
+    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. Clarity acts as data processor on your behalf. If your subscription lapses your account becomes read-only and your data is retained — we do not auto-delete it. Deleting your account erases your practice and all client records immediately, with no retention period; you are offered a full export first.",
   },
   {
     title: "5. Session notes",

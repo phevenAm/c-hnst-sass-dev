@@ -333,6 +333,13 @@ const SettingsPage = () => {
   const [planSwitchError, setPlanSwitchError] = useState<string | null>(null);
   const [confirmSwitch, setConfirmSwitch] = useState<{ plan: TierKey; billing: "monthly" | "annual" } | null>(null);
 
+  // Pause / resume the whole practice (read-only lock + Stripe pause). Read
+  // is_paused from the shared cache — useAuth().practiceSettings narrows it
+  // out of its type.
+  const isPaused = useAppSelector((s) => s.practiceSettings.data?.is_paused ?? false);
+  const [pausing, setPausing] = useState(false);
+  const [confirmPauseToggle, setConfirmPauseToggle] = useState(false);
+
   const [googleStatus, setGoogleStatus] = useState<{
     connected: boolean;
     google_email: string | null;
@@ -958,6 +965,39 @@ const SettingsPage = () => {
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Something went wrong", "error");
       setLoadingPortal(false);
+    }
+  };
+
+  const handleTogglePause = async () => {
+    if (guardDemo()) return;
+    const next = !isPaused;
+    setPausing(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("pause-practice", { body: { paused: next } });
+      if (fnError) {
+        let message = fnError.message;
+        if (fnError instanceof FunctionsHttpError) {
+          const body = await fnError.context.json().catch(() => null);
+          if (body?.error) message = body.error;
+        }
+        throw new Error(message);
+      }
+      await refreshPracticeSettings();
+      if (data?.stripeErrors?.length) {
+        showToast(
+          next
+            ? "Practice paused, but we couldn't pause Stripe billing — check your Stripe dashboard."
+            : "Practice resumed, but we couldn't resume Stripe billing — check your Stripe dashboard.",
+          "error",
+        );
+      } else {
+        showToast(next ? "Your practice is now paused." : "Your practice is active again.");
+      }
+      setConfirmPauseToggle(false);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Couldn't change the pause status", "error");
+    } finally {
+      setPausing(false);
     }
   };
 
@@ -2446,6 +2486,53 @@ const SettingsPage = () => {
               </SettingsCard>
             )}
 
+            {/* Pause or close the practice */}
+            <SettingsCard
+              title="Pause or close your practice"
+              storageKey="settings:practice:lifecycle"
+              searchQuery={billingSearch}
+              id="practice-lifecycle"
+            >
+              <section className={styles.businessSection}>
+                <h2>Pause your practice</h2>
+                {isPaused ? (
+                  <p>
+                    Your practice is <strong>paused</strong>. It's read-only for you, your clients can't sign in, and
+                    billing is stopped. Resume whenever you're ready — nothing has been lost.
+                  </p>
+                ) : (
+                  <p>
+                    Pausing makes the whole practice read-only, signs your clients out until you return, and stops your
+                    billing. Nothing is deleted. This is the right choice if you've stopped practising for now but might
+                    come back.
+                  </p>
+                )}
+                <div className={styles.actions}>
+                  <Button
+                    variant={isPaused ? "primary" : "secondary"}
+                    className={styles.saveButton}
+                    onClick={() => setConfirmPauseToggle(true)}
+                    disabled={pausing}
+                  >
+                    {pausing ? "Working…" : isPaused ? "Resume practice" : "Pause practice"}
+                  </Button>
+                </div>
+              </section>
+
+              <section className={styles.businessSection}>
+                <h2>Delete your account</h2>
+                <p>
+                  Permanent and immediate. Erases your profile, your practice, and every client record — sessions,
+                  attendance, payments and notes. We can't recover it. You'll be offered a full export first.
+                </p>
+                <div className={styles.deleteAccountBlock}>
+                  <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)} disabled={isDemo}>
+                    Delete account
+                  </Button>
+                </div>
+              </section>
+            </SettingsCard>
+
             {/* Refer a friend */}
             {practiceSettings?.referral_code && (
               <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={billingSearch}>
@@ -2950,6 +3037,30 @@ const SettingsPage = () => {
             We don't refund unused time on your current plan — any difference is applied as account credit or added to
             your next invoice.
           </p>
+        </ConfirmModal>
+      )}
+      {confirmPauseToggle && (
+        <ConfirmModal
+          title={isPaused ? "Resume your practice?" : "Pause your practice?"}
+          onClose={() => setConfirmPauseToggle(false)}
+          onConfirm={handleTogglePause}
+          confirming={pausing}
+          confirmLabel={isPaused ? "Resume practice" : "Pause practice"}
+          danger={!isPaused}
+        >
+          {isPaused ? (
+            <p>
+              The read-only lock lifts, your clients can sign in again, and Stripe billing resumes on your normal cycle.
+            </p>
+          ) : (
+            <>
+              <p>
+                Everything becomes read-only, your clients are signed out and can't sign back in, and Stripe billing
+                stops. Nothing is deleted and you can resume any time.
+              </p>
+              <p>You'll still be able to sign in yourself to read and export your records.</p>
+            </>
+          )}
         </ConfirmModal>
       )}
     </div>

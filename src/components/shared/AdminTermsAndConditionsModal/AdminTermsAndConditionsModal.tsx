@@ -55,8 +55,10 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
           Policy.
         </p>
         <p>
-          If your subscription lapses, your account and data will be retained for 12 months. After this period, all
-          account data will be permanently deleted unless you reactivate your subscription or export your data.
+          If your subscription lapses, your account becomes read-only. Your data is retained — we do not automatically
+          delete it — until you resume your subscription, pause your practice, or delete your account. Deleting your
+          account erases your practice and all client records immediately, with no retention period; you are offered a
+          full export first.
         </p>
       </section>
 
