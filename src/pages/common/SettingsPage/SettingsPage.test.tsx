@@ -51,10 +51,27 @@ vi.mock("@context/AuthContext", () => ({
 // Appearance control's theme preference and the pause card's is_paused flag.
 // Run each selector against a small fake state built from currentRow.
 const mockDispatch = vi.fn();
+const mockAgencyState = {
+  membership: null,
+  agency: null,
+  bootstrapStatus: "succeeded",
+  members: [],
+  membersStatus: "idle",
+  clients: [],
+  clientsStatus: "idle",
+  incoming: [],
+  incomingStatus: "idle",
+  expenses: [],
+  onboardingItems: [],
+  invoices: [],
+  invoicesStatus: "idle",
+  planLimits: [],
+  error: null,
+};
 vi.mock("@store/hooks", () => ({
   useAppDispatch: () => mockDispatch,
   useAppSelector: (sel: (s: unknown) => unknown) =>
-    sel({ theme: { mode: "system" }, practiceSettings: { data: currentRow } }),
+    sel({ theme: { mode: "system" }, practiceSettings: { data: currentRow }, agency: mockAgencyState }),
 }));
 vi.mock("@Hooks/useResolvedTheme", () => ({
   useResolvedTheme: () => "light",

@@ -218,48 +218,83 @@ export type Database = {
       }
       agencies: {
         Row: {
+          agreement_pdf_url: string | null
+          agreement_text: string | null
+          agreement_version: number
+          billing_interval: string
           consent_pdf_url: string | null
           consent_text: string | null
           created_at: string
           id: string
+          invoice_prefix: string
           locked_consent: boolean
           locked_email_templates: boolean
           logo_url: string | null
           name: string
+          next_invoice_number: number
           owner_id: string
+          require_client_codenames: boolean
           require_note_encryption: boolean
           shared_resources: boolean
+          staff_agreement_required: boolean
+          subscription_plan: string
           updated_at: string
         }
         Insert: {
+          agreement_pdf_url?: string | null
+          agreement_text?: string | null
+          agreement_version?: number
+          billing_interval?: string
           consent_pdf_url?: string | null
           consent_text?: string | null
           created_at?: string
           id?: string
+          invoice_prefix?: string
           locked_consent?: boolean
           locked_email_templates?: boolean
           logo_url?: string | null
           name: string
+          next_invoice_number?: number
           owner_id: string
+          require_client_codenames?: boolean
           require_note_encryption?: boolean
           shared_resources?: boolean
+          staff_agreement_required?: boolean
+          subscription_plan?: string
           updated_at?: string
         }
         Update: {
+          agreement_pdf_url?: string | null
+          agreement_text?: string | null
+          agreement_version?: number
+          billing_interval?: string
           consent_pdf_url?: string | null
           consent_text?: string | null
           created_at?: string
           id?: string
+          invoice_prefix?: string
           locked_consent?: boolean
           locked_email_templates?: boolean
           logo_url?: string | null
           name?: string
+          next_invoice_number?: number
           owner_id?: string
+          require_client_codenames?: boolean
           require_note_encryption?: boolean
           shared_resources?: boolean
+          staff_agreement_required?: boolean
+          subscription_plan?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agencies_subscription_plan_fkey"
+            columns: ["subscription_plan"]
+            isOneToOne: false
+            referencedRelation: "agency_plan_limits"
+            referencedColumns: ["plan"]
+          },
+        ]
       }
       agency_expenses: {
         Row: {
@@ -346,9 +381,74 @@ export type Database = {
           },
         ]
       }
+      agency_invoices: {
+        Row: {
+          agency_id: string
+          amount_pence: number
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          issue_date: string
+          issued_by: string | null
+          number: number
+          paid_at: string | null
+          reference: string
+          sent_at: string | null
+          staff_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          amount_pence?: number
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          issue_date?: string
+          issued_by?: string | null
+          number: number
+          paid_at?: string | null
+          reference: string
+          sent_at?: string | null
+          staff_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          amount_pence?: number
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          issue_date?: string
+          issued_by?: string | null
+          number?: number
+          paid_at?: string | null
+          reference?: string
+          sent_at?: string | null
+          staff_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_invoices_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_members: {
         Row: {
           agency_id: string
+          agreement_accepted_at: string | null
+          agreement_accepted_version: number | null
+          agreement_signed_name: string | null
           counselling_enabled: boolean
           employment_type: string
           id: string
@@ -360,6 +460,9 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          agreement_accepted_at?: string | null
+          agreement_accepted_version?: number | null
+          agreement_signed_name?: string | null
           counselling_enabled?: boolean
           employment_type?: string
           id?: string
@@ -371,6 +474,9 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          agreement_accepted_at?: string | null
+          agreement_accepted_version?: number | null
+          agreement_signed_name?: string | null
           counselling_enabled?: boolean
           employment_type?: string
           id?: string
@@ -437,6 +543,30 @@ export type Database = {
           },
         ]
       }
+      agency_plan_limits: {
+        Row: {
+          max_staff: number | null
+          plan: string
+          price_month_pence: number
+          price_year_pence: number
+          sort_order: number
+        }
+        Insert: {
+          max_staff?: number | null
+          plan: string
+          price_month_pence: number
+          price_year_pence: number
+          sort_order?: number
+        }
+        Update: {
+          max_staff?: number | null
+          plan?: string
+          price_month_pence?: number
+          price_year_pence?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       agency_teams_channel: {
         Row: {
           agency_id: string
@@ -477,6 +607,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      announcements: {
+        Row: {
+          admin_id: string
+          attachment_url: string | null
+          body: string
+          created_at: string
+          id: string
+          recipient_count: number
+          recipient_ids: string[]
+          sent_count: number
+          skipped_count: number
+          subject: string
+        }
+        Insert: {
+          admin_id?: string
+          attachment_url?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          recipient_ids?: string[]
+          sent_count?: number
+          skipped_count?: number
+          subject: string
+        }
+        Update: {
+          admin_id?: string
+          attachment_url?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          recipient_ids?: string[]
+          sent_count?: number
+          skipped_count?: number
+          subject?: string
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -2455,6 +2624,7 @@ export type Database = {
         Returns: boolean
       }
       active_client_count: { Args: { p_admin: string }; Returns: number }
+      active_staff_count: { Args: { p_agency: string }; Returns: number }
       acts_for_admin: { Args: { p_admin: string }; Returns: boolean }
       admin_archive_client: {
         Args: {
@@ -2472,6 +2642,8 @@ export type Database = {
         Args: { p_from?: string; p_to?: string }
         Returns: Json
       }
+      agency_plan_change_check: { Args: { p_target: string }; Returns: Json }
+      allocate_agency_invoice_number: { Args: never; Returns: number }
       allocate_invoice_number: { Args: never; Returns: number }
       anonymise_client: { Args: { p_user_id: string }; Returns: undefined }
       archived_client_count: { Args: { p_admin: string }; Returns: number }
@@ -2482,7 +2654,14 @@ export type Database = {
         Returns: boolean
       }
       check_scheduled_jobs_health: { Args: never; Returns: undefined }
-      consume_agency_invite: { Args: { input_token: string }; Returns: Json }
+      consume_agency_invite: {
+        Args: {
+          input_token: string
+          p_agreement_accepted?: boolean
+          p_signed_name?: string
+        }
+        Returns: Json
+      }
       consume_platform_access_token: {
         Args: { input_token: string }
         Returns: boolean
@@ -2552,6 +2731,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_agency_invoice_paid: {
+        Args: { p_invoice_id: string; p_paid_at?: string }
+        Returns: undefined
+      }
       mark_invoice_paid: {
         Args: { p_invoice_id: string; p_paid_at?: string }
         Returns: undefined
@@ -2607,6 +2790,10 @@ export type Database = {
           p_assignment_id: string
           p_decline_reason?: string
         }
+        Returns: undefined
+      }
+      seed_admin_default_checkin: {
+        Args: { p_admin_id: string }
         Returns: undefined
       }
       seed_admin_feedback_form: {

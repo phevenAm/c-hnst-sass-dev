@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import AssignClientModal from "@components/agency/AssignClientModal/AssignClientModal";
 import IntakeClientModal from "@components/agency/IntakeClientModal/IntakeClientModal";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
+import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
 import type { AgencyClient } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -20,12 +21,18 @@ import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
 
 type Bucket = "unassigned" | "pending" | "accepted" | "declined";
+type View = "waiting" | "active";
 
-const BUCKETS: { key: Bucket; title: string }[] = [
-  { key: "unassigned", title: "Unassigned" },
-  { key: "pending", title: "Awaiting review" },
-  { key: "accepted", title: "With a counsellor" },
-  { key: "declined", title: "Declined" },
+const BUCKETS: { key: Bucket; title: string; view: View }[] = [
+  { key: "unassigned", title: "Unassigned", view: "waiting" },
+  { key: "pending", title: "Awaiting review", view: "waiting" },
+  { key: "declined", title: "Declined", view: "waiting" },
+  { key: "accepted", title: "With a counsellor", view: "active" },
+];
+
+const VIEW_TABS = [
+  { value: "waiting" as const, label: "Waiting list" },
+  { value: "active" as const, label: "Active caseload" },
 ];
 
 export default function AgencyClientsPage() {
@@ -35,6 +42,10 @@ export default function AgencyClientsPage() {
   const clients = useAppSelector(selectAgencyClients);
   const members = useAppSelector(selectAgencyMembers);
   const status = useAppSelector((s) => s.agency.clientsStatus);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view: View = searchParams.get("view") === "active" ? "active" : "waiting";
+  const setView = (v: View) => setSearchParams((p) => ({ ...Object.fromEntries(p), view: v }), { replace: true });
 
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [assigning, setAssigning] = useState<AgencyClient | null>(null);
@@ -82,6 +93,10 @@ export default function AgencyClientsPage() {
         <Button onClick={() => setIntakeOpen(true)}>Add a client</Button>
       </div>
 
+      <div style={{ marginBottom: "var(--sp-4)" }}>
+        <SegmentedTabs tabs={VIEW_TABS} value={view} onChange={setView} ariaLabel="Client list scope" />
+      </div>
+
       {total > 0 && (
         <div className={styles.toolbar}>
           <input
@@ -97,8 +112,17 @@ export default function AgencyClientsPage() {
       {status !== "loading" && total === 0 && (
         <p className={styles.empty}>No clients yet. Add your first above, then assign them to a counsellor.</p>
       )}
+      {status !== "loading" &&
+        total > 0 &&
+        BUCKETS.filter((b) => b.view === view).every((b) => grouped[b.key].length === 0) && (
+          <p className={styles.empty}>
+            {view === "waiting"
+              ? "Nothing waiting — every client is with a counsellor."
+              : "No one on active caseload yet."}
+          </p>
+        )}
 
-      {BUCKETS.map(({ key, title }) => {
+      {BUCKETS.filter((b) => b.view === view).map(({ key, title }) => {
         const rows = grouped[key];
         if (rows.length === 0) return null;
         return (

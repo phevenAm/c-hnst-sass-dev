@@ -33,6 +33,7 @@ import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/Inter
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
+import { selectAgency, selectIsAgencyMember } from "@store/slices/agencySlice";
 import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
@@ -395,6 +396,11 @@ const SettingsPage = () => {
   const [savingTeamsLinks, setSavingTeamsLinks] = useState(false);
   const [disconnectingMicrosoft, setDisconnectingMicrosoft] = useState(false);
   const [confirmDisconnectMicrosoft, setConfirmDisconnectMicrosoft] = useState(false);
+
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const agency = useAppSelector(selectAgency);
+  const codenamesLockedByAgency = isAgencyMember && !!agency?.require_client_codenames;
+  const consentLockedByAgency = isAgencyMember && !!agency?.locked_consent;
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [hideProfilePii, setHideProfilePii] = useState(false);
@@ -1516,11 +1522,17 @@ const SettingsPage = () => {
                       type="checkbox"
                       className={styles.toggleInput}
                       checked={useCodenames}
+                      disabled={codenamesLockedByAgency}
                       onChange={(e) => setUseCodenames(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
+                {codenamesLockedByAgency && (
+                  <p className={styles.toggleHint}>
+                    Locked on by your agency — every member is required to use client codenames.
+                  </p>
+                )}
                 <p className={styles.toggleHint}>
                   Set each client's codename from their profile page. If no codename is set, their real name is used as
                   a fallback.
@@ -1570,9 +1582,11 @@ const SettingsPage = () => {
                   <span className={styles.toggleLabel}>
                     <strong>Require consent before app access</strong>
                     <span>
-                      {consentEnabled
-                        ? "On — new clients will see this screen before they can continue."
-                        : "Off — clients can access the app immediately after signing up."}
+                      {consentLockedByAgency
+                        ? "Locked on — your agency's own consent text is shown to your clients instead of yours below."
+                        : consentEnabled
+                          ? "On — new clients will see this screen before they can continue."
+                          : "Off — clients can access the app immediately after signing up."}
                     </span>
                   </span>
                   <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
@@ -1580,13 +1594,14 @@ const SettingsPage = () => {
                       type="checkbox"
                       className={styles.toggleInput}
                       checked={consentEnabled}
+                      disabled={consentLockedByAgency}
                       onChange={(e) => setConsentEnabled(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
 
-                {consentEnabled && (
+                {consentEnabled && !consentLockedByAgency && (
                   <div className={styles.consentConfig}>
                     <p className={styles.toggleHint}>
                       This is the agreement new clients must read and sign (typing their name) before they can use the

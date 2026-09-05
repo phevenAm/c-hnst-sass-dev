@@ -80,6 +80,8 @@ const CreateAgencyPage = lazy(() => import("../pages/agency/CreateAgencyPage/Cre
 const AgencyOverviewPage = lazy(() => import("../pages/agency/AgencyOverviewPage/AgencyOverviewPage"));
 const AgencyMembersPage = lazy(() => import("../pages/agency/AgencyMembersPage/AgencyMembersPage"));
 const AgencyClientsPage = lazy(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
+const AgencySessionsPage = lazy(() => import("../pages/agency/AgencySessionsPage/AgencySessionsPage"));
+const AgencyInvoicesPage = lazy(() => import("../pages/agency/AgencyInvoicesPage/AgencyInvoicesPage"));
 const AgencyIncomingPage = lazy(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
 const AgencyFinancePage = lazy(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
 const AgencyOnboardingPage = lazy(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
@@ -457,6 +459,8 @@ export default function AppRoutes() {
                 <Route path="/agency" element={<AgencyOverviewPage />} />
                 <Route path="/agency/members" element={<AgencyMembersPage />} />
                 <Route path="/agency/clients" element={<AgencyClientsPage />} />
+                <Route path="/agency/sessions" element={<AgencySessionsPage />} />
+                <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
                 <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
                 <Route path="/agency/finance" element={<AgencyFinancePage />} />
                 <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
