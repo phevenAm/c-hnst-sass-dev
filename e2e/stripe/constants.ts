@@ -1,14 +1,17 @@
 // Shared with seed-fixtures.mjs — keep both in sync if you change these.
 export const APP_URL = "https://withclarity.uk";
 
+// Gmail "+" aliases (all land in smissah321@gmail.com, filter by the +tag) so
+// the app's real transactional emails to these addresses actually deliver
+// instead of hard-bouncing a fake domain and hurting Resend sender reputation.
 export const FIXTURES = {
-  admin: { email: "e2e-stripe-admin@clarity-e2e-test.dev", password: "E2eStripeAdmin2026!" },
-  client: { email: "e2e-stripe-client@clarity-e2e-test.dev", password: "E2eStripeClient2026!" },
+  admin: { email: "smissah321+e2e-stripe-admin@gmail.com", password: "E2eStripeAdmin2026!" },
+  client: { email: "smissah321+e2e-stripe-client@gmail.com", password: "E2eStripeClient2026!" },
   // Pre-wired to a Stripe test-clock subscription by seed-fixtures.mjs, so
   // stripe.spec.ts can fast-forward it through a renewal without waiting a
   // real billing cycle. See that script for how the clock/customer/sub are set up.
   renewalAdmin: {
-    email: "e2e-stripe-renewal-admin@clarity-e2e-test.dev",
+    email: "smissah321+e2e-stripe-renewal-admin@gmail.com",
     password: "E2eStripeRenewal2026!",
   },
 };

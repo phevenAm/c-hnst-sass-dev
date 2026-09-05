@@ -82,19 +82,32 @@ vi.mock("@Hooks/useResolvedTheme", () => ({
 // otherwise a test that overrides loading/userProfile would leak into the next one.
 beforeEach(() => {
   mockUseAuth.mockImplementation(() => defaultAuthValue);
+  mockUseEncryption.mockImplementation(() => defaultEncryptionValue);
   Object.assign(currentRow, initialRow);
   setGoogleStatusRow(null);
   reminderMutesRows.length = 0;
   sessionPackagesRows.length = 0;
 });
 
+// A vi.fn() (not a static object) so individual tests can override status to
+// "unlocked" the same way mockUseAuth is overridden — needed to cover both
+// sides of the PII guard: locked/disabled must never reach the DB in
+// plaintext, unlocked should save normally.
+const mockUseEncryption = vi.fn();
 vi.mock("@context/EncryptionContext", () => ({
-  useEncryption: () => ({
-    status: "disabled",
-    encryptPII: async (v: string) => v,
-    decryptPII: async (v: string) => v,
-  }),
+  useEncryption: () => mockUseEncryption(),
 }));
+
+const defaultEncryptionValue = {
+  status: "disabled" as "disabled" | "locked" | "unlocked",
+  encryptPII: async (v: string) => v,
+  decryptPII: async (v: string) => v,
+  setupEncryption: vi.fn(),
+  unlockWithCode: vi.fn(),
+  regenerateCode: vi.fn(),
+  pendingCode: null as string | null,
+  clearPendingCode: vi.fn(),
+};
 
 vi.mock("@context/InterfacePrefsContext", () => ({
   APP_ZOOM_LEVELS: [0.5, 0.75, 1, 1.25, 1.5],
@@ -405,6 +418,7 @@ describe("SettingsPage — loading", () => {
 
 describe("SettingsPage — bank details (client payment info)", () => {
   it("saves a changed bank account number", async () => {
+    mockUseEncryption.mockImplementation(() => ({ ...defaultEncryptionValue, status: "unlocked" }));
     await openBillingTab();
 
     fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
@@ -413,6 +427,56 @@ describe("SettingsPage — bank details (client payment info)", () => {
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ bank_account_number: "87654321" }));
     });
+  });
+
+  // Regression: handleUpdateBank used to fall back to a plaintext passthrough
+  // whenever encryption wasn't unlocked, so bank details typed in without
+  // ever unlocking (the default state for any admin who's never opened a
+  // client's notes) went straight into the DB unencrypted, silently, with no
+  // warning. It must now refuse to save at all rather than degrade quietly.
+  it("never saves bank details in plaintext when encryption isn't unlocked — prompts to unlock instead", async () => {
+    // defaultEncryptionValue.status is "disabled" — the actual default for a
+    // fresh admin who's never touched encryption.
+    await openBillingTab();
+
+    fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
+
+    expect(await screen.findByText(/Set up note encryption/i)).toBeInTheDocument();
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("masks an already-saved bank field by default, with a toggle to reveal it", async () => {
+    currentRow.bank_account_number = '{"c":"ciphertext","iv":"someiv"}';
+    mockUseEncryption.mockImplementation(() => ({
+      ...defaultEncryptionValue,
+      status: "unlocked",
+      decryptPII: async (v: string) => (v === currentRow.bank_account_number ? "12345678" : v),
+    }));
+    await openBillingTab();
+
+    const input = await screen.findByDisplayValue("12345678");
+    expect(input).toHaveAttribute("type", "password");
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Account number" }));
+    expect(input).toHaveAttribute("type", "text");
+  });
+
+  it("copies a bank field's decrypted value to the clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    currentRow.bank_sort_code = '{"c":"ciphertext","iv":"someiv"}';
+    mockUseEncryption.mockImplementation(() => ({
+      ...defaultEncryptionValue,
+      status: "unlocked",
+      decryptPII: async (v: string) => (v === currentRow.bank_sort_code ? "20-00-00" : v),
+    }));
+    await openBillingTab();
+
+    await screen.findByDisplayValue("20-00-00");
+    fireEvent.click(screen.getByRole("button", { name: "Copy Sort code" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("20-00-00"));
   });
 });
 
@@ -595,6 +659,7 @@ describe("SettingsPage — profile", () => {
 
 describe("SettingsPage — business information", () => {
   it("saves changed business details", async () => {
+    mockUseEncryption.mockImplementation(() => ({ ...defaultEncryptionValue, status: "unlocked" }));
     await openPracticeTab();
 
     fireEvent.change(getFieldInput("Business name"), { target: { value: "Clarity Counselling" } });
@@ -605,6 +670,21 @@ describe("SettingsPage — business information", () => {
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ business_name: "Clarity Counselling" }));
     });
+  });
+
+  // Same guard, same regression, as the bank details test above — email/phone/
+  // address go through the identical encryptPII-or-plaintext-passthrough
+  // pattern handleUpdateBank had.
+  it("never saves business contact details in plaintext when encryption isn't unlocked", async () => {
+    await openPracticeTab();
+
+    fireEvent.change(getFieldInput("Email"), { target: { value: "hello@example.com" } });
+    fireEvent.click(
+      within(getCardByHeading("Business information")).getByRole("button", { name: "Save business info" }),
+    );
+
+    expect(await screen.findByText(/Set up note encryption/i)).toBeInTheDocument();
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });
 

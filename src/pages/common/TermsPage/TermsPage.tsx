@@ -22,7 +22,7 @@ export default function TermsPage() {
           </p>
           <p>
             For questions about these Terms, contact us at{" "}
-            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>.
+            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>.
           </p>
         </section>
 
@@ -68,7 +68,7 @@ export default function TermsPage() {
           <h2>4. Accounts</h2>
           <p>
             You are responsible for keeping your login credentials secure. Do not share your account with anyone else.
-            You must notify us immediately at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a> if you
+            You must notify us immediately at <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a> if you
             suspect your account has been compromised. We may suspend or terminate accounts that show signs of
             unauthorised use.
           </p>
@@ -327,7 +327,7 @@ export default function TermsPage() {
           <h2>18. Complaints</h2>
           <p>
             If you have a concern about the platform or these Terms, please contact us first at{" "}
-            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>. We will endeavour to resolve complaints
+            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. We will endeavour to resolve complaints
             within 10 working days.
           </p>
         </section>
@@ -348,7 +348,7 @@ export default function TermsPage() {
         </section>
 
         <p className={styles.contact}>
-          Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
+          Questions? Contact us at <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
         </p>
       </div>
     </div>

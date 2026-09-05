@@ -11,12 +11,15 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import EncryptionUnlockModal from "@components/shared/EncryptionUnlockModal/EncryptionUnlockModal";
 import FeedbackModal from "@components/shared/FeedbackModal/FeedbackModal";
 import {
   ChevronDown,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
+  LockIcon,
+  LockOpenIcon,
   MoonIcon,
   SunIcon,
   ThemeAutoIcon,
@@ -32,6 +35,7 @@ import { useEncryption } from "@context/EncryptionContext";
 import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
+import { isEncryptedValue } from "@lib/noteEncryption";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { selectAgency, selectIsAgencyMember } from "@store/slices/agencySlice";
 import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
@@ -350,6 +354,9 @@ const SettingsPage = () => {
   });
   const [savingBank, setSavingBank] = useState(false);
   const [piiLocked, setPiiLocked] = useState(false);
+  const [showEncUnlockModal, setShowEncUnlockModal] = useState(false);
+  const [revealedBankFields, setRevealedBankFields] = useState<Set<BankField>>(new Set());
+  const [copiedBankField, setCopiedBankField] = useState<BankField | null>(null);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [cardPaymentsEnabled, setCardPaymentsEnabled] = useState(false);
   const [savingCardPayments, setSavingCardPayments] = useState(false);
@@ -516,8 +523,16 @@ const SettingsPage = () => {
           setPiiLocked(false);
         }
 
-        // Decrypt PII fields when the key is available
-        const decrypt = encStatus === "unlocked" ? decryptPII : (v: string) => Promise.resolve(v);
+        // Decrypt PII fields when the key is available. When locked, blank
+        // out anything that's actually ciphertext rather than passing it
+        // through — otherwise the raw {c, iv} blob ends up sitting in a plain
+        // <input>'s value, visible and one accidental Save away from being
+        // re-persisted as-is (only harmless because it's still ciphertext;
+        // a fresh value typed over it would go straight to the DB in the
+        // clear). A value that's already plaintext because it was saved
+        // before encryption was ever set up isn't hidden by this — there's
+        // nothing to protect that isn't already exposed in the DB.
+        const decrypt = encStatus === "unlocked" ? decryptPII : async (v: string) => (isEncryptedValue(v) ? "" : v);
 
         const businessData: Record<BusinessField, string> = {
           business_name: data.business_name ?? "",
@@ -634,14 +649,20 @@ const SettingsPage = () => {
   const handleUpdateBank = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
+    // Bank details are PII and must never reach the DB unencrypted — no
+    // silent plaintext fallback. If encryption isn't unlocked yet, send the
+    // admin to unlock/set it up first rather than saving anything.
+    if (encStatus !== "unlocked") {
+      setShowEncUnlockModal(true);
+      return;
+    }
     setSavingBank(true);
-    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
     const toSave: Record<BankField, string> = {
-      bank_name: await encrypt(bankDetails.bank_name),
-      bank_account_name: await encrypt(bankDetails.bank_account_name),
-      bank_sort_code: await encrypt(bankDetails.bank_sort_code),
-      bank_account_number: await encrypt(bankDetails.bank_account_number),
-      bank_payment_reference: await encrypt(bankDetails.bank_payment_reference),
+      bank_name: await encryptPII(bankDetails.bank_name),
+      bank_account_name: await encryptPII(bankDetails.bank_account_name),
+      bank_sort_code: await encryptPII(bankDetails.bank_sort_code),
+      bank_account_number: await encryptPII(bankDetails.bank_account_number),
+      bank_payment_reference: await encryptPII(bankDetails.bank_payment_reference),
     };
     await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
     setSavingBank(false);
@@ -651,13 +672,18 @@ const SettingsPage = () => {
   const handleUpdateBusiness = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
+    // Same PII guard as handleUpdateBank — email/phone/address are encrypted
+    // fields too, so no silent plaintext fallback here either.
+    if (encStatus !== "unlocked") {
+      setShowEncUnlockModal(true);
+      return;
+    }
     setSavingBusiness(true);
-    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
     const toSave = {
       business_name: practiceDetails.business_name,
-      email: await encrypt(practiceDetails.email),
-      phone: await encrypt(practiceDetails.phone),
-      address: await encrypt(practiceDetails.address),
+      email: await encryptPII(practiceDetails.email),
+      phone: await encryptPII(practiceDetails.phone),
+      address: await encryptPII(practiceDetails.address),
       logo_url: logoUrl || null,
     };
     await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
@@ -889,6 +915,26 @@ const SettingsPage = () => {
       return;
     }
     setSessionPackages((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const toggleBankFieldRevealed = (key: BankField) => {
+    setRevealedBankFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleCopyBankField = async (key: BankField) => {
+    if (!bankDetails[key]) return;
+    try {
+      await navigator.clipboard.writeText(bankDetails[key]);
+      setCopiedBankField(key);
+      setTimeout(() => setCopiedBankField((prev) => (prev === key ? null : prev)), 2000);
+    } catch {
+      showToast("Couldn't copy — try selecting and copying the value manually.", "error");
+    }
   };
 
   const handleCopyReferralLink = async () => {
@@ -2339,24 +2385,64 @@ const SettingsPage = () => {
             <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={billingSearch}>
               <section className={styles.businessSection}>
                 <p>Shown to clients as a payment option when they pay for a session.</p>
-                <form className={styles.form}>
-                  {BANK_FIELDS.map(({ key, label, placeholder }) => (
-                    <div className={styles.field} key={key}>
-                      <label>{label}</label>
-                      <input
-                        value={bankDetails[key]}
-                        placeholder={placeholder}
-                        onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </form>
+                {piiLocked ? (
+                  <p>🔒 Bank details are saved and encrypted — unlock encryption to view or change them.</p>
+                ) : (
+                  <form className={styles.form}>
+                    {BANK_FIELDS.map(({ key, label, placeholder }) => {
+                      const revealed = revealedBankFields.has(key);
+                      const hasValue = !!bankDetails[key];
+                      return (
+                        <div className={styles.field} key={key}>
+                          <label>{label}</label>
+                          <div className={styles.copyField}>
+                            <input
+                              className={styles.copyFieldValue}
+                              type={hasValue && !revealed ? "password" : "text"}
+                              value={bankDetails[key]}
+                              placeholder={placeholder}
+                              onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                            />
+                            {hasValue && (
+                              <button
+                                type="button"
+                                className={styles.copyFieldBtn}
+                                onClick={() => toggleBankFieldRevealed(key)}
+                                aria-label={revealed ? `Hide ${label}` : `Show ${label}`}
+                                title={revealed ? "Hide" : "Show"}
+                              >
+                                {revealed ? <LockOpenIcon /> : <LockIcon />}
+                              </button>
+                            )}
+                            {hasValue && (
+                              <button
+                                type="button"
+                                className={styles.copyFieldBtn}
+                                onClick={() => handleCopyBankField(key)}
+                                aria-label={`Copy ${label}`}
+                                title="Copy"
+                              >
+                                {copiedBankField === key ? (
+                                  <span className={styles.copyFieldDone}>✓</span>
+                                ) : (
+                                  <CopyIcon />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </form>
+                )}
               </section>
-              <div className={styles.actions}>
-                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
-                  {savingBank ? "Saving…" : "Save bank details"}
-                </Button>
-              </div>
+              {!piiLocked && (
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
+                    {savingBank ? "Saving…" : "Save bank details"}
+                  </Button>
+                </div>
+              )}
             </SettingsCard>
 
             {/* Stripe Connect */}
@@ -3044,6 +3130,7 @@ const SettingsPage = () => {
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
       {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}
+      {showEncUnlockModal && <EncryptionUnlockModal onClose={() => setShowEncUnlockModal(false)} />}
       {announceOpen && (
         <SendAnnouncementModal
           useCodenames={practiceSettings?.use_client_codenames ?? false}

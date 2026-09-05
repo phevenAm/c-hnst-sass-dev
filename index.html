@@ -40,7 +40,7 @@
           Clarity
         </a>
         <nav class="site-nav" aria-label="Primary">
-          <a class="site-nav__link" href="#why">Why</a>
+          <!-- <a class="site-nav__link" href="#why">Why</a> -->
           <a class="site-nav__link" href="#features">Features</a>
           <a class="site-nav__link" href="#demo">Demo</a>
           <a class="site-nav__link" href="#pricing">Pricing</a>
@@ -300,7 +300,7 @@
             However your practice already runs, Clarity meets it where it is.
           </p>
 
-          <ul class="features" role="list">
+          <ul class="features features--pair" role="list">
             <li class="feature">
               <span class="feature__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -417,6 +417,19 @@
           </div>
 
           <div class="plans">
+            <div class="plan plan--soon">
+              <p class="plan__tag">Coming soon</p>
+              <p class="plan__name">Supervisor</p>
+              <p class="plan__desc">For clinical supervisors</p>
+              <ul class="plan__list" role="list">
+                <li>Everything in Clarity</li>
+                <li>Supervisee records &amp; group sessions</li>
+                <li>Supervision logs your supervisees can export</li>
+                <li>CPD tracking across your supervision hours</li>
+              </ul>
+              <span class="btn btn--ghost plan__cta plan__cta--disabled" aria-disabled="true">Coming soon</span>
+            </div>
+
             <div class="plan">
               <p class="plan__name">Clarity</p>
               <p class="plan__desc">Complete practice management</p>
@@ -464,13 +477,13 @@
 
             <div class="plan plan--soon">
               <p class="plan__tag">Coming soon</p>
-              <p class="plan__name">Supervisor</p>
-              <p class="plan__desc">For clinical supervisors</p>
+              <p class="plan__name">Agencies</p>
+              <p class="plan__desc">Running a team of counsellors, not a solo practice</p>
               <ul class="plan__list" role="list">
-                <li>Everything in Clarity</li>
-                <li>Supervisee records &amp; group sessions</li>
-                <li>Supervision logs your supervisees can export</li>
-                <li>CPD tracking across your supervision hours</li>
+                <li>One dashboard across every counsellor's caseload</li>
+                <li>A shared waiting list &mdash; assign or reassign clients to staff</li>
+                <li>Agency-wide policies, from client codenames to working agreements</li>
+                <li>Simple billing by staff headcount, not client count</li>
               </ul>
               <span class="btn btn--ghost plan__cta plan__cta--disabled" aria-disabled="true">Coming soon</span>
             </div>
@@ -595,12 +608,55 @@
             Whether you&rsquo;re not sure which plan fits, have a question about the app, or just want
             to say hello — send us a message.
           </p>
-          <p class="contact__email">
-            Email us directly at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
-          </p>
-          <div class="contact__cta">
-            <a class="btn btn--primary" href="mailto:support@withclarity.uk">Send an email</a>
+
+          <form class="contact__form" id="contactForm" action="https://formspree.io/f/xkjnzdpd" method="POST">
+            <div class="contact__row">
+              <div class="field">
+                <label for="cf-name">Name</label>
+                <input id="cf-name" name="name" type="text" required autocomplete="name" />
+              </div>
+              <div class="field">
+                <label for="cf-email">Email</label>
+                <input id="cf-email" name="email" type="email" required autocomplete="email" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="cf-type">What's this about?</label>
+              <select id="cf-type" name="type" required>
+                <option value="" disabled selected>Choose one&hellip;</option>
+                <option value="Enquiry">General enquiry</option>
+                <option value="Pricing">Pricing question</option>
+                <option value="Issue">Report an issue</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="cf-message">Message</label>
+              <textarea id="cf-message" name="message" rows="5" required></textarea>
+            </div>
+
+            <!-- Honeypot — hidden from real visitors, bots tend to fill every field. -->
+            <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="contact__hp" aria-hidden="true" />
+
+            <div class="contact__cta">
+              <button type="submit" class="btn btn--primary">Send message</button>
+            </div>
+
+            <p class="contact__formError" id="contactError" hidden role="alert">
+              Something went wrong sending that — please try again, or email us directly below.
+            </p>
+          </form>
+
+          <div class="contact__success" id="contactSuccess" hidden role="status">
+            <h3>Message sent</h3>
+            <p>Thanks — we'll get back to you shortly.</p>
           </div>
+
+          <p class="contact__email">
+            Prefer email? Reach us directly at <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
+          </p>
         </div>
       </section>
     </main>
@@ -626,7 +682,7 @@
         </nav>
         <nav class="site-footer__col" aria-label="Contact">
           <p class="site-footer__h">Contact</p>
-          <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
+          <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
           <a href="/privacy" target="_blank" rel="noopener">Privacy <span class="ext-mark" aria-hidden="true">&#8599;</span><span class="sr-only"> (opens in new tab)</span></a>
           <a href="/terms" target="_blank" rel="noopener">Terms <span class="ext-mark" aria-hidden="true">&#8599;</span><span class="sr-only"> (opens in new tab)</span></a>
         </nav>
@@ -681,6 +737,38 @@
           window.scrollTo({ top: 0, behavior: "smooth" });
         });
         sync();
+      })();
+
+      // ── Contact form — posts to Formspree without leaving the page ─
+      (function () {
+        var form = document.getElementById("contactForm");
+        if (!form) return;
+        var errorEl = document.getElementById("contactError");
+        var successEl = document.getElementById("contactSuccess");
+        var submitBtn = form.querySelector('button[type="submit"]');
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          errorEl.hidden = true;
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Sending…";
+
+          fetch(form.action, {
+            method: "POST",
+            body: new FormData(form),
+            headers: { Accept: "application/json" },
+          })
+            .then(function (res) {
+              if (!res.ok) throw new Error("Formspree error");
+              form.hidden = true;
+              successEl.hidden = false;
+            })
+            .catch(function () {
+              errorEl.hidden = false;
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Send message";
+            });
+        });
       })();
 
       // ── Pricing: tier slider + monthly / annual toggle ───────

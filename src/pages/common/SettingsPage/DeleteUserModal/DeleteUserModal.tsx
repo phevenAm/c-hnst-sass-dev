@@ -3,6 +3,7 @@ import { useState } from "react";
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@context/AuthContext";
+import { useEncryption } from "@context/EncryptionContext";
 import { supabase } from "@lib/supabase";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { deleteOwnAccount } from "@store/slices/userDirectorySlice";
@@ -30,6 +31,7 @@ function downloadBase64Zip(base64: string, filename: string) {
 export default function DeleteUserModal({ onClose }: DeleteUserModalProps) {
   const dispatch = useAppDispatch();
   const { signOut, userProfile, isAdmin } = useAuth();
+  const { status: encryptionStatus, decryptNote } = useEncryption();
   const businessName = useAppSelector((s) => s.practiceSettings.data?.business_name ?? "");
 
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +54,32 @@ export default function DeleteUserModal({ onClose }: DeleteUserModalProps) {
     setExporting(true);
     setExportError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("export-practice-archive", { body: {} });
+      // Session notes are encrypted in the browser — the edge function can't
+      // read them. Decrypt whatever this device holds the key for and hand the
+      // plaintext over as a { [noteId]: text } map; the rest stay placeholders.
+      const decrypted_notes: Record<string, string> = {};
+      if (encryptionStatus === "unlocked") {
+        try {
+          const { data: rows } = await supabase
+            .from("session_notes")
+            .select("id, content, note_iv, is_encrypted")
+            .eq("admin_id", userProfile?.id ?? "");
+          for (const n of rows ?? []) {
+            if (!n.is_encrypted || !n.note_iv) continue;
+            try {
+              decrypted_notes[n.id] = await decryptNote(n.content, n.note_iv);
+            } catch {
+              /* one note failed to decrypt — leave it as a placeholder */
+            }
+          }
+        } catch {
+          /* couldn't load notes — export still runs, notes just stay locked */
+        }
+      }
+
+      const { data, error: fnError } = await supabase.functions.invoke("export-practice-archive", {
+        body: { decrypted_notes },
+      });
       if (fnError || !data?.data_base64) throw fnError ?? new Error("No export data returned");
       downloadBase64Zip(data.data_base64, data.filename ?? "clarity-export.zip");
       setExportedName(data.filename ?? "clarity-export.zip");
@@ -182,8 +209,8 @@ export default function DeleteUserModal({ onClose }: DeleteUserModalProps) {
     >
       <section style={{ marginBottom: "1rem" }}>
         <p style={{ marginTop: 0 }}>
-          <strong>1. Download a full copy</strong> — clients, sessions, attendance and notes, plus payments, as
-          spreadsheets and PDFs.
+          <strong>1. Download a full copy</strong> — clients and their codenames, sessions, attendance, session notes,
+          and every payment (each paid session, not just manually-logged ones), as a spreadsheet and a matching PDF.
         </p>
         <Button variant="secondary" size="sm" onClick={handleExport} disabled={exporting || deleting}>
           {exporting ? "Preparing…" : exportedName ? "Download again" : "Export my data"}
@@ -195,7 +222,9 @@ export default function DeleteUserModal({ onClose }: DeleteUserModalProps) {
         )}
         {exportError && <p style={{ color: "var(--error)", fontSize: "0.9rem", marginTop: "0.4rem" }}>{exportError}</p>}
         <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-          Encrypted session notes are included only where this browser can still decrypt them.
+          {encryptionStatus === "unlocked"
+            ? "Encrypted notes this device can read are decrypted and included; any it can't unlock are written as placeholders."
+            : "Your notes are locked, so they'll export as placeholders. Unlock encryption first if you need the note text in the file."}
         </p>
       </section>
 

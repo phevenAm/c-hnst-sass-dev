@@ -30,7 +30,7 @@ import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
-import { selectAgencyBootstrapStatus, selectAgencyMembership } from "../store/slices/agencySlice";
+import { selectAgencyBootstrapStatus, selectAgencyMembership, selectIsAgencyMember } from "../store/slices/agencySlice";
 
 // Every routed page is lazy-loaded so it ships as its own chunk — the initial
 // bundle carries only the shell plus whichever page you land on. LoginPage and
@@ -216,6 +216,8 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const [searchParams] = useSearchParams();
   const justSubscribed = searchParams.get("subscribed") === "true";
   const [verifying, setVerifying] = useState(justSubscribed);
+  const agencyStatus = useAppSelector(selectAgencyBootstrapStatus);
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
 
   useEffect(() => {
     if (!justSubscribed) return;
@@ -227,7 +229,16 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [refreshPracticeSettings, justSubscribed]);
 
-  if (loading || verifying) return <AuthLoadingState variant="splash" />;
+  // Wait for the agency bootstrap to resolve before deciding — otherwise an
+  // agency member briefly reads as "not an agency member yet" and gets
+  // bounced to /subscribe before their membership has loaded.
+  if (loading || verifying || agencyStatus === "loading" || agencyStatus === "idle") {
+    return <AuthLoadingState variant="splash" />;
+  }
+
+  // Agency members are billed at the agency level (staff-count tiers), not
+  // as an individual client-count subscription — never send them to /subscribe.
+  if (isAgencyMember) return <>{children}</>;
 
   // past_due is deliberately let through, not redirected to /subscribe —
   // that starts a brand-new checkout instead of fixing the existing
@@ -250,7 +261,15 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
 
 function AdminSetupGate({ children }: { children: React.ReactNode }) {
   const { isAdmin, practiceSettings, loading } = useAuth();
-  if (loading) return <AuthLoadingState variant="splash" />;
+  const agencyStatus = useAppSelector(selectAgencyBootstrapStatus);
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+
+  if (loading || agencyStatus === "loading" || agencyStatus === "idle") {
+    return <AuthLoadingState variant="splash" />;
+  }
+  // An invited agency member isn't setting up their own practice — the
+  // agency owner already did. Same exemption as SubscriptionGate above.
+  if (isAgencyMember) return <>{children}</>;
   if (isAdmin && practiceSettings?.onboarding_required) {
     return <Navigate to="/admin/setup" replace />;
   }

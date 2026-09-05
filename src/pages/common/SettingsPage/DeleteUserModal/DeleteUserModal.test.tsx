@@ -27,7 +27,22 @@ vi.mock("@store/slices/userDirectorySlice", () => ({
 }));
 
 const mockInvoke = vi.fn();
-vi.mock("@lib/supabase", () => ({ supabase: { functions: { invoke: (...args: unknown[]) => mockInvoke(...args) } } }));
+// `.from("session_notes")` is only reached when encryption is unlocked (see
+// the mock below) — stub it so it can't throw if that path is ever exercised.
+const mockFrom = vi.fn(() => ({
+  select: () => ({ eq: () => Promise.resolve({ data: [], error: null }) }),
+}));
+vi.mock("@lib/supabase", () => ({
+  supabase: {
+    functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
+    from: (...args: unknown[]) => mockFrom(...(args as [])),
+  },
+}));
+
+// Notes stay locked in tests, so handleExport sends an empty decrypted-notes map.
+vi.mock("@context/EncryptionContext", () => ({
+  useEncryption: () => ({ status: "locked", decryptNote: vi.fn() }),
+}));
 
 function setAuth(overrides: Partial<{ isAdmin: boolean }> = {}) {
   mockUseAuth.mockReturnValue({
@@ -70,7 +85,9 @@ describe("DeleteUserModal — happy paths", () => {
     fireEvent.click(screen.getByRole("button", { name: "continue to delete confirmation" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Export my data" }));
-    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("export-practice-archive", { body: {} }));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("export-practice-archive", { body: { decrypted_notes: {} } }),
+    );
     expect(await screen.findByText(/Downloaded clarity-export-2026-09-04\.zip/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/type/i), { target: { value: "willow counselling" } }); // case-insensitive

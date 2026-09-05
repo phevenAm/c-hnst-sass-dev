@@ -133,7 +133,7 @@ describe("ErrorBoundary", () => {
     await waitFor(() => expect(reloadSpy).toHaveBeenCalled());
   });
 
-  it("'Go to dashboard' does a full navigation to / rather than a router link (happy path)", () => {
+  it("'Go to dashboard' does a full navigation to /login (not / — that's the static marketing site) rather than a router link (happy path)", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(
@@ -143,7 +143,7 @@ describe("ErrorBoundary", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /go to dashboard/i }));
 
-    expect(window.location.href).toBe("/");
+    expect(window.location.href).toBe("/login");
   });
 
   it("lets a signed-in user send an error report to the feedback table (happy path)", async () => {
@@ -189,7 +189,7 @@ describe("ErrorBoundary", () => {
     fireEvent.click(screen.getByRole("button", { name: /send report/i }));
 
     const mailLink = await screen.findByRole("link", { name: /email the report to us/i });
-    expect(mailLink).toHaveAttribute("href", expect.stringContaining("mailto:support@withclarity.uk"));
+    expect(mailLink).toHaveAttribute("href", expect.stringContaining("mailto:hello@withclarity.uk"));
     expect(feedbackInsert).not.toHaveBeenCalled();
   });
 });
