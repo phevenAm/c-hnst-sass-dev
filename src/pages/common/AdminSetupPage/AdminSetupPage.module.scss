@@ -1,75 +1,28 @@
 @use "../../../styles/spacing" as *;
 
-// Shell (page/container/logoWrap/card/footer) intentionally mirrors
-// SignUpPage.module.scss — same visual language as every other page in the
-// auth funnel (Login, SignUp, CounsellorSignup), not a one-off.
-.page {
-  min-height: 100vh;
-  background: var(--bg-base);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: $sp-6 $sp-3;
-  position: relative;
-  overflow-x: hidden;
-}
+// The page shell (tinted ground, centred card, header with the logo +
+// tagline) is AuthShell now — same component Login/SignUp/CounsellorSignup
+// use, instead of a hand-rolled copy that had drifted from it (no card
+// plate under the logo, muted text sitting straight on ImageBlurBlock's
+// dark decorative panel — hard to read and looked disconnected from the
+// step card below it). This file now only styles the step-wizard content
+// AuthShell renders as its `children` (its `.body` panel).
 
-.container {
-  width: 100%;
-  max-width: 560px;
-  position: relative;
-  z-index: 2;
-}
-
-.logoWrap {
-  display: flex;
-  align-items: center;
-  gap: $sp-3;
-  margin-bottom: $sp-5;
-}
-
-.logoText {
-  text-align: left;
-}
-
-.logoTitle {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.1;
-}
-
-.logoSub {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
+// The one line that doesn't fit AuthShell's short `tagline` prop — sits at
+// the top of the body, above the step dots. --text-secondary, not --muted:
+// this is instructional copy someone actually needs to read, not a caption.
 .logoSteps {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: $sp-1 0 0;
-}
-
-.card {
-  width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: $sp-6 $sp-8;
-  box-shadow: var(--shadow-lg);
-
-  @media (max-width: 640px) {
-    padding: $sp-4 $sp-5;
-    border-radius: var(--r-lg);
-  }
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 $sp-4;
 }
 
 .footer {
   text-align: center;
   margin-top: $sp-5;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .signOutLink {
