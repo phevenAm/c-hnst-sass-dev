@@ -6,26 +6,27 @@
 #
 # Apply changes with: npx supabase config push --linked
 #
-# NOT yet pushed. Two things in the live dashboard aren't represented below
-# because there's no `config push` counterpart to read them back first:
-#   1. Authentication → Emails → SMTP Settings (a custom sender is
-#      configured — see docs/email/supabase-auth-templates.md). Tell me the
-#      host/port/user and I'll add [auth.email.smtp] with env() refs for the
-#      password; leaving it unset for the first push risks silently falling
-#      back to Supabase's own rate-limited mailer.
-#   2. Authentication → Rate Limits → emails per hour (init default below is
-#      2/hour, almost certainly lower than whatever's live).
-# Confirm both (or just say "go") before this gets pushed.
+# SMTP settings and email rate limits are still dashboard-only (nothing in
+# this file touches them, on purpose — see the 2026-09-05 push history for
+# why omitting a section entirely is what keeps `config push` from resetting
+# it).
 project_id = "honest-portal"
 
 [auth]
 enabled = true
 site_url = "https://withclarity.uk"
 # Exact-match allow-list — Supabase silently drops any emailRedirectTo/
-# redirectTo not listed here and falls back to site_url instead.
+# redirectTo not listed here and falls back to site_url instead (which is
+# now "/", and vercel.json routes bare "/" to the promo site, not the app —
+# so anything missing here or mismatched sends people to the marketing
+# page). Both live domains listed until honest-portal.vercel.app is fully
+# retired — window.location.origin in a stray tab/bookmark still resolves
+# to it, not just withclarity.uk.
 additional_redirect_urls = [
   "https://withclarity.uk/login",
   "https://withclarity.uk/login?type=recovery",
+  "https://honest-portal.vercel.app/login",
+  "https://honest-portal.vercel.app/login?type=recovery",
   "http://localhost:5173/**",
 ]
 jwt_expiry = 3600
@@ -46,6 +47,22 @@ token_refresh = 150
 sign_in_sign_ups = 30
 token_verifications = 30
 web3 = 30
+
+[auth.email.template.confirmation]
+subject = "Confirm your Clarity account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Clarity password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Your Clarity sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new Clarity email"
+content_path = "./supabase/templates/email_change.html"
 
 [auth.email]
 enable_signup = true
