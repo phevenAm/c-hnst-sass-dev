@@ -10,6 +10,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { execFileSync } from "node:child_process";
 import { APP_URL, FIXTURES, SUPABASE_ANON_KEY, SUPABASE_URL } from "./constants";
 
 function freshClient() {
@@ -61,6 +62,16 @@ async function pollUntil<T>(fn: () => Promise<T>, predicate: (v: T) => boolean, 
   }
 }
 
+// Shells out to a locally-authenticated `stripe` CLI (`stripe login`) — the
+// only way to reach Stripe's test-clock time-travel tooling, since there's
+// no app-facing path for it (nor should there be). Same approach
+// e2e/settings/db.ts uses for `supabase db query --linked`: privileged setup
+// a real user session can't do, done directly rather than mocked.
+function stripeCli(args: string[]): any {
+  const out = execFileSync("stripe", args, { encoding: "utf8", shell: true });
+  return JSON.parse(out.slice(out.indexOf("{")));
+}
+
 // ── Platform subscription (admin subscribes to Clarity itself) ────────────
 //
 // Rerunning this against an already-active fixture admin is harmless: Stripe
@@ -108,6 +119,108 @@ test.describe("Platform subscription checkout", () => {
     const { data, error } = await supabase.functions.invoke("create-billing-portal-session");
     expect(error, error?.message).toBeFalsy();
     expect(data?.url).toContain("billing.stripe.com");
+  });
+});
+
+// ── Plan pricing regression — catches the Price objects drifting out of
+// sync with what the frontend advertises, which is exactly what happened to
+// Growth/Unlimited (stale £15.99/£27.99 prices left wired up after the
+// tiers were repriced to £13.99/£19.99). Never completes payment — just
+// reads Stripe's own hosted Checkout page, so it's fast and leaves no
+// subscription behind.
+
+test.describe("Subscription plan pricing", () => {
+  const cases: { plan: "growth" | "unlimited"; billing: "monthly" | "annual"; expected: string; stale: string }[] = [
+    { plan: "growth", billing: "monthly", expected: "£13.99", stale: "£15.99" },
+    { plan: "growth", billing: "annual", expected: "£139.00", stale: "£159.00" },
+    { plan: "unlimited", billing: "monthly", expected: "£19.99", stale: "£27.99" },
+    { plan: "unlimited", billing: "annual", expected: "£199.00", stale: "£279.00" },
+  ];
+
+  for (const { plan, billing, expected, stale } of cases) {
+    test(`${plan} ${billing} checkout charges ${expected}`, async ({ page }) => {
+      const supabase = await signIn(FIXTURES.admin.email, FIXTURES.admin.password);
+      const { data, error } = await supabase.functions.invoke("create-subscription-checkout", {
+        body: { plan, billing },
+      });
+      expect(error, error?.message).toBeFalsy();
+      expect(data?.url).toContain("checkout.stripe.com");
+
+      await page.goto(data.url, { waitUntil: "load", timeout: 45000 });
+      // Stripe's Checkout page repeats the total in several summary panels
+      // (line item, subtotal, footer, order total) — .first() sidesteps the
+      // strict-mode violation from multiple matches; what matters is that the
+      // correct amount shows up somewhere and the stale one shows up nowhere.
+      await expect(page.getByText(expected).first()).toBeVisible({ timeout: 20000 });
+      await expect(page.getByText(stale)).toHaveCount(0);
+    });
+  }
+});
+
+// ── Renewal webhook coverage — invoice.payment_succeeded (renewal receipts,
+// referral payouts) wasn't in the webhook's enabled_events list at all, so
+// these handlers had never fired for a single real event. Uses a Stripe test
+// clock (set up once by seed-fixtures.mjs) to fast-forward a real
+// subscription past its renewal date instead of waiting a month, then
+// checks the real, deployed webhook actually wrote the receipt.
+
+test.describe("Subscription renewal — invoice.payment_succeeded", () => {
+  test("a renewal charge produces a receipt email log (previously never fired)", async () => {
+    test.setTimeout(120_000);
+    const supabase = await signIn(FIXTURES.renewalAdmin.email, FIXTURES.renewalAdmin.password);
+
+    const { data: settings, error: settingsErr } = await supabase
+      .from("practice_settings")
+      .select("billing_customer_id")
+      .single();
+    expect(settingsErr, settingsErr?.message).toBeFalsy();
+    const customerId = settings?.billing_customer_id;
+    expect(
+      customerId,
+      "renewal fixture has no billing_customer_id — run node e2e/stripe/seed-fixtures.mjs",
+    ).toBeTruthy();
+
+    const customer = stripeCli(["customers", "retrieve", customerId]);
+    const clockId = customer.test_clock;
+    expect(clockId, "renewal fixture customer has no test clock — run node e2e/stripe/seed-fixtures.mjs").toBeTruthy();
+
+    const before = stripeCli(["test_helpers", "test_clocks", "retrieve", clockId]);
+
+    // Jump 32 days forward — past the ~30-day monthly renewal — so Stripe
+    // actually bills the next cycle and fires invoice.payment_succeeded
+    // with billing_reason=subscription_cycle (the case our handler is
+    // scoped to, so it doesn't also fire off the very first payment).
+    const advancedTo = before.frozen_time + 32 * 24 * 60 * 60;
+    stripeCli(["test_helpers", "test_clocks", "advance", clockId, "-d", `frozen_time=${advancedTo}`]);
+
+    // Advancing is async — Stripe replays billing for the elapsed period in
+    // the background and the clock's status goes advancing -> ready.
+    await pollUntil(
+      async () => stripeCli(["test_helpers", "test_clocks", "retrieve", clockId]).status,
+      (status) => status === "ready",
+      90_000,
+    );
+
+    const emailLog = await pollUntil(
+      async () => {
+        const { data } = await supabase
+          .from("email_logs")
+          .select("id, status, sent_at")
+          .eq("email_type", "subscription_payment_succeeded")
+          .order("sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return data;
+      },
+      (row) => !!row,
+      30_000,
+    );
+
+    expect(
+      emailLog,
+      "no subscription_payment_succeeded row appeared — invoice.payment_succeeded still isn't reaching the webhook",
+    ).toBeTruthy();
+    expect(emailLog?.status).toBe("sent");
   });
 });
 

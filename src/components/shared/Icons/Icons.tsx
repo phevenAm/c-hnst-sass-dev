@@ -725,3 +725,66 @@ export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
 export const CpdIcon = () => <WebStoriesOutlinedIcon />;
 export const CreateSession = () => <InsertInvitationIcon />;
 export const AssignmentClipIcon = () => <AssignmentOutlinedIcon />;
+
+// ── Auth trust-badge icons — shared shield outline, small glyph inside ────
+const ShieldOutline = ({ children }: { children: React.ReactNode }) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    aria-hidden="true"
+  >
+    <path d="M12 3.5 5 6v5c0 4.5 3 7.7 7 9.5 4-1.8 7-5 7-9.5V6l-7-2.5Z" strokeLinecap="round" strokeLinejoin="round" />
+    {children}
+  </svg>
+);
+
+export const ShieldKeyIcon = () => (
+  <ShieldOutline>
+    <circle cx="10.3" cy="12.7" r="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="m11.6 11.5 3.4-3.4M14 9.2l1.1 1.1M15.5 7.7l1.1 1.1" strokeLinecap="round" strokeLinejoin="round" />
+  </ShieldOutline>
+);
+
+export const ShieldHeartIcon = () => (
+  <ShieldOutline>
+    <path
+      d="M12 15.2s-3-1.8-3-4.1a1.9 1.9 0 0 1 3-1.5 1.9 1.9 0 0 1 3 1.5c0 2.3-3 4.1-3 4.1Z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </ShieldOutline>
+);
+
+export const ShieldSproutIcon = () => (
+  <ShieldOutline>
+    <path d="M12 15.5v-4" strokeLinecap="round" />
+    <path d="M12 11.5c0-2 -1.8-3.2-3.6-3.2 0 2 1.6 3.2 3.6 3.2Z" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 10.3c0-1.7 1.5-2.8 3.1-2.8 0 1.7-1.4 2.8-3.1 2.8Z" strokeLinecap="round" strokeLinejoin="round" />
+  </ShieldOutline>
+);
+
+// Decorative branch used on the auth pages' trust-badge card variant — pure
+// line art (no fill) so it reads as a subtle watermark, not real content;
+// aria-hidden, purely visual.
+export const AuthLeafBranchDecoration = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 160 160"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M150 150C120 130 95 120 80 95c-12-20-14-45-4-65" />
+    <path d="M76 30c8 12 6 26-4 34-14-10-16-24-8-38 4 1 9 2 12 4Z" />
+    <path d="M95 52c9 10 9 24 0 33-15-7-19-21-13-35 5 0 9 1 13 2Z" />
+    <path d="M108 82c10 8 12 22 5 32-15-4-21-17-17-31 4-1 8-1 12-1Z" />
+    <path d="M118 116c11 6 15 19 10 30-15-2-23-14-21-28 4-1 7-2 11-2Z" />
+  </svg>
+);

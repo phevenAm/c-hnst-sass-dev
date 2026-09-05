@@ -1,6 +1,7 @@
 import React from "react";
 
-import { LeafLogoMark } from "@components/shared/Icons/Icons";
+import AuthTrustBadges from "@components/shared/AuthTrustBadges/AuthTrustBadges";
+import { AuthLeafBranchDecoration, LeafLogoMark } from "@components/shared/Icons/Icons";
 import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 
 import styles from "./AuthShell.module.scss";
@@ -18,6 +19,8 @@ type AuthShellProps = {
   wide?: boolean;
   /** The blurred photo panel — on for login/sign-up, off for the plainer demo page. */
   photo?: boolean;
+  /** Trust-badge column + leaf watermark beside the form, instead of the photo panel. */
+  trustBadges?: boolean;
 };
 
 // Shared chrome for every auth page (login, sign-up, counsellor sign-up, demo):
@@ -31,6 +34,7 @@ export default function AuthShell({
   footer,
   wide = false,
   photo = true,
+  trustBadges = false,
 }: AuthShellProps) {
   return (
     <main className={`${styles.page} page`}>
@@ -44,8 +48,16 @@ export default function AuthShell({
       )}
       <div className={`${styles.container} container`}>
         <div
-          className={[styles.card, wide ? styles.cardWide : "", photo ? styles.onPhoto : ""].filter(Boolean).join(" ")}
+          className={[
+            styles.card,
+            wide ? styles.cardWide : "",
+            photo ? styles.onPhoto : "",
+            trustBadges ? styles.cardTrust : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
+          {trustBadges && <AuthLeafBranchDecoration className={styles.leafDeco} />}
           <header className={styles.header}>
             <LeafLogoMark size={40} color="var(--logo-color, var(--accent))" />
             <div className={styles.headerText}>
@@ -54,7 +66,14 @@ export default function AuthShell({
             </div>
             {headerAside && <div className={styles.headerAside}>{headerAside}</div>}
           </header>
-          <div className={styles.body}>{children}</div>
+          <div className={`${styles.body} ${trustBadges ? styles.bodyWithBadges : ""}`}>
+            <div className={styles.formCol}>{children}</div>
+            {trustBadges && (
+              <div className={styles.badgesCol}>
+                <AuthTrustBadges />
+              </div>
+            )}
+          </div>
           {footer && <div className={styles.footer}>{footer}</div>}
         </div>
       </div>

@@ -8,7 +8,7 @@ import Modal from "@components/shared/Modal/Modal";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
-import { supabase } from "@/lib/supabase";
+import { clearPersistedAuthSession, supabase } from "@/lib/supabase";
 
 import styles from "./LoginPage.module.scss";
 
@@ -178,6 +178,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   // Initialise synchronously so resetMode is true before the navigation guard runs.
@@ -210,6 +211,12 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signIn(email, password);
+      // Supabase always persists to localStorage — "remember me" off just
+      // means this device forgets on tab close instead of staying signed in
+      // indefinitely. Runs once per successful sign-in, not once per tab.
+      if (!rememberMe) {
+        window.addEventListener("beforeunload", clearPersistedAuthSession, { once: true });
+      }
     } catch {
       // error is set in AuthContext
     } finally {
@@ -231,6 +238,8 @@ export default function LoginPage() {
     <>
       <AuthShell
         tagline="A safe space for your journey"
+        photo={false}
+        trustBadges={!resetMode}
         footer={
           resetMode ? undefined : (
             <>
@@ -284,6 +293,13 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   className={styles.input}
                 />
+              </div>
+
+              <div className={styles.rememberRow}>
+                <label className={styles.rememberLabel}>
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                  Remember me
+                </label>
                 <button type="button" className={styles.forgotLink} onClick={() => setShowForgotModal(true)}>
                   Forgot password?
                 </button>
