@@ -63,7 +63,7 @@ test("a fresh admin deletes their own account through the real UI, start to fini
   page,
 }) => {
   test.setTimeout(120_000);
-  const email = `e2e-ui-delete-${Date.now()}@clarity-e2e-test.dev`;
+  const email = `smissah321+e2e-ui-delete-${Date.now()}@gmail.com`;
   const password = "E2eUiDelete2026!";
   const practiceName = "UI Delete Test Practice";
   const uid = createAuthUser({ email, password, meta: { role: "admin", practice_name: practiceName } });

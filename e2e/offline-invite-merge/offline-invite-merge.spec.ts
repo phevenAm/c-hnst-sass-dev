@@ -20,7 +20,7 @@ test.describe.configure({ mode: "serial" });
 
 const TS = Date.now();
 const TAG = `e2emerge${TS}`;
-const NEW = { email: `${TAG}@clarity-e2e-test.dev`, password: "E2eMerge2026!" };
+const NEW = { email: `smissah321+${TAG}@gmail.com`, password: "E2eMerge2026!" };
 
 let adminId = "";
 let stubId = "";

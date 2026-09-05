@@ -58,27 +58,27 @@ async function signedInAs(email: string) {
 
 test.beforeAll(() => {
   ids.aManager = createAuthUser({
-    email: `${TAG}-a-mgr@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-a-mgr@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin", first_name: "AgencyA", last_name: "Manager" },
   });
   ids.aStaff = createAuthUser({
-    email: `${TAG}-a-staff@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-a-staff@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin", first_name: "AgencyA", last_name: "Staff" },
   });
   ids.bManager = createAuthUser({
-    email: `${TAG}-b-mgr@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-b-mgr@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin", first_name: "AgencyB", last_name: "Manager" },
   });
   ids.bStaff = createAuthUser({
-    email: `${TAG}-b-staff@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-b-staff@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin", first_name: "AgencyB", last_name: "Staff" },
   });
   ids.aClient = createAuthUser({
-    email: `${TAG}-a-client@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-a-client@gmail.com`,
     password: PASSWORD,
     meta: { role: "client" },
   });
@@ -122,18 +122,18 @@ test.beforeAll(() => {
 test.afterAll(() => {
   dbQuery(`delete from public.client_stubs where first_name = '${TAG}';`);
   dbQuery(`delete from public.agencies where id in ('${ids.agencyA}', '${ids.agencyB}');`);
-  dbQuery(`delete from public.users where email like '${TAG}%@clarity-e2e-test.dev';`);
-  dbQuery(`delete from auth.users where email like '${TAG}%@clarity-e2e-test.dev';`);
+  dbQuery(`delete from public.users where email like 'smissah321+${TAG}%@gmail.com';`);
+  dbQuery(`delete from auth.users where email like 'smissah321+${TAG}%@gmail.com';`);
 });
 
 // ─── The critical test: Agency A cannot read or write Agency B's data ───────
 test("security: an Agency A session cannot read or modify Agency B's data via the API/RLS", async () => {
-  const asAManager = await signedInAs(`${TAG}-a-mgr@clarity-e2e-test.dev`);
-  const asAStaff = await signedInAs(`${TAG}-a-staff@clarity-e2e-test.dev`);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
 
   // Seed a client and an invoice inside Agency B (as B's own manager) so
   // there's something real for A to try (and fail) to reach.
-  const asBManager = await signedInAs(`${TAG}-b-mgr@clarity-e2e-test.dev`);
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
   const { data: bStub, error: bStubErr } = await asBManager
     .from("client_stubs")
     .insert({ agency_id: ids.agencyB, first_name: TAG, last_name: "bclient", created_by: ids.bManager })
@@ -196,7 +196,7 @@ test("staff-count plan limit blocks the seat past the tier cap, and paused seats
   const fillerIds: string[] = [];
   for (let i = 0; i < 8; i++) {
     const uid = createAuthUser({
-      email: `${TAG}-a-filler${i}@clarity-e2e-test.dev`,
+      email: `smissah321+${TAG}-a-filler${i}@gmail.com`,
       password: PASSWORD,
       meta: { role: "admin" },
     });
@@ -209,7 +209,7 @@ test("staff-count plan limit blocks the seat past the tier cap, and paused seats
 
   // The 11th active member is blocked by the DB trigger.
   const eleventh = createAuthUser({
-    email: `${TAG}-a-eleventh@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-a-eleventh@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin" },
   });
@@ -274,7 +274,7 @@ test("locked agency consent overrides the member's own consent text for their cl
     `update public.practice_settings set consent_enabled = false, consent_body = 'my own terms' where admin_id = '${ids.aStaff}';`,
   );
 
-  const asClient = await signedInAs(`${TAG}-a-client@clarity-e2e-test.dev`);
+  const asClient = await signedInAs(`smissah321+${TAG}-a-client@gmail.com`);
   const { data, error } = await asClient.rpc("get_my_admin_consent_settings");
   expect(error).toBeNull();
   const row = Array.isArray(data) ? data[0] : data;
@@ -294,13 +294,13 @@ test("a mandatory working agreement blocks joining until accepted, then records 
   );
 
   const newHire = createAuthUser({
-    email: `${TAG}-a-newhire@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-a-newhire@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin" },
   });
   const token = dbQuery<{ token: string }>(
     `insert into public.agency_invite_token (agency_id, email, role, created_by)
-     values ('${ids.agencyA}', '${TAG}-a-newhire@clarity-e2e-test.dev', 'counsellor', '${ids.aManager}')
+     values ('${ids.agencyA}', 'smissah321+${TAG}-a-newhire@gmail.com', 'counsellor', '${ids.aManager}')
      returning token;`,
   ).rows[0].token;
 
@@ -308,7 +308,7 @@ test("a mandatory working agreement blocks joining until accepted, then records 
   // Sign in via a throwaway session — createAuthUser doesn't need email confirm.
   return (async () => {
     const { error: signInErr } = await asNewHire.auth.signInWithPassword({
-      email: `${TAG}-a-newhire@clarity-e2e-test.dev`,
+      email: `smissah321+${TAG}-a-newhire@gmail.com`,
       password: PASSWORD,
     });
     expect(signInErr).toBeNull();
@@ -346,8 +346,8 @@ test("a mandatory working agreement blocks joining until accepted, then records 
 // ─── Agency invoices: correct payer, RLS-scoped visibility, valid lifecycle ─
 test("agency invoices resolve to the right staff member, staff see only their own, and status moves through its lifecycle", async () => {
   test.setTimeout(60_000);
-  const asAManager = await signedInAs(`${TAG}-a-mgr@clarity-e2e-test.dev`);
-  const asAStaff = await signedInAs(`${TAG}-a-staff@clarity-e2e-test.dev`);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
 
   const { data: number } = await asAManager.rpc("allocate_agency_invoice_number");
   const { data: invoice, error: createErr } = await asAManager
@@ -407,7 +407,7 @@ test("agency invoices resolve to the right staff member, staff see only their ow
 test("a freshly-joined agency staff member reaches /admin, not /subscribe or /admin/setup", async ({ page }) => {
   test.setTimeout(60_000);
   const newStaffId = createAuthUser({
-    email: `${TAG}-a-freshstaff@clarity-e2e-test.dev`,
+    email: `smissah321+${TAG}-a-freshstaff@gmail.com`,
     password: PASSWORD,
     meta: { role: "admin", first_name: "Fresh", last_name: "Staff" },
   });
@@ -423,7 +423,7 @@ test("a freshly-joined agency staff member reaches /admin, not /subscribe or /ad
   expect(row.subscription_status).not.toBe("active");
   expect(row.onboarding_required).toBe(true);
 
-  await loginViaUi(page, `${TAG}-a-freshstaff@clarity-e2e-test.dev`, PASSWORD);
+  await loginViaUi(page, `smissah321+${TAG}-a-freshstaff@gmail.com`, PASSWORD);
   await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
 
   dbQuery(`delete from public.agency_members where user_id = '${newStaffId}';`);

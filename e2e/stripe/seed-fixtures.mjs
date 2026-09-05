@@ -28,10 +28,10 @@ const GROWTH_PRODUCT_ID = "prod_VAzASNT2h23opo"; // Clarity Growth
 const RESET = process.argv.includes("--reset");
 
 export const FIXTURES = {
-  admin: { email: "e2e-stripe-admin@clarity-e2e-test.dev", password: "E2eStripeAdmin2026!" },
-  client: { email: "e2e-stripe-client@clarity-e2e-test.dev", password: "E2eStripeClient2026!" },
+  admin: { email: "smissah321+e2e-stripe-admin@gmail.com", password: "E2eStripeAdmin2026!" },
+  client: { email: "smissah321+e2e-stripe-client@gmail.com", password: "E2eStripeClient2026!" },
   renewalAdmin: {
-    email: "e2e-stripe-renewal-admin@clarity-e2e-test.dev",
+    email: "smissah321+e2e-stripe-renewal-admin@gmail.com",
     password: "E2eStripeRenewal2026!",
   },
 };
@@ -41,11 +41,11 @@ function stripeCli(args) {
   return JSON.parse(out.slice(out.indexOf("{")));
 }
 
-// supabase.auth.signUp now rejects the fake @clarity-e2e-test.dev domain
-// ("Email address … is invalid") — GoTrue gained address validation after
-// the original stripe fixtures were created via signUp. New fixtures go in
-// directly instead; handle_new_user still fires on the insert. Password is
-// bcrypt-hashed so signInWithPassword works the same as a real signup.
+// New fixtures are inserted straight into auth.users rather than via
+// supabase.auth.signUp: it sets email_confirmed_at = now() so the account is
+// login-ready immediately and no confirmation email is sent to the shared
+// smissah321+… inbox. handle_new_user still fires on the insert, and the
+// password is bcrypt-hashed so signInWithPassword works like a real signup.
 function createAuthUser({ email, password, meta }) {
   const metaJson = JSON.stringify(meta).replace(/'/g, "''");
   return dbQuery(`

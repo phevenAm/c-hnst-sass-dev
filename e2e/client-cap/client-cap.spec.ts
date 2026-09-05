@@ -127,7 +127,7 @@ test("a token signup at cap is refused by consume_platform_access_token", async 
   expect(activeCount()).toBe(5); // still at the starter cap from beforeAll
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const email = `${TAG}-signup@clarity-e2e-test.dev`;
+  const email = `smissah321+${TAG}-signup@gmail.com`;
   const password = "E2eCapSignup2026!";
   let newUserId = "";
   let token = "";

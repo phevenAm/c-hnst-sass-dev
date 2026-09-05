@@ -20,8 +20,8 @@ const SUPABASE_URL = "https://mxyfdvfbdrusbjiozuzx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bJhV8RTzq2Wpj5dk1tsWgQ_jiNNpuOD";
 
 export const FIXTURES = {
-  admin: { email: "e2e-settings-admin@clarity-e2e-test.dev", password: "E2eSettingsAdmin2026!" },
-  client: { email: "e2e-settings-client@clarity-e2e-test.dev", password: "E2eSettingsClient2026!" },
+  admin: { email: "smissah321+e2e-settings-admin@gmail.com", password: "E2eSettingsAdmin2026!" },
+  client: { email: "smissah321+e2e-settings-client@gmail.com", password: "E2eSettingsClient2026!" },
 };
 
 const tmpDir = mkdtempSync(join(tmpdir(), "settings-e2e-seed-"));
