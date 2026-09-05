@@ -196,6 +196,8 @@ export default function SubscribePage() {
         body: { plan, billing, ...(referralCode ? { referral_code: referralCode } : {}) },
       });
 
+      console.log(data)
+
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
 

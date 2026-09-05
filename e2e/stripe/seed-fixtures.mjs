@@ -8,6 +8,10 @@
 // itself uses, so the Playwright suite never needs elevated credentials at
 // test-run time — only this setup script needs `supabase db query --linked`
 // access, to link the client to the admin and seed a session to pay for.
+// It also needs a locally-authenticated `stripe` CLI (`stripe login`), used
+// here (and by the renewal test itself) as the only way to reach Stripe's
+// test-clock time-travel tooling — there's no app-facing path for that, nor
+// should there be.
 // Keep FIXTURES/SUPABASE_URL/SUPABASE_ANON_KEY in sync with ./constants.ts —
 // this file can't import that .ts module directly since it runs under plain
 // `node`, not the Playwright/tsx TS loader.
@@ -19,13 +23,44 @@ import { join } from "node:path";
 
 const SUPABASE_URL = "https://mxyfdvfbdrusbjiozuzx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bJhV8RTzq2Wpj5dk1tsWgQ_jiNNpuOD";
+const GROWTH_PRODUCT_ID = "prod_VAzASNT2h23opo"; // Clarity Growth
 
 const RESET = process.argv.includes("--reset");
 
 export const FIXTURES = {
   admin: { email: "e2e-stripe-admin@clarity-e2e-test.dev", password: "E2eStripeAdmin2026!" },
   client: { email: "e2e-stripe-client@clarity-e2e-test.dev", password: "E2eStripeClient2026!" },
+  renewalAdmin: {
+    email: "e2e-stripe-renewal-admin@clarity-e2e-test.dev",
+    password: "E2eStripeRenewal2026!",
+  },
 };
+
+function stripeCli(args) {
+  const out = execFileSync("stripe", args, { encoding: "utf8", shell: true });
+  return JSON.parse(out.slice(out.indexOf("{")));
+}
+
+// supabase.auth.signUp now rejects the fake @clarity-e2e-test.dev domain
+// ("Email address … is invalid") — GoTrue gained address validation after
+// the original stripe fixtures were created via signUp. New fixtures go in
+// directly instead; handle_new_user still fires on the insert. Password is
+// bcrypt-hashed so signInWithPassword works the same as a real signup.
+function createAuthUser({ email, password, meta }) {
+  const metaJson = JSON.stringify(meta).replace(/'/g, "''");
+  return dbQuery(`
+    insert into auth.users
+      (id, instance_id, email, encrypted_password, email_confirmed_at, aud, role,
+       raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
+       confirmation_token, recovery_token, email_change_token_new, email_change)
+    values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '${email}',
+            extensions.crypt('${password}', extensions.gen_salt('bf', 10)), now(),
+            'authenticated', 'authenticated', '${metaJson}'::jsonb,
+            '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+            '', '', '', '')
+    returning id;
+  `).rows[0].id;
+}
 
 const tmpDir = mkdtempSync(join(tmpdir(), "stripe-e2e-seed-"));
 
@@ -107,9 +142,105 @@ async function main() {
     console.log("Reset admin subscription_status to inactive");
   }
 
+  // ── Renewal admin — a fresh subscription on a Stripe test clock ──────────
+  // Lets stripe.spec.ts fast-forward past a real billing cycle and observe
+  // whether invoice.payment_succeeded (renewal receipts) actually reaches
+  // the webhook, instead of waiting a month for a real one.
+  let renewalAdminId = dbQuery(
+    `select au.id from auth.users au where au.email = '${FIXTURES.renewalAdmin.email}';`,
+  ).rows[0]?.id;
+
+  if (!renewalAdminId) {
+    renewalAdminId = createAuthUser({
+      email: FIXTURES.renewalAdmin.email,
+      password: FIXTURES.renewalAdmin.password,
+      meta: { role: "admin", first_name: "E2E", last_name: "Renewal", practice_name: "E2E Renewal Test Practice" },
+    });
+    console.log("Created renewal test admin:", renewalAdminId);
+  } else {
+    console.log("Renewal test admin already exists:", renewalAdminId);
+  }
+
+  const existingCustomerId = dbQuery(
+    `select billing_customer_id from public.practice_settings where admin_id = '${renewalAdminId}';`,
+  ).rows[0]?.billing_customer_id;
+
+  // A test clock (and everything attached to it) is auto-deleted by Stripe
+  // ~30 days after creation, so re-check it's still alive rather than trusting
+  // the DB row on faith.
+  let hasLiveTestClock = false;
+  if (existingCustomerId) {
+    try {
+      const customer = stripeCli(["customers", "retrieve", existingCustomerId]);
+      hasLiveTestClock = !!customer.test_clock && !customer.deleted;
+    } catch {
+      hasLiveTestClock = false;
+    }
+  }
+
+  if (!hasLiveTestClock) {
+    console.log("Setting up a fresh Stripe test-clock subscription for the renewal fixture...");
+
+    // Read the live Growth monthly price rather than hardcoding an id, so
+    // this keeps working after the price is next recut.
+    const prices = stripeCli(["prices", "list", "--product", GROWTH_PRODUCT_ID, "--active=true", "--limit", "10"]);
+    const monthlyPrice = prices.data.find((p) => p.recurring?.interval === "month");
+    if (!monthlyPrice) throw new Error(`No active monthly price found for product ${GROWTH_PRODUCT_ID}`);
+
+    const now = Math.floor(Date.now() / 1000);
+    const clock = stripeCli([
+      "test_helpers",
+      "test_clocks",
+      "create",
+      "-d",
+      `frozen_time=${now}`,
+      "-d",
+      "name=e2e-renewal-clock",
+    ]);
+    const customer = stripeCli([
+      "customers",
+      "create",
+      "-d",
+      `test_clock=${clock.id}`,
+      "-d",
+      `email=${FIXTURES.renewalAdmin.email}`,
+      "-d",
+      "name=E2E-Renewal-Test",
+      "-d",
+      "metadata[app]=clarity-e2e",
+    ]);
+    const pm = stripeCli(["payment_methods", "create", "-d", "type=card", "-d", "card[token]=tok_visa"]);
+    stripeCli(["payment_methods", "attach", pm.id, "-d", `customer=${customer.id}`]);
+    stripeCli(["customers", "update", customer.id, "-d", `invoice_settings[default_payment_method]=${pm.id}`]);
+    const sub = stripeCli([
+      "subscriptions",
+      "create",
+      "-d",
+      `customer=${customer.id}`,
+      "-d",
+      `items[0][price]=${monthlyPrice.id}`,
+      "-d",
+      `default_payment_method=${pm.id}`,
+    ]);
+
+    dbQuery(`
+      update public.practice_settings
+         set billing_customer_id = '${customer.id}',
+             stripe_subscription_id = '${sub.id}',
+             subscription_status = 'active',
+             subscription_plan = 'growth',
+             billing_interval = 'month'
+       where admin_id = '${renewalAdminId}';
+    `);
+    console.log("Renewal fixture ready — customer:", customer.id, "clock:", clock.id, "sub:", sub.id);
+  } else {
+    console.log("Renewal fixture already has a live test-clock subscription:", existingCustomerId);
+  }
+
   console.log("\nFixtures ready:");
   console.log("  admin:", FIXTURES.admin.email);
   console.log("  client:", FIXTURES.client.email);
+  console.log("  renewalAdmin:", FIXTURES.renewalAdmin.email);
 }
 
 main().catch((err) => {
