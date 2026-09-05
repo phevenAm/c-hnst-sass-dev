@@ -1,0 +1,104 @@
+# Declarative config for the *hosted* project (mxyfdvfbdrusbjiozuzx). Only
+# [auth] settings are managed here — this repo has no supabase/functions dev
+# server or local Studio use, so [api]/[db]/[storage]/etc. are deliberately
+# left out of this file rather than pinned to local-dev defaults that don't
+# apply to the hosted project.
+#
+# Apply changes with: npx supabase config push --linked
+#
+# NOT yet pushed. Two things in the live dashboard aren't represented below
+# because there's no `config push` counterpart to read them back first:
+#   1. Authentication → Emails → SMTP Settings (a custom sender is
+#      configured — see docs/email/supabase-auth-templates.md). Tell me the
+#      host/port/user and I'll add [auth.email.smtp] with env() refs for the
+#      password; leaving it unset for the first push risks silently falling
+#      back to Supabase's own rate-limited mailer.
+#   2. Authentication → Rate Limits → emails per hour (init default below is
+#      2/hour, almost certainly lower than whatever's live).
+# Confirm both (or just say "go") before this gets pushed.
+project_id = "honest-portal"
+
+[auth]
+enabled = true
+site_url = "https://withclarity.uk"
+# Exact-match allow-list — Supabase silently drops any emailRedirectTo/
+# redirectTo not listed here and falls back to site_url instead.
+additional_redirect_urls = [
+  "https://withclarity.uk/login",
+  "https://withclarity.uk/login?type=recovery",
+  "http://localhost:5173/**",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 6
+password_requirements = ""
+
+[auth.rate_limit]
+# TODO confirm against Authentication → Rate Limits before first push.
+email_sent = 2
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# CounsellorSignupPage.tsx's "Check your email" step only makes sense with
+# this on — confirmed true from that flow, not a guess.
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "1m0s"
+otp_length = 8
+otp_expiry = 3600
+
+# Uncomment once you've told me the current dashboard values:
+# [auth.email.smtp]
+# enabled = true
+# host = ""
+# port = 587
+# user = ""
+# pass = "env(SUPABASE_AUTH_SMTP_PASS)"
+# admin_email = ""
+# sender_name = "Clarity"
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+template = "Your code is {{ .Code }}"
+max_frequency = "5s"
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+# Was on at the Auth service level with no app code ever calling
+# supabase.auth.mfa.* — dead capability, not a real feature. Off to match
+# reality; "add 2fa?" is still open on the todo list if that ever gets built.
+enroll_enabled = false
+verify_enabled = false
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+otp_length = 6
+template = "Your code is {{ .Code }}"
+max_frequency = "5s"
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.s3_protocol]
+enabled = true
+
+[storage.vector]
+enabled = false
+max_buckets = 10
+max_indexes = 5

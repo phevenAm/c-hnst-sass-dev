@@ -95,7 +95,11 @@ export default function CounsellorSignupPage() {
   const handleResend = async () => {
     setResending(true);
     setResendMessage("");
-    const { error: resendError } = await supabase.auth.resend({ type: "signup", email: form.email });
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: form.email,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
     setResending(false);
     setResendMessage(
       resendError ? "Couldn't resend right now — please try again shortly." : "Email sent — check your inbox.",
@@ -200,6 +204,7 @@ export default function CounsellorSignupPage() {
             last_name: form.lastName,
             practice_name: invite ? invite.agencyName : form.practiceName,
           },
+          emailRedirectTo: `${window.location.origin}/login`,
         },
       });
       if (signUpError) throw signUpError;

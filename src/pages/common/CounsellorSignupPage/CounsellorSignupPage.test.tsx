@@ -78,7 +78,11 @@ describe("CounsellorSignupPage — resend confirmation email", () => {
     fireEvent.click(screen.getByRole("button", { name: "Resend the email" }));
 
     await waitFor(() => {
-      expect(mockResend).toHaveBeenCalledWith({ type: "signup", email: "sarah@example.com" });
+      expect(mockResend).toHaveBeenCalledWith({
+        type: "signup",
+        email: "sarah@example.com",
+        options: { emailRedirectTo: expect.stringContaining("/login") },
+      });
     });
     expect(await screen.findByText("Email sent — check your inbox.")).toBeInTheDocument();
   });
