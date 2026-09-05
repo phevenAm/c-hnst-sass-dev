@@ -96,7 +96,8 @@ a:hover {
 // ── Layout ─────────────────────────────────────────────────
 .container {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1500px;
+  // max-width: 1120px;
   margin-inline: auto;
   padding-inline: $sp-6;
 }
@@ -935,9 +936,12 @@ a:hover {
 
 .plans {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 380px));
+  // Fixed 3-track grid — cards shrink together as the container narrows
+  // rather than wrapping into a lopsided 2-then-1 layout; the explicit
+  // single-column override below is the only place this actually wraps.
+  grid-template-columns: repeat(3, minmax(0, 330px));
   justify-content: center;
-  align-items: stretch; // both cards match the taller one
+  align-items: stretch; // all cards match the tallest one
   gap: $sp-6;
 }
 
@@ -1440,7 +1444,10 @@ a:hover {
   }
 }
 
-@media (max-width: 760px) {
+// Jumps straight from 3 full-size columns to 1 — no in-between width where
+// 3 columns exist but are squeezed uncomfortably narrow. 1040px covers the
+// container's 3×330px + 2 gaps (~1038px) plus its own inline padding.
+@media (max-width: 1040px) {
   .plans {
     grid-template-columns: minmax(0, 420px);
   }
