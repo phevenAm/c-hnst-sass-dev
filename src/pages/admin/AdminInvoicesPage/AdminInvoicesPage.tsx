@@ -17,7 +17,7 @@ import { fetchPracticeSettings } from "@/store/slices/practiceSettingsSlice";
 import { fetchAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 import InvoiceModal from "./InvoiceModal";
 import { money } from "./invoiceMath";
-import { generateInvoicePdf } from "./invoicePdf";
+import { generateInvoicePdf, invoicePdfBase64 } from "./invoicePdf";
 
 import styles from "./AdminInvoicesPage.module.scss";
 
@@ -162,6 +162,15 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
     void fetchInvoices();
   };
 
+  const practiceDetails = () => ({
+    businessName: settings?.business_name ?? null,
+    bankName: settings?.bank_name ?? null,
+    bankAccountName: settings?.bank_account_name ?? null,
+    bankSortCode: settings?.bank_sort_code ?? null,
+    bankAccountNumber: settings?.bank_account_number ?? null,
+    bankReference: settings?.bank_payment_reference ?? null,
+  });
+
   const sendEmail = async (inv: Invoice) => {
     if (isDemo) return showToast("Demo mode — email not sent.");
     if (!inv.client_id) {
@@ -169,8 +178,16 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
       return setStatus(inv, "sent");
     }
     setBusyId(inv.id);
+    // Render the PDF client-side (same path as the download button) and send it
+    // as the attachment, so the emailed copy matches the downloaded one exactly.
+    let pdf: { filename: string; base64: string } | null = null;
+    try {
+      pdf = await invoicePdfBase64(inv, inv.invoice_line_items ?? [], clientName(inv), practiceDetails());
+    } catch (err) {
+      console.error("Invoice PDF generation failed — sending without attachment", err);
+    }
     const { error } = await supabase.functions.invoke("send-invoice-email", {
-      body: { invoice_id: inv.id },
+      body: { invoice_id: inv.id, pdf_base64: pdf?.base64, pdf_filename: pdf?.filename },
     });
     setBusyId(null);
     if (error) return showToast("Couldn't send the invoice email", "error");
@@ -180,14 +197,7 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
 
   const downloadPdf = async (inv: Invoice) => {
     try {
-      await generateInvoicePdf(inv, inv.invoice_line_items ?? [], clientName(inv), {
-        businessName: settings?.business_name ?? null,
-        bankName: settings?.bank_name ?? null,
-        bankAccountName: settings?.bank_account_name ?? null,
-        bankSortCode: settings?.bank_sort_code ?? null,
-        bankAccountNumber: settings?.bank_account_number ?? null,
-        bankReference: settings?.bank_payment_reference ?? null,
-      });
+      await generateInvoicePdf(inv, inv.invoice_line_items ?? [], clientName(inv), practiceDetails());
     } catch (err) {
       console.error("Invoice PDF generation failed", err);
       showToast("Couldn't generate the PDF — please try again", "error");

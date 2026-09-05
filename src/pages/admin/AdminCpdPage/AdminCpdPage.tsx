@@ -170,39 +170,41 @@ export default function AdminCpdPage() {
     showToast("Target updated.");
   };
 
-  const exportCsv = (logsToExport: CpdLog[]) => {
-    const headers = [
-      "Date",
-      "Type",
-      "Session #",
-      "Contract",
-      "Mode",
-      "Venue",
-      "Title / Issues",
-      "Provider / Supervisor",
-      "Duration",
-      "Notes",
-    ];
-    const rows = logsToExport.map((l) => [
-      l.date,
-      ACTIVITY_LABELS[l.activity_type],
-      l.session_number ?? "",
-      l.contract_code ?? "",
-      l.mode ?? "",
-      l.venue ?? "",
-      l.title ?? "",
-      l.provider ?? "",
-      minutesToHours(l.duration_minutes),
-      l.notes ?? "",
-    ]);
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `cpd-log-${currentYear}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportCsv = async (logsToExport: CpdLog[]) => {
+    const { downloadBrandedCsv } = await import("../../../Helpers/csvExport");
+    downloadBrandedCsv({
+      filename: `cpd-log-${currentYear}`,
+      title: "CPD log",
+      meta: [
+        ["Counsellor", userProfile?.display_name ?? "Counsellor"],
+        ["Year", currentYear],
+        ["Total hours", `${totalHours(logsToExport).toFixed(1)} / ${target}`],
+      ],
+      headers: [
+        "Date",
+        "Type",
+        "Session #",
+        "Contract",
+        "Mode",
+        "Venue",
+        "Title / Issues",
+        "Provider / Supervisor",
+        "Duration",
+        "Notes",
+      ],
+      rows: logsToExport.map((l) => [
+        l.date,
+        ACTIVITY_LABELS[l.activity_type],
+        l.session_number ?? "",
+        l.contract_code ?? "",
+        l.mode ?? "",
+        l.venue ?? "",
+        l.title ?? "",
+        l.provider ?? "",
+        minutesToHours(l.duration_minutes),
+        l.notes ?? "",
+      ]),
+    });
   };
 
   // jsPDF + autotable (~150 kB gzipped) are pulled in on demand so they only
@@ -210,23 +212,29 @@ export default function AdminCpdPage() {
   const exportPdf = async (logsToExport: CpdLog[]) => {
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
+    const { addCoverPage, runningHeader, stampChrome, tableBlock, CONTENT_TOP } = await import(
+      "../../../Helpers/pdfBranding"
+    );
     const doc = new jsPDF();
     const name = userProfile?.display_name ?? "Counsellor";
-    doc.setFontSize(16);
-    doc.text("CPD Log", 14, 18);
+
+    addCoverPage(doc, { title: "CPD Log", subtitle: `${name} · ${currentYear}` });
+    doc.addPage();
+
+    const headerY = runningHeader(doc, `CPD Log · ${currentYear}`);
     doc.setFontSize(10);
-    doc.text(`${name} · ${currentYear}`, 14, 26);
-    doc.text(`Total hours: ${totalHours(logsToExport).toFixed(1)} / ${target}`, 14, 32);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total hours: ${totalHours(logsToExport).toFixed(1)} / ${target}`, 14, headerY + 8);
 
     // Per-type breakdown, so the target line above isn't the only detail on offer.
     const byType = (Object.keys(ACTIVITY_LABELS) as CpdActivityType[])
       .map((type) => ({ type, hours: totalHours(logsToExport.filter((l) => l.activity_type === type)) }))
       .filter((t) => t.hours > 0);
     doc.setFontSize(9);
-    doc.text(byType.map((t) => `${ACTIVITY_LABELS[t.type]}: ${t.hours.toFixed(1)}h`).join("   ·   "), 14, 38);
+    doc.text(byType.map((t) => `${ACTIVITY_LABELS[t.type]}: ${t.hours.toFixed(1)}h`).join("   ·   "), 14, headerY + 14);
 
     autoTable(doc, {
-      startY: 44,
+      startY: headerY + 22,
       head: [["Date", "Type", "Title", "Provider", "Duration"]],
       body: logsToExport.map((l) => [
         l.date,
@@ -236,7 +244,7 @@ export default function AdminCpdPage() {
         minutesToHours(l.duration_minutes),
       ]),
       styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [45, 114, 100] },
+      ...tableBlock(),
     });
 
     // Notes/reflections don't fit the table — list them below, one block per entry that has one.
@@ -250,7 +258,7 @@ export default function AdminCpdPage() {
       for (const l of withNotes) {
         if (y > 270) {
           doc.addPage();
-          y = 20;
+          y = CONTENT_TOP;
         }
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
@@ -263,6 +271,7 @@ export default function AdminCpdPage() {
       }
     }
 
+    stampChrome(doc, { title: `CPD Log · ${currentYear}`, footer: `CPD Log ${currentYear}` });
     doc.save(`cpd-log-${currentYear}.pdf`);
   };
 
@@ -445,7 +454,7 @@ export default function AdminCpdPage() {
           logs={logs}
           onClose={() => setExportModalOpen(false)}
           onExportCsv={(filtered) => {
-            exportCsv(filtered);
+            void exportCsv(filtered);
             setExportModalOpen(false);
           }}
           onExportPdf={(filtered) => {
