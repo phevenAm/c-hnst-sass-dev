@@ -37,7 +37,7 @@ describe("DevCoveragePage", () => {
       String(unitFileCount),
       String(SUITE_SUMMARY.e2e.tests),
       String(e2eFileCount),
-      "2",
+      "3",
     ]);
   });
 

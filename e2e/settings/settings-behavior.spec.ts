@@ -77,6 +77,20 @@ async function loginInBrowser(page: Page, email: string, password: string) {
 // Reschedule/Cancel buttons are removed from the DOM, not just disabled.
 
 test.describe("Reschedule cutoff", () => {
+  // This test's seeded sessions were never cleaned up on any exit path — a
+  // failure or timeout left them sitting in the shared fixture practice
+  // permanently. check_session_overlap() then rejected the *next* run's
+  // insert at these exact same offsets ("This time overlaps with another
+  // session"), turning one interrupted run into every subsequent run failing
+  // too. Confirmed live: three leftover rows from an earlier crashed attempt
+  // were still there. Track and delete them regardless of outcome.
+  let seededSessionIds: string[] = [];
+
+  test.afterAll(() => {
+    if (seededSessionIds.length === 0) return;
+    dbQuery(`delete from public.sessions where id in (${seededSessionIds.map((i) => `'${i}'`).join(",")});`);
+  });
+
   test("hides Reschedule inside the cutoff window and shows it outside — until the cutoff is turned off", async ({
     page,
   }) => {
@@ -95,11 +109,12 @@ test.describe("Reschedule cutoff", () => {
     const near = dayjs().add(10, "hour").second(0).millisecond(0); // inside the 48h cutoff
     const far = dayjs().add(240, "hour").second(0).millisecond(0); // outside the 48h cutoff
 
-    insertSessions([
+    const created = insertSessions([
       { label: "filler", clientId, adminId, scheduledAt: filler.toISOString(), paid: false },
       { label: "near", clientId, adminId, scheduledAt: near.toISOString(), paid: false },
       { label: "far", clientId, adminId, scheduledAt: far.toISOString(), paid: false },
     ]);
+    seededSessionIds = Object.values(created);
 
     const nearLabel = near.format("dddd D MMM YYYY · h:mma");
     const farLabel = far.format("dddd D MMM YYYY · h:mma");
@@ -133,6 +148,19 @@ test.describe("Reschedule cutoff", () => {
 // Router.tsx renders a full-screen blocking ConsentModal).
 
 test.describe("Client consent gate", () => {
+  // The first test below sets consent_enabled: true and only ever cleared it
+  // by relying on the second test's own setup to flip it back — if the first
+  // test failed or timed out (or the run got killed) before the second test
+  // started, consent_enabled stayed stuck true on the shared fixture admin's
+  // practice, indefinitely, poisoning every later run (confirmed live: this
+  // exact leak blocked "Reschedule cutoff" — a completely unrelated test —
+  // with a stray consent dialog days after the run that left it stuck).
+  // Guarantee cleanup regardless of outcome instead of relying on test order.
+  test.afterAll(() => {
+    const { adminId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    dbQuery(`update public.practice_settings set consent_enabled = false where admin_id = '${adminId}';`);
+  });
+
   test("blocks an unconsented client until they agree, then stays cleared on reload", async ({ page }) => {
     test.setTimeout(180_000);
     const { adminId, clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
@@ -176,6 +204,13 @@ test.describe("Client consent gate", () => {
     await expect(continueBtn).toBeDisabled();
 
     await dialog.getByRole("checkbox").check();
+    // ConsentModal also requires a typed name to sign (consent_signed_name) —
+    // Continue stays disabled without it (canContinue = agreed && printedName
+    // non-empty). The test only ever checked the box, so it hung retrying a
+    // click on a button that can never become enabled.
+    await expect(continueBtn).toBeDisabled();
+    await dialog.getByLabel("Type your full name to sign").fill("E2E Testerson");
+    await expect(continueBtn).toBeEnabled();
     await continueBtn.click();
     await expect(dialog).not.toBeVisible();
 

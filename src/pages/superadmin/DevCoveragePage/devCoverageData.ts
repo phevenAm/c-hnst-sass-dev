@@ -207,6 +207,30 @@ export const COVERAGE: CoverageEntry[] = [
     ],
   },
   {
+    id: "settings-e2e-hygiene",
+    title: "Settings e2e reliability (settings.spec.ts + settings-behavior.spec.ts)",
+    summary:
+      "Four real, confirmed bugs found and fixed while trying to verify nothing was broken by other work: a stale tab-layout assertion, a permanently-blocking onboarding modal, and two tests that leaked shared-fixture state on any failure, poisoning unrelated later runs.",
+    e2e: [
+      { file: "e2e/settings/settings.spec.ts", count: 7, note: "all 3 real bugs fixed, verified 7/7 twice in a row" },
+      {
+        file: "e2e/settings/settings-behavior.spec.ts",
+        count: 12,
+        note: "3 of 4 known issues fixed; 1 test still intermittently times out, unresolved (see gaps)",
+      },
+    ],
+    verifiedAt: "2026-09-04",
+    verification: [
+      "settings.spec.ts: OnboardingModal for demo-admin can never actually be dismissed (its profile writes are intentionally short-circuited, per 20260831000000_reset_demo_onboarding.sql) — replaced click-and-hope dismissal with a DOM-removal that survives every navigation. Re-ran the full file twice, 7/7 both times.",
+      "settings-behavior.spec.ts 'Reschedule cutoff': found 3 real leftover session rows in the DB from an earlier crashed run (created ~4 min before, at the test's exact filler/near/far offsets), deleted them, added guaranteed cleanup, reran — passed.",
+      "settings-behavior.spec.ts 'Client consent gate': found consent_enabled stuck true on the shared fixture practice from an earlier crash; confirmed the leak by checking DB state directly before and after; added guaranteed cleanup.",
+      "settings-behavior.spec.ts consent test: screenshotted the actual live ConsentModal and found it now requires a typed name to sign before Continue enables — the test only ever checked the agreement box. Fixed by filling the name field.",
+    ],
+    gaps: [
+      "settings-behavior.spec.ts's consent-dialog-appearance check still times out intermittently even after all three fixes above. A manual repro of the identical flow (confirmed via network-response logging: correct RPC data, 200s) shows the dialog rendering reliably, so this looks like the dev server responding slowly under many consecutive hours of heavy use this session rather than a code defect — but that is a guess, not a confirmed root cause.",
+    ],
+  },
+  {
     id: "dev-coverage-page",
     title: "This page",
     summary: "The /dev route itself — superadmin-gated, linked from /superadmin.",
