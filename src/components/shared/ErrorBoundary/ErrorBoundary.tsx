@@ -137,7 +137,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   // the right place" logic (LoginRoute redirects an already-authenticated
   // visitor onward), and isn't shadowed by the static entry.
   handleGoHome = () => {
-    window.location.href = "/login";
+    window.location.href = "/dashboard";
   };
 
   renderReporter() {

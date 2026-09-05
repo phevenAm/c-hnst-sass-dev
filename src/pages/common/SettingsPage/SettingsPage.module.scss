@@ -418,8 +418,23 @@ input.copyFieldValue {
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: $sp-4;
+}
+
+.primaryAction,
+.utilityActions {
+  display: flex;
+  gap: $sp-3;
+}
+
+.primaryAction {
+  align-items: flex-start;
+}
+
+.utilityActions {
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .saveButton {
@@ -427,6 +442,13 @@ input.copyFieldValue {
 
   @include until-md {
     align-self: stretch;
+  }
+}
+
+@include until-md {
+  .utilityActions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

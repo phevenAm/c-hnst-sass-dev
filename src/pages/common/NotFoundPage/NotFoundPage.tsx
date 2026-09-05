@@ -17,7 +17,7 @@ export default function NotFoundPage() {
           <Button variant="secondary" onClick={() => navigate(-1)}>
             Go back
           </Button>
-          <Link to="/">
+          <Link to="/dashboard">
             <Button variant="primary">Go to dashboard</Button>
           </Link>
         </div>

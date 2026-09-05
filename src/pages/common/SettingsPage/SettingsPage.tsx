@@ -51,7 +51,6 @@ import {
 import { supabase } from "@/lib/supabase";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
-import RegenerateCodeModal from "./RegenerateCodeModal/RegenerateCodeModal";
 
 import styles from "./SettingsPage.module.scss";
 
@@ -285,7 +284,6 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [showRegenerateCodeModal, setShowRegenerateCodeModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
   const [practiceSearch, setPracticeSearch] = useState("");
   const [scheduleSearch, setScheduleSearch] = useState("");
@@ -1223,6 +1221,131 @@ const SettingsPage = () => {
     setDisconnectingMicrosoft(false);
   };
 
+  const subscriptionCard = isAdmin && practiceSettings && (
+    <SettingsCard title="Subscription" storageKey="settings:practice:subscription" searchQuery="" id="subscription">
+      <section className={styles.businessSection}>
+        <p>
+          Status:{" "}
+          <strong
+            style={{
+              color: subscriptionStatusColor(
+                practiceSettings.subscription_status,
+                practiceSettings.subscription_cancel_at_period_end,
+              ),
+              textTransform: "capitalize",
+            }}
+          >
+            {practiceSettings.subscription_status}
+          </strong>
+          {practiceSettings.subscription_cancel_at_period_end && (
+            <>
+              {" "}— cancels{" "}
+              {practiceSettings.subscription_current_period_end
+                ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                : "at the end of the current billing period"}
+            </>
+          )}
+        </p>
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+          {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
+        </p>
+      </section>
+
+      {planLimits &&
+        (() => {
+          // Legacy rows still say "app"/"bundle"/"website" until the tier
+          // migration backfills them — treat anything unrecognised as starter.
+          const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
+          const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey) ? (rawPlan as TierKey) : "starter";
+          const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+          return (
+            <section className={styles.businessSection}>
+              <h2>Your plan</h2>
+
+              {planUsage && currentLimit && (
+                <div className={styles.planUsage}>
+                  <PlanUsageBar label="Active clients" used={planUsage.active} max={currentLimit.max_active} />
+                  <PlanUsageBar label="Archived clients" used={planUsage.archived} max={currentLimit.max_archived} />
+                </div>
+              )}
+
+              <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tierBilling === "monthly"}
+                  className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
+                  onClick={() => setTierBilling("monthly")}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tierBilling === "annual"}
+                  className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
+                  onClick={() => setTierBilling("annual")}
+                >
+                  Annual · 2 months free
+                </button>
+              </div>
+
+              <div className={styles.tierGrid}>
+                {TIER_ORDER.map((key) => {
+                  const d = TIER_DISPLAY[key];
+                  const limit = planLimits.find((l) => l.plan === key);
+                  const isCurrent = key === currentPlan;
+                  const price = tierBilling === "annual" ? d.annual : d.monthly;
+                  return (
+                    <div key={key} className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}>
+                      <div className={styles.tierName}>{d.label}</div>
+                      <div className={styles.tierPrice}>
+                        £{price}
+                        <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
+                      </div>
+                      <div className={styles.tierCap}>
+                        {!limit || limit.max_active == null
+                          ? "Unlimited clients"
+                          : `${limit.max_active} active + ${limit.max_archived} archived`}
+                      </div>
+                      <div className={styles.tierBlurb}>{d.blurb}</div>
+                      {isCurrent ? (
+                        <span className={styles.tierCurrentBadge}>Current plan</span>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          onClick={() => handlePickPlan(key, tierBilling)}
+                          disabled={!!switchingPlan || !billingCustomerId}
+                        >
+                          {switchingPlan === key ? "Switching…" : "Switch"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {planSwitchError && <p className={styles.planSwitchError} role="alert">{planSwitchError}</p>}
+              {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
+            </section>
+          );
+        })()}
+
+      {billingCustomerId && (
+        <div className={styles.actions}>
+          <Button
+            variant="primary"
+            className={styles.saveButton}
+            onClick={handleManageSubscription}
+            disabled={loadingPortal}
+          >
+            {loadingPortal ? "Opening…" : "Manage subscription"}
+          </Button>
+        </div>
+      )}
+    </SettingsCard>
+  );
+
   if (loading || !userProfile)
     return (
       <div className="page">
@@ -1340,29 +1463,31 @@ const SettingsPage = () => {
             )}
 
             <div className={styles.actions}>
-              <Button
-                variant="primary"
-                className={styles.saveButton}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  await handleUpdateProfile();
-                }}
-              >
-                {saving ? "Updating profile..." : "Update profile"}
-              </Button>
-              {!isDemo && (
-                <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
-                  Change password
+              <div className={styles.primaryAction}>
+                <Button
+                  variant="primary"
+                  className={styles.saveButton}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    await handleUpdateProfile();
+                  }}
+                >
+                  {saving ? "Updating profile..." : "Update profile"}
                 </Button>
-              )}
+              </div>
+              <div className={styles.utilityActions}>
+                {!isDemo && (
+                  <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
+                    Change password
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={hardRefresh}>
+                  Force app update
+                </Button>
+              </div>
               {!isAdmin && (
                 <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
                   Report a problem
-                </Button>
-              )}
-              {!isDemo && isAdmin && (encStatus === "unlocked" || encStatus === "locked") && (
-                <Button variant="secondary" size="sm" onClick={() => setShowRegenerateCodeModal(true)}>
-                  Get a new encryption code
                 </Button>
               )}
               {!isAdmin && !isDemo && (
@@ -1372,12 +1497,11 @@ const SettingsPage = () => {
                   </Button>
                 </div>
               )}
-              <Button variant="ghost" size="sm" onClick={hardRefresh}>
-                Force app update
-              </Button>
             </div>
           </Card>
         )}
+
+        {activeTab === "profile" && subscriptionCard}
 
         {/* ── Interface (clients only — admins have their own tab below) ── */}
         {!isAdmin && (
@@ -2496,155 +2620,6 @@ const SettingsPage = () => {
               </section>
             </SettingsCard>
 
-            {/* Subscription */}
-            {practiceSettings && (
-              <SettingsCard
-                title="Subscription"
-                storageKey="settings:practice:subscription"
-                searchQuery={billingSearch}
-                id="subscription"
-              >
-                <section className={styles.businessSection}>
-                  <p>
-                    Status:{" "}
-                    <strong
-                      style={{
-                        color: subscriptionStatusColor(
-                          practiceSettings.subscription_status,
-                          practiceSettings.subscription_cancel_at_period_end,
-                        ),
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {practiceSettings.subscription_status}
-                    </strong>
-                    {practiceSettings.subscription_cancel_at_period_end && (
-                      <>
-                        {" "}
-                        — cancels{" "}
-                        {practiceSettings.subscription_current_period_end
-                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                          : "at the end of the current billing period"}
-                      </>
-                    )}
-                  </p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
-                  </p>
-                </section>
-
-                {planLimits &&
-                  (() => {
-                    // Legacy rows still say "app"/"bundle"/"website" until the tier
-                    // migration backfills them — treat anything unrecognised as starter.
-                    const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
-                    const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey)
-                      ? (rawPlan as TierKey)
-                      : "starter";
-                    const currentLimit = planLimits.find((l) => l.plan === currentPlan);
-                    return (
-                      <section className={styles.businessSection}>
-                        <h2>Your plan</h2>
-
-                        {planUsage && currentLimit && (
-                          <div className={styles.planUsage}>
-                            <PlanUsageBar
-                              label="Active clients"
-                              used={planUsage.active}
-                              max={currentLimit.max_active}
-                            />
-                            <PlanUsageBar
-                              label="Archived clients"
-                              used={planUsage.archived}
-                              max={currentLimit.max_archived}
-                            />
-                          </div>
-                        )}
-
-                        <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={tierBilling === "monthly"}
-                            className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
-                            onClick={() => setTierBilling("monthly")}
-                          >
-                            Monthly
-                          </button>
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={tierBilling === "annual"}
-                            className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
-                            onClick={() => setTierBilling("annual")}
-                          >
-                            Annual · 2 months free
-                          </button>
-                        </div>
-
-                        <div className={styles.tierGrid}>
-                          {TIER_ORDER.map((key) => {
-                            const d = TIER_DISPLAY[key];
-                            const limit = planLimits.find((l) => l.plan === key);
-                            const isCurrent = key === currentPlan;
-                            const price = tierBilling === "annual" ? d.annual : d.monthly;
-                            return (
-                              <div
-                                key={key}
-                                className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}
-                              >
-                                <div className={styles.tierName}>{d.label}</div>
-                                <div className={styles.tierPrice}>
-                                  £{price}
-                                  <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
-                                </div>
-                                <div className={styles.tierCap}>
-                                  {!limit || limit.max_active == null
-                                    ? "Unlimited clients"
-                                    : `${limit.max_active} active + ${limit.max_archived} archived`}
-                                </div>
-                                <div className={styles.tierBlurb}>{d.blurb}</div>
-                                {isCurrent ? (
-                                  <span className={styles.tierCurrentBadge}>Current plan</span>
-                                ) : (
-                                  <Button
-                                    variant="secondary"
-                                    onClick={() => handlePickPlan(key, tierBilling)}
-                                    disabled={!!switchingPlan || !billingCustomerId}
-                                  >
-                                    {switchingPlan === key ? "Switching…" : "Switch"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {planSwitchError && (
-                          <p className={styles.planSwitchError} role="alert">
-                            {planSwitchError}
-                          </p>
-                        )}
-                        {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
-                      </section>
-                    );
-                  })()}
-
-                {billingCustomerId && (
-                  <div className={styles.actions}>
-                    <Button
-                      variant="primary"
-                      className={styles.saveButton}
-                      onClick={handleManageSubscription}
-                      disabled={loadingPortal}
-                    >
-                      {loadingPortal ? "Opening…" : "Manage subscription"}
-                    </Button>
-                  </div>
-                )}
-              </SettingsCard>
-            )}
-
             {/* Pause or close the practice */}
             <SettingsCard
               title="Pause or close your practice"
@@ -3129,8 +3104,6 @@ const SettingsPage = () => {
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
-      {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}
-      {showEncUnlockModal && <EncryptionUnlockModal onClose={() => setShowEncUnlockModal(false)} />}
       {announceOpen && (
         <SendAnnouncementModal
           useCodenames={practiceSettings?.use_client_codenames ?? false}
