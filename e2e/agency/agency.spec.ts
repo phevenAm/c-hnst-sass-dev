@@ -13,11 +13,20 @@
 // agencies row (which cascades to agency_members/agency_invoices/etc.) must
 // be deleted before the owner's auth.users row.
 
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../settings/constants";
+import { APP_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "../settings/constants";
 import { createAuthUser, dbQuery } from "../settings/db";
+
+async function loginViaUi(page: Page, email: string, password: string) {
+  await page.addInitScript(() => localStorage.setItem("walkthrough_globally_dismissed", "true"));
+  await page.goto(`${APP_URL}/login`, { waitUntil: "load", timeout: 20_000 });
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', password);
+  await page.click('button[type="submit"]');
+  await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 20_000 });
+}
 
 test.describe.configure({ mode: "serial" });
 
@@ -383,4 +392,37 @@ test("agency invoices resolve to the right staff member, staff see only their ow
   expect(final.paid_at).not.toBeNull();
 
   dbQuery(`delete from public.agency_invoices where id = '${invoice.id}';`);
+});
+
+// ─── A brand-new agency member must land in the app, not a billing dead-end ─
+// Regression: SubscriptionGate/AdminSetupGate (Router.tsx) didn't know about
+// agency membership, so a freshly-joined counsellor — who starts with the
+// same practice_settings defaults as any new signup (subscription_status
+// 'inactive', onboarding_required true) — got bounced to /subscribe or
+// /admin/setup instead of their dashboard. Caught by actually driving a
+// browser through login, not by asserting on the RPC/table layer alone.
+test("a freshly-joined agency staff member reaches /admin, not /subscribe or /admin/setup", async ({ page }) => {
+  const newStaffId = createAuthUser({
+    email: `${TAG}-a-freshstaff@clarity-e2e-test.dev`,
+    password: PASSWORD,
+    meta: { role: "admin", first_name: "Fresh", last_name: "Staff" },
+  });
+  dbQuery(`
+    insert into public.agency_members (agency_id, user_id, role, status)
+    values ('${ids.agencyA}', '${newStaffId}', 'counsellor', 'active');
+    update public.users set agency_id = '${ids.agencyA}' where id = '${newStaffId}';
+  `);
+
+  const row = dbQuery<{ subscription_status: string; onboarding_required: boolean }>(
+    `select subscription_status, onboarding_required from public.practice_settings where admin_id = '${newStaffId}';`,
+  ).rows[0];
+  expect(row.subscription_status).not.toBe("active");
+  expect(row.onboarding_required).toBe(true);
+
+  await loginViaUi(page, `${TAG}-a-freshstaff@clarity-e2e-test.dev`, PASSWORD);
+  await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
+
+  dbQuery(`delete from public.agency_members where user_id = '${newStaffId}';`);
+  dbQuery(`delete from public.users where id = '${newStaffId}';`);
+  dbQuery(`delete from auth.users where id = '${newStaffId}';`);
 });
