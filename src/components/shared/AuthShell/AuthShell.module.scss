@@ -49,35 +49,6 @@
   max-width: 460px;
 }
 
-// ── Trust-badge variant: a slim leaf watermark + badge column replace the
-//    photo panel, so the card itself needs to be wide enough to fit a badge
-//    column beside the form. Wider still when paired with .cardWide's own
-//    multi-field grid (sign-up/register), which needs its own room too.
-.cardTrust {
-  position: relative;
-  overflow: hidden;
-}
-
-.container:has(.cardTrust):not(:has(.cardWide)) {
-  max-width: 660px;
-}
-
-.container:has(.cardTrust.cardWide) {
-  max-width: 820px;
-}
-
-.leafDeco {
-  position: absolute;
-  right: -0.5rem;
-  bottom: -0.5rem;
-  width: 10rem;
-  height: 10rem;
-  color: var(--accent);
-  opacity: 0.3;
-  pointer-events: none;
-  z-index: 0;
-}
-
 // ── Header: logo + wordmark, on the outer plate ───────────
 .header {
   display: flex;
@@ -115,41 +86,9 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: $sp-6;
-  position: relative;
-  z-index: 1;
 
   @media (max-width: 640px) {
     padding: $sp-5;
-  }
-}
-
-.bodyWithBadges {
-  display: flex;
-  align-items: flex-start;
-  gap: $sp-6;
-
-  @media (max-width: 700px) {
-    flex-direction: column;
-  }
-}
-
-.formCol {
-  flex: 1;
-  min-width: 0;
-}
-
-.badgesCol {
-  flex: 0 0 13.5rem;
-  padding-left: $sp-6;
-  border-left: 1px solid var(--border);
-
-  @media (max-width: 700px) {
-    flex: none;
-    width: 100%;
-    padding-left: 0;
-    padding-top: $sp-5;
-    border-left: none;
-    border-top: 1px solid var(--border);
   }
 }
 

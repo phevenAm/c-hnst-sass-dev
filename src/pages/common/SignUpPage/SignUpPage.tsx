@@ -108,7 +108,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <AuthShell tagline="Create your account" wide photo={false} trustBadges>
+    <AuthShell tagline="Create your account" wide>
       <h2 className={styles.heading}>Get started</h2>
 
       {error && (

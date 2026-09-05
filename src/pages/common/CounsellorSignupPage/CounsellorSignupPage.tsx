@@ -211,7 +211,7 @@ export default function CounsellorSignupPage() {
   }
 
   return (
-    <AuthShell tagline={invite ? `Join ${invite.agencyName}` : "Register your practice"} wide photo={false} trustBadges>
+    <AuthShell tagline={invite ? `Join ${invite.agencyName}` : "Register your practice"} wide>
       <div className={styles.stepDots} aria-label={`Step ${step} of 2`}>
         <div className={`${styles.stepDot} ${step >= 1 ? styles.stepDotActive : ""}`} />
         <div className={`${styles.stepDot} ${step >= 2 ? styles.stepDotActive : ""}`} />

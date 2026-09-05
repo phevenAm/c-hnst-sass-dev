@@ -91,31 +91,13 @@
   }
 }
 
-.rememberRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: $sp-2 0 $sp-6;
-}
-
-.rememberLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: $sp-2;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-
-  input {
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-}
-
 .forgotLink {
+  display: block;
   background: none;
   border: none;
-  padding: 0;
+  padding: $sp-2 0 0;
+  width: 100%;
+  text-align: right;
   font-size: 0.8rem;
   color: var(--accent);
   cursor: pointer;
