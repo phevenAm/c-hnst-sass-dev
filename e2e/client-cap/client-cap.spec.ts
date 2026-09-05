@@ -148,7 +148,14 @@ test("a token signup at cap is refused by consume_platform_access_token", async 
     });
     if (error || !data.user) throw new Error(`signUp failed: ${error?.message}`);
     newUserId = data.user.id;
-    await supabase.auth.signInWithPassword({ email, password });
+
+    // Email confirmation is required on this project, so signUp alone leaves
+    // the account unconfirmed and the sign-in below would fail. Confirm it
+    // directly — this test is about the cap check inside
+    // consume_platform_access_token, not the confirmation email.
+    dbQuery(`update auth.users set email_confirmed_at = now() where id = '${newUserId}';`);
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInErr) throw new Error(`sign-in failed: ${signInErr.message}`);
 
     const { error: consumeErr } = await supabase.rpc("consume_platform_access_token", {
       input_token: token,
