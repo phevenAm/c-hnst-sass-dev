@@ -98,6 +98,9 @@ function waitForWaitingWorker(timeoutMs = WAIT_FOR_WORKER_MS): Promise<boolean> 
 // mid-session for every open tab.
 export async function applyServiceWorkerUpdate() {
   if (updateSW && registration) {
+    // The settings action can be used independently of UpdateBanner's
+    // version check, so explicitly start the service-worker update here.
+    await registration.update().catch(() => {});
     const ready = registration.waiting ? true : await waitForWaitingWorker();
     if (ready) {
       await updateSW(true);
@@ -110,6 +113,7 @@ export async function applyServiceWorkerUpdate() {
     await unregisterAndReload();
     return;
   }
-  // No SW registered yet (e.g. dev mode) — a plain reload is the correct fallback.
-  window.location.reload();
+  // No SW registered yet (e.g. dev mode) — clear any runtime caches before
+  // reloading so this action still requests the current app shell.
+  await unregisterAndReload();
 }
