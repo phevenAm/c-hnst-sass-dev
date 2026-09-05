@@ -6,6 +6,8 @@ export type AgencyEmploymentType = "employee" | "freelance";
 export type AgencyMemberStatus = "active" | "disabled";
 export type AssignmentStatus = "pending" | "accepted" | "declined";
 export type OnboardingAudience = "client" | "admin";
+export type AgencyPlanKey = "starter" | "growth" | "scale" | "unlimited";
+export type AgencyInvoiceStatus = "draft" | "sent" | "due" | "paid" | "overdue" | "cancelled";
 
 export interface Agency {
   id: string;
@@ -18,6 +20,15 @@ export interface Agency {
   shared_resources: boolean;
   require_note_encryption: boolean;
   locked_email_templates: boolean;
+  require_client_codenames: boolean;
+  staff_agreement_required: boolean;
+  agreement_text: string | null;
+  agreement_pdf_url: string | null;
+  agreement_version: number;
+  subscription_plan: AgencyPlanKey;
+  billing_interval: "month" | "year";
+  next_invoice_number: number;
+  invoice_prefix: string;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +43,35 @@ export interface AgencyMember {
   status: AgencyMemberStatus;
   invited_at: string | null;
   joined_at: string;
+  agreement_accepted_at: string | null;
+  agreement_accepted_version: number | null;
+  agreement_signed_name: string | null;
+}
+
+export interface AgencyPlanLimit {
+  plan: AgencyPlanKey;
+  max_staff: number | null;
+  price_month_pence: number;
+  price_year_pence: number;
+  sort_order: number;
+}
+
+export interface AgencyInvoice {
+  id: string;
+  agency_id: string;
+  staff_user_id: string | null;
+  issued_by: string | null;
+  number: number;
+  reference: string;
+  description: string | null;
+  amount_pence: number;
+  status: AgencyInvoiceStatus;
+  issue_date: string;
+  due_date: string | null;
+  sent_at: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // agency_members joined to the member's users row — what the Members table renders.

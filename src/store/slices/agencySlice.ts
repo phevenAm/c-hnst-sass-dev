@@ -5,9 +5,11 @@ import type {
   Agency,
   AgencyClient,
   AgencyExpense,
+  AgencyInvoice,
   AgencyMember,
   AgencyMemberWithUser,
   AgencyOnboardingItem,
+  AgencyPlanLimit,
   ClientAssignment,
 } from "../../models/agency";
 
@@ -32,6 +34,10 @@ type AgencyState = {
   expenses: AgencyExpense[];
   onboardingItems: AgencyOnboardingItem[];
 
+  invoices: AgencyInvoice[];
+  invoicesStatus: Status;
+  planLimits: AgencyPlanLimit[];
+
   error: string | null;
 };
 
@@ -47,6 +53,9 @@ const initialState: AgencyState = {
   incomingStatus: "idle",
   expenses: [],
   onboardingItems: [],
+  invoices: [],
+  invoicesStatus: "idle",
+  planLimits: [],
   error: null,
 };
 
@@ -164,6 +173,25 @@ export const fetchOnboardingItems = createAsyncThunk("agency/fetchOnboarding", a
     .order("sort_order", { ascending: true });
   if (error) return rejectWithValue(error.message);
   return (data ?? []) as AgencyOnboardingItem[];
+});
+
+export const fetchAgencyInvoices = createAsyncThunk("agency/fetchInvoices", async (_, { rejectWithValue }) => {
+  const { data, error } = await supabase
+    .from("agency_invoices")
+    .select("*")
+    .order("issue_date", { ascending: false })
+    .order("number", { ascending: false });
+  if (error) return rejectWithValue(error.message);
+  return (data ?? []) as AgencyInvoice[];
+});
+
+export const fetchAgencyPlanLimits = createAsyncThunk("agency/fetchPlanLimits", async (_, { rejectWithValue }) => {
+  const { data, error } = await supabase
+    .from("agency_plan_limits")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) return rejectWithValue(error.message);
+  return (data ?? []) as AgencyPlanLimit[];
 });
 
 // ── Writes: edge functions ─────────────────────────────────────────────────
@@ -318,6 +346,10 @@ export const updateAgencyPolicies = createAsyncThunk(
         | "shared_resources"
         | "require_note_encryption"
         | "locked_email_templates"
+        | "require_client_codenames"
+        | "staff_agreement_required"
+        | "agreement_text"
+        | "agreement_pdf_url"
       >
     >,
     { rejectWithValue },
@@ -327,6 +359,87 @@ export const updateAgencyPolicies = createAsyncThunk(
     return data as Agency;
   },
 );
+
+export const changeAgencyPlan = createAsyncThunk(
+  "agency/changePlan",
+  async (
+    payload: { id: string; subscription_plan: string; billing_interval: "month" | "year" },
+    { rejectWithValue },
+  ) => {
+    const { data, error } = await supabase
+      .from("agencies")
+      .update({ subscription_plan: payload.subscription_plan, billing_interval: payload.billing_interval })
+      .eq("id", payload.id)
+      .select()
+      .single();
+    if (error) return rejectWithValue(error.message);
+    return data as Agency;
+  },
+);
+
+export const createAgencyInvoice = createAsyncThunk(
+  "agency/createInvoice",
+  async (
+    payload: {
+      agency_id: string;
+      staff_user_id: string;
+      issued_by: string;
+      description: string | null;
+      amount_pence: number;
+      issue_date: string;
+      due_date: string | null;
+    },
+    { rejectWithValue },
+  ) => {
+    const { data: agency, error: agErr } = await supabase
+      .from("agencies")
+      .select("invoice_prefix")
+      .eq("id", payload.agency_id)
+      .single();
+    if (agErr) return rejectWithValue(agErr.message);
+
+    const { data: number, error: numErr } = await supabase.rpc("allocate_agency_invoice_number");
+    if (numErr) return rejectWithValue(numErr.message);
+
+    const reference = `${agency.invoice_prefix}${String(number).padStart(4, "0")}`;
+
+    const { data, error } = await supabase
+      .from("agency_invoices")
+      .insert({ ...payload, number, reference, status: "draft" })
+      .select()
+      .single();
+    if (error) return rejectWithValue(error.message);
+    return data as AgencyInvoice;
+  },
+);
+
+export const updateAgencyInvoiceStatus = createAsyncThunk(
+  "agency/updateInvoiceStatus",
+  async (payload: { id: string; status: AgencyInvoice["status"] }, { rejectWithValue }) => {
+    const patch: Record<string, unknown> = { status: payload.status };
+    if (payload.status === "sent") patch.sent_at = new Date().toISOString();
+    const { data, error } = await supabase.from("agency_invoices").update(patch).eq("id", payload.id).select().single();
+    if (error) return rejectWithValue(error.message);
+    return data as AgencyInvoice;
+  },
+);
+
+export const markAgencyInvoicePaid = createAsyncThunk(
+  "agency/markInvoicePaid",
+  async (id: string, { rejectWithValue }) => {
+    const { error } = await supabase.rpc("mark_agency_invoice_paid", { p_invoice_id: id });
+    if (error) return rejectWithValue(error.message);
+    const { data, error: fetchErr } = await supabase.from("agency_invoices").select("*").eq("id", id).single();
+    if (fetchErr) return rejectWithValue(fetchErr.message);
+    return data as AgencyInvoice;
+  },
+);
+
+export const deleteAgencyInvoice = createAsyncThunk("agency/deleteInvoice", async (id: string, { rejectWithValue }) => {
+  const { error } = await supabase.from("agency_invoices").delete().eq("id", id);
+  if (error) return rejectWithValue(error.message);
+  return id;
+});
 
 export const addAgencyExpense = createAsyncThunk(
   "agency/addExpense",
@@ -464,10 +577,42 @@ const agencySlice = createSlice({
         state.onboardingItems = state.onboardingItems.filter((i) => i.id !== action.payload);
       })
 
+      .addCase(fetchAgencyInvoices.pending, (state) => {
+        state.invoicesStatus = "loading";
+      })
+      .addCase(fetchAgencyInvoices.fulfilled, (state, action) => {
+        state.invoicesStatus = "succeeded";
+        state.invoices = action.payload;
+      })
+      .addCase(fetchAgencyInvoices.rejected, (state, action) => {
+        state.invoicesStatus = "failed";
+        state.error = action.payload as string;
+      })
+      .addCase(fetchAgencyPlanLimits.fulfilled, (state, action) => {
+        state.planLimits = action.payload;
+      })
+      .addCase(createAgencyInvoice.fulfilled, (state, action) => {
+        state.invoices.unshift(action.payload);
+      })
+      .addCase(updateAgencyInvoiceStatus.fulfilled, (state, action) => {
+        const idx = state.invoices.findIndex((i) => i.id === action.payload.id);
+        if (idx !== -1) state.invoices[idx] = action.payload;
+      })
+      .addCase(markAgencyInvoicePaid.fulfilled, (state, action) => {
+        const idx = state.invoices.findIndex((i) => i.id === action.payload.id);
+        if (idx !== -1) state.invoices[idx] = action.payload;
+      })
+      .addCase(deleteAgencyInvoice.fulfilled, (state, action) => {
+        state.invoices = state.invoices.filter((i) => i.id !== action.payload);
+      })
+
       .addCase(createAgency.fulfilled, (state, action) => {
         state.agency = action.payload.agency;
       })
       .addCase(updateAgencyPolicies.fulfilled, (state, action) => {
+        state.agency = action.payload;
+      })
+      .addCase(changeAgencyPlan.fulfilled, (state, action) => {
         state.agency = action.payload;
       })
 
@@ -517,6 +662,8 @@ export const selectAgencyClients = (s: WithAgency) => s.agency.clients;
 export const selectIncomingAssignments = (s: WithAgency) => s.agency.incoming;
 export const selectAgencyExpenses = (s: WithAgency) => s.agency.expenses;
 export const selectOnboardingItems = (s: WithAgency) => s.agency.onboardingItems;
+export const selectAgencyInvoices = (s: WithAgency) => s.agency.invoices;
+export const selectAgencyPlanLimits = (s: WithAgency) => s.agency.planLimits;
 export const selectAgencyError = (s: WithAgency) => s.agency.error;
 
 export default agencySlice.reducer;

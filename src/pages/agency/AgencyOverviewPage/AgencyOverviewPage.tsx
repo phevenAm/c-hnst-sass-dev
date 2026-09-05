@@ -6,9 +6,11 @@ import type { AgencyFinanceSummary } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
   fetchAgencyClients,
+  fetchAgencyInvoices,
   fetchAgencyMembers,
   selectAgency,
   selectAgencyClients,
+  selectAgencyInvoices,
   selectAgencyMembers,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
@@ -30,12 +32,14 @@ export default function AgencyOverviewPage() {
   const agency = useAppSelector(selectAgency);
   const members = useAppSelector(selectAgencyMembers);
   const clients = useAppSelector(selectAgencyClients);
+  const invoices = useAppSelector(selectAgencyInvoices);
   const [finance, setFinance] = useState<AgencyFinanceSummary | null>(null);
 
   useEffect(() => {
     if (!isManager || !agency) return;
     dispatch(fetchAgencyMembers());
     dispatch(fetchAgencyClients(agency.id));
+    dispatch(fetchAgencyInvoices());
     supabase.rpc("agency_finance_summary", {}).then(({ data }) => {
       if (data) setFinance(data as AgencyFinanceSummary);
     });
@@ -63,6 +67,17 @@ export default function AgencyOverviewPage() {
     return { pending, unassigned, declined, onCaseload, activeMembers, workload, maxLoad };
   }, [clients, members]);
 
+  const invoiceStats = useMemo(() => {
+    const outstanding = invoices.filter((i) => i.status === "sent" || i.status === "due").length;
+    const overdue = invoices.filter((i) => i.status === "overdue").length;
+    return { outstanding, overdue };
+  }, [invoices]);
+
+  const unsignedAgreements = useMemo(() => {
+    if (!agency?.staff_agreement_required) return 0;
+    return stats.activeMembers.filter((m) => m.user_id !== agency?.owner_id && !m.agreement_accepted_at).length;
+  }, [stats.activeMembers, agency?.owner_id, agency?.staff_agreement_required]);
+
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
   // Hex (not CSS vars) — recharts writes these straight into an SVG fill attr.
@@ -82,6 +97,12 @@ export default function AgencyOverviewPage() {
     attention.push(`${stats.declined} declined assignment${stats.declined > 1 ? "s" : ""} to reassign`);
   const idleMembers = stats.workload.filter((w) => w.count === 0).length;
   if (idleMembers) attention.push(`${idleMembers} counsellor${idleMembers > 1 ? "s have" : " has"} no clients yet`);
+  if (invoiceStats.overdue)
+    attention.push(`${invoiceStats.overdue} agency invoice${invoiceStats.overdue > 1 ? "s are" : " is"} overdue`);
+  if (unsignedAgreements)
+    attention.push(
+      `${unsignedAgreements} staff member${unsignedAgreements > 1 ? "s haven't" : " hasn't"} accepted the working agreement`,
+    );
 
   return (
     <div>
@@ -101,6 +122,12 @@ export default function AgencyOverviewPage() {
           value={finance ? formatPence(finance.net_pence) : "—"}
           hint={finance ? `${formatPence(finance.income_pence)} in · ${formatPence(finance.outgoings_pence)} out` : ""}
           to="/agency/finance"
+        />
+        <Tile
+          label="Agency invoices"
+          value={invoiceStats.outstanding + invoiceStats.overdue}
+          hint={invoiceStats.overdue ? `${invoiceStats.overdue} overdue` : "outstanding"}
+          to="/agency/invoices"
         />
       </div>
 

@@ -6,9 +6,12 @@ import Button from "@components/shared/Button/Button";
 import {
   AssignmentClipIcon,
   BookIcon,
+  CalendarIcon,
   CancelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ClipboardIcon,
+  DocumentIcon,
   HomeIcon,
   MoneyIcon,
   RescheduleIcon,
@@ -29,8 +32,11 @@ import styles from "./AgencyLayout.module.scss";
 
 const MANAGER_LINKS = [
   { to: "/agency", label: "Overview", end: true, Icon: HomeIcon },
-  { to: "/agency/members", label: "Members", Icon: UsersIcon },
-  { to: "/agency/clients", label: "Clients", Icon: AssignmentClipIcon },
+  { to: "/agency/clients?view=active", label: "Clients", Icon: AssignmentClipIcon },
+  { to: "/agency/clients?view=waiting", label: "Waiting list", Icon: ClipboardIcon },
+  { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
+  { to: "/agency/members", label: "Staff", Icon: UsersIcon },
+  { to: "/agency/invoices", label: "Invoices", Icon: DocumentIcon },
   { to: "/agency/finance", label: "Finance", Icon: MoneyIcon },
   { to: "/agency/onboarding", label: "Onboarding", Icon: BookIcon },
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },

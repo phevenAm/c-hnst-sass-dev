@@ -107,7 +107,12 @@ Deno.serve(async (req) => {
     }
 
     const { error: updErr } = await supabase.from("agency_members").update(patch).eq("id", member.id);
-    if (updErr) throw new Error(updErr.message);
+    if (updErr) {
+      // Reactivating a paused member re-enters the staff-seat trigger
+      // (20260905000000) — surface that as a normal 400, not a 500.
+      const status = updErr.message.includes("AGENCY_PLAN_LIMIT") ? 400 : 500;
+      return new Response(JSON.stringify({ error: updErr.message }), { status, headers: corsHeaders });
+    }
 
     if (patch.status === "disabled") {
       await supabase.from("users").update({ disabled: true }).eq("id", memberUserId);
