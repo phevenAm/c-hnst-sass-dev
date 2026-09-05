@@ -14,7 +14,7 @@ export default function PrivacyPage() {
           <p>
             Clarity is operated by Clarity, a sole trader ("we", "us", "our"). Our business address is [Registered
             business address — TBD, pending forwarding address registration]. For privacy questions, contact us at{" "}
-            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>.
+            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>.
           </p>
         </section>
 
@@ -312,7 +312,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, contact us at{" "}
-            <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>. We will respond within one calendar
+            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. We will respond within one calendar
             month.
           </p>
           <p>
@@ -356,7 +356,7 @@ export default function PrivacyPage() {
         <section>
           <h2>11. Contact</h2>
           <p>
-            For any privacy-related questions: <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
+            For any privacy-related questions: <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
           </p>
           <p>
             For complaints, you may also contact the ICO:{" "}
@@ -367,7 +367,7 @@ export default function PrivacyPage() {
         </section>
 
         <p className={styles.contact}>
-          Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
+          Questions? Contact us at <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
         </p>
       </div>
     </div>

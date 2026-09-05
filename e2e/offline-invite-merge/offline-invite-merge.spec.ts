@@ -20,7 +20,7 @@ test.describe.configure({ mode: "serial" });
 
 const TS = Date.now();
 const TAG = `e2emerge${TS}`;
-const NEW = { email: `${TAG}@clarity-e2e-test.dev`, password: "E2eMerge2026!" };
+const NEW = { email: `smissah321+${TAG}@gmail.com`, password: "E2eMerge2026!" };
 
 let adminId = "";
 let stubId = "";
@@ -80,7 +80,14 @@ test("signing up with a stub-invite token merges the stub's history onto the rea
   if (error || !data.user) throw new Error(`signUp failed: ${error?.message}`);
   newUserId = data.user.id;
 
-  await supabase.auth.signInWithPassword({ email: NEW.email, password: NEW.password });
+  // This project requires email confirmation, so signUp leaves the account
+  // unconfirmed and signInWithPassword would fail with email_not_confirmed.
+  // Stamp it confirmed directly (the same shortcut createAuthUser bakes in) —
+  // this test is about the token-merge branch, not the confirmation email.
+  dbQuery(`update auth.users set email_confirmed_at = now() where id = '${newUserId}';`);
+
+  const { error: signInErr } = await supabase.auth.signInWithPassword({ email: NEW.email, password: NEW.password });
+  if (signInErr) throw new Error(`sign-in failed: ${signInErr.message}`);
   const { error: consumeErr } = await supabase.rpc("consume_platform_access_token", { input_token: token });
   expect(consumeErr).toBeNull();
 

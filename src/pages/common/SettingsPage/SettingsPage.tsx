@@ -11,12 +11,15 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import EncryptionUnlockModal from "@components/shared/EncryptionUnlockModal/EncryptionUnlockModal";
 import FeedbackModal from "@components/shared/FeedbackModal/FeedbackModal";
 import {
   ChevronDown,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
+  LockIcon,
+  LockOpenIcon,
   MoonIcon,
   SunIcon,
   ThemeAutoIcon,
@@ -32,7 +35,9 @@ import { useEncryption } from "@context/EncryptionContext";
 import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
+import { isEncryptedValue } from "@lib/noteEncryption";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
+import { selectAgency, selectIsAgencyMember } from "@store/slices/agencySlice";
 import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
@@ -46,7 +51,6 @@ import {
 import { supabase } from "@/lib/supabase";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
-import RegenerateCodeModal from "./RegenerateCodeModal/RegenerateCodeModal";
 
 import styles from "./SettingsPage.module.scss";
 
@@ -280,7 +284,6 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [showRegenerateCodeModal, setShowRegenerateCodeModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
   const [practiceSearch, setPracticeSearch] = useState("");
   const [scheduleSearch, setScheduleSearch] = useState("");
@@ -349,6 +352,9 @@ const SettingsPage = () => {
   });
   const [savingBank, setSavingBank] = useState(false);
   const [piiLocked, setPiiLocked] = useState(false);
+  const [showEncUnlockModal, setShowEncUnlockModal] = useState(false);
+  const [revealedBankFields, setRevealedBankFields] = useState<Set<BankField>>(new Set());
+  const [copiedBankField, setCopiedBankField] = useState<BankField | null>(null);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [cardPaymentsEnabled, setCardPaymentsEnabled] = useState(false);
   const [savingCardPayments, setSavingCardPayments] = useState(false);
@@ -395,6 +401,11 @@ const SettingsPage = () => {
   const [savingTeamsLinks, setSavingTeamsLinks] = useState(false);
   const [disconnectingMicrosoft, setDisconnectingMicrosoft] = useState(false);
   const [confirmDisconnectMicrosoft, setConfirmDisconnectMicrosoft] = useState(false);
+
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const agency = useAppSelector(selectAgency);
+  const codenamesLockedByAgency = isAgencyMember && !!agency?.require_client_codenames;
+  const consentLockedByAgency = isAgencyMember && !!agency?.locked_consent;
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [hideProfilePii, setHideProfilePii] = useState(false);
@@ -510,8 +521,16 @@ const SettingsPage = () => {
           setPiiLocked(false);
         }
 
-        // Decrypt PII fields when the key is available
-        const decrypt = encStatus === "unlocked" ? decryptPII : (v: string) => Promise.resolve(v);
+        // Decrypt PII fields when the key is available. When locked, blank
+        // out anything that's actually ciphertext rather than passing it
+        // through — otherwise the raw {c, iv} blob ends up sitting in a plain
+        // <input>'s value, visible and one accidental Save away from being
+        // re-persisted as-is (only harmless because it's still ciphertext;
+        // a fresh value typed over it would go straight to the DB in the
+        // clear). A value that's already plaintext because it was saved
+        // before encryption was ever set up isn't hidden by this — there's
+        // nothing to protect that isn't already exposed in the DB.
+        const decrypt = encStatus === "unlocked" ? decryptPII : async (v: string) => (isEncryptedValue(v) ? "" : v);
 
         const businessData: Record<BusinessField, string> = {
           business_name: data.business_name ?? "",
@@ -628,14 +647,20 @@ const SettingsPage = () => {
   const handleUpdateBank = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
+    // Bank details are PII and must never reach the DB unencrypted — no
+    // silent plaintext fallback. If encryption isn't unlocked yet, send the
+    // admin to unlock/set it up first rather than saving anything.
+    if (encStatus !== "unlocked") {
+      setShowEncUnlockModal(true);
+      return;
+    }
     setSavingBank(true);
-    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
     const toSave: Record<BankField, string> = {
-      bank_name: await encrypt(bankDetails.bank_name),
-      bank_account_name: await encrypt(bankDetails.bank_account_name),
-      bank_sort_code: await encrypt(bankDetails.bank_sort_code),
-      bank_account_number: await encrypt(bankDetails.bank_account_number),
-      bank_payment_reference: await encrypt(bankDetails.bank_payment_reference),
+      bank_name: await encryptPII(bankDetails.bank_name),
+      bank_account_name: await encryptPII(bankDetails.bank_account_name),
+      bank_sort_code: await encryptPII(bankDetails.bank_sort_code),
+      bank_account_number: await encryptPII(bankDetails.bank_account_number),
+      bank_payment_reference: await encryptPII(bankDetails.bank_payment_reference),
     };
     await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
     setSavingBank(false);
@@ -645,13 +670,18 @@ const SettingsPage = () => {
   const handleUpdateBusiness = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
+    // Same PII guard as handleUpdateBank — email/phone/address are encrypted
+    // fields too, so no silent plaintext fallback here either.
+    if (encStatus !== "unlocked") {
+      setShowEncUnlockModal(true);
+      return;
+    }
     setSavingBusiness(true);
-    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
     const toSave = {
       business_name: practiceDetails.business_name,
-      email: await encrypt(practiceDetails.email),
-      phone: await encrypt(practiceDetails.phone),
-      address: await encrypt(practiceDetails.address),
+      email: await encryptPII(practiceDetails.email),
+      phone: await encryptPII(practiceDetails.phone),
+      address: await encryptPII(practiceDetails.address),
       logo_url: logoUrl || null,
     };
     await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
@@ -883,6 +913,26 @@ const SettingsPage = () => {
       return;
     }
     setSessionPackages((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const toggleBankFieldRevealed = (key: BankField) => {
+    setRevealedBankFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleCopyBankField = async (key: BankField) => {
+    if (!bankDetails[key]) return;
+    try {
+      await navigator.clipboard.writeText(bankDetails[key]);
+      setCopiedBankField(key);
+      setTimeout(() => setCopiedBankField((prev) => (prev === key ? null : prev)), 2000);
+    } catch {
+      showToast("Couldn't copy — try selecting and copying the value manually.", "error");
+    }
   };
 
   const handleCopyReferralLink = async () => {
@@ -1171,6 +1221,131 @@ const SettingsPage = () => {
     setDisconnectingMicrosoft(false);
   };
 
+  const subscriptionCard = isAdmin && practiceSettings && (
+    <SettingsCard title="Subscription" storageKey="settings:practice:subscription" searchQuery="" id="subscription">
+      <section className={styles.businessSection}>
+        <p>
+          Status:{" "}
+          <strong
+            style={{
+              color: subscriptionStatusColor(
+                practiceSettings.subscription_status,
+                practiceSettings.subscription_cancel_at_period_end,
+              ),
+              textTransform: "capitalize",
+            }}
+          >
+            {practiceSettings.subscription_status}
+          </strong>
+          {practiceSettings.subscription_cancel_at_period_end && (
+            <>
+              {" "}— cancels{" "}
+              {practiceSettings.subscription_current_period_end
+                ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                : "at the end of the current billing period"}
+            </>
+          )}
+        </p>
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
+          {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
+        </p>
+      </section>
+
+      {planLimits &&
+        (() => {
+          // Legacy rows still say "app"/"bundle"/"website" until the tier
+          // migration backfills them — treat anything unrecognised as starter.
+          const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
+          const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey) ? (rawPlan as TierKey) : "starter";
+          const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+          return (
+            <section className={styles.businessSection}>
+              <h2>Your plan</h2>
+
+              {planUsage && currentLimit && (
+                <div className={styles.planUsage}>
+                  <PlanUsageBar label="Active clients" used={planUsage.active} max={currentLimit.max_active} />
+                  <PlanUsageBar label="Archived clients" used={planUsage.archived} max={currentLimit.max_archived} />
+                </div>
+              )}
+
+              <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tierBilling === "monthly"}
+                  className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
+                  onClick={() => setTierBilling("monthly")}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tierBilling === "annual"}
+                  className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
+                  onClick={() => setTierBilling("annual")}
+                >
+                  Annual · 2 months free
+                </button>
+              </div>
+
+              <div className={styles.tierGrid}>
+                {TIER_ORDER.map((key) => {
+                  const d = TIER_DISPLAY[key];
+                  const limit = planLimits.find((l) => l.plan === key);
+                  const isCurrent = key === currentPlan;
+                  const price = tierBilling === "annual" ? d.annual : d.monthly;
+                  return (
+                    <div key={key} className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}>
+                      <div className={styles.tierName}>{d.label}</div>
+                      <div className={styles.tierPrice}>
+                        £{price}
+                        <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
+                      </div>
+                      <div className={styles.tierCap}>
+                        {!limit || limit.max_active == null
+                          ? "Unlimited clients"
+                          : `${limit.max_active} active + ${limit.max_archived} archived`}
+                      </div>
+                      <div className={styles.tierBlurb}>{d.blurb}</div>
+                      {isCurrent ? (
+                        <span className={styles.tierCurrentBadge}>Current plan</span>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          onClick={() => handlePickPlan(key, tierBilling)}
+                          disabled={!!switchingPlan || !billingCustomerId}
+                        >
+                          {switchingPlan === key ? "Switching…" : "Switch"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {planSwitchError && <p className={styles.planSwitchError} role="alert">{planSwitchError}</p>}
+              {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
+            </section>
+          );
+        })()}
+
+      {billingCustomerId && (
+        <div className={styles.actions}>
+          <Button
+            variant="primary"
+            className={styles.saveButton}
+            onClick={handleManageSubscription}
+            disabled={loadingPortal}
+          >
+            {loadingPortal ? "Opening…" : "Manage subscription"}
+          </Button>
+        </div>
+      )}
+    </SettingsCard>
+  );
+
   if (loading || !userProfile)
     return (
       <div className="page">
@@ -1288,29 +1463,31 @@ const SettingsPage = () => {
             )}
 
             <div className={styles.actions}>
-              <Button
-                variant="primary"
-                className={styles.saveButton}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  await handleUpdateProfile();
-                }}
-              >
-                {saving ? "Updating profile..." : "Update profile"}
-              </Button>
-              {!isDemo && (
-                <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
-                  Change password
+              <div className={styles.primaryAction}>
+                <Button
+                  variant="primary"
+                  className={styles.saveButton}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    await handleUpdateProfile();
+                  }}
+                >
+                  {saving ? "Updating profile..." : "Update profile"}
                 </Button>
-              )}
+              </div>
+              <div className={styles.utilityActions}>
+                {!isDemo && (
+                  <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
+                    Change password
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={hardRefresh}>
+                  Force app update
+                </Button>
+              </div>
               {!isAdmin && (
                 <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
                   Report a problem
-                </Button>
-              )}
-              {!isDemo && isAdmin && (encStatus === "unlocked" || encStatus === "locked") && (
-                <Button variant="secondary" size="sm" onClick={() => setShowRegenerateCodeModal(true)}>
-                  Get a new encryption code
                 </Button>
               )}
               {!isAdmin && !isDemo && (
@@ -1320,12 +1497,11 @@ const SettingsPage = () => {
                   </Button>
                 </div>
               )}
-              <Button variant="ghost" size="sm" onClick={hardRefresh}>
-                Force app update
-              </Button>
             </div>
           </Card>
         )}
+
+        {activeTab === "profile" && subscriptionCard}
 
         {/* ── Interface (clients only — admins have their own tab below) ── */}
         {!isAdmin && (
@@ -1516,11 +1692,17 @@ const SettingsPage = () => {
                       type="checkbox"
                       className={styles.toggleInput}
                       checked={useCodenames}
+                      disabled={codenamesLockedByAgency}
                       onChange={(e) => setUseCodenames(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
+                {codenamesLockedByAgency && (
+                  <p className={styles.toggleHint}>
+                    Locked on by your agency — every member is required to use client codenames.
+                  </p>
+                )}
                 <p className={styles.toggleHint}>
                   Set each client's codename from their profile page. If no codename is set, their real name is used as
                   a fallback.
@@ -1570,9 +1752,11 @@ const SettingsPage = () => {
                   <span className={styles.toggleLabel}>
                     <strong>Require consent before app access</strong>
                     <span>
-                      {consentEnabled
-                        ? "On — new clients will see this screen before they can continue."
-                        : "Off — clients can access the app immediately after signing up."}
+                      {consentLockedByAgency
+                        ? "Locked on — your agency's own consent text is shown to your clients instead of yours below."
+                        : consentEnabled
+                          ? "On — new clients will see this screen before they can continue."
+                          : "Off — clients can access the app immediately after signing up."}
                     </span>
                   </span>
                   <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
@@ -1580,13 +1764,14 @@ const SettingsPage = () => {
                       type="checkbox"
                       className={styles.toggleInput}
                       checked={consentEnabled}
+                      disabled={consentLockedByAgency}
                       onChange={(e) => setConsentEnabled(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
 
-                {consentEnabled && (
+                {consentEnabled && !consentLockedByAgency && (
                   <div className={styles.consentConfig}>
                     <p className={styles.toggleHint}>
                       This is the agreement new clients must read and sign (typing their name) before they can use the
@@ -2324,24 +2509,64 @@ const SettingsPage = () => {
             <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={billingSearch}>
               <section className={styles.businessSection}>
                 <p>Shown to clients as a payment option when they pay for a session.</p>
-                <form className={styles.form}>
-                  {BANK_FIELDS.map(({ key, label, placeholder }) => (
-                    <div className={styles.field} key={key}>
-                      <label>{label}</label>
-                      <input
-                        value={bankDetails[key]}
-                        placeholder={placeholder}
-                        onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </form>
+                {piiLocked ? (
+                  <p>🔒 Bank details are saved and encrypted — unlock encryption to view or change them.</p>
+                ) : (
+                  <form className={styles.form}>
+                    {BANK_FIELDS.map(({ key, label, placeholder }) => {
+                      const revealed = revealedBankFields.has(key);
+                      const hasValue = !!bankDetails[key];
+                      return (
+                        <div className={styles.field} key={key}>
+                          <label>{label}</label>
+                          <div className={styles.copyField}>
+                            <input
+                              className={styles.copyFieldValue}
+                              type={hasValue && !revealed ? "password" : "text"}
+                              value={bankDetails[key]}
+                              placeholder={placeholder}
+                              onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                            />
+                            {hasValue && (
+                              <button
+                                type="button"
+                                className={styles.copyFieldBtn}
+                                onClick={() => toggleBankFieldRevealed(key)}
+                                aria-label={revealed ? `Hide ${label}` : `Show ${label}`}
+                                title={revealed ? "Hide" : "Show"}
+                              >
+                                {revealed ? <LockOpenIcon /> : <LockIcon />}
+                              </button>
+                            )}
+                            {hasValue && (
+                              <button
+                                type="button"
+                                className={styles.copyFieldBtn}
+                                onClick={() => handleCopyBankField(key)}
+                                aria-label={`Copy ${label}`}
+                                title="Copy"
+                              >
+                                {copiedBankField === key ? (
+                                  <span className={styles.copyFieldDone}>✓</span>
+                                ) : (
+                                  <CopyIcon />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </form>
+                )}
               </section>
-              <div className={styles.actions}>
-                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
-                  {savingBank ? "Saving…" : "Save bank details"}
-                </Button>
-              </div>
+              {!piiLocked && (
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
+                    {savingBank ? "Saving…" : "Save bank details"}
+                  </Button>
+                </div>
+              )}
             </SettingsCard>
 
             {/* Stripe Connect */}
@@ -2394,155 +2619,6 @@ const SettingsPage = () => {
                 )}
               </section>
             </SettingsCard>
-
-            {/* Subscription */}
-            {practiceSettings && (
-              <SettingsCard
-                title="Subscription"
-                storageKey="settings:practice:subscription"
-                searchQuery={billingSearch}
-                id="subscription"
-              >
-                <section className={styles.businessSection}>
-                  <p>
-                    Status:{" "}
-                    <strong
-                      style={{
-                        color: subscriptionStatusColor(
-                          practiceSettings.subscription_status,
-                          practiceSettings.subscription_cancel_at_period_end,
-                        ),
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {practiceSettings.subscription_status}
-                    </strong>
-                    {practiceSettings.subscription_cancel_at_period_end && (
-                      <>
-                        {" "}
-                        — cancels{" "}
-                        {practiceSettings.subscription_current_period_end
-                          ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                          : "at the end of the current billing period"}
-                      </>
-                    )}
-                  </p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "var(--spacing-xs)" }}>
-                    {subscriptionHintText(practiceSettings.subscription_cancel_at_period_end, !!billingCustomerId)}
-                  </p>
-                </section>
-
-                {planLimits &&
-                  (() => {
-                    // Legacy rows still say "app"/"bundle"/"website" until the tier
-                    // migration backfills them — treat anything unrecognised as starter.
-                    const rawPlan = (practiceSettings.subscription_plan as string) ?? "starter";
-                    const currentPlan: TierKey = TIER_ORDER.includes(rawPlan as TierKey)
-                      ? (rawPlan as TierKey)
-                      : "starter";
-                    const currentLimit = planLimits.find((l) => l.plan === currentPlan);
-                    return (
-                      <section className={styles.businessSection}>
-                        <h2>Your plan</h2>
-
-                        {planUsage && currentLimit && (
-                          <div className={styles.planUsage}>
-                            <PlanUsageBar
-                              label="Active clients"
-                              used={planUsage.active}
-                              max={currentLimit.max_active}
-                            />
-                            <PlanUsageBar
-                              label="Archived clients"
-                              used={planUsage.archived}
-                              max={currentLimit.max_archived}
-                            />
-                          </div>
-                        )}
-
-                        <div className={styles.tierToggle} role="tablist" aria-label="Billing period">
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={tierBilling === "monthly"}
-                            className={`${styles.tierToggleBtn} ${tierBilling === "monthly" ? styles.tierToggleBtnActive : ""}`}
-                            onClick={() => setTierBilling("monthly")}
-                          >
-                            Monthly
-                          </button>
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={tierBilling === "annual"}
-                            className={`${styles.tierToggleBtn} ${tierBilling === "annual" ? styles.tierToggleBtnActive : ""}`}
-                            onClick={() => setTierBilling("annual")}
-                          >
-                            Annual · 2 months free
-                          </button>
-                        </div>
-
-                        <div className={styles.tierGrid}>
-                          {TIER_ORDER.map((key) => {
-                            const d = TIER_DISPLAY[key];
-                            const limit = planLimits.find((l) => l.plan === key);
-                            const isCurrent = key === currentPlan;
-                            const price = tierBilling === "annual" ? d.annual : d.monthly;
-                            return (
-                              <div
-                                key={key}
-                                className={`${styles.tierCard} ${isCurrent ? styles.tierCardCurrent : ""}`}
-                              >
-                                <div className={styles.tierName}>{d.label}</div>
-                                <div className={styles.tierPrice}>
-                                  £{price}
-                                  <span>{tierBilling === "annual" ? "/yr" : "/mo"}</span>
-                                </div>
-                                <div className={styles.tierCap}>
-                                  {!limit || limit.max_active == null
-                                    ? "Unlimited clients"
-                                    : `${limit.max_active} active + ${limit.max_archived} archived`}
-                                </div>
-                                <div className={styles.tierBlurb}>{d.blurb}</div>
-                                {isCurrent ? (
-                                  <span className={styles.tierCurrentBadge}>Current plan</span>
-                                ) : (
-                                  <Button
-                                    variant="secondary"
-                                    onClick={() => handlePickPlan(key, tierBilling)}
-                                    disabled={!!switchingPlan || !billingCustomerId}
-                                  >
-                                    {switchingPlan === key ? "Switching…" : "Switch"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {planSwitchError && (
-                          <p className={styles.planSwitchError} role="alert">
-                            {planSwitchError}
-                          </p>
-                        )}
-                        {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
-                      </section>
-                    );
-                  })()}
-
-                {billingCustomerId && (
-                  <div className={styles.actions}>
-                    <Button
-                      variant="primary"
-                      className={styles.saveButton}
-                      onClick={handleManageSubscription}
-                      disabled={loadingPortal}
-                    >
-                      {loadingPortal ? "Opening…" : "Manage subscription"}
-                    </Button>
-                  </div>
-                )}
-              </SettingsCard>
-            )}
 
             {/* Pause or close the practice */}
             <SettingsCard
@@ -3028,7 +3104,6 @@ const SettingsPage = () => {
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
-      {showRegenerateCodeModal && <RegenerateCodeModal onClose={() => setShowRegenerateCodeModal(false)} />}
       {announceOpen && (
         <SendAnnouncementModal
           useCodenames={practiceSettings?.use_client_codenames ?? false}

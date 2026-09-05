@@ -42,12 +42,13 @@ export function dbQuery<T = Record<string, unknown>>(sql: string): { rows: T[] }
 // row wherever the statements don't depend on each other's results.
 
 /**
- * Create a real, login-capable auth user directly in the DB. Bypasses
- * supabase.auth.signUp, which now rejects the fake @clarity-e2e-test.dev
- * domain ("Email address … is invalid") — GoTrue gained address validation
- * after the shared fixtures were first created. handle_new_user fires on the
- * insert and makes the matching public.users row. Password is bcrypt-hashed so
- * signInWithPassword / a browser login still works.
+ * Create a real, login-capable auth user directly in the DB. Inserting
+ * straight into auth.users (rather than supabase.auth.signUp) sets
+ * email_confirmed_at = now() so the account works immediately and no
+ * confirmation email is sent to the shared smissah321+… inbox.
+ * handle_new_user fires on the insert and makes the matching public.users
+ * row. Password is bcrypt-hashed so signInWithPassword / a browser login
+ * still works.
  */
 export function createAuthUser(opts: { email: string; password: string; meta?: Record<string, unknown> }): string {
   const meta = JSON.stringify({ role: "client", ...(opts.meta ?? {}) }).replace(/'/g, "''");

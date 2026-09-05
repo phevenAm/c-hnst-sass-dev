@@ -7,10 +7,14 @@ import { bootstrapAgency } from "@store/slices/agencySlice";
 import { supabase } from "@/lib/supabase";
 
 const PENDING_INVITE_KEY = "pendingAgencyInvite";
+const PENDING_AGREEMENT_KEY = "pendingAgencyInviteAgreement";
 
-export function stashPendingAgencyInvite(token: string) {
+type PendingAgreement = { accepted: boolean; signedName: string };
+
+export function stashPendingAgencyInvite(token: string, agreement?: PendingAgreement) {
   try {
     localStorage.setItem(PENDING_INVITE_KEY, token);
+    if (agreement) localStorage.setItem(PENDING_AGREEMENT_KEY, JSON.stringify(agreement));
   } catch {
     /* private mode — the CounsellorSignupPage inline consume still covers the happy path */
   }
@@ -35,20 +39,28 @@ export function useAgencyBootstrap() {
       ranFor.current = uid;
 
       let pending: string | null = null;
+      let agreement: PendingAgreement | null = null;
       try {
         pending = localStorage.getItem(PENDING_INVITE_KEY);
+        const raw = localStorage.getItem(PENDING_AGREEMENT_KEY);
+        agreement = raw ? (JSON.parse(raw) as PendingAgreement) : null;
       } catch {
         /* ignore */
       }
 
       if (pending) {
         try {
-          await supabase.rpc("consume_agency_invite", { input_token: pending });
+          await supabase.rpc("consume_agency_invite", {
+            input_token: pending,
+            p_agreement_accepted: agreement?.accepted ?? false,
+            p_signed_name: agreement?.signedName ?? null,
+          });
         } catch (err) {
           console.error("consume_agency_invite failed", err);
         } finally {
           try {
             localStorage.removeItem(PENDING_INVITE_KEY);
+            localStorage.removeItem(PENDING_AGREEMENT_KEY);
           } catch {
             /* ignore */
           }

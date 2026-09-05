@@ -35,6 +35,13 @@ function renderPage() {
 const mockUseAuth = vi.fn();
 vi.mock("@context/AuthContext", () => ({ useAuth: () => mockUseAuth() }));
 
+// PdfViewer eagerly imports pdf.js, which touches DOMMatrix — unavailable in
+// jsdom. Stubbed the same way ConsentModal.test.tsx does; this file cares
+// about the agreement-gate logic, not PDF rendering.
+vi.mock("@components/shared/PdfViewer/PdfViewer", () => ({
+  default: ({ title }: { title: string }) => <div data-testid="pdf-viewer">{title}</div>,
+}));
+
 const mockSignUp = vi.fn();
 const mockResend = vi.fn();
 vi.mock("@/lib/supabase", () => ({
@@ -71,7 +78,11 @@ describe("CounsellorSignupPage — resend confirmation email", () => {
     fireEvent.click(screen.getByRole("button", { name: "Resend the email" }));
 
     await waitFor(() => {
-      expect(mockResend).toHaveBeenCalledWith({ type: "signup", email: "sarah@example.com" });
+      expect(mockResend).toHaveBeenCalledWith({
+        type: "signup",
+        email: "sarah@example.com",
+        options: { emailRedirectTo: expect.stringContaining("/login") },
+      });
     });
     expect(await screen.findByText("Email sent — check your inbox.")).toBeInTheDocument();
   });

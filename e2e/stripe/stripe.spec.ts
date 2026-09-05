@@ -33,7 +33,7 @@ async function payOnStripeCheckout(page: Page, checkoutUrl: string) {
   // requires it — fill in whatever this particular checkout actually shows.
   const email = page.locator("#email");
   if (await email.isVisible().catch(() => false)) {
-    await email.fill("e2e-stripe-test@clarity-e2e-test.dev");
+    await email.fill("smissah321+e2e-stripe-test@gmail.com");
   }
 
   await page.fill("#cardNumber", "4242424242424242");

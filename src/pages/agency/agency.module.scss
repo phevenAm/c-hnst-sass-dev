@@ -422,6 +422,101 @@
   background: var(--bg-base);
 }
 
+.filterRow {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+
+.filterBtn {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.filterBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--r-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.radioRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+
+  input {
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+  }
+}
+
+.usageBar {
+  margin-bottom: var(--sp-2);
+}
+
+.usageBarHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-1);
+}
+
+.usageOver {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.usageTrack {
+  height: 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.usageFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--r-full);
+}
+
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-3);
+}
+
 .textLink {
   display: inline-flex;
   align-items: center;

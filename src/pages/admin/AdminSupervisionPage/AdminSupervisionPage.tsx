@@ -531,20 +531,26 @@ export default function AdminSupervisionPage() {
   const exportPdf = async () => {
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
+    const { addCoverPage, runningHeader, stampChrome, tableBlock, CONTENT_TOP } = await import(
+      "../../../Helpers/pdfBranding"
+    );
     const doc = new jsPDF();
     const name = userProfile?.display_name ?? "Counsellor";
-    doc.setFontSize(16);
-    doc.text("Supervision Log", 14, 18);
+
+    addCoverPage(doc, { title: "Supervision Log", subtitle: `${name} · ${currentYear}` });
+    doc.addPage();
+
+    const headerY = runningHeader(doc, `Supervision Log · ${currentYear}`);
     doc.setFontSize(10);
-    doc.text(`${name} · ${currentYear}`, 14, 26);
+    doc.setFont("helvetica", "normal");
     doc.text(
       `Sessions: ${sessionCount}   ·   Hours: ${totalHours.toFixed(1)}${totalCost > 0 ? `   ·   Fees: £${(totalCost / 100).toFixed(2)}` : ""}`,
       14,
-      32,
+      headerY + 8,
     );
 
     autoTable(doc, {
-      startY: 40,
+      startY: headerY + 16,
       head: [["#", "Date", "Supervisor", "Session #", "Mode", "Venue", "Duration", "Fee", "Source"]],
       body: thisYear.map((e, idx) => [
         String(thisYear.length - idx),
@@ -558,7 +564,7 @@ export default function AdminSupervisionPage() {
         e.source === "calendar" ? "Calendar" : "Manual",
       ]),
       styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [45, 114, 100] },
+      ...tableBlock(),
     });
 
     // Issues raised + reflections are the clinically useful part — list them
@@ -573,7 +579,7 @@ export default function AdminSupervisionPage() {
       for (const e of withDetail) {
         if (y > 260) {
           doc.addPage();
-          y = 20;
+          y = CONTENT_TOP;
         }
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
@@ -594,6 +600,7 @@ export default function AdminSupervisionPage() {
       }
     }
 
+    stampChrome(doc, { title: `Supervision Log · ${currentYear}`, footer: `Supervision Log ${currentYear}` });
     doc.save(`supervision-log-${currentYear}.pdf`);
   };
 

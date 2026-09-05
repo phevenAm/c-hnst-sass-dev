@@ -194,6 +194,21 @@
   white-space: nowrap;
 }
 
+// .copyFieldValue used on a real <input> (bank details) rather than a
+// read-only <span> (referral link) — strip its own box since .copyField
+// already supplies one via input-base, or the two would double up.
+input.copyFieldValue {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+
+  &:focus {
+    outline: none;
+  }
+}
+
 .copyFieldBtn {
   flex-shrink: 0;
   display: inline-flex;
@@ -403,8 +418,23 @@
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: $sp-4;
+}
+
+.primaryAction,
+.utilityActions {
+  display: flex;
+  gap: $sp-3;
+}
+
+.primaryAction {
+  align-items: flex-start;
+}
+
+.utilityActions {
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .saveButton {
@@ -412,6 +442,13 @@
 
   @include until-md {
     align-self: stretch;
+  }
+}
+
+@include until-md {
+  .utilityActions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
