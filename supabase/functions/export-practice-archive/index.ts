@@ -9,9 +9,6 @@ import "npm:jspdf-autotable@3.8.2";
 import JSZip from "npm:jszip@3.10.1";
 import * as XLSX from "npm:xlsx@0.18.5";
 import { buildExportZip, type ExportInput } from "./buildDocs.ts";
-import { PDF_COVER_JPEG } from "../_shared/coverImage.ts";
-
-const TEAL: [number, number, number] = [31, 73, 64];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +28,10 @@ const corsHeaders = {
 // Session notes are client-side encrypted, so this function can't read them.
 // DeleteUserModal decrypts what the browser can and passes a
 // { [noteId]: plaintext } map in `decrypted_notes`; the rest are marked locked.
+//
+// The whole document build lives in ./buildDocs.ts (no Deno / npm: specifiers)
+// so the same code runs under a plain-Node verification harness — this file
+// only does auth + the DB reads.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -117,194 +118,6 @@ Deno.serve(async (req) => {
       notes: notesRes.data ?? [],
       payments: paymentsRes.data ?? [],
       decryptedNotes,
-    const clients = clientsRes.data ?? [];
-    const stubs = stubsRes.data ?? [];
-    const sessions = sessionsRes.data ?? [];
-    const stubSessions = stubSessionsRes.data ?? [];
-    const notes = notesRes.data ?? [];
-    const payments = paymentsRes.data ?? [];
-    const practiceName = practiceRes.data?.business_name || "Clarity practice";
-
-    const clientName = new Map<string, string>();
-    for (const c of clients) {
-      const real = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
-      clientName.set(
-        c.id,
-        real || c.display_name || (c.admin_codename ? `${c.admin_codename} (codename)` : "Unnamed client"),
-      );
-    }
-    const stubName = new Map<string, string>();
-    for (const s of stubs) {
-      const real = [s.first_name, s.last_name].filter(Boolean).join(" ").trim();
-      stubName.set(s.id, real || (s.codename ? `${s.codename} (codename)` : "Unnamed offline client"));
-    }
-
-    // ── Rows ──────────────────────────────────────────────────────────────
-    const clientRows: Dict[] = [
-      ...clients.map((c) => ({
-        Type: "Portal client",
-        Name: clientName.get(c.id) ?? "",
-        Email: c.email ?? "",
-        "Date of birth": c.dob ?? "",
-        Status: c.archived_at ? `Archived (${c.archived_reason ?? "—"})` : c.disabled ? "Paused" : "Active",
-        Anonymised: c.anonymised_at ? "Yes" : "No",
-        Added: fmtDate(c.created_at),
-      })),
-      ...stubs.map((s) => ({
-        Type: "Offline client",
-        Name: stubName.get(s.id) ?? "",
-        Email: s.email ?? "",
-        "Date of birth": "",
-        Status: s.archived_at ? "Archived" : s.linked_user_id ? "Linked to portal account" : "Active",
-        Anonymised: "",
-        Added: fmtDate(s.created_at),
-      })),
-    ];
-
-    const sessionRows: Dict[] = [
-      ...sessions.map((s) => ({
-        Client: s.client_id ? (clientName.get(s.client_id) ?? "Unknown / removed") : "—",
-        When: fmtDate(s.scheduled_at),
-        "Length (min)": s.duration_minutes ?? "",
-        Status: s.status,
-        Attendance: attendedLabel(s.attended),
-        Paid: s.paid ? "Yes" : "No",
-        "Paid at": fmtDate(s.paid_at),
-        Price: money(s.price_pence),
-        Location: s.location ?? "",
-        Ref: s.reference_code ?? "",
-        Kind: s.is_supervision ? "Supervision" : "Client session",
-      })),
-      ...stubSessions.map((s) => ({
-        Client: stubName.get(s.stub_id) ?? "Unknown offline client",
-        When: fmtDate(s.scheduled_at),
-        "Length (min)": s.duration_minutes ?? "",
-        Status: s.status,
-        Attendance: "—",
-        Paid: s.paid ? "Yes" : "No",
-        "Paid at": "",
-        Price: money(s.price_pence ?? (s.amount_paid != null ? Math.round(s.amount_paid * 100) : null)),
-        Location: s.location ?? "",
-        Ref: s.code ?? "",
-        Kind: "Offline session",
-      })),
-    ];
-
-    const noteRows: Dict[] = notes.map((n) => {
-      const who = n.user_id
-        ? (clientName.get(n.user_id) ?? "Unknown / removed")
-        : n.stub_id
-          ? (stubName.get(n.stub_id) ?? "Unknown offline client")
-          : "—";
-      let content: string;
-      if (!n.is_encrypted) content = n.content ?? "";
-      else if (decryptedNotes[n.id] != null) content = decryptedNotes[n.id];
-      else content = "[encrypted — open this client's notes screen in the app to read or export]";
-      return {
-        Client: who,
-        Written: fmtDate(n.created_at),
-        "Linked session": n.session_id ? "Yes" : "No",
-        Note: content,
-      };
-    });
-
-    const paymentRows: Dict[] = payments.map((p) => ({
-      Client: p.client_id
-        ? (clientName.get(p.client_id) ?? "Unknown / removed")
-        : p.stub_id
-          ? (stubName.get(p.stub_id) ?? "Unknown offline client")
-          : "—",
-      Amount: money(p.amount_pence),
-      Description: p.description ?? "",
-      "Paid at": fmtDate(p.paid_at),
-      Recorded: fmtDate(p.created_at),
-    }));
-
-    // ── XLSX bundle 1: clients + sessions + notes ─────────────────────────
-    const wb1 = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(clientRows), "Clients");
-    XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(sessionRows), "Sessions");
-    XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(noteRows), "Session notes");
-    const xlsx1 = XLSX.write(wb1, { type: "array", bookType: "xlsx" }) as Uint8Array;
-
-    // ── XLSX bundle 2: payments ──────────────────────────────────────────
-    const wb2 = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb2, XLSX.utils.json_to_sheet(paymentRows), "Payments");
-    const xlsx2 = XLSX.write(wb2, { type: "array", bookType: "xlsx" }) as Uint8Array;
-
-    // ── PDF helper ──────────────────────────────────────────────────────
-    const exportedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
-    const buildPdf = (title: string, tables: { heading: string; columns: string[]; rows: Dict[] }[]) => {
-      const doc = new jsPDF({ orientation: "landscape" });
-      const W = doc.internal.pageSize.getWidth();
-      const H = doc.internal.pageSize.getHeight();
-
-      // ── Cover page (frosted login art + teal block) ──────────────
-      // The cover JPEG is a portrait A4 crop; on this landscape page draw it
-      // "cover"-fit (full width, overflowing top/bottom) so it isn't stretched.
-      const coverH = W * 1.414;
-      doc.addImage(PDF_COVER_JPEG, "JPEG", 0, (H - coverH) / 2, W, coverH, undefined, "FAST");
-      const bandTop = H - 70;
-      doc.setFillColor(...TEAL);
-      doc.rect(0, bandTop, W, H - bandTop, "F");
-      doc.setFont("times", "normal");
-      doc.setFontSize(28);
-      doc.setTextColor(255, 255, 255);
-      doc.text("Clarity", 16, bandTop + 22);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text(`${practiceName} — ${title}`, 16, bandTop + 40);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(198, 216, 211);
-      doc.text(`Exported ${exportedAt} UTC`, 16, bandTop + 52);
-
-      doc.addPage();
-      doc.setTextColor(45, 41, 38);
-      let y = 24;
-      for (const t of tables) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.setTextColor(...TEAL);
-        doc.text(`${t.heading} (${t.rows.length})`, 14, y);
-        doc.setTextColor(45, 41, 38);
-        doc.setFont("helvetica", "normal");
-        // deno-lint-ignore no-explicit-any
-        (doc as any).autoTable({
-          startY: y + 3,
-          head: [t.columns],
-          body: t.rows.map((r) => t.columns.map((c) => String(r[c] ?? ""))),
-          styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak" },
-          headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold" },
-          margin: { top: 22, left: 14, right: 14 },
-        });
-        // deno-lint-ignore no-explicit-any
-        y = ((doc as any).lastAutoTable?.finalY ?? y + 20) + 10;
-        if (y > 180) {
-          doc.addPage();
-          y = 24;
-        }
-      }
-
-      // ── Header band + footer on every sheet except the cover ─────
-      // deno-lint-ignore no-explicit-any
-      const pages = (doc as any).internal.getNumberOfPages();
-      for (let p = 2; p <= pages; p++) {
-        doc.setPage(p);
-        doc.setFillColor(...TEAL);
-        doc.rect(0, 0, W, 14, "F");
-        doc.setFont("times", "normal");
-        doc.setFontSize(11);
-        doc.setTextColor(255, 255, 255);
-        doc.text("Clarity", 14, 9.5);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.text(`${practiceName} — ${title}`, W - 14, 9.5, { align: "right" });
-        doc.setTextColor(120, 120, 120);
-        doc.text(`Clarity · ${practiceName} — ${title} · Exported ${exportedAt} UTC`, 14, H - 8);
-        doc.text(`Page ${p - 1} of ${pages - 1}`, W - 14, H - 8, { align: "right" });
-      }
-      return new Uint8Array(doc.output("arraybuffer"));
     };
 
     const { filename, zipBytes, counts } = await buildExportZip({ XLSX, jsPDF, JSZip }, input);
