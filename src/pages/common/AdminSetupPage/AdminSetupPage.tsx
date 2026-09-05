@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { isPdfUrl } from "@Helpers/Helpers";
+import AuthShell from "@components/shared/AuthShell/AuthShell";
 import Button from "@components/shared/Button/Button";
-import Card from "@components/shared/Card/Card";
-import { LeafLogoMark } from "@components/shared/Icons/Icons";
-import ImageBlurBlock from "@components/shared/ImageBlurBlock/ImageBlurBlock";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { useAuth } from "@context/AuthContext";
@@ -302,312 +300,293 @@ export default function AdminSetupPage() {
   const firstName = userProfile?.first_name;
 
   return (
-    <div className={styles.page}>
-      <ImageBlurBlock
-        imageUrl="/pexels-amirali-shaghaghi-18428647.jpg"
-        photographer="Amirali Shaghaghi"
-        sourceLabel="Pexels"
-        creditUrl="https://www.pexels.com/@amirali-shaghaghi-479660570/"
-      />
-      <div className={styles.container}>
-        <div className={styles.logoWrap}>
-          <LeafLogoMark size={48} />
-          <div className={styles.logoText}>
-            <h1 className={styles.logoTitle}>Clarity</h1>
-            <p className={styles.logoSub}>
-              {firstName ? `Welcome, ${firstName} — let's get set up` : "Set up your practice"}
-            </p>
-            <p className={styles.logoSteps}>
-              {TOTAL_STEPS} quick steps — skip anything and set it up later in Settings, but we'd recommend doing it now
-              while you're here.
-            </p>
+    <AuthShell tagline={firstName ? `Welcome, ${firstName}` : "Let's get you set up"} wide>
+      <p className={styles.logoSteps}>
+        {TOTAL_STEPS} quick steps — skip anything and set it up later in Settings, but we'd recommend doing it now while
+        you're here.
+      </p>
+
+      <div className={styles.stepDots} aria-label={`Step ${step} of ${TOTAL_STEPS}`}>
+        {STEP_TITLES.map((title, i) => (
+          <div key={title} className={`${styles.stepDot} ${step >= i + 1 ? styles.stepDotActive : ""}`} />
+        ))}
+      </div>
+
+      <h2 className={styles.stepHeading}>{STEP_TITLES[step - 1]}</h2>
+
+      {step === 1 && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>Shown on client-facing emails and payment receipts.</p>
+          <div className={styles.field}>
+            <label htmlFor="setup-business-name">Business name</label>
+            <input
+              id="setup-business-name"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="e.g. Sarah Smith Therapy"
+            />
           </div>
         </div>
+      )}
 
-        <Card className={styles.card}>
-          <div className={styles.stepDots} aria-label={`Step ${step} of ${TOTAL_STEPS}`}>
-            {STEP_TITLES.map((title, i) => (
-              <div key={title} className={`${styles.stepDot} ${step >= i + 1 ? styles.stepDotActive : ""}`} />
+      {step === 2 && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            At least one is required — this is what you'll pick from when booking a client's session.
+          </p>
+          {packages.length > 0 && (
+            <ul className={styles.packageList}>
+              {packages.map((p) => (
+                <li key={p.id} className={styles.packageItem}>
+                  <span>
+                    {p.name}
+                    <span className={styles.packageMeta}>
+                      {" "}
+                      — £{(p.price_pence / 100).toFixed(2)} · {p.duration_minutes} min
+                    </span>
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={() => handleRemovePackage(p.id)}>
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className={styles.packageRow}>
+            <div className={styles.field}>
+              <label htmlFor="setup-pkg-name">Name</label>
+              <input
+                id="setup-pkg-name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. Standard session"
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="setup-pkg-price">Price (£)</label>
+              <input
+                id="setup-pkg-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                placeholder="60.00"
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="setup-pkg-duration">Duration (min)</label>
+              <input
+                id="setup-pkg-duration"
+                type="number"
+                min="5"
+                value={newDuration}
+                onChange={(e) => setNewDuration(e.target.value)}
+              />
+            </div>
+            <Button size="sm" onClick={handleAddPackage} disabled={!newName.trim() || !newPrice || addingPackage}>
+              {addingPackage ? "Adding…" : "+ Add"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            Optional — hides real client names in your admin UI in favour of codenames. You can turn this on or off
+            anytime in Settings → Practice → Client codenames.
+          </p>
+          <label className={styles.toggleRow}>
+            <span className={styles.toggleLabel}>
+              <strong>
+                Use codenames{" "}
+                <InfoTooltip text="Show codenames instead of real names in your admin UI. Set each client's codename from their profile page — if none is set, their real name is used as a fallback." />
+              </strong>
+            </span>
+            <span className={`${styles.toggleSwitch} ${enableCodenames ? styles.toggleSwitchOn : ""}`}>
+              <input
+                type="checkbox"
+                aria-label="Use codenames"
+                className={styles.toggleInput}
+                checked={enableCodenames}
+                onChange={(e) => setEnableCodenames(e.target.checked)}
+              />
+              <span className={styles.toggleThumb} />
+            </span>
+          </label>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            Optional — not everyone will want this. You can turn it on or off anytime in Settings → Practice → Client
+            consent.{" "}
+            <InfoTooltip
+              variant="rich"
+              title="What's a client onboarding contract?"
+              text={
+                "An onboarding contract is an optional agreement new clients read and confirm before they can use the app — things like your confidentiality policy or terms of working together.\n\n" +
+                "This sets up the simple version (text + an optional PDF). If you'd rather build a more custom multi-question intake form, that's still available under Forms → Onboarding, linked from Settings → Practice → Client consent."
+              }
+            />
+          </p>
+          <label className={styles.toggleRow}>
+            <span className={styles.toggleLabel}>
+              <strong>Ask new clients to agree to a contract before using the app</strong>
+            </span>
+            <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
+              <input
+                type="checkbox"
+                aria-label="Ask new clients to agree to a contract before using the app"
+                className={styles.toggleInput}
+                checked={consentEnabled}
+                onChange={(e) => setConsentEnabled(e.target.checked)}
+              />
+              <span className={styles.toggleThumb} />
+            </span>
+          </label>
+
+          {consentEnabled && (
+            <div className={styles.consentFields}>
+              <div className={styles.field}>
+                <label htmlFor="setup-consent-title">Heading</label>
+                <input
+                  id="setup-consent-title"
+                  value={consentTitle}
+                  onChange={(e) => setConsentTitle(e.target.value)}
+                  placeholder="Before you continue"
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="setup-consent-body">Agreement text</label>
+                <textarea
+                  id="setup-consent-body"
+                  rows={5}
+                  value={consentBody}
+                  onChange={(e) => setConsentBody(e.target.value)}
+                  placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="setup-consent-pdf">
+                  PDF link <small>(optional — must end in .pdf)</small>
+                </label>
+                <input
+                  id="setup-consent-pdf"
+                  type="url"
+                  value={consentPdfUrl}
+                  onChange={(e) => {
+                    setConsentPdfUrl(e.target.value);
+                    if (consentPdfUrlError) setConsentPdfUrlError("");
+                  }}
+                  placeholder="https://example.com/document.pdf"
+                  aria-invalid={!!consentPdfUrlError}
+                />
+                {consentPdfUrlError && <p className={styles.error}>{consentPdfUrlError}</p>}
+                <PdfUpload
+                  adminId={userProfile?.id ?? ""}
+                  value={consentPdfUrl}
+                  onChange={(url) => {
+                    setConsentPdfUrl(url);
+                    if (consentPdfUrlError) setConsentPdfUrlError("");
+                  }}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="setup-consent-cta">Footer message</label>
+                <input
+                  id="setup-consent-cta"
+                  value={consentCounsellorCta}
+                  onChange={(e) => setConsentCounsellorCta(e.target.value)}
+                  placeholder="If you have any questions, speak to your counsellor."
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {step === 5 && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            Optional — only needed if you want to offer bank transfer as a payment option. Skip this if you're using
+            Stripe card payments only.
+          </p>
+          <div className={styles.bankGrid}>
+            {BANK_FIELDS.map((f) => (
+              <div className={styles.field} key={f.key}>
+                <label htmlFor={`setup-${f.key}`}>{f.label}</label>
+                <input
+                  id={`setup-${f.key}`}
+                  value={bankDetails[f.key]}
+                  onChange={(e) => setBankDetails((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                />
+              </div>
             ))}
           </div>
+        </div>
+      )}
 
-          <h2 className={styles.stepHeading}>{STEP_TITLES[step - 1]}</h2>
-
-          {step === 1 && (
-            <div className={styles.section}>
-              <p className={styles.sectionHint}>Shown on client-facing emails and payment receipts.</p>
-              <div className={styles.field}>
-                <label htmlFor="setup-business-name">Business name</label>
-                <input
-                  id="setup-business-name"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="e.g. Sarah Smith Therapy"
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className={styles.section}>
-              <p className={styles.sectionHint}>
-                At least one is required — this is what you'll pick from when booking a client's session.
-              </p>
-              {packages.length > 0 && (
-                <ul className={styles.packageList}>
-                  {packages.map((p) => (
-                    <li key={p.id} className={styles.packageItem}>
-                      <span>
-                        {p.name}
-                        <span className={styles.packageMeta}>
-                          {" "}
-                          — £{(p.price_pence / 100).toFixed(2)} · {p.duration_minutes} min
-                        </span>
-                      </span>
-                      <Button variant="ghost" size="sm" onClick={() => handleRemovePackage(p.id)}>
-                        Remove
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className={styles.packageRow}>
-                <div className={styles.field}>
-                  <label htmlFor="setup-pkg-name">Name</label>
-                  <input
-                    id="setup-pkg-name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g. Standard session"
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="setup-pkg-price">Price (£)</label>
-                  <input
-                    id="setup-pkg-price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    placeholder="60.00"
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="setup-pkg-duration">Duration (min)</label>
-                  <input
-                    id="setup-pkg-duration"
-                    type="number"
-                    min="5"
-                    value={newDuration}
-                    onChange={(e) => setNewDuration(e.target.value)}
-                  />
-                </div>
-                <Button size="sm" onClick={handleAddPackage} disabled={!newName.trim() || !newPrice || addingPackage}>
-                  {addingPackage ? "Adding…" : "+ Add"}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className={styles.section}>
-              <p className={styles.sectionHint}>
-                Optional — hides real client names in your admin UI in favour of codenames. You can turn this on or off
-                anytime in Settings → Practice → Client codenames.
-              </p>
-              <label className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>
-                    Use codenames{" "}
-                    <InfoTooltip text="Show codenames instead of real names in your admin UI. Set each client's codename from their profile page — if none is set, their real name is used as a fallback." />
-                  </strong>
-                </span>
-                <span className={`${styles.toggleSwitch} ${enableCodenames ? styles.toggleSwitchOn : ""}`}>
-                  <input
-                    type="checkbox"
-                    aria-label="Use codenames"
-                    className={styles.toggleInput}
-                    checked={enableCodenames}
-                    onChange={(e) => setEnableCodenames(e.target.checked)}
-                  />
-                  <span className={styles.toggleThumb} />
-                </span>
-              </label>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className={styles.section}>
-              <p className={styles.sectionHint}>
-                Optional — not everyone will want this. You can turn it on or off anytime in Settings → Practice →
-                Client consent.{" "}
-                <InfoTooltip
-                  variant="rich"
-                  title="What's a client onboarding contract?"
-                  text={
-                    "An onboarding contract is an optional agreement new clients read and confirm before they can use the app — things like your confidentiality policy or terms of working together.\n\n" +
-                    "This sets up the simple version (text + an optional PDF). If you'd rather build a more custom multi-question intake form, that's still available under Forms → Onboarding, linked from Settings → Practice → Client consent."
-                  }
-                />
-              </p>
-              <label className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Ask new clients to agree to a contract before using the app</strong>
-                </span>
-                <span className={`${styles.toggleSwitch} ${consentEnabled ? styles.toggleSwitchOn : ""}`}>
-                  <input
-                    type="checkbox"
-                    aria-label="Ask new clients to agree to a contract before using the app"
-                    className={styles.toggleInput}
-                    checked={consentEnabled}
-                    onChange={(e) => setConsentEnabled(e.target.checked)}
-                  />
-                  <span className={styles.toggleThumb} />
-                </span>
-              </label>
-
-              {consentEnabled && (
-                <div className={styles.consentFields}>
-                  <div className={styles.field}>
-                    <label htmlFor="setup-consent-title">Heading</label>
-                    <input
-                      id="setup-consent-title"
-                      value={consentTitle}
-                      onChange={(e) => setConsentTitle(e.target.value)}
-                      placeholder="Before you continue"
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label htmlFor="setup-consent-body">Agreement text</label>
-                    <textarea
-                      id="setup-consent-body"
-                      rows={5}
-                      value={consentBody}
-                      onChange={(e) => setConsentBody(e.target.value)}
-                      placeholder="Write your terms, confidentiality agreement, or any text the client should read before using the app."
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label htmlFor="setup-consent-pdf">
-                      PDF link <small>(optional — must end in .pdf)</small>
-                    </label>
-                    <input
-                      id="setup-consent-pdf"
-                      type="url"
-                      value={consentPdfUrl}
-                      onChange={(e) => {
-                        setConsentPdfUrl(e.target.value);
-                        if (consentPdfUrlError) setConsentPdfUrlError("");
-                      }}
-                      placeholder="https://example.com/document.pdf"
-                      aria-invalid={!!consentPdfUrlError}
-                    />
-                    {consentPdfUrlError && <p className={styles.error}>{consentPdfUrlError}</p>}
-                    <PdfUpload
-                      adminId={userProfile?.id ?? ""}
-                      value={consentPdfUrl}
-                      onChange={(url) => {
-                        setConsentPdfUrl(url);
-                        if (consentPdfUrlError) setConsentPdfUrlError("");
-                      }}
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label htmlFor="setup-consent-cta">Footer message</label>
-                    <input
-                      id="setup-consent-cta"
-                      value={consentCounsellorCta}
-                      onChange={(e) => setConsentCounsellorCta(e.target.value)}
-                      placeholder="If you have any questions, speak to your counsellor."
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className={styles.section}>
-              <p className={styles.sectionHint}>
-                Optional — only needed if you want to offer bank transfer as a payment option. Skip this if you're using
-                Stripe card payments only.
-              </p>
-              <div className={styles.bankGrid}>
-                {BANK_FIELDS.map((f) => (
-                  <div className={styles.field} key={f.key}>
-                    <label htmlFor={`setup-${f.key}`}>{f.label}</label>
-                    <input
-                      id={`setup-${f.key}`}
-                      value={bankDetails[f.key]}
-                      onChange={(e) => setBankDetails((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 6 && (
-            <div className={styles.section}>
-              <p className={styles.sectionHint}>
-                Optional — however fits how you work. You can always add clients later from the Clients page.
-              </p>
-              <div className={styles.clientActionsGrid}>
-                <Button variant="secondary" onClick={() => setInviteOpen(true)}>
-                  Invite a client
-                </Button>
-                <Button variant="secondary" onClick={() => setCreateStubOpen(true)}>
-                  Add an offline client
-                </Button>
-                <Button variant="secondary" onClick={() => setImportOpen(true)}>
-                  Import from CSV
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {error && <p className={styles.error}>{error}</p>}
-
-          <div className={styles.stepNav}>
-            <div className={styles.stepNavLeft}>
-              {SKIPPABLE_STEPS.has(step) && (
-                <button type="button" className={styles.skipBtn} onClick={handleSkip}>
-                  Skip
-                </button>
-              )}
-            </div>
-            <div className={styles.stepNavRight}>
-              {step > 1 && (
-                <button type="button" className={styles.backBtn} onClick={handleBack}>
-                  Back
-                </button>
-              )}
-              {step < TOTAL_STEPS ? (
-                <Button onClick={handleContinue} className={styles.stepSubmitBtn}>
-                  Continue
-                </Button>
-              ) : (
-                <Button onClick={handleFinish} disabled={finishing} className={styles.stepSubmitBtn}>
-                  {finishing ? "Saving…" : "Finish setup"}
-                </Button>
-              )}
-            </div>
+      {step === 6 && (
+        <div className={styles.section}>
+          <p className={styles.sectionHint}>
+            Optional — however fits how you work. You can always add clients later from the Clients page.
+          </p>
+          <div className={styles.clientActionsGrid}>
+            <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+              Invite a client
+            </Button>
+            <Button variant="secondary" onClick={() => setCreateStubOpen(true)}>
+              Add an offline client
+            </Button>
+            <Button variant="secondary" onClick={() => setImportOpen(true)}>
+              Import from CSV
+            </Button>
           </div>
-        </Card>
+        </div>
+      )}
 
-        <p className={styles.footer}>
-          Wrong account?{" "}
-          <button type="button" className={styles.signOutLink} onClick={() => signOut()}>
-            Sign out
-          </button>
-        </p>
+      {error && <p className={styles.error}>{error}</p>}
+
+      <div className={styles.stepNav}>
+        <div className={styles.stepNavLeft}>
+          {SKIPPABLE_STEPS.has(step) && (
+            <button type="button" className={styles.skipBtn} onClick={handleSkip}>
+              Skip
+            </button>
+          )}
+        </div>
+        <div className={styles.stepNavRight}>
+          {step > 1 && (
+            <button type="button" className={styles.backBtn} onClick={handleBack}>
+              Back
+            </button>
+          )}
+          {step < TOTAL_STEPS ? (
+            <Button onClick={handleContinue} className={styles.stepSubmitBtn}>
+              Continue
+            </Button>
+          ) : (
+            <Button onClick={handleFinish} disabled={finishing} className={styles.stepSubmitBtn}>
+              {finishing ? "Saving…" : "Finish setup"}
+            </Button>
+          )}
+        </div>
       </div>
+
+      <p className={styles.footer}>
+        Wrong account?{" "}
+        <button type="button" className={styles.signOutLink} onClick={() => signOut()}>
+          Sign out
+        </button>
+      </p>
 
       {inviteOpen && <InviteClientModal onClose={() => setInviteOpen(false)} />}
       {createStubOpen && <CreateStubModal onClose={() => setCreateStubOpen(false)} />}
       {importOpen && <ImportStubsModal onClose={() => setImportOpen(false)} />}
-    </div>
+    </AuthShell>
   );
 }

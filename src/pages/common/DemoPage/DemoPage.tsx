@@ -38,14 +38,21 @@ export default function DemoPage() {
     });
   }, [forParam]);
 
-  const handleDemoSignIn = async (role: "admin" | "client") => {
+  const handleDemoSignIn = async (role: "admin" | "client" | "agency") => {
     setSubmitting(true);
     setSignInError("");
     try {
-      await signIn(
-        role === "admin" ? "demo-admin@honest.com" : "demo-client@honest.com",
-        role === "admin" ? "DemoAdmin2026" : "DemoClient2026",
-      );
+      const credentials = {
+        admin: ["demo-admin@honest.com", "DemoAdmin2026"],
+        client: ["demo-client@honest.com", "DemoClient2026"],
+        agency: ["demo-agency@honest.com", "DemoAgency2026"],
+      }[role];
+      await signIn(credentials[0], credentials[1]);
+      // No explicit navigate for "agency" — the demo account has
+      // counselling_enabled=false, so AgencyGate (Router.tsx) redirects
+      // /admin -> /agency on its own, the same path a real manage-only
+      // agency owner takes. Racing an extra navigate() here against the
+      // isAuthenticated effect above would be a coin flip on which wins.
     } catch {
       setSignInError("Couldn't start the demo — try again in a moment.");
     } finally {
@@ -101,6 +108,15 @@ export default function DemoPage() {
               <span className={styles.demoRole}>Client view</span>
               <span className={styles.demoDesc}>Complete check-ins &amp; view resources</span>
             </button>
+            <button
+              type="button"
+              className={styles.demoCard}
+              onClick={() => handleDemoSignIn("agency")}
+              disabled={submitting}
+            >
+              <span className={styles.demoRole}>Agency view</span>
+              <span className={styles.demoDesc}>Manage staff, waiting list &amp; agency invoices</span>
+            </button>
           </div>
 
           <hr className={styles.divider} />
@@ -109,7 +125,7 @@ export default function DemoPage() {
             <Link to="/register" className={styles.submitBtn} style={{ textAlign: "center" }}>
               Register your practice
             </Link>
-            <a href="mailto:support@withclarity.uk" className="link">
+            <a href="mailto:hello@withclarity.uk" className="link">
               Have questions? Email us
             </a>
           </div>

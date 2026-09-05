@@ -50,7 +50,45 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Email is required" }), { status: 400, headers: corsHeaders });
     }
 
-    const { data: agency } = await supabase.from("agencies").select("name").eq("id", membership.agency_id).single();
+    const { data: agency } = await supabase
+      .from("agencies")
+      .select("name, subscription_plan")
+      .eq("id", membership.agency_id)
+      .single();
+
+    // Pre-check the seat cap so a manager isn't told to invite someone the
+    // trigger will reject the moment they accept — the trigger on
+    // agency_members (20260905000000) is still the actual source of truth.
+    const [{ data: planLimit }, { count: activeCount }] = await Promise.all([
+      supabase
+        .from("agency_plan_limits")
+        .select("max_staff")
+        .eq("plan", agency?.subscription_plan ?? "starter")
+        .single(),
+      supabase
+        .from("agency_members")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", membership.agency_id)
+        .eq("status", "active"),
+    ]);
+    if (planLimit && planLimit.max_staff != null && (activeCount ?? 0) >= planLimit.max_staff) {
+      const { data: nextTier } = await supabase
+        .from("agency_plan_limits")
+        .select("plan, max_staff")
+        .gt("max_staff", planLimit.max_staff)
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const upgradeHint = nextTier
+        ? ` Upgrade to ${nextTier.plan} (${nextTier.max_staff} staff) to add more.`
+        : " Upgrade your plan to add more.";
+      return new Response(
+        JSON.stringify({
+          error: `Your agency is at its staff limit (${activeCount} of ${planLimit.max_staff}).${upgradeHint}`,
+        }),
+        { status: 409, headers: corsHeaders },
+      );
+    }
 
     // Drop any prior unused invite for the same email in this agency.
     await supabase

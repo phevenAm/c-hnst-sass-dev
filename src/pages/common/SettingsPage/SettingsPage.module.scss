@@ -194,6 +194,21 @@
   white-space: nowrap;
 }
 
+// .copyFieldValue used on a real <input> (bank details) rather than a
+// read-only <span> (referral link) — strip its own box since .copyField
+// already supplies one via input-base, or the two would double up.
+input.copyFieldValue {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+
+  &:focus {
+    outline: none;
+  }
+}
+
 .copyFieldBtn {
   flex-shrink: 0;
   display: inline-flex;

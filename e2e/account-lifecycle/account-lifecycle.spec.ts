@@ -108,7 +108,11 @@ test("export: owner gets a zip with sensible counts (happy path)", async () => {
   expect(zip.byteLength).toBeGreaterThan(2000);
 
   expect(body.counts.sessions).toBeGreaterThanOrEqual(1);
-  expect(body.counts.payments).toBeGreaterThanOrEqual(1);
+  // Payments consolidates the manual `payments` row AND the paid session seeded
+  // in beforeAll, so at least two.
+  expect(body.counts.payments).toBeGreaterThanOrEqual(2);
+  expect(body.counts.payments_from_sessions).toBeGreaterThanOrEqual(1);
+  expect(body.counts.payments_total_pence).toBeGreaterThanOrEqual(10000);
 });
 
 test("export: a client (non-owner) is refused (sad path)", async () => {
@@ -164,7 +168,7 @@ test("pause: a client (non-owner) cannot pause the practice (sad path)", async (
 // delete_own_account() and couldn't actually delete. Uses a throwaway admin —
 // the RPC really deletes the account.
 test("pause: a paused owner can still delete their own account (carve-out)", async () => {
-  const email = `e2e-pausedel-${Date.now()}@clarity-e2e-test.dev`;
+  const email = `smissah321+e2e-pausedel-${Date.now()}@gmail.com`;
   const password = "E2ePausedDelete2026!";
   const uid = createAuthUser({ email, password, meta: { role: "admin", practice_name: "Throwaway Practice" } });
 

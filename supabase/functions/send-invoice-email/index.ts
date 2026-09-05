@@ -31,10 +31,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { invoice_id } = await req.json();
+    const { invoice_id, pdf_base64, pdf_filename } = await req.json();
     if (!invoice_id) {
       return new Response(JSON.stringify({ error: "Missing invoice_id" }), { status: 400, headers: corsHeaders });
     }
+    // The client renders the PDF (same code path as the download button) and
+    // passes it here so the emailed copy is byte-identical to the downloaded one.
+    const attachments =
+      typeof pdf_base64 === "string" && pdf_base64.length > 0
+        ? [{ filename: typeof pdf_filename === "string" ? pdf_filename : "invoice.pdf", content: pdf_base64 }]
+        : undefined;
 
     // Invoice + lines — scoped to the calling admin.
     const { data: invoice, error: invErr } = await supabase
@@ -140,6 +146,7 @@ Deno.serve(async (req) => {
         html,
         resendKey,
         fromEmail,
+        attachments,
       });
     } catch (e) {
       status = "failed";

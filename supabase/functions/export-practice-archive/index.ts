@@ -3,12 +3,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { jsPDF } from "npm:jspdf@2.5.2";
-// Side-effect import: this patches jsPDF.prototype.autoTable — the ESM default
-// export isn't reliably callable under Supabase's npm interop, so we call the
-// prototype method instead.
+// Side-effect import: patches jsPDF.prototype.autoTable — the ESM default
+// export isn't reliably callable under Supabase's npm interop.
 import "npm:jspdf-autotable@3.8.2";
 import JSZip from "npm:jszip@3.10.1";
 import * as XLSX from "npm:xlsx@0.18.5";
+import { buildExportZip, type ExportInput } from "./buildDocs.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,27 +16,22 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
-// Full-practice data export, offered to an admin before they delete their
-// account (deletion is permanent and takes the data with it — see
-// delete_own_account + docs/legal/terms-of-service.md). Two bundles, each as
-// .xlsx AND .pdf, zipped:
-//   1. sessions-notes-clients-attendance  (Clients / Sessions / Session notes)
-//   2. payments
+// Full-practice data export, offered to a practice owner before they delete
+// their account (deletion is permanent and takes the data with it — see
+// delete_own_account + docs/legal/terms-of-service.md). One .xlsx + one .pdf,
+// zipped with a README:
+//   Clients (with codenames) · Sessions · Session notes · Payments
 //
-// Session notes are client-side encrypted, so this function can't read their
-// contents. The caller (DeleteUserModal) decrypts what it can and passes a
-// { [noteId]: plaintext } map in `decrypted_notes`; anything missing is
-// written as a placeholder rather than ciphertext.
-
-type Dict = Record<string, unknown>;
-
-const fmtDate = (v: string | null | undefined) => {
-  if (!v) return "";
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 16).replace("T", " ");
-};
-const money = (pence: number | null | undefined) => (pence == null ? "" : `£${(pence / 100).toFixed(2)}`);
-const attendedLabel = (a: boolean | null) => (a === true ? "Attended" : a === false ? "No-show" : "—");
+// The Payments sheet consolidates every money-in signal: the manual `payments`
+// table AND paid sessions AND paid offline sessions.
+//
+// Session notes are client-side encrypted, so this function can't read them.
+// DeleteUserModal decrypts what the browser can and passes a
+// { [noteId]: plaintext } map in `decrypted_notes`; the rest are marked locked.
+//
+// The whole document build lives in ./buildDocs.ts (no Deno / npm: specifiers)
+// so the same code runs under a plain-Node verification harness — this file
+// only does auth + the DB reads.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -98,7 +93,7 @@ Deno.serve(async (req) => {
         .order("scheduled_at", { ascending: true }),
       supabase
         .from("session_notes")
-        .select("id, session_id, user_id, stub_id, content, is_encrypted, created_at")
+        .select("id, session_id, user_id, stub_id, content, is_encrypted, note_iv, created_at")
         .eq("admin_id", adminId)
         .order("created_at", { ascending: true }),
       supabase
@@ -113,225 +108,34 @@ Deno.serve(async (req) => {
       if (r.error) throw new Error(r.error.message);
     }
 
-    const clients = clientsRes.data ?? [];
-    const stubs = stubsRes.data ?? [];
-    const sessions = sessionsRes.data ?? [];
-    const stubSessions = stubSessionsRes.data ?? [];
-    const notes = notesRes.data ?? [];
-    const payments = paymentsRes.data ?? [];
-    const practiceName = practiceRes.data?.business_name || "Clarity practice";
-
-    const clientName = new Map<string, string>();
-    for (const c of clients) {
-      const real = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
-      clientName.set(
-        c.id,
-        real || c.display_name || (c.admin_codename ? `${c.admin_codename} (codename)` : "Unnamed client"),
-      );
-    }
-    const stubName = new Map<string, string>();
-    for (const s of stubs) {
-      const real = [s.first_name, s.last_name].filter(Boolean).join(" ").trim();
-      stubName.set(s.id, real || (s.codename ? `${s.codename} (codename)` : "Unnamed offline client"));
-    }
-
-    // ── Rows ──────────────────────────────────────────────────────────────
-    const clientRows: Dict[] = [
-      ...clients.map((c) => ({
-        Type: "Portal client",
-        Name: clientName.get(c.id) ?? "",
-        Email: c.email ?? "",
-        "Date of birth": c.dob ?? "",
-        Status: c.archived_at ? `Archived (${c.archived_reason ?? "—"})` : c.disabled ? "Paused" : "Active",
-        Anonymised: c.anonymised_at ? "Yes" : "No",
-        Added: fmtDate(c.created_at),
-      })),
-      ...stubs.map((s) => ({
-        Type: "Offline client",
-        Name: stubName.get(s.id) ?? "",
-        Email: s.email ?? "",
-        "Date of birth": "",
-        Status: s.archived_at ? "Archived" : s.linked_user_id ? "Linked to portal account" : "Active",
-        Anonymised: "",
-        Added: fmtDate(s.created_at),
-      })),
-    ];
-
-    const sessionRows: Dict[] = [
-      ...sessions.map((s) => ({
-        Client: s.client_id ? (clientName.get(s.client_id) ?? "Unknown / removed") : "—",
-        When: fmtDate(s.scheduled_at),
-        "Length (min)": s.duration_minutes ?? "",
-        Status: s.status,
-        Attendance: attendedLabel(s.attended),
-        Paid: s.paid ? "Yes" : "No",
-        "Paid at": fmtDate(s.paid_at),
-        Price: money(s.price_pence),
-        Location: s.location ?? "",
-        Ref: s.reference_code ?? "",
-        Kind: s.is_supervision ? "Supervision" : "Client session",
-      })),
-      ...stubSessions.map((s) => ({
-        Client: stubName.get(s.stub_id) ?? "Unknown offline client",
-        When: fmtDate(s.scheduled_at),
-        "Length (min)": s.duration_minutes ?? "",
-        Status: s.status,
-        Attendance: "—",
-        Paid: s.paid ? "Yes" : "No",
-        "Paid at": "",
-        Price: money(s.price_pence ?? (s.amount_paid != null ? Math.round(s.amount_paid * 100) : null)),
-        Location: s.location ?? "",
-        Ref: s.code ?? "",
-        Kind: "Offline session",
-      })),
-    ];
-
-    const noteRows: Dict[] = notes.map((n) => {
-      const who = n.user_id
-        ? (clientName.get(n.user_id) ?? "Unknown / removed")
-        : n.stub_id
-          ? (stubName.get(n.stub_id) ?? "Unknown offline client")
-          : "—";
-      let content: string;
-      if (!n.is_encrypted) content = n.content ?? "";
-      else if (decryptedNotes[n.id] != null) content = decryptedNotes[n.id];
-      else content = "[encrypted — open this client's notes screen in the app to read or export]";
-      return {
-        Client: who,
-        Written: fmtDate(n.created_at),
-        "Linked session": n.session_id ? "Yes" : "No",
-        Note: content,
-      };
-    });
-
-    const paymentRows: Dict[] = payments.map((p) => ({
-      Client: p.client_id
-        ? (clientName.get(p.client_id) ?? "Unknown / removed")
-        : p.stub_id
-          ? (stubName.get(p.stub_id) ?? "Unknown offline client")
-          : "—",
-      Amount: money(p.amount_pence),
-      Description: p.description ?? "",
-      "Paid at": fmtDate(p.paid_at),
-      Recorded: fmtDate(p.created_at),
-    }));
-
-    // ── XLSX bundle 1: clients + sessions + notes ─────────────────────────
-    const wb1 = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(clientRows), "Clients");
-    XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(sessionRows), "Sessions");
-    XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(noteRows), "Session notes");
-    const xlsx1 = XLSX.write(wb1, { type: "array", bookType: "xlsx" }) as Uint8Array;
-
-    // ── XLSX bundle 2: payments ──────────────────────────────────────────
-    const wb2 = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb2, XLSX.utils.json_to_sheet(paymentRows), "Payments");
-    const xlsx2 = XLSX.write(wb2, { type: "array", bookType: "xlsx" }) as Uint8Array;
-
-    // ── PDF helper ──────────────────────────────────────────────────────
-    const exportedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
-    const buildPdf = (title: string, tables: { heading: string; columns: string[]; rows: Dict[] }[]) => {
-      const doc = new jsPDF({ orientation: "landscape" });
-      doc.setFontSize(14);
-      doc.text(`${practiceName} — ${title}`, 14, 16);
-      doc.setFontSize(9);
-      doc.text(`Exported ${exportedAt} UTC from Clarity`, 14, 22);
-      let y = 28;
-      for (const t of tables) {
-        doc.setFontSize(11);
-        doc.text(`${t.heading} (${t.rows.length})`, 14, y);
-        // deno-lint-ignore no-explicit-any
-        (doc as any).autoTable({
-          startY: y + 3,
-          head: [t.columns],
-          body: t.rows.map((r) => t.columns.map((c) => String(r[c] ?? ""))),
-          styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak" },
-          headStyles: { fillColor: [70, 70, 70] },
-          margin: { left: 14, right: 14 },
-        });
-        // deno-lint-ignore no-explicit-any
-        y = ((doc as any).lastAutoTable?.finalY ?? y + 20) + 10;
-        if (y > 180) {
-          doc.addPage();
-          y = 20;
-        }
-      }
-      return new Uint8Array(doc.output("arraybuffer"));
+    const input: ExportInput = {
+      practiceName: practiceRes.data?.business_name || "Clarity practice",
+      exportedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+      clients: clientsRes.data ?? [],
+      stubs: stubsRes.data ?? [],
+      sessions: sessionsRes.data ?? [],
+      stubSessions: stubSessionsRes.data ?? [],
+      notes: notesRes.data ?? [],
+      payments: paymentsRes.data ?? [],
+      decryptedNotes,
     };
 
-    const pdf1 = buildPdf("clients, sessions & notes", [
-      {
-        heading: "Clients",
-        columns: ["Type", "Name", "Email", "Date of birth", "Status", "Anonymised", "Added"],
-        rows: clientRows,
-      },
-      {
-        heading: "Sessions",
-        columns: [
-          "Client",
-          "When",
-          "Length (min)",
-          "Status",
-          "Attendance",
-          "Paid",
-          "Paid at",
-          "Price",
-          "Location",
-          "Ref",
-          "Kind",
-        ],
-        rows: sessionRows,
-      },
-      { heading: "Session notes", columns: ["Client", "Written", "Linked session", "Note"], rows: noteRows },
-    ]);
-    const pdf2 = buildPdf("payments", [
-      { heading: "Payments", columns: ["Client", "Amount", "Description", "Paid at", "Recorded"], rows: paymentRows },
-    ]);
-
-    // ── Zip ─────────────────────────────────────────────────────────────
-    const stamp = new Date().toISOString().slice(0, 10);
-    const zip = new JSZip();
-    const folder = zip.folder(`clarity-export-${stamp}`)!;
-    folder.file("clients-sessions-notes.xlsx", xlsx1);
-    folder.file("clients-sessions-notes.pdf", pdf1);
-    folder.file("payments.xlsx", xlsx2);
-    folder.file("payments.pdf", pdf2);
-    folder.file(
-      "README.txt",
-      [
-        `${practiceName} — full data export`,
-        `Exported ${exportedAt} UTC`,
-        "",
-        `Portal clients: ${clients.length}`,
-        `Offline clients: ${stubs.length}`,
-        `Sessions: ${sessions.length + stubSessions.length}`,
-        `Session notes: ${notes.length}`,
-        `Payments: ${payments.length}`,
-        "",
-        "Encrypted session notes that could not be decrypted in your browser are",
-        "marked with a placeholder. Open each client's notes screen in the app to",
-        "read or copy them before deleting your account.",
-      ].join("\n"),
-    );
-    const zipBytes = (await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" })) as Uint8Array;
+    const { filename, zipBytes, counts } = await buildExportZip({ XLSX, jsPDF, JSZip }, input);
 
     return new Response(
       JSON.stringify({
         success: true,
-        filename: `clarity-export-${stamp}.zip`,
+        filename,
         mime: "application/zip",
         data_base64: encodeBase64(zipBytes),
-        counts: {
-          clients: clients.length,
-          offline_clients: stubs.length,
-          sessions: sessions.length + stubSessions.length,
-          notes: notes.length,
-          payments: payments.length,
-        },
+        counts,
       }),
       { headers: corsHeaders },
     );
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 });

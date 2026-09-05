@@ -93,30 +93,29 @@ export const exportClientPDF = async ({
 }) => {
   const jsPDF = (await import("jspdf")).default;
   const { default: autoTable } = await import("jspdf-autotable");
+  const { addCoverPage, runningHeader, stampChrome, tableBlock, CONTENT_TOP } = await import(
+    "../../../Helpers/pdfBranding"
+  );
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  // ── Header band ──────────────────────────────────────────────
-  doc.setFillColor(...BRAND);
-  doc.rect(0, 0, PAGE_W, 40, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(255, 255, 255);
-  doc.text("Clarity", MARGIN, 18);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.text("Client Report", MARGIN, 28);
+  const fullName = `${user.first_name} ${user.last_name}`.trim();
+
+  // ── Cover page (frosted login art + teal block) ──────────────
+  addCoverPage(doc, { title: "Client Report", subtitle: fullName });
+  doc.addPage();
 
   // ── Client name + date ───────────────────────────────────────
+  let y = runningHeader(doc, "Client Report");
   doc.setTextColor(...TEXT_DARK);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text(`${user.first_name} ${user.last_name}`, MARGIN, 56);
+  doc.text(fullName, MARGIN, y + 8);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...TEXT_MUTED);
-  doc.text(`Generated ${new Date().toLocaleDateString("en-GB")}`, MARGIN, 64);
+  doc.text(`Generated ${new Date().toLocaleDateString("en-GB")}`, MARGIN, y + 15);
 
-  let y = 76;
+  y += 28;
 
   const sectionHeading = (title: string) => {
     doc.setFontSize(10);
@@ -214,10 +213,9 @@ export const exportClientPDF = async ({
         s.paid ? `£${(s.price_pence / 100).toFixed(0)}` : "—",
       ]),
       startY: y,
-      margin: { left: MARGIN, right: MARGIN },
       styles: { fontSize: 7.5, cellPadding: 2 },
-      headStyles: { fillColor: BRAND as [number, number, number], textColor: [255, 255, 255], fontStyle: "bold" },
       bodyStyles: { textColor: TEXT_DARK as [number, number, number] },
+      ...tableBlock(),
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   }
@@ -275,10 +273,9 @@ export const exportClientPDF = async ({
         `£${(p.amount_pence / 100).toFixed(2)}`,
       ]),
       startY: y,
-      margin: { left: MARGIN, right: MARGIN },
       styles: { fontSize: 7.5, cellPadding: 2 },
-      headStyles: { fillColor: BRAND as [number, number, number], textColor: [255, 255, 255], fontStyle: "bold" },
       bodyStyles: { textColor: TEXT_DARK as [number, number, number] },
+      ...tableBlock(),
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
     doc.setFontSize(8);
@@ -297,7 +294,7 @@ export const exportClientPDF = async ({
     for (const note of sortedNotes) {
       if (y > 260) {
         doc.addPage();
-        y = MARGIN;
+        y = CONTENT_TOP;
       }
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
@@ -385,14 +382,9 @@ export const exportClientPDF = async ({
         head,
         body,
         startY: y,
-        margin: { left: MARGIN, right: MARGIN },
         styles: { fontSize: 7.5, cellPadding: 2 },
-        headStyles: {
-          fillColor: BRAND as [number, number, number],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
         bodyStyles: { textColor: TEXT_DARK as [number, number, number] },
+        ...tableBlock(),
         didParseCell: (data) => {
           if (data.section === "body" && data.row.index === body.length - 1) {
             data.cell.styles.fontStyle = "bold";
@@ -420,10 +412,8 @@ export const exportClientPDF = async ({
     }
   }
 
-  // ── Footer ───────────────────────────────────────────────────
-  doc.setFontSize(8);
-  doc.setTextColor(190, 190, 190);
-  doc.text("Confidential — Clarity Client Report", MARGIN, 285);
+  // ── Header + footer on every content sheet ───────────────────
+  stampChrome(doc, { title: "Client Report", footer: "Confidential client report" });
 
   doc.save(`${user.first_name}_${user.last_name}_report.pdf`);
 };

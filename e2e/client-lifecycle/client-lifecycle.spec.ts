@@ -18,7 +18,7 @@ import { createAuthUser, dbQuery } from "../settings/db";
 test.describe.configure({ mode: "serial" });
 
 const TS = Date.now();
-const LC = { email: `e2e-lifecycle-${TS}@clarity-e2e-test.dev`, password: "E2eLifecycle2026!" };
+const LC = { email: `smissah321+e2e-lifecycle-${TS}@gmail.com`, password: "E2eLifecycle2026!" };
 let adminId = "";
 let clientId = ""; // cleared once test 3 deletes the row
 

@@ -96,7 +96,8 @@ a:hover {
 // ── Layout ─────────────────────────────────────────────────
 .container {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1500px;
+  // max-width: 1120px;
   margin-inline: auto;
   padding-inline: $sp-6;
 }
@@ -464,6 +465,14 @@ a:hover {
   margin-top: $sp-12;
 }
 
+// Onboarding's 4 cards don't divide evenly into 3 columns (3-then-1
+// lopsided) — this section always runs 2×2 instead. The responsive
+// overrides below still collapse both variants to the same 2-col/1-col
+// layout at narrower widths (later in the cascade, so they still win).
+.features--pair {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .feature {
   padding: $sp-6;
   background: var(--surface);
@@ -502,7 +511,7 @@ a:hover {
 
 // ── Feature tour carousel (dark) ──────────────────────────
 .demo-inner {
-  max-width: 820px;
+  max-width: 1100px;
   text-align: center;
 }
 
@@ -583,7 +592,7 @@ a:hover {
 
 .demo-browser {
   width: 100%;
-  max-width: 560px;
+  max-width: 960px;
   margin-inline: auto;
   border-radius: 10px;
   overflow: hidden;
@@ -935,9 +944,12 @@ a:hover {
 
 .plans {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 380px));
+  // Fixed 3-track grid — cards shrink together as the container narrows
+  // rather than wrapping into a lopsided 2-then-1 layout; the explicit
+  // single-column override below is the only place this actually wraps.
+  grid-template-columns: repeat(3, minmax(0, 330px));
   justify-content: center;
-  align-items: stretch; // both cards match the taller one
+  align-items: stretch; // all cards match the tallest one
   gap: $sp-6;
 }
 
@@ -1204,15 +1216,117 @@ a:hover {
 }
 
 // ── Contact ────────────────────────────────────────────────
+.contact__form {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-5;
+  margin-top: $sp-10;
+
+  // An explicit `display` here otherwise beats the UA stylesheet's
+  // `[hidden] { display: none }` at equal specificity (author styles win
+  // ties over UA styles) — form.hidden = true would silently do nothing.
+  &[hidden] {
+    display: none;
+  }
+}
+
+.contact__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-5;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  label {
+    color: var(--ink-soft);
+    font-size: $text-sm;
+    font-weight: $weight-medium;
+  }
+
+  input,
+  select,
+  textarea {
+    padding: $sp-3 $sp-4;
+    border: 1px solid var(--line);
+    border-radius: $r-md;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: $text-base;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 7rem;
+  }
+
+  select {
+    appearance: auto;
+  }
+}
+
+// Off-screen rather than display:none/hidden — some bots skip fields the
+// browser itself would never show, but still fill anything technically
+// present in the DOM's normal flow.
+.contact__hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.contact__formError {
+  margin: 0;
+  // No dedicated danger color in this page's palette — terracotta is the
+  // only non-neutral, non-accent tone available, and reads as "attention"
+  // against the warm/teal scheme.
+  color: $terracotta-700;
+  font-size: $text-sm;
+  text-align: center;
+}
+
+.contact__success {
+  margin-top: $sp-10;
+  padding: $sp-8;
+  border: 1px solid var(--line);
+  border-radius: $r-lg;
+  background: var(--surface);
+  text-align: center;
+
+  h3 {
+    font-family: $font-serif;
+    font-size: $text-lg;
+    font-weight: $weight-semibold;
+    margin-bottom: $sp-2;
+  }
+
+  p {
+    color: var(--ink-mut);
+  }
+}
+
 .contact__email {
-  margin-top: $sp-6;
+  margin-top: $sp-8;
   text-align: center;
   color: var(--ink-soft);
   font-size: $text-md;
 }
 
 .contact__cta {
-  margin-top: $sp-6;
   text-align: center;
 }
 
@@ -1440,7 +1554,10 @@ a:hover {
   }
 }
 
-@media (max-width: 760px) {
+// Jumps straight from 3 full-size columns to 1 — no in-between width where
+// 3 columns exist but are squeezed uncomfortably narrow. 1040px covers the
+// container's 3×330px + 2 gaps (~1038px) plus its own inline padding.
+@media (max-width: 1040px) {
   .plans {
     grid-template-columns: minmax(0, 420px);
   }

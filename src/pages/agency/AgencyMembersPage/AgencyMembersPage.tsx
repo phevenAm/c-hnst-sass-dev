@@ -7,6 +7,7 @@ import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import { useAuth } from "@context/AuthContext";
 import type { AgencyMemberWithUser } from "@models/agency";
+import { isAgencyOwner } from "@models/agencyPermissions";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
   fetchAgencyClients,
@@ -52,7 +53,7 @@ export default function AgencyMembersPage() {
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
-  const isOwner = (m: AgencyMemberWithUser) => m.user_id === agency?.owner_id;
+  const isOwner = (m: AgencyMemberWithUser) => isAgencyOwner(m.user_id, agency);
 
   const patch = (fields: Parameters<typeof setAgencyMember>[0]) => dispatch(setAgencyMember(fields));
 

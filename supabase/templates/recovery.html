@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <title>Reset your Clarity password</title>
+  <style>
+    :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    @media (prefers-color-scheme: dark) {
+      .em-bg      { background: #0d1a17 !important; }
+      .em-card    { background: #1a2d29 !important; border-color: #254f49 !important; }
+      .em-text    { color: #ecf5f3 !important; }
+      .em-caption { color: #8faaa4 !important; }
+    }
+    [data-ogsb] .em-bg    { background: #0d1a17 !important; }
+    [data-ogsb] .em-card  { background: #1a2d29 !important; }
+    [data-ogsc] .em-text    { color: #ecf5f3 !important; }
+    [data-ogsc] .em-caption { color: #8faaa4 !important; }
+  </style>
+</head>
+<body class="em-bg" style="margin:0;padding:0;background:#e9e6da;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#e9e6da" class="em-bg" style="background:#e9e6da;">
+  <tr>
+    <td align="center" style="padding:36px 16px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:100%;border-radius:14px;box-shadow:0 12px 32px rgba(26,58,53,0.14);">
+
+        <!-- Header -->
+        <tr>
+          <td bgcolor="#1f4940" style="background:#1f4940;border-radius:14px 14px 0 0;padding:22px 40px;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:10px;">
+                  <img src="https://mxyfdvfbdrusbjiozuzx.supabase.co/storage/v1/object/public/logos/system/email-logo.png" width="26" height="26" alt="" style="display:block;border:0;" />
+                </td>
+                <td style="vertical-align:middle;font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:400;color:#ffffff;letter-spacing:-0.01em;">Clarity</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td bgcolor="#ffffff" class="em-card" style="background:#ffffff;padding:36px 40px 30px;border:1px solid #e5e0dc;border-top:0;border-bottom:0;">
+            <p class="em-caption" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;color:#7a6e67;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.12em;">Password reset</p>
+            <h2 class="em-text" style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:400;color:#2d2520;margin:0 0 20px;line-height:1.35;">Choose a new password</h2>
+            <p class="em-text" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#3d3530;line-height:1.7;margin:0 0 22px;">Someone asked to reset the password for this Clarity account. Use the button below to set a new one. If it wasn't you, you can safely ignore this email — your password won't change.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px;">
+              <tr><td bgcolor="#1f4940" style="border-radius:999px;background:#1f4940;">
+                <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 34px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1;color:#ffffff;text-decoration:none;letter-spacing:0.01em;border-radius:999px;">Reset my password &rarr;</a>
+              </td></tr>
+            </table>
+            <p class="em-text" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#5c4f48;line-height:1.65;margin:22px 0 0;">If the button doesn't work, copy this link into your browser:<br><span style="color:#2d7264;word-break:break-all;">{{ .ConfirmationURL }}</span></p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td bgcolor="#1a3a35" style="background:#1a3a35;border-radius:0 0 14px 14px;padding:26px 40px;">
+            <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;color:#eef4f1;font-weight:400;margin:0 0 14px;letter-spacing:-0.01em;">Clarity</p>
+            <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#9db3ac;line-height:1.65;margin:0;">You received this because a password reset was requested for this address.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

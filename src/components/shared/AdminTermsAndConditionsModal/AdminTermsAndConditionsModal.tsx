@@ -111,7 +111,7 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
       <p className={styles.contact}>
         This is a summary — read the full <NewTabLink href="/terms">Terms of Service</NewTabLink>,{" "}
         <NewTabLink href="/privacy">Privacy Policy</NewTabLink>, and <NewTabLink href="/security">Security</NewTabLink>{" "}
-        page. Questions? Contact us at <a href="mailto:support@withclarity.uk">support@withclarity.uk</a>
+        page. Questions? Contact us at <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
       </p>
 
       <div className={styles.modalAction}>{action}</div>

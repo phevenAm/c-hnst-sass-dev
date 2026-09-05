@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 import styles from "./ErrorBoundary.module.scss";
 
-const SUPPORT_EMAIL = "support@withclarity.uk";
+const SUPPORT_EMAIL = "hello@withclarity.uk";
 
 interface Props {
   children: ReactNode;
@@ -130,8 +130,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   // Full navigation, not react-router — this component sits outside
   // <BrowserRouter>, so there's no router context to call useNavigate with.
-  // "/" also lets RootRedirect send the user to the right place (admin vs
-  // client dashboard, or /login if signed out) instead of guessing here.
+  // "/" USED to be the SPA's own RootRedirect (admin vs client dashboard, or
+  // /login if signed out) — since the marketing site took over "/" as a
+  // static entry (v8.0.0), a full navigation there now loads the promo page
+  // instead of ever reaching the app. /login carries the same "send them to
+  // the right place" logic (LoginRoute redirects an already-authenticated
+  // visitor onward), and isn't shadowed by the static entry.
   handleGoHome = () => {
     window.location.href = "/dashboard";
   };
