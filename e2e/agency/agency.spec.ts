@@ -189,6 +189,7 @@ test("security: an Agency A session cannot read or modify Agency B's data via th
 
 // ─── Staff-count plan limit: boundary at the tier's max_staff ───────────────
 test("staff-count plan limit blocks the seat past the tier cap, and paused seats don't count", () => {
+  test.setTimeout(180_000); // 8 createAuthUser calls + cleanup — heaviest test in the file
   dbQuery(`update public.agencies set subscription_plan = 'starter' where id = '${ids.agencyA}';`); // max_staff = 10
 
   // 2 active already (aManager, aStaff) — fill to exactly 10.
@@ -283,6 +284,7 @@ test("locked agency consent overrides the member's own consent text for their cl
 
 // ─── Working agreement: mandatory acceptance gates joining the agency ───────
 test("a mandatory working agreement blocks joining until accepted, then records the version signed", () => {
+  test.setTimeout(90_000); // several sequential dbQuery/CLI round trips — see e2e/client-cap.spec.ts for the same reasoning
   dbQuery(
     `update public.agencies set staff_agreement_required = true, agreement_text = '${TAG} sign here' where id = '${ids.agencyA}';`,
   );
@@ -343,6 +345,7 @@ test("a mandatory working agreement blocks joining until accepted, then records 
 
 // ─── Agency invoices: correct payer, RLS-scoped visibility, valid lifecycle ─
 test("agency invoices resolve to the right staff member, staff see only their own, and status moves through its lifecycle", async () => {
+  test.setTimeout(60_000);
   const asAManager = await signedInAs(`${TAG}-a-mgr@clarity-e2e-test.dev`);
   const asAStaff = await signedInAs(`${TAG}-a-staff@clarity-e2e-test.dev`);
 
@@ -402,6 +405,7 @@ test("agency invoices resolve to the right staff member, staff see only their ow
 // /admin/setup instead of their dashboard. Caught by actually driving a
 // browser through login, not by asserting on the RPC/table layer alone.
 test("a freshly-joined agency staff member reaches /admin, not /subscribe or /admin/setup", async ({ page }) => {
+  test.setTimeout(60_000);
   const newStaffId = createAuthUser({
     email: `${TAG}-a-freshstaff@clarity-e2e-test.dev`,
     password: PASSWORD,
