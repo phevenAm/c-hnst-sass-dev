@@ -23,6 +23,7 @@ import {
 
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
+import { staffSeatUsage } from "../agencyFormat";
 
 const PLAN_LABEL: Record<AgencyPlanKey, string> = {
   starter: "Starter",
@@ -448,31 +449,21 @@ export default function AgencySettingsPage() {
           {(() => {
             const currentPlan = (agency?.subscription_plan ?? "starter") as AgencyPlanKey;
             const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+            const usage = currentLimit ? staffSeatUsage(activeStaffCount, currentLimit.max_staff) : null;
             return (
               <>
-                {currentLimit && (
+                {currentLimit && usage && (
                   <div className={styles.usageBar}>
                     <div className={styles.usageBarHead}>
                       <span>Staff places used</span>
-                      <span
-                        className={
-                          currentLimit.max_staff != null && activeStaffCount > currentLimit.max_staff
-                            ? styles.usageOver
-                            : undefined
-                        }
-                      >
-                        {currentLimit.max_staff == null
+                      <span className={usage.over ? styles.usageOver : undefined}>
+                        {usage.unlimited
                           ? `${activeStaffCount} · unlimited`
                           : `${activeStaffCount} of ${currentLimit.max_staff}`}
                       </span>
                     </div>
                     <div className={styles.usageTrack}>
-                      <div
-                        className={styles.usageFill}
-                        style={{
-                          width: `${currentLimit.max_staff == null ? 100 : Math.min(100, Math.round((activeStaffCount / Math.max(currentLimit.max_staff, 1)) * 100))}%`,
-                        }}
-                      />
+                      <div className={styles.usageFill} style={{ width: `${usage.pct}%` }} />
                     </div>
                   </div>
                 )}
@@ -511,7 +502,7 @@ export default function AgencySettingsPage() {
                   })}
                 </div>
                 {planSwitchError && <p className={styles.error}>{planSwitchError}</p>}
-                {currentLimit?.max_staff != null && activeStaffCount >= currentLimit.max_staff && (
+                {usage?.atLimit && (
                   <p className={styles.error} style={{ marginTop: "var(--sp-2)" }}>
                     You're at your staff limit — invite one more and you'll need to upgrade first.
                   </p>

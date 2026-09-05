@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 
 import AgencyInvoiceModal from "@components/agency/AgencyInvoiceModal/AgencyInvoiceModal";
 import Button from "@components/shared/Button/Button";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import type { AgencyInvoice, AgencyInvoiceStatus, AgencyMemberWithUser } from "@models/agency";
@@ -39,6 +40,7 @@ export default function AgencyInvoicesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState<AgencyInvoiceStatus | "all">("all");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<AgencyInvoice | null>(null);
 
   useEffect(() => {
     dispatch(fetchAgencyInvoices());
@@ -78,11 +80,13 @@ export default function AgencyInvoicesPage() {
     }
   };
 
-  const remove = async (inv: AgencyInvoice) => {
-    setBusyId(inv.id);
+  const confirmRemove = async () => {
+    if (!deleting) return;
+    setBusyId(deleting.id);
     try {
-      await dispatch(deleteAgencyInvoice(inv.id)).unwrap();
+      await dispatch(deleteAgencyInvoice(deleting.id)).unwrap();
       showToast("Invoice deleted.", "success");
+      setDeleting(null);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't delete the invoice", "danger");
     } finally {
@@ -175,7 +179,7 @@ export default function AgencyInvoicesPage() {
                         ? [{ label: "Mark overdue", onClick: () => setStatus(inv, "overdue") }]
                         : []),
                       { label: "Cancel invoice", onClick: () => setStatus(inv, "cancelled") },
-                      { label: "Delete", onClick: () => remove(inv) },
+                      { label: "Delete", onClick: () => setDeleting(inv) },
                     ]}
                   />
                 )}
@@ -187,6 +191,19 @@ export default function AgencyInvoicesPage() {
 
       {modalOpen && agency && (
         <AgencyInvoiceModal agencyId={agency.id} members={activeMembers} onClose={() => setModalOpen(false)} />
+      )}
+
+      {deleting && (
+        <ConfirmModal
+          title={`Delete ${deleting.reference}?`}
+          confirming={busyId === deleting.id}
+          onConfirm={confirmRemove}
+          onClose={() => setDeleting(null)}
+        >
+          <p>
+            This can't be undone. {memberName(memberById.get(deleting.staff_user_id ?? ""))} won't be billed for it.
+          </p>
+        </ConfirmModal>
       )}
     </div>
   );
