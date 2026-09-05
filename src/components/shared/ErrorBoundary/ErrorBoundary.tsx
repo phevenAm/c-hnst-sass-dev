@@ -133,7 +133,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   // "/" also lets RootRedirect send the user to the right place (admin vs
   // client dashboard, or /login if signed out) instead of guessing here.
   handleGoHome = () => {
-    window.location.href = "/";
+    window.location.href = "/dashboard";
   };
 
   renderReporter() {

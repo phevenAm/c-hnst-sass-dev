@@ -355,6 +355,7 @@ $admin-sidebar-collapsed-w: 3.75rem; // 60px at 100%
   padding: 0 $sp-6;
   padding-top: 50px !important;
 
+
   @include until-md {
     padding-top: 30px !important;
 

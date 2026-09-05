@@ -328,6 +328,11 @@ async function openBillingTab() {
   await waitFor(() => expect(getFieldInput("Bank name")).toHaveValue(initialRow.bank_name));
 }
 
+async function openProfileTab() {
+  render(<SettingsPage />);
+  await screen.findByRole("button", { name: "Update profile" });
+}
+
 // Scheduling settings (calendar sync, auto-cancel, reschedule cutoff, session
 // buffer, session-prep reminders, block-booking cancellation) live under their
 // own "Schedule" tab. Wait on a toggle the practice_settings fetch populates —
@@ -639,7 +644,7 @@ describe("SettingsPage — Google Calendar sync", () => {
 describe("SettingsPage — subscription", () => {
   it("opens the Stripe billing portal", async () => {
     currentRow.billing_customer_id = "cus_123";
-    await openBillingTab();
+    await openProfileTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
 
@@ -654,12 +659,19 @@ describe("SettingsPage — subscription", () => {
   it("never calls Stripe when the account is a demo account", async () => {
     currentRow.billing_customer_id = "cus_123";
     mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
-    await openBillingTab();
+    await openProfileTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
 
     expect(invokeSpy).not.toHaveBeenCalledWith("create-billing-portal-session");
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
+  });
+
+  it("does not render subscription settings on the Billing tab", async () => {
+    await openBillingTab();
+
+    expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
   });
 });
 
