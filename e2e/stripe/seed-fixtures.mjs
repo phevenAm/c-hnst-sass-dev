@@ -4,25 +4,22 @@
 // unsubscribed/unconnected state, so the subscription/Connect tests can
 // exercise the inactive -> active transition again instead of no-op'ing.
 //
-// Creates two real (non-demo) accounts through the same signUp path the app
-// itself uses, so the Playwright suite never needs elevated credentials at
-// test-run time — only this setup script needs `supabase db query --linked`
-// access, to link the client to the admin and seed a session to pay for.
-// It also needs a locally-authenticated `stripe` CLI (`stripe login`), used
-// here (and by the renewal test itself) as the only way to reach Stripe's
-// test-clock time-travel tooling — there's no app-facing path for that, nor
-// should there be.
-// Keep FIXTURES/SUPABASE_URL/SUPABASE_ANON_KEY in sync with ./constants.ts —
-// this file can't import that .ts module directly since it runs under plain
-// `node`, not the Playwright/tsx TS loader.
-import { createClient } from "@supabase/supabase-js";
+// Creates two real (non-demo) accounts by inserting straight into auth.users
+// (see createAuthUser below) so the Playwright suite never needs elevated
+// credentials at test-run time — only this setup script needs `supabase db
+// query --linked` access, to make the users, link the client to the admin
+// and seed a session to pay for. It also needs a locally-authenticated
+// `stripe` CLI (`stripe login`), used here (and by the renewal test itself)
+// as the only way to reach Stripe's test-clock time-travel tooling — there's
+// no app-facing path for that, nor should there be.
+// Keep FIXTURES in sync with ./constants.ts — this file can't import that .ts
+// module directly since it runs under plain `node`, not the Playwright/tsx TS
+// loader.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const SUPABASE_URL = "https://mxyfdvfbdrusbjiozuzx.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_bJhV8RTzq2Wpj5dk1tsWgQ_jiNNpuOD";
 const GROWTH_PRODUCT_ID = "prod_VAzASNT2h23opo"; // Clarity Growth
 
 const RESET = process.argv.includes("--reset");
@@ -76,23 +73,17 @@ function dbQuery(sql) {
 }
 
 async function main() {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   // ── Admin ──────────────────────────────────────────────────────────────
   let adminId = dbQuery(
     `select au.id from auth.users au where au.email = '${FIXTURES.admin.email}';`,
   ).rows[0]?.id;
 
   if (!adminId) {
-    const { data, error } = await supabase.auth.signUp({
+    adminId = createAuthUser({
       email: FIXTURES.admin.email,
       password: FIXTURES.admin.password,
-      options: {
-        data: { role: "admin", first_name: "E2E", last_name: "Admin", practice_name: "E2E Stripe Test Practice" },
-      },
+      meta: { role: "admin", first_name: "E2E", last_name: "Admin", practice_name: "E2E Stripe Test Practice" },
     });
-    if (error) throw new Error(`Admin signUp failed: ${error.message}`);
-    adminId = data.user.id;
     console.log("Created test admin:", adminId);
   } else {
     console.log("Test admin already exists:", adminId);
@@ -104,13 +95,11 @@ async function main() {
   ).rows[0]?.id;
 
   if (!clientId) {
-    const { data, error } = await supabase.auth.signUp({
+    clientId = createAuthUser({
       email: FIXTURES.client.email,
       password: FIXTURES.client.password,
-      options: { data: { role: "client", first_name: "E2E", last_name: "Client" } },
+      meta: { role: "client", first_name: "E2E", last_name: "Client" },
     });
-    if (error) throw new Error(`Client signUp failed: ${error.message}`);
-    clientId = data.user.id;
     console.log("Created test client:", clientId);
   } else {
     console.log("Test client already exists:", clientId);

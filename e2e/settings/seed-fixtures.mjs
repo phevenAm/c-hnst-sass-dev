@@ -7,17 +7,13 @@
 // practice_settings to a known baseline and the client's consent flag to
 // false, so a prior test run's leftover state can't leak into the next one.
 //
-// Keep FIXTURES/SUPABASE_URL/SUPABASE_ANON_KEY in sync with ./constants.ts —
-// this file can't import that .ts module directly since it runs under plain
-// `node`, not the Playwright/tsx TS loader.
-import { createClient } from "@supabase/supabase-js";
+// Keep FIXTURES in sync with ./constants.ts — this file can't import that .ts
+// module directly since it runs under plain `node`, not the Playwright/tsx TS
+// loader.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-const SUPABASE_URL = "https://mxyfdvfbdrusbjiozuzx.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_bJhV8RTzq2Wpj5dk1tsWgQ_jiNNpuOD";
 
 export const FIXTURES = {
   admin: { email: "smissah321+e2e-settings-admin@gmail.com", password: "E2eSettingsAdmin2026!" },
@@ -37,22 +33,39 @@ function dbQuery(sql) {
   return JSON.parse(out.slice(jsonStart));
 }
 
-async function main() {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Create a login-capable auth user by inserting straight into auth.users
+// rather than via supabase.auth.signUp: it sets email_confirmed_at = now() so
+// the account is usable immediately and GoTrue sends no confirmation email to
+// the shared smissah321+… inbox. handle_new_user fires on the insert and
+// makes the matching public.users row; the password is bcrypt-hashed (cost 10,
+// matching GoTrue) so signInWithPassword / a browser login still works. Twin
+// of e2e/settings/db.ts createAuthUser and e2e/stripe/seed-fixtures.mjs.
+function createAuthUser({ email, password, meta }) {
+  const metaJson = JSON.stringify(meta).replace(/'/g, "''");
+  return dbQuery(`
+    insert into auth.users
+      (id, instance_id, email, encrypted_password, email_confirmed_at, aud, role,
+       raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
+       confirmation_token, recovery_token, email_change_token_new, email_change)
+    values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '${email}',
+            extensions.crypt('${password}', extensions.gen_salt('bf', 10)), now(),
+            'authenticated', 'authenticated', '${metaJson}'::jsonb,
+            '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+            '', '', '', '')
+    returning id;
+  `).rows[0].id;
+}
 
+async function main() {
   // ── Admin ──────────────────────────────────────────────────────────────
   let adminId = dbQuery(`select au.id from auth.users au where au.email = '${FIXTURES.admin.email}';`).rows[0]?.id;
 
   if (!adminId) {
-    const { data, error } = await supabase.auth.signUp({
+    adminId = createAuthUser({
       email: FIXTURES.admin.email,
       password: FIXTURES.admin.password,
-      options: {
-        data: { role: "admin", first_name: "E2E", last_name: "SettingsAdmin", practice_name: "E2E Settings Test Practice" },
-      },
+      meta: { role: "admin", first_name: "E2E", last_name: "SettingsAdmin", practice_name: "E2E Settings Test Practice" },
     });
-    if (error) throw new Error(`Admin signUp failed: ${error.message}`);
-    adminId = data.user.id;
     console.log("Created test admin:", adminId);
   } else {
     console.log("Test admin already exists:", adminId);
@@ -62,13 +75,11 @@ async function main() {
   let clientId = dbQuery(`select au.id from auth.users au where au.email = '${FIXTURES.client.email}';`).rows[0]?.id;
 
   if (!clientId) {
-    const { data, error } = await supabase.auth.signUp({
+    clientId = createAuthUser({
       email: FIXTURES.client.email,
       password: FIXTURES.client.password,
-      options: { data: { role: "client", first_name: "E2E", last_name: "SettingsClient" } },
+      meta: { role: "client", first_name: "E2E", last_name: "SettingsClient" },
     });
-    if (error) throw new Error(`Client signUp failed: ${error.message}`);
-    clientId = data.user.id;
     console.log("Created test client:", clientId);
   } else {
     console.log("Test client already exists:", clientId);
