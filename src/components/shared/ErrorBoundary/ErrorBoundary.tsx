@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 import styles from "./ErrorBoundary.module.scss";
 
-const SUPPORT_EMAIL = "support@withclarity.uk";
+const SUPPORT_EMAIL = "hello@withclarity.uk";
 
 interface Props {
   children: ReactNode;
