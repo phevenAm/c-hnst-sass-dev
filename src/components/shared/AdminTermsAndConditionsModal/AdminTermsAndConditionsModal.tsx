@@ -13,7 +13,11 @@ type modalProps = {
 const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
   return (
     <Modal title="Terms &amp; Conditions" onClose={onClose}>
-      <p className={styles.updated}>Last updated: 24 August 2026</p>
+      <p className={styles.updated}>Last updated: 6 September 2026</p>
+      <p>
+        This is a summary. Read the full legal documents before accepting. Clarity is software, not a healthcare
+        provider, emergency service, or substitute for professional judgement.
+      </p>
 
       <section>
         <h2>1. Introduction</h2>
@@ -51,14 +55,14 @@ const AdminTermsAndConditionsModal = ({ action, onClose }: modalProps) => {
         <p>
           You remain the data controller for all client data stored on the Platform. You are responsible for obtaining
           appropriate consent from your clients and for complying with applicable data protection law (including UK
-          GDPR). We process data only as a data processor on your behalf. Full details are set out in our Privacy
-          Policy.
+          GDPR). We intend to process practice data as a processor on your behalf, but a separate Data Processing
+          Agreement is not currently published. Do not upload client data at scale until that agreement is completed and
+          reviewed. Full privacy details are set out in our Privacy Policy.
         </p>
         <p>
-          If your subscription lapses, your account becomes read-only. Your data is retained — we do not automatically
-          delete it — until you resume your subscription, pause your practice, or delete your account. Deleting your
-          account erases your practice and all client records immediately, with no retention period; you are offered a
-          full export first.
+          If your subscription lapses, your account may become read-only under the current service rules. You can
+          request an export before deleting your account. Deletion and retention depend on the applicable data,
+          operational records, legal obligations, and the controls available in the app.
         </p>
       </section>
 

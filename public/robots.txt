@@ -1,3 +1,18 @@
-# Invite-only for now — keep the whole site out of search indexes.
+# Public marketing and legal pages may be indexed. Authenticated product areas
+# and account actions should stay out of search results.
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /check-in
+Disallow: /resources
+Disallow: /settings
+Disallow: /subscribe
+Disallow: /login
+Disallow: /register
+Disallow: /signup
+Disallow: /auth
+Disallow: /superadmin
+Disallow: /api
+
+Sitemap: https://withclarity.uk/sitemap.xml

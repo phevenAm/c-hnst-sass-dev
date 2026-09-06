@@ -657,6 +657,16 @@ a:hover {
   aspect-ratio: 1280 / 800;
 }
 
+.carousel-frame.is-scrollable .browser-viewport {
+  overflow-y: auto;
+  scrollbar-color: rgba(36, 56, 52, 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+.carousel-frame.is-scrollable .demo-screenshot {
+  max-width: none;
+}
+
 .demo-screenshot {
   width: 100%;
   height: auto;

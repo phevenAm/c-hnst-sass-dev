@@ -10,8 +10,42 @@
       content="Client management, wellbeing check-ins, payment tracking, and resource sharing — everything a solo therapy practice needs, built around how you actually work."
     />
 
-    <!-- Kept out of search results while the product is invite-only -->
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://withclarity.uk/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Clarity" />
+    <meta property="og:title" content="Clarity — practice management software for therapists" />
+    <meta
+      property="og:description"
+      content="Client management, scheduling, check-ins, payments, resources, and CPD for independent therapy practices."
+    />
+    <meta property="og:url" content="https://withclarity.uk/" />
+    <meta property="og:image" content="https://withclarity.uk/hero.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Clarity — practice management software for therapists" />
+    <meta
+      name="twitter:description"
+      content="Practice management software for independent counsellors and therapists."
+    />
+    <meta name="twitter:image" content="https://withclarity.uk/hero.webp" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Clarity",
+        "url": "https://withclarity.uk/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Practice management software for independent counsellors and therapists.",
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "GBP",
+          "lowPrice": "7.99",
+          "highPrice": "19.99",
+          "offerCount": "3"
+        }
+      }
+    </script>
 
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -84,28 +118,29 @@
           <ol class="why__list" role="list">
             <li class="why__item">
               <span class="why__num" aria-hidden="true">01</span>
-              <h3 class="why__head">A private library for your client-only material</h3>
+              <h3 class="why__head">Give clients more between sessions</h3>
               <p class="why__body">
-                Share worksheets, courses, articles, and exercises in a space only your clients can
-                see. Publish what&rsquo;s ready, keep sensitive material hidden until you choose to
-                send it.
+                Give each client a private portal with carefully chosen worksheets, articles, exercises,
+                check-ins, and progress to revisit between sessions. They can find what you have shared,
+                complete forms, and manage session requests without digging through old emails.
               </p>
             </li>
             <li class="why__item">
               <span class="why__num" aria-hidden="true">02</span>
-              <h3 class="why__head">Offline or online, one continuous record</h3>
+              <h3 class="why__head">Your clients don&rsquo;t have to be online</h3>
               <p class="why__body">
-                Run a client entirely yourself &mdash; sessions, notes, payments, email reminders
-                &mdash; or give them a portal login. Start offline and invite them later; their whole
-                history comes with them, nothing restarts.
+                Keep working with clients who are not ready for a portal. Track sessions, notes, payments,
+                and reminders yourself, then invite them whenever the time is right. Their history carries
+                across, so going online never means starting again.
               </p>
             </li>
             <li class="why__item">
               <span class="why__num" aria-hidden="true">03</span>
-              <h3 class="why__head">Your whole practice, one tool</h3>
+              <h3 class="why__head">The tools around your practice, together</h3>
               <p class="why__body">
-                Scheduling, payments, outcome measures, CPD, and supervision &mdash; all built in
-                and working together.
+                Scheduling, payments, client resources, forms, outcome measures, CPD, supervision, exports,
+                and practice records in one place. And when something would make your day easier, you have
+                a direct way to tell us what is missing, explain how you work, and help us prioritise useful changes.
               </p>
             </li>
           </ol>
@@ -193,9 +228,10 @@
               </span>
               <h3 class="feature__title">Outcome measures &amp; check-ins</h3>
               <p class="feature__body">
-                RCADS is built in &mdash; the 47-item anxiety and depression scale, auto-scored with
-                subscales and clinical bands. Add your own check-ins and feedback forms on any
-                schedule, and watch scores chart over time.
+                Built-in measures include PHQ-9, GAD-7, WSAS, PSS-10, PHQ-15, CORE-10, and RCADS-25,
+                with auto-scored totals, subscales, bands, and safeguarding flags where supported.
+                Add your own check-ins and feedback forms on any schedule, and watch scores chart over time.
+                These tools support practitioner review; they are not diagnoses or emergency alerts.
               </p>
             </li>
 
@@ -885,6 +921,7 @@
         function render() {
           var list = SLIDES[tab];
           var s = list[i];
+          frameEl.classList.toggle("is-scrollable", s.d === "schedule.webp");
           imgD.src = S + s.d;
           imgD.alt = s.t;
           imgM.src = S + s.m;

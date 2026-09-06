@@ -7,6 +7,24 @@ Todo IDs in brackets refer to items in the admin_todos table for the test accoun
 
 ---
 
+## LAUNCH GATE — Ship Safely Before Expanding
+
+These are the immediate release checks. Pause the local Supabase/Docker work
+until the launch gate is complete.
+
+- 🔒 Confirm the live Stripe path with a real low-value payment: checkout, webhook, subscription activation, cancellation, and customer access state. Do not run destructive billing tests repeatedly against live accounts.
+- 🐛 Fix any payment-state mismatch after the webhook (see Phase 1.4) before inviting paying customers.
+- 🔒 Replace every `[TODO]` in `docs/legal/terms-of-service.md` and `docs/legal/privacy-policy.md`, publish both pages, and obtain appropriate legal review before relying on them.
+- ✨ Publish a visible support route and contact address for customers. Include it in the app footer, account/settings area, and transactional emails where appropriate.
+- 🔒 Verify production secrets, webhook endpoints, email delivery, account deletion, export, cancellation, and paused-practice behaviour with a short manual smoke checklist.
+- ✨ Add a simple incident/support process: monitored inbox, response target, and a way to report urgent privacy or security issues.
+
+### Deferred test infrastructure
+
+- ⚡ The `staging` branch and local Supabase workflow are ready, but Docker-based local testing is not a launch blocker. Resume this after the launch gate to build destructive signup, cancellation, pause, upgrade, downgrade, payment-failure, and webhook-retry E2E coverage using Stripe test mode.
+
+---
+
 ## PHASE 1 — Critical Security & Auth
 
 ### 1.1 Security fixes

@@ -7,14 +7,19 @@ export default function TermsPage() {
     <div className="page">
       <div className={`inner ${styles.container}`}>
         <h1>Terms of Service</h1>
-        <p className={styles.updated}>Last updated: 4 September 2026</p>
+        <p className={styles.updated}>Last updated: 6 September 2026</p>
+        <p>
+          These terms are written for the current Clarity service. They are not a promise that a feature exists merely
+          because it is planned, described elsewhere, or visible in a demonstration environment. Please obtain
+          independent legal advice before relying on them for a regulated practice.
+        </p>
 
         <section>
           <h2>1. About these terms</h2>
           <p>
             These Terms of Service ("Terms") govern your use of the Clarity platform ("Clarity", "the platform", "we",
-            "us") operated by Clarity, a sole trader. Our business address is [Registered business address — TBD,
-            pending forwarding address registration].
+            "us"). Clarity is currently operated by its founder as a sole-trader business. The operator's legal name and
+            service address will be displayed here before paid customer contracts begin.
           </p>
           <p>
             By creating an account or accessing the platform you agree to these Terms. If you do not agree, do not use
@@ -51,16 +56,14 @@ export default function TermsPage() {
           <h2>3. Who can use Clarity</h2>
           <h3>Practitioners</h3>
           <p>
-            You must be a qualified and appropriately registered mental health or counselling professional (or operating
-            under the supervision of one) to subscribe as a Practitioner. By creating a Practitioner account you confirm
-            that you hold any professional registrations required to practise in your jurisdiction. You must be at least
-            18 years old.
+            You must be at least 18 years old and use Clarity for a lawful professional or business purpose. You are
+            responsible for deciding whether you are appropriately qualified, registered, insured, and authorised to
+            provide your services. Clarity does not verify professional registration.
           </p>
           <h3>Clients</h3>
           <p>
             Clients may only access the platform via an invitation from a Practitioner. By accepting an invitation you
-            confirm you are at least 16 years old, or that your parent or guardian has given consent if you are between
-            13 and 16.
+            confirm that you are at least 18 years old. Clarity is not currently intended for children or young people.
           </p>
         </section>
 
@@ -138,8 +141,9 @@ export default function TermsPage() {
             data for any purpose other than delivering the platform to you.
           </p>
           <p>
-            A Data Processing Agreement (DPA) between you and Clarity, as required by Article 28 UK GDPR, is set out at
-            Schedule 1 below. By accepting these Terms you also accept the DPA.
+            These Terms describe the intended allocation of responsibilities but are not a substitute for a separate
+            Article 28 UK GDPR Data Processing Agreement. Clarity is preparing that agreement and it must be completed
+            and accepted before practitioners use Clarity for client data at scale.
           </p>
           <h3>7.3 Our own processing</h3>
           <p>
@@ -168,15 +172,14 @@ export default function TermsPage() {
         <section>
           <h2>8. Client data and deletion</h2>
           <p>
-            You may delete a client's Clarity account at any time from your admin dashboard. Deletion removes the
-            client's login and personal details (name, date of birth, contact details, profile photo).
+            You may delete a client's Clarity account from your admin dashboard. Deletion is intended to remove the
+            client's login and personal details. Some practice records may remain where you need them for lawful
+            record-keeping, subject to your instructions and the platform's deletion tools.
           </p>
           <p>
-            Their session history, attendance, payments and session notes are kept in your practice as an{" "}
-            <strong>anonymised record</strong> — the client's name is replaced with a codename so your history,
-            statistics and clinical notes stay intact. This is retained for as long as your practice account exists, and
-            is removed if you delete your own Practitioner account. If a client closes their own account from their
-            portal, the same thing happens.
+            No separate DPA is currently published. Practitioners should not upload client data until the DPA and the
+            operator details above have been completed and reviewed. The intended scope is practice-management data,
+            including client identity, sessions, notes, forms, communications, and payment records.
           </p>
           <p>
             As a data controller, you are responsible for retaining clinical records for the period required by your
