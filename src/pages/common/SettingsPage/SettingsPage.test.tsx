@@ -102,6 +102,7 @@ const defaultEncryptionValue = {
   status: "disabled" as "disabled" | "locked" | "unlocked",
   encryptPII: async (v: string) => v,
   decryptPII: async (v: string) => v,
+  decryptNote: async (content: string, _iv: string) => content,
   setupEncryption: vi.fn(),
   unlockWithCode: vi.fn(),
   regenerateCode: vi.fn(),
@@ -581,6 +582,21 @@ describe("SettingsPage — session-prep reminders", () => {
 });
 
 describe("SettingsPage — client consent", () => {
+  it("does not enable consent when the agreement text is blank", async () => {
+    await openPracticeTab();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        "Add a heading and agreement text before enabling client consent.",
+        "danger",
+      );
+    });
+    expect(updateSpy).not.toHaveBeenCalledWith(expect.objectContaining({ consent_enabled: true }));
+  });
+
   it("enables the consent gate and saves the agreement text", async () => {
     await openPracticeTab();
 
@@ -769,6 +785,23 @@ describe("SettingsPage — subscription", () => {
 
     expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsPage — data export", () => {
+  it("exports practice data independently of subscription management", async () => {
+    invokeSpy.mockResolvedValueOnce({
+      data: { data_base64: btoa("zip-bytes"), filename: "clarity-export.zip" },
+      error: null,
+    });
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:export");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+
+    await openBillingTab();
+    fireEvent.click(await screen.findByRole("button", { name: "Export my data" }));
+
+    await waitFor(() => expect(invokeSpy).toHaveBeenCalledWith("export-practice-archive", { body: { decrypted_notes: {} } }));
+    expect(await screen.findByText("Downloaded clarity-export.zip.")).toBeInTheDocument();
   });
 });
 

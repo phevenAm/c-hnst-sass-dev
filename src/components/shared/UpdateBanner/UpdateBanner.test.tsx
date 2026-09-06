@@ -26,17 +26,19 @@ function mockVersionResponse(version: string) {
 }
 
 const reloadSpy = vi.fn();
+const replaceSpy = vi.fn();
 
 beforeEach(() => {
   Object.defineProperty(window, "location", {
     configurable: true,
-    value: { ...window.location, reload: reloadSpy },
+    value: { ...window.location, reload: reloadSpy, replace: replaceSpy, href: "https://example.com/settings" },
   });
 });
 
 afterEach(() => {
   cleanup();
   reloadSpy.mockClear();
+  replaceSpy.mockClear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -97,7 +99,7 @@ describe("UpdateBanner", () => {
     expect(screen.queryByText(/a new version is available/i)).not.toBeInTheDocument();
   });
 
-  it("'Update now' shows an updating state and falls back to a reload with no service worker registered (happy path)", async () => {
+  it("'Update now' shows an updating state and falls back to a cache-busting navigation with no service worker registered (happy path)", async () => {
     mockDisplayMode({ standalone: true });
     mockVersionResponse("99.0.0-newer");
     render(<UpdateBanner />);
@@ -105,6 +107,6 @@ describe("UpdateBanner", () => {
     fireEvent.click(await screen.findByRole("button", { name: /update now/i }));
 
     expect(await screen.findByRole("button", { name: /updating/i })).toBeDisabled();
-    await waitFor(() => expect(reloadSpy).toHaveBeenCalled());
+    await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith(expect.stringContaining("force-update=")));
   });
 });

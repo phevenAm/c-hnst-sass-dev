@@ -258,6 +258,19 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
     });
   });
 
+  it("does not continue onboarding with blank consent content", async () => {
+    renderPage();
+    goToStep2();
+    await addPackageAndGoToStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" })); // -> step 4
+
+    fireEvent.click(screen.getByLabelText("Ask new clients to agree to a contract before using the app"));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(screen.getByText("Add a heading and agreement text before enabling client consent.")).toBeInTheDocument();
+    expect(screen.getByText("Client onboarding form")).toBeInTheDocument();
+  });
+
   it("rejects a non-PDF link for the onboarding contract", async () => {
     renderPage();
     goToStep2();

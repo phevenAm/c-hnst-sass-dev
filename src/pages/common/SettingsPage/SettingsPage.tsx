@@ -51,6 +51,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
+import { exportPracticeArchive } from "./exportPracticeArchive";
 
 import styles from "./SettingsPage.module.scss";
 
@@ -258,7 +259,7 @@ const APPEARANCE_OPTIONS = [
 
 const SettingsPage = () => {
   const { userProfile, updateProfile, isAdmin, isDemo, loading, practiceSettings, refreshPracticeSettings } = useAuth();
-  const { status: encStatus, encryptPII, decryptPII } = useEncryption();
+  const { status: encStatus, encryptPII, decryptPII, decryptNote } = useEncryption();
   const { hiddenSections, toggleSection, reduceMotion, setReduceMotion, appZoom, setAppZoom } = useInterfacePrefs();
   const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
   const { showToast } = useToast();
@@ -291,6 +292,9 @@ const SettingsPage = () => {
   const [interfaceSearch, setInterfaceSearch] = useState("");
   const [announceOpen, setAnnounceOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
+  const [exportedDataName, setExportedDataName] = useState<string | null>(null);
+  const [exportDataError, setExportDataError] = useState<string | null>(null);
 
   // Deep-link to a tab via ?tab=practice (used by FirstClientTipsModal, etc.).
   // Only consume `tab` here — `section` is left in place for the matching
@@ -845,6 +849,10 @@ const SettingsPage = () => {
   const handleSaveConsent = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
+    if (consentEnabled && (!consentTitle.trim() || !consentBody.trim())) {
+      showToast("Add a heading and agreement text before enabling client consent.", "danger");
+      return;
+    }
     if (consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
       setConsentPdfUrlError("This must be a direct link to a .pdf file.");
       showToast("PDF link must point directly to a .pdf file.", "danger");
@@ -869,6 +877,22 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingConsent(false);
     showToast("Consent settings saved.");
+  };
+
+  const handleExportData = async () => {
+    if (guardDemo() || !userProfile?.id) return;
+    setExportingData(true);
+    setExportDataError(null);
+    try {
+      const filename = await exportPracticeArchive(userProfile.id, encStatus, decryptNote);
+      setExportedDataName(filename);
+      showToast("Your data export is ready.");
+    } catch (error) {
+      console.error("Practice export failed", error);
+      setExportDataError("Couldn't build the export. Try again, or contact support.");
+    } finally {
+      setExportingData(false);
+    }
   };
 
   const handleAddPackage = async () => {
@@ -2664,6 +2688,30 @@ const SettingsPage = () => {
                     Delete account
                   </Button>
                 </div>
+              </section>
+
+              <section className={styles.businessSection}>
+                <h2>Export your data</h2>
+                <p>
+                  Download a copy of your practice data, including clients, sessions, attendance, notes, and payments.
+                  This is separate from account deletion and does not change anything in your account.
+                </p>
+                <Button variant="secondary" size="sm" onClick={handleExportData} disabled={exportingData || isDemo}>
+                  {exportingData ? "Preparing…" : exportedDataName ? "Export again" : "Export my data"}
+                </Button>
+                {exportedDataName && (
+                  <p style={{ color: "var(--success, var(--accent))", fontSize: "0.9rem", marginTop: "0.4rem" }}>
+                    Downloaded {exportedDataName}.
+                  </p>
+                )}
+                {exportDataError && (
+                  <p role="alert" style={{ color: "var(--error)", fontSize: "0.9rem", marginTop: "0.4rem" }}>
+                    {exportDataError}
+                  </p>
+                )}
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
+                  Encrypted notes are included as placeholders unless encryption is unlocked on this device.
+                </p>
               </section>
             </SettingsCard>
 
