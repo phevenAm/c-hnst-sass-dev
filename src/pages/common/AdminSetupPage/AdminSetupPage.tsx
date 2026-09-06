@@ -203,6 +203,10 @@ export default function AdminSetupPage() {
       setConsentPdfUrlError("This must be a direct link to a .pdf file.");
       return;
     }
+    if (step === 4 && consentEnabled && (!consentTitle.trim() || !consentBody.trim())) {
+      setError("Add a heading and agreement text before enabling client consent.");
+      return;
+    }
     setError("");
     setStep((s) => s + 1);
   };
@@ -236,6 +240,11 @@ export default function AdminSetupPage() {
     if (consentEnabled && consentPdfUrl && !isPdfUrl(consentPdfUrl)) {
       setConsentPdfUrlError("This must be a direct link to a .pdf file.");
       setError("Fix the onboarding contract's PDF link before continuing.");
+      setStep(4);
+      return;
+    }
+    if (consentEnabled && (!consentTitle.trim() || !consentBody.trim())) {
+      setError("Add a heading and agreement text before enabling client consent.");
       setStep(4);
       return;
     }

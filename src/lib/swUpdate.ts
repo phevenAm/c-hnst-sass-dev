@@ -30,12 +30,10 @@ export function checkForServiceWorkerUpdate() {
 const WAIT_FOR_WORKER_MS = 8000;
 
 // Last-resort escape when "Update now" can't find a new worker to activate.
-// A plain window.location.reload() in an installed PWA is still served the
-// old precached index.html + hashed JS, so __APP_VERSION__ never changes,
-// useVersionCheck still sees a mismatch, and the banner comes straight back
-// — clicking again just repeats the same no-op reload. Tearing down every
-// registration + cache first forces the next load to the network, which
-// picks up the real new build.
+// Firefox can satisfy a plain reload from its cached document even after the
+// service worker and Cache API entries are removed. A one-time query string
+// makes the navigation fetch a fresh app shell, which then references the
+// current hashed bundle.
 async function unregisterAndReload() {
   try {
     const regs = (await navigator.serviceWorker?.getRegistrations?.()) ?? [];
@@ -49,7 +47,9 @@ async function unregisterAndReload() {
   } catch {
     // Cache API unavailable — fall through to the reload
   }
-  window.location.reload();
+  const url = new URL(window.location.href);
+  url.searchParams.set("force-update", Date.now().toString());
+  window.location.replace(url.href);
 }
 
 // registration.update() (checkForServiceWorkerUpdate, called when
