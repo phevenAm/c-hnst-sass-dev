@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import AgencyReviewBanner from "../components/agency/AgencyReviewBanner/AgencyReviewBanner";
@@ -28,6 +28,7 @@ import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtim
 import { useResolvedTheme } from "../Hooks/useResolvedTheme";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
 import { isFeatureEnabled } from "../lib/featureFlags";
+import { lazyWithReload } from "../lib/lazyWithReload";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
@@ -37,57 +38,61 @@ import { selectAgencyBootstrapStatus, selectAgencyMembership, selectIsAgencyMemb
 // bundle carries only the shell plus whichever page you land on. LoginPage and
 // NotFoundPage stay eager: one is the cold-start destination for logged-out
 // users, the other is the tiny wildcard fallback.
-const AdminAuditLogsPage = lazy(() => import("../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage"));
-const AdminClientScheduler = lazy(() => import("../pages/admin/AdminClientScheduler/AdminClientScheduler"));
-const AdminClientsPage = lazy(() => import("../pages/admin/AdminClientsPage/AdminClientsPage"));
-const AdminClientsPageDetailed = lazy(() => import("../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed"));
-const AdminCpdPage = lazy(() => import("../pages/admin/AdminCpdPage/AdminCpdPage"));
-const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard/AdminDashboard"));
-const AdminFinancesPage = lazy(() => import("../pages/admin/AdminFinancesPage/AdminFinancesPage"));
-const AdminQuestionnairesPage = lazy(() => import("../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage"));
-const AdminResourcesPage = lazy(() => import("../pages/admin/AdminResourcesPage/AdminResourcesPage"));
-const AdminScheduler = lazy(() => import("../pages/admin/AdminScheduler/AdminScheduler"));
-const AdminStubDetailPage = lazy(() => import("../pages/admin/AdminStubDetailPage/AdminStubDetailPage"));
-const AdminSupervisionPage = lazy(() => import("../pages/admin/AdminSupervisionPage/AdminSupervisionPage"));
-const CheckInPage = lazy(() => import("../pages/client/CheckInPage/CheckInPage"));
-const ClientDashboard = lazy(() => import("../pages/client/ClientDashboard/ClientDashboard"));
-const ClientSchedule = lazy(() => import("../pages/client/ClientSchedule/ClientSchedule"));
-const RcadsAssessmentPage = lazy(() => import("../pages/client/RcadsAssessmentPage/RcadsAssessmentPage"));
-const ResourcesPage = lazy(() => import("../pages/client/ResourcesPage/ResourcesPage"));
-const AdminSetupPage = lazy(() => import("../pages/common/AdminSetupPage/AdminSetupPage"));
-const CounsellorSignupPage = lazy(() => import("../pages/common/CounsellorSignupPage/CounsellorSignupPage"));
-const DemoPage = lazy(() => import("../pages/common/DemoPage/DemoPage"));
-const HelpSupportPage = lazy(() => import("../pages/common/HelpSupportPage/HelpSupportPage"));
-const GoogleCalendarCallbackPage = lazy(
+const AdminAuditLogsPage = lazyWithReload(() => import("../pages/admin/AdminAuditLogsPage/AdminAuditLogsPage"));
+const AdminClientScheduler = lazyWithReload(() => import("../pages/admin/AdminClientScheduler/AdminClientScheduler"));
+const AdminClientsPage = lazyWithReload(() => import("../pages/admin/AdminClientsPage/AdminClientsPage"));
+const AdminClientsPageDetailed = lazyWithReload(
+  () => import("../pages/admin/AdminClientsPageDetailed/AdminClientsPageDetailed"),
+);
+const AdminCpdPage = lazyWithReload(() => import("../pages/admin/AdminCpdPage/AdminCpdPage"));
+const AdminDashboard = lazyWithReload(() => import("../pages/admin/AdminDashboard/AdminDashboard"));
+const AdminFinancesPage = lazyWithReload(() => import("../pages/admin/AdminFinancesPage/AdminFinancesPage"));
+const AdminQuestionnairesPage = lazyWithReload(
+  () => import("../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage"),
+);
+const AdminResourcesPage = lazyWithReload(() => import("../pages/admin/AdminResourcesPage/AdminResourcesPage"));
+const AdminScheduler = lazyWithReload(() => import("../pages/admin/AdminScheduler/AdminScheduler"));
+const AdminStubDetailPage = lazyWithReload(() => import("../pages/admin/AdminStubDetailPage/AdminStubDetailPage"));
+const AdminSupervisionPage = lazyWithReload(() => import("../pages/admin/AdminSupervisionPage/AdminSupervisionPage"));
+const CheckInPage = lazyWithReload(() => import("../pages/client/CheckInPage/CheckInPage"));
+const ClientDashboard = lazyWithReload(() => import("../pages/client/ClientDashboard/ClientDashboard"));
+const ClientSchedule = lazyWithReload(() => import("../pages/client/ClientSchedule/ClientSchedule"));
+const RcadsAssessmentPage = lazyWithReload(() => import("../pages/client/RcadsAssessmentPage/RcadsAssessmentPage"));
+const ResourcesPage = lazyWithReload(() => import("../pages/client/ResourcesPage/ResourcesPage"));
+const AdminSetupPage = lazyWithReload(() => import("../pages/common/AdminSetupPage/AdminSetupPage"));
+const CounsellorSignupPage = lazyWithReload(() => import("../pages/common/CounsellorSignupPage/CounsellorSignupPage"));
+const DemoPage = lazyWithReload(() => import("../pages/common/DemoPage/DemoPage"));
+const HelpSupportPage = lazyWithReload(() => import("../pages/common/HelpSupportPage/HelpSupportPage"));
+const GoogleCalendarCallbackPage = lazyWithReload(
   () => import("../pages/common/GoogleCalendarCallbackPage/GoogleCalendarCallbackPage"),
 );
-const MicrosoftCalendarCallbackPage = lazy(
+const MicrosoftCalendarCallbackPage = lazyWithReload(
   () => import("../pages/common/MicrosoftCalendarCallbackPage/MicrosoftCalendarCallbackPage"),
 );
-const PrivacyPage = lazy(() => import("../pages/common/PrivacyPage/PrivacyPage"));
-const SecurityPage = lazy(() => import("../pages/common/SecurityPage/SecurityPage"));
-const SettingsPage = lazy(() => import("../pages/common/SettingsPage/SettingsPage"));
-const SignUpPage = lazy(() => import("../pages/common/SignUpPage/SignUpPage"));
-const StripeCallbackPage = lazy(() => import("../pages/common/StripeCallbackPage/StripeCallbackPage"));
-const SubprocessorsPage = lazy(() => import("../pages/common/SubprocessorsPage/SubprocessorsPage"));
-const SubscribePage = lazy(() => import("../pages/common/SubscribePage/SubscribePage"));
-const TermsPage = lazy(() => import("../pages/common/TermsPage/TermsPage"));
-const UnsubscribePage = lazy(() => import("../pages/common/UnsubscribePage/UnsubscribePage"));
-const SuperAdminPage = lazy(() => import("../pages/superadmin/SuperAdminPage/SuperAdminPage"));
-const DevCoveragePage = lazy(() => import("../pages/superadmin/DevCoveragePage/DevCoveragePage"));
+const PrivacyPage = lazyWithReload(() => import("../pages/common/PrivacyPage/PrivacyPage"));
+const SecurityPage = lazyWithReload(() => import("../pages/common/SecurityPage/SecurityPage"));
+const SettingsPage = lazyWithReload(() => import("../pages/common/SettingsPage/SettingsPage"));
+const SignUpPage = lazyWithReload(() => import("../pages/common/SignUpPage/SignUpPage"));
+const StripeCallbackPage = lazyWithReload(() => import("../pages/common/StripeCallbackPage/StripeCallbackPage"));
+const SubprocessorsPage = lazyWithReload(() => import("../pages/common/SubprocessorsPage/SubprocessorsPage"));
+const SubscribePage = lazyWithReload(() => import("../pages/common/SubscribePage/SubscribePage"));
+const TermsPage = lazyWithReload(() => import("../pages/common/TermsPage/TermsPage"));
+const UnsubscribePage = lazyWithReload(() => import("../pages/common/UnsubscribePage/UnsubscribePage"));
+const SuperAdminPage = lazyWithReload(() => import("../pages/superadmin/SuperAdminPage/SuperAdminPage"));
+const DevCoveragePage = lazyWithReload(() => import("../pages/superadmin/DevCoveragePage/DevCoveragePage"));
 
-const AgencyLayout = lazy(() => import("../components/agency/AgencyLayout/AgencyLayout"));
-const CreateAgencyPage = lazy(() => import("../pages/agency/CreateAgencyPage/CreateAgencyPage"));
-const AgencyOverviewPage = lazy(() => import("../pages/agency/AgencyOverviewPage/AgencyOverviewPage"));
-const AgencyMembersPage = lazy(() => import("../pages/agency/AgencyMembersPage/AgencyMembersPage"));
-const AgencyClientsPage = lazy(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
-const AgencySessionsPage = lazy(() => import("../pages/agency/AgencySessionsPage/AgencySessionsPage"));
-const AgencyInvoicesPage = lazy(() => import("../pages/agency/AgencyInvoicesPage/AgencyInvoicesPage"));
-const AgencyIncomingPage = lazy(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
-const AgencyFinancePage = lazy(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
-const AgencyOnboardingPage = lazy(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
-const AgencyActivityPage = lazy(() => import("../pages/agency/AgencyActivityPage/AgencyActivityPage"));
-const AgencySettingsPage = lazy(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
+const AgencyLayout = lazyWithReload(() => import("../components/agency/AgencyLayout/AgencyLayout"));
+const CreateAgencyPage = lazyWithReload(() => import("../pages/agency/CreateAgencyPage/CreateAgencyPage"));
+const AgencyOverviewPage = lazyWithReload(() => import("../pages/agency/AgencyOverviewPage/AgencyOverviewPage"));
+const AgencyMembersPage = lazyWithReload(() => import("../pages/agency/AgencyMembersPage/AgencyMembersPage"));
+const AgencyClientsPage = lazyWithReload(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
+const AgencySessionsPage = lazyWithReload(() => import("../pages/agency/AgencySessionsPage/AgencySessionsPage"));
+const AgencyInvoicesPage = lazyWithReload(() => import("../pages/agency/AgencyInvoicesPage/AgencyInvoicesPage"));
+const AgencyIncomingPage = lazyWithReload(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
+const AgencyFinancePage = lazyWithReload(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
+const AgencyOnboardingPage = lazyWithReload(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
+const AgencyActivityPage = lazyWithReload(() => import("../pages/agency/AgencyActivityPage/AgencyActivityPage"));
+const AgencySettingsPage = lazyWithReload(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
   const resolvedTheme = useResolvedTheme();
@@ -440,7 +445,7 @@ export default function AppRoutes() {
                 <Route path="/admin/scheduler/:clientId" element={<AdminClientScheduler />} />
                 <Route path="/admin/finances" element={<AdminFinancesPage />} />
                 <Route path="/admin/payments" element={<Navigate to="/admin/finances?view=income" replace />} />
-                <Route path="/admin/invoices" element={<Navigate to="/admin/finances" replace />} />
+                <Route path="/admin/invoices" element={<Navigate to="/admin/finances?view=invoices" replace />} />
                 <Route path="/admin/expenses" element={<Navigate to="/admin/finances?view=expenses" replace />} />
                 <Route path="/admin/cpd" element={<AdminCpdPage />} />
                 <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
