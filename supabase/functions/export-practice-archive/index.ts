@@ -6,8 +6,12 @@ import { jsPDF } from "npm:jspdf@2.5.2";
 // Side-effect import: patches jsPDF.prototype.autoTable — the ESM default
 // export isn't reliably callable under Supabase's npm interop.
 import "npm:jspdf-autotable@3.8.2";
+
 import JSZip from "npm:jszip@3.10.1";
 import * as XLSX from "npm:xlsx@0.18.5";
+// Frosted login-art cover for the PDF (base64 JPEG data URI). Twin of
+// src/Helpers/pdfCoverImage.ts — regenerate both with scripts/build-pdf-cover.py.
+import { PDF_COVER_JPEG } from "../_shared/coverImage.ts";
 import { buildExportZip, type ExportInput } from "./buildDocs.ts";
 
 const corsHeaders = {
@@ -120,7 +124,10 @@ Deno.serve(async (req) => {
       decryptedNotes,
     };
 
-    const { filename, zipBytes, counts } = await buildExportZip({ XLSX, jsPDF, JSZip }, input);
+    const { filename, zipBytes, counts } = await buildExportZip(
+      { XLSX, jsPDF, JSZip, coverJpeg: PDF_COVER_JPEG },
+      input,
+    );
 
     return new Response(
       JSON.stringify({
