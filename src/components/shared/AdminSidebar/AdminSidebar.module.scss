@@ -157,7 +157,7 @@ $transition: 0.22s ease;
   }
 
   &.active {
-    background: var(--accent-light);
+    background: var(--accent-secondary);
     color: var(--text-primary);
     font-weight: 600;
   }
@@ -221,9 +221,11 @@ $transition: 0.22s ease;
   }
 }
 
-// A child route being active shouldn't also fill the parent — that stacked
-// two filled pills. Just weight + colour the parent label.
+// A child route being active highlights the parent exactly like any other
+// selected top-level item (.navLink.active) — the active *child* is only
+// bolded, so there's no stacked double-fill.
 .groupActive {
+  background: var(--accent-secondary);
   color: var(--text-primary);
   font-weight: 600;
 }

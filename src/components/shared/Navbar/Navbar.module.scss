@@ -127,7 +127,7 @@
   &.active {
     font-weight: 600;
     // color: var(--accent-dark);
-    background: var(--accent-sand);
+    background: var(--accent-secondary);
   }
 }
 
@@ -244,7 +244,7 @@
 
   &.active {
     color: var(--text-primary);
-    background: var(--accent-sand);
+    background: var(--accent-secondary);
     font-weight: 600;
   }
 }

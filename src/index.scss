@@ -23,7 +23,7 @@
   --accent-subtle: #{$color-accent-subtle};
 
   // Sand — quiet decorative accent (selected nav item, quote ground). Not text/buttons.
-  --accent-sand: #{$color-accent-sand};
+  --accent-secondary: #{$color-accent-secondary};
 
   // Highlight — warm accent, decorative use only (not buttons)
   --highlight: #{$color-highlight};
@@ -150,7 +150,7 @@
   --accent-hover: #{$teal-500};
   --accent-light: #{$dark-accent-light};
   --accent-subtle: #{$dark-accent-light};
-  --accent-sand: #{$dark-accent-sand};
+  --accent-secondary: #{$dark-accent-secondary};
 
   // Highlight — warm accent, decorative use only (not buttons)
   --highlight: #{$dark-highlight};
