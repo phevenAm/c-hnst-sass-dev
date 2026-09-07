@@ -149,6 +149,14 @@
   align-items: center;
   justify-content: space-between;
   gap: $sp-4;
+}
+
+// Only the rows that are themselves a <label> (whole row toggles the switch)
+// get the pointer cursor. The codenames row is a <div> because it carries an
+// InfoTooltip button, which can't live inside a <label> — there the text and
+// the switch are each their own <label>, so scope the cursor to those.
+label.toggleRow,
+label.toggleSwitch {
   cursor: pointer;
 }
 
@@ -162,6 +170,10 @@
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-primary);
+
+    label {
+      cursor: pointer;
+    }
   }
 }
 

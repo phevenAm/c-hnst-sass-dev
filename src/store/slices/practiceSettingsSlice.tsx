@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
+import { fetchBankDetails } from "@/lib/bankDetails";
 import { supabase } from "@/lib/supabase.js";
 import type { Tables } from "@/models/database.types";
 
@@ -24,6 +25,11 @@ import type { Tables } from "@/models/database.types";
 // concerns with their own existing state machine (EncryptionContext) or no
 // current UI need — no reason to widen every consumer's exposure to them
 // just because they live in the same row.
+//
+// bank_* are encrypted at rest (20260907000050) — a raw SELECT returns
+// ciphertext, so they're fetched separately via get_practice_bank_details
+// (fetchBankDetails) and merged into `data` here, keeping PaymentModal and
+// AdminInvoicesPage (both read this cache) unchanged.
 //
 // Freshness: usePracticeSettingsRealtime (Hooks/) subscribes to UPDATE
 // events on this row and re-dispatches fetchPracticeSettings so every open
@@ -66,7 +72,7 @@ export type PracticeSettingsCache = Pick<
 >;
 
 const SELECT_COLUMNS =
-  "admin_id, business_name, onboarding_required, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, allow_block_session_cancellation, session_buffer_minutes, hidden_sections, reduce_motion, logo_url, counsellor_name, bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference, cpd_annual_target_hours, saved_locations, is_paused, paused_reason, referral_code, first_client_milestone_shown, consent_enabled, hide_client_profile_pii, invoice_prefix, next_invoice_number";
+  "admin_id, business_name, onboarding_required, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, allow_block_session_cancellation, session_buffer_minutes, hidden_sections, reduce_motion, logo_url, counsellor_name, cpd_annual_target_hours, saved_locations, is_paused, paused_reason, referral_code, first_client_milestone_shown, consent_enabled, hide_client_profile_pii, invoice_prefix, next_invoice_number";
 
 type PracticeSettingsState = {
   data: PracticeSettingsCache | null;
@@ -85,7 +91,17 @@ export const fetchPracticeSettings = createAsyncThunk<PracticeSettingsCache | nu
   async (_, { rejectWithValue }) => {
     const { data, error } = await supabase.from("practice_settings").select(SELECT_COLUMNS).maybeSingle();
     if (error) return rejectWithValue(error.message);
-    return data as PracticeSettingsCache | null;
+    if (!data) return null;
+
+    const bank = await fetchBankDetails((data as { admin_id: string }).admin_id);
+    return {
+      ...(data as Omit<PracticeSettingsCache, keyof typeof bank>),
+      bank_name: bank.bank_name || null,
+      bank_account_name: bank.bank_account_name || null,
+      bank_sort_code: bank.bank_sort_code || null,
+      bank_account_number: bank.bank_account_number || null,
+      bank_payment_reference: bank.bank_payment_reference || null,
+    } as PracticeSettingsCache;
   },
 );
 

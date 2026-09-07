@@ -45,10 +45,19 @@ vi.mock("@context/EncryptionContext", () => ({
   useEncryption: () => ({ status: "disabled", encryptPII: async (v: string) => v }),
 }));
 
-const { supabaseMock, packagesRows, updateSpy } = vi.hoisted(() => {
+const { supabaseMock, packagesRows, updateSpy, bankSpy } = vi.hoisted(() => {
   const packagesRows: { id: string; name: string; price_pence: number; duration_minutes: number }[] = [];
   const updateSpy = vi.fn();
+  const bankSpy = vi.fn();
   const supabaseMock = {
+    rpc: vi.fn((fn: string, args?: Record<string, unknown>) => {
+      if (fn === "set_practice_bank_details") {
+        bankSpy(args);
+        return Promise.resolve({ data: null, error: null });
+      }
+      // get_practice_bank_details and anything else — no saved details
+      return Promise.resolve({ data: [], error: null });
+    }),
     from: vi.fn((table: string) => {
       if (table === "session_packages") {
         return {
@@ -90,7 +99,7 @@ const { supabaseMock, packagesRows, updateSpy } = vi.hoisted(() => {
       throw new Error(`Unexpected table in test: ${table}`);
     }),
   };
-  return { supabaseMock, packagesRows, updateSpy };
+  return { supabaseMock, packagesRows, updateSpy, bankSpy };
 });
 vi.mock("@lib/supabase", () => ({ supabase: supabaseMock }));
 
@@ -191,9 +200,11 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Finish setup" }));
 
+    // bank_* is written through the set_practice_bank_details RPC, not a raw
+    // practice_settings update (the columns are encrypted at rest — 20260907000050).
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ bank_name: "Barclays", bank_account_number: "12345678" }),
+      expect(bankSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ p_bank_name: "Barclays", p_bank_account_number: "12345678" }),
       );
     });
   });

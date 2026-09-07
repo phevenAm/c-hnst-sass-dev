@@ -79,11 +79,18 @@ Deno.serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("practice_settings")
-      .select(
-        "business_name, counsellor_name, bank_name, bank_account_name, bank_sort_code, bank_account_number, bank_payment_reference",
-      )
+      .select("business_name, counsellor_name")
       .eq("admin_id", user.id)
       .maybeSingle();
+
+    // bank_* columns are encrypted at rest (20260907000050) — decrypt through
+    // the SECURITY DEFINER RPC, which needs a real auth.uid(), so call it with
+    // a client scoped to the requesting admin's JWT rather than the service key.
+    const userScoped = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: bankRows } = await userScoped.rpc("get_practice_bank_details", { p_admin_id: user.id });
+    const bank = Array.isArray(bankRows) ? bankRows[0] : bankRows;
 
     const practiceName = settings?.business_name || settings?.counsellor_name || "your counsellor";
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
@@ -103,13 +110,13 @@ Deno.serve(async (req) => {
       .join("");
 
     const bankBits: { label: string; value: string }[] = [];
-    if (settings?.bank_account_name) bankBits.push({ label: "Account name", value: settings.bank_account_name });
-    if (settings?.bank_name) bankBits.push({ label: "Bank", value: settings.bank_name });
-    if (settings?.bank_sort_code) bankBits.push({ label: "Sort code", value: settings.bank_sort_code });
-    if (settings?.bank_account_number) bankBits.push({ label: "Account number", value: settings.bank_account_number });
+    if (bank?.bank_account_name) bankBits.push({ label: "Account name", value: bank.bank_account_name });
+    if (bank?.bank_name) bankBits.push({ label: "Bank", value: bank.bank_name });
+    if (bank?.bank_sort_code) bankBits.push({ label: "Sort code", value: bank.bank_sort_code });
+    if (bank?.bank_account_number) bankBits.push({ label: "Account number", value: bank.bank_account_number });
     bankBits.push({
       label: "Reference",
-      value: settings?.bank_payment_reference || invoice.reference,
+      value: bank?.bank_payment_reference || invoice.reference,
     });
 
     const html = emailTemplate({
