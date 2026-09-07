@@ -430,3 +430,117 @@ test("a freshly-joined agency staff member reaches /admin, not /subscribe or /ad
   dbQuery(`delete from public.users where id = '${newStaffId}';`);
   dbQuery(`delete from auth.users where id = '${newStaffId}';`);
 });
+
+// ─── Agency ⇄ staff settlement direction: override > pinned default > auto ──
+// Backs 20260907000032. Asserts the DB resolver the FE mirrors
+// (src/pages/agency/AgencySettingsPage/settlement.ts) and that the overview
+// RPC the Settings screen calls is manager-gated.
+test("settlement direction resolves override > agency default > employment type; overview RPC is manager-only", async () => {
+  test.setTimeout(60_000);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+
+  const resolved = () =>
+    dbQuery<{ d: string }>(`select public.agency_member_settlement('${ids.aStaff}') as d;`).rows[0].d;
+
+  // Baseline: agency default 'auto', no per-member override, staff is freelance.
+  dbQuery(`update public.agencies set default_settlement_direction = 'auto' where id = '${ids.agencyA}';`);
+  dbQuery(
+    `update public.agency_members set settlement_direction = null, employment_type = 'freelance' where user_id = '${ids.aStaff}';`,
+  );
+  expect(resolved()).toBe("staff_pays_agency"); // auto + freelance
+
+  dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
+  expect(resolved()).toBe("agency_pays_staff"); // auto + employee
+
+  dbQuery(`update public.agencies set default_settlement_direction = 'none' where id = '${ids.agencyA}';`);
+  expect(resolved()).toBe("none"); // pinned default beats employment type
+
+  dbQuery(
+    `update public.agency_members set settlement_direction = 'staff_pays_agency' where user_id = '${ids.aStaff}';`,
+  );
+  expect(resolved()).toBe("staff_pays_agency"); // per-member override beats everything
+
+  // agency_settlement_overview(): manager gets a row per active member with the
+  // resolved direction; a counsellor is rejected.
+  const { data: overview, error: ovErr } = await asAManager.rpc("agency_settlement_overview");
+  expect(ovErr).toBeNull();
+  const staffRow = (overview as { user_id: string; effective_direction: string; override: string | null }[]).find(
+    (r) => r.user_id === ids.aStaff,
+  );
+  expect(staffRow?.effective_direction).toBe("staff_pays_agency");
+  expect(staffRow?.override).toBe("staff_pays_agency");
+
+  const { error: staffOvErr } = await asAStaff.rpc("agency_settlement_overview");
+  expect(staffOvErr).not.toBeNull();
+
+  // Reset for later serial tests.
+  dbQuery(
+    `update public.agency_members set settlement_direction = null, employment_type = 'freelance' where user_id = '${ids.aStaff}';`,
+  );
+  dbQuery(`update public.agencies set default_settlement_direction = 'auto' where id = '${ids.agencyA}';`);
+});
+
+// ─── Agency activity feed: governance events, member filter, manager-only,
+// tenant-scoped ───────────────────────────────────────────────────────────
+// Backs 20260907000033 — the triggers and agency_activity_feed() RPC the
+// manager-only /agency/activity page renders.
+test("agency activity feed captures governance events, filters by member, and never crosses agencies", async () => {
+  test.setTimeout(60_000);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
+
+  const ref = `ACT-${Date.now().toString().slice(-6)}`;
+
+  // Fire the governance triggers directly at the table layer (a manager doing
+  // the same things through the app produces identical rows) — an invoice
+  // raised then marked paid, and a policy switch.
+  dbQuery(`
+    insert into public.agency_invoices
+      (agency_id, staff_user_id, issued_by, number, reference, amount_pence, direction)
+    values ('${ids.agencyA}', '${ids.aStaff}', '${ids.aManager}', 9911, '${ref}', 3300, 'staff_to_agency');
+    update public.agency_invoices
+      set status = 'paid', paid_at = now(), payment_method = 'cash'
+      where agency_id = '${ids.agencyA}' and reference = '${ref}';
+    update public.agencies set shared_resources = not shared_resources where id = '${ids.agencyA}';
+  `);
+
+  // The events table itself got the rows (trigger coverage, no auth involved).
+  const eventTypes = dbQuery<{ event_type: string }>(
+    `select event_type from public.agency_activity_events where agency_id = '${ids.agencyA}' order by created_at;`,
+  ).rows.map((r) => r.event_type);
+  expect(eventTypes).toContain("invoice.raised");
+  expect(eventTypes).toContain("invoice.paid");
+  expect(eventTypes).toContain("policy.changed");
+
+  // The manager-only feed RPC surfaces them, newest-first, with summaries.
+  type FeedRow = { source: string; actor_id: string | null; summary: string };
+  const { data: feed, error: feedErr } = await asAManager.rpc("agency_activity_feed", { p_limit: 300 });
+  expect(feedErr).toBeNull();
+  const summaries = (feed as FeedRow[]).map((r) => r.summary).join("\n");
+  expect(summaries).toContain(ref); // invoice.raised
+  expect(summaries.toLowerCase()).toContain("marked paid"); // invoice.paid
+  expect(summaries.toLowerCase()).toContain("shared resource library"); // policy.changed
+
+  // Member filter narrows to that actor.
+  const { data: filtered } = await asAManager.rpc("agency_activity_feed", {
+    p_member: ids.aManager,
+    p_limit: 300,
+  });
+  expect((filtered as FeedRow[]).every((r) => r.actor_id === ids.aManager)).toBe(true);
+
+  // A plain counsellor can't read the feed at all.
+  const { error: staffErr } = await asAStaff.rpc("agency_activity_feed", {});
+  expect(staffErr).not.toBeNull();
+
+  // Agency B's manager sees their own feed — never Agency A's events.
+  const { data: bFeed, error: bErr } = await asBManager.rpc("agency_activity_feed", { p_limit: 300 });
+  expect(bErr).toBeNull();
+  expect((bFeed as FeedRow[]).some((r) => r.summary.includes(ref))).toBe(false);
+
+  dbQuery(`
+    delete from public.agency_invoices where agency_id = '${ids.agencyA}' and reference = '${ref}';
+    delete from public.agency_activity_events where agency_id = '${ids.agencyA}';
+  `);
+});
