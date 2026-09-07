@@ -57,10 +57,30 @@ $transition: 0.22s ease;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: $sp-2 $sp-2 $sp-2 0;
+    padding: $sp-2;
     min-width: 150px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     z-index: 300;
+
+    // Floating popover, not a tree — no guide line, and the active child gets
+    // a background fill instead of the segment that would otherwise float over
+    // the icon.
+    &::before {
+      display: none;
+    }
+
+    .childLink {
+      padding: $sp-2 $sp-3;
+
+      &::before {
+        display: none;
+      }
+
+      &.active {
+        background: var(--accent-secondary);
+        color: var(--text-primary);
+      }
+    }
 
     // Invisible bridge: extends the flyout's hover hit-area back across the
     // rail so the pointer never lands in dead space between the icon and the
@@ -259,8 +279,11 @@ $transition: 0.22s ease;
   position: relative;
 }
 
-// x of the single vertical guide line — under the parent row's icon centre.
-$guide-x: 1.4rem;
+// x of the vertical guide line in the INLINE submenu (kept close to the left
+// edge so child links can sit tight without the line cutting through them).
+// The floating flyouts (collapsed rail / mobile icon-strip) drop the line
+// entirely and use a background highlight for the active child instead.
+$guide-x: 0.7rem;
 
 .groupChildren {
   list-style: none;
@@ -294,7 +317,9 @@ $guide-x: 1.4rem;
   display: flex;
   align-items: center;
   gap: $sp-3;
-  padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-4});
+  // Left padding clears the guide line ($guide-x) with a small gap — never
+  // sits on top of it. Flyout contexts drop the line and tighten this below.
+  padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-3});
   border-radius: var(--r-md);
   text-decoration: none;
   color: var(--text-secondary);
@@ -464,17 +489,23 @@ $guide-x: 1.4rem;
       z-index: 300;
       transition: opacity 120ms ease, transform 120ms ease;
 
+      // Popover, not a tree — no guide line here either.
       &::before {
-        display: block;
+        display: none;
       }
 
       .childLink {
-        padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-4});
+        padding: $sp-2 $sp-3;
         font-size: 0.85rem;
         margin: 1px 0;
 
         &::before {
-          display: block;
+          display: none;
+        }
+
+        &.active {
+          background: var(--accent-secondary);
+          color: var(--text-primary);
         }
       }
     }
@@ -513,7 +544,7 @@ $guide-x: 1.4rem;
         display: flex;
       }
 
-      // Revert to inline dropdown — tree connector comes back
+      // Revert to inline dropdown — the guide line reads as a tree again here.
       .groupChildren {
         position: static;
         max-height: 0;
@@ -532,10 +563,15 @@ $guide-x: 1.4rem;
         }
 
         .childLink {
-          padding-left: calc(#{$guide-x} + #{$sp-4});
+          padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-3});
 
           &::before {
             display: block;
+          }
+
+          &.active {
+            background: none;
+            color: var(--accent);
           }
         }
       }
