@@ -119,22 +119,25 @@ export default function SubscribePage() {
   // and restart the interval on every tick instead of just running once.
   const startAutoAdvance = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     intervalRef.current = setInterval(() => {
       setCurrent((c) => (c + 1) % SLIDES.length);
-    }, 5000);
+    }, 9000);
+  }, []);
+
+  const stopAutoAdvance = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = null;
   }, []);
 
   useEffect(() => {
     startAutoAdvance();
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [startAutoAdvance]);
+    return stopAutoAdvance;
+  }, [startAutoAdvance, stopAutoAdvance]);
 
   const goTo = (index: number) => {
-    setCurrent(index);
+    setCurrent(((index % SLIDES.length) + SLIDES.length) % SLIDES.length);
     startAutoAdvance();
   };
 
@@ -187,7 +190,8 @@ export default function SubscribePage() {
               <p className={styles.eyebrow}>Practice management</p>
               <h2 className={styles.heading}>Everything you need to run your practice</h2>
 
-              <div className={styles.carousel}>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: pause-on-hover convenience only, all controls are real buttons */}
+              <div className={styles.carousel} onMouseEnter={stopAutoAdvance} onMouseLeave={startAutoAdvance}>
                 <div key={current} className={styles.slide}>
                   <div className={styles.slideIconWrap}>
                     <Icon />
@@ -203,6 +207,14 @@ export default function SubscribePage() {
                 </div>
 
                 <div className={styles.dots}>
+                  <button
+                    type="button"
+                    className={styles.navBtn}
+                    onClick={() => goTo(current - 1)}
+                    aria-label="Previous feature"
+                  >
+                    ‹
+                  </button>
                   {SLIDES.map((s, i) => (
                     <button
                       // biome-ignore lint/suspicious/noArrayIndexKey: stable order
@@ -213,6 +225,14 @@ export default function SubscribePage() {
                       aria-label={s.title}
                     />
                   ))}
+                  <button
+                    type="button"
+                    className={styles.navBtn}
+                    onClick={() => goTo(current + 1)}
+                    aria-label="Next feature"
+                  >
+                    ›
+                  </button>
                 </div>
               </div>
             </div>

@@ -35,6 +35,7 @@ import { useEncryption } from "@context/EncryptionContext";
 import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
+import { type BankDetails, fetchBankDetails, saveBankDetails } from "@lib/bankDetails";
 import { isEncryptedValue } from "@lib/noteEncryption";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { selectAgency, selectIsAgencyMember } from "@store/slices/agencySlice";
@@ -138,15 +139,11 @@ const BANK_FIELDS = [
 
 type BankField = (typeof BANK_FIELDS)[number]["key"];
 
-// These fields are encrypted at rest. business_name excluded — shown in superadmin UI.
+// email/phone/address are client-side encrypted at rest (business_name is
+// not — it's shown in the superadmin UI). bank_* used to be in this set too
+// but moved to DB-side encryption (migration 20260907000050) — they're read
+// and written through fetchBankDetails / saveBankDetails now.
 const PII_BUSINESS_KEYS: BusinessField[] = ["email", "phone", "address"];
-const PII_BANK_KEYS: BankField[] = [
-  "bank_name",
-  "bank_account_name",
-  "bank_sort_code",
-  "bank_account_number",
-  "bank_payment_reference",
-];
 
 // Reads a persisted collapse state — falls back to open (true) so existing
 // settings stay visible for anyone who hasn't touched a given section yet.
@@ -510,9 +507,10 @@ const SettingsPage = () => {
       .then(async ({ data }) => {
         if (!data) return;
 
-        // Detect whether any sensitive field has been encrypted
-        const allPIIKeys = [...PII_BUSINESS_KEYS, ...PII_BANK_KEYS];
-        const hasEncrypted = allPIIKeys.some((k) => {
+        // Detect whether email/phone/address have been client-side encrypted.
+        // (bank_* are no longer in this set — they're encrypted in the DB now
+        // and read back as plaintext via fetchBankDetails below.)
+        const hasEncrypted = PII_BUSINESS_KEYS.some((k) => {
           const v = data[k as string];
           return v?.startsWith("{");
         });
@@ -542,17 +540,10 @@ const SettingsPage = () => {
           phone: await decrypt(data.phone ?? ""),
           address: await decrypt(data.address ?? ""),
         };
-        const bankData: Record<BankField, string> = {
-          bank_name: await decrypt(data.bank_name ?? ""),
-          bank_account_name: await decrypt(data.bank_account_name ?? ""),
-          bank_sort_code: await decrypt(data.bank_sort_code ?? ""),
-          bank_account_number: await decrypt(data.bank_account_number ?? ""),
-          bank_payment_reference: await decrypt(data.bank_payment_reference ?? ""),
-        };
 
         setPracticeDetails(businessData);
         setLogoUrl(data.logo_url ?? "");
-        setBankDetails(bankData);
+        setBankDetails(await fetchBankDetails(userProfile.id));
         setStripeConnected(data.stripe_connect_onboarded ?? false);
         setCardPaymentsEnabled(data.card_payments_enabled ?? false);
         setBillingCustomerId(data.billing_customer_id ?? null);
@@ -651,23 +642,19 @@ const SettingsPage = () => {
   const handleUpdateBank = async () => {
     if (guardDemo()) return;
     if (!userProfile?.id) return;
-    // Bank details are PII and must never reach the DB unencrypted — no
-    // silent plaintext fallback. If encryption isn't unlocked yet, send the
-    // admin to unlock/set it up first rather than saving anything.
-    if (encStatus !== "unlocked") {
-      setShowEncUnlockModal(true);
+    // Bank transfer details are encrypted at rest in the DB (migration
+    // 20260907000050). set_practice_bank_details does the encryption inside
+    // Postgres, so there's no client-side key to unlock here — unlike
+    // email/phone/address, these have to be readable by the client's
+    // PaymentModal, which holds no key.
+    setSavingBank(true);
+    const { error } = await saveBankDetails(bankDetails as BankDetails);
+    setSavingBank(false);
+    if (error) {
+      showToast("Couldn't save bank details.", "danger");
       return;
     }
-    setSavingBank(true);
-    const toSave: Record<BankField, string> = {
-      bank_name: await encryptPII(bankDetails.bank_name),
-      bank_account_name: await encryptPII(bankDetails.bank_account_name),
-      bank_sort_code: await encryptPII(bankDetails.bank_sort_code),
-      bank_account_number: await encryptPII(bankDetails.bank_account_number),
-      bank_payment_reference: await encryptPII(bankDetails.bank_payment_reference),
-    };
-    await supabase.from("practice_settings").update(toSave).eq("admin_id", userProfile.id);
-    setSavingBank(false);
+    await refreshPracticeSettings();
     showToast("Bank details updated.");
   };
 
@@ -1759,8 +1746,7 @@ const SettingsPage = () => {
                   color: "var(--text-secondary)",
                 }}
               >
-                Contact details and bank fields are encrypted. Open any client note and unlock encryption to view or
-                edit them.
+                Your contact details are encrypted. Open any client note and unlock encryption to view or edit them.
               </div>
             )}
 
@@ -2513,20 +2499,6 @@ const SettingsPage = () => {
               onChange={(e) => setBillingSearch(e.target.value)}
               aria-label="Search billing settings"
             />
-            {piiLocked && (
-              <div
-                style={{
-                  padding: "var(--sp-3) var(--sp-4)",
-                  background: "var(--surface-secondary)",
-                  borderRadius: "var(--radius-md)",
-                  marginBottom: "var(--sp-4)",
-                  fontSize: "0.875rem",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                Bank details are encrypted. Open any client note and unlock encryption to view or edit them.
-              </div>
-            )}
 
             {/* Session types & prices */}
             <SettingsCard
@@ -2664,65 +2636,58 @@ const SettingsPage = () => {
             {/* Bank details */}
             <SettingsCard title="Bank details" storageKey="settings:practice:bank" searchQuery={billingSearch}>
               <section className={styles.businessSection}>
-                <p>Shown to clients as a payment option when they pay for a session.</p>
-                {piiLocked ? (
-                  <p>🔒 Bank details are saved and encrypted — unlock encryption to view or change them.</p>
-                ) : (
-                  <form className={styles.form}>
-                    {BANK_FIELDS.map(({ key, label, placeholder }) => {
-                      const revealed = revealedBankFields.has(key);
-                      const hasValue = !!bankDetails[key];
-                      return (
-                        <div className={styles.field} key={key}>
-                          <label>{label}</label>
-                          <div className={styles.copyField}>
-                            <input
-                              className={styles.copyFieldValue}
-                              type={hasValue && !revealed ? "password" : "text"}
-                              value={bankDetails[key]}
-                              placeholder={placeholder}
-                              onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
-                            />
-                            {hasValue && (
-                              <button
-                                type="button"
-                                className={styles.copyFieldBtn}
-                                onClick={() => toggleBankFieldRevealed(key)}
-                                aria-label={revealed ? `Hide ${label}` : `Show ${label}`}
-                                title={revealed ? "Hide" : "Show"}
-                              >
-                                {revealed ? <LockOpenIcon /> : <LockIcon />}
-                              </button>
-                            )}
-                            {hasValue && (
-                              <button
-                                type="button"
-                                className={styles.copyFieldBtn}
-                                onClick={() => handleCopyBankField(key)}
-                                aria-label={`Copy ${label}`}
-                                title="Copy"
-                              >
-                                {copiedBankField === key ? (
-                                  <span className={styles.copyFieldDone}>✓</span>
-                                ) : (
-                                  <CopyIcon />
-                                )}
-                              </button>
-                            )}
-                          </div>
+                <p>
+                  Shown to clients as a payment option when they pay for a session. Stored encrypted; only you and your
+                  clients can see them.
+                </p>
+                <form className={styles.form}>
+                  {BANK_FIELDS.map(({ key, label, placeholder }) => {
+                    const revealed = revealedBankFields.has(key);
+                    const hasValue = !!bankDetails[key];
+                    return (
+                      <div className={styles.field} key={key}>
+                        <label>{label}</label>
+                        <div className={styles.copyField}>
+                          <input
+                            className={styles.copyFieldValue}
+                            type={hasValue && !revealed ? "password" : "text"}
+                            value={bankDetails[key]}
+                            placeholder={placeholder}
+                            onChange={(e) => setBankDetails((prev) => ({ ...prev, [key]: e.target.value }))}
+                          />
+                          {hasValue && (
+                            <button
+                              type="button"
+                              className={styles.copyFieldBtn}
+                              onClick={() => toggleBankFieldRevealed(key)}
+                              aria-label={revealed ? `Hide ${label}` : `Show ${label}`}
+                              title={revealed ? "Hide" : "Show"}
+                            >
+                              {revealed ? <LockOpenIcon /> : <LockIcon />}
+                            </button>
+                          )}
+                          {hasValue && (
+                            <button
+                              type="button"
+                              className={styles.copyFieldBtn}
+                              onClick={() => handleCopyBankField(key)}
+                              aria-label={`Copy ${label}`}
+                              title="Copy"
+                            >
+                              {copiedBankField === key ? <span className={styles.copyFieldDone}>✓</span> : <CopyIcon />}
+                            </button>
+                          )}
                         </div>
-                      );
-                    })}
-                  </form>
-                )}
+                      </div>
+                    );
+                  })}
+                </form>
               </section>
-              {!piiLocked && (
-                <div className={styles.actions}>
-                  <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
-                    {savingBank ? "Saving…" : "Save bank details"}
-                  </Button>
-                </div>
-              )}
+              <div className={styles.actions}>
+                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBank}>
+                  {savingBank ? "Saving…" : "Save bank details"}
+                </Button>
+              </div>
             </SettingsCard>
 
             {/* Stripe Connect */}

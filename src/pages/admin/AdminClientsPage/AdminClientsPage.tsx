@@ -785,7 +785,6 @@ export default function AdminClientsPage() {
           </div>
 
           <SplitButton
-            iconOnly
             primaryLabel="Invite a client"
             primaryAction={() => setShowInviteModal(true)}
             options={[

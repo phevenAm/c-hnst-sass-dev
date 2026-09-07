@@ -84,6 +84,14 @@ beforeEach(() => {
   mockUseAuth.mockImplementation(() => defaultAuthValue);
   mockUseEncryption.mockImplementation(() => defaultEncryptionValue);
   Object.assign(currentRow, initialRow);
+  Object.assign(bankDetailsRow, {
+    bank_name: "",
+    bank_account_name: "",
+    bank_sort_code: "",
+    bank_account_number: "",
+    bank_payment_reference: "",
+  });
+  setBankSpy.mockClear();
   setGoogleStatusRow(null);
   reminderMutesRows.length = 0;
   sessionPackagesRows.length = 0;
@@ -134,6 +142,8 @@ vi.mock("@context/ToastContext", () => ({
 const {
   supabaseMock,
   updateSpy,
+  setBankSpy,
+  bankDetailsRow,
   initialRow,
   currentRow,
   invokeSpy,
@@ -194,12 +204,34 @@ const {
     { id: "stub-1", first_name: "Grace", last_name: "Hopper", codename: null },
   ];
   const updateSpy = vi.fn();
+  const setBankSpy = vi.fn();
+  // Row returned by get_practice_bank_details (bank_* are DB-encrypted; the
+  // RPC hands back plaintext). Tests mutate this to preload saved values.
+  const bankDetailsRow = {
+    bank_name: "",
+    bank_account_name: "",
+    bank_sort_code: "",
+    bank_account_number: "",
+    bank_payment_reference: "",
+  };
   const invokeSpy = vi.fn((fnName: string) =>
     Promise.resolve({ data: { url: `https://example.com/${fnName}` }, error: null }),
   );
-  const rpcSpy = vi.fn((fnName: string) => {
+  const rpcSpy = vi.fn((fnName: string, args?: Record<string, unknown>) => {
     if (fnName === "get_google_calendar_status") {
       return Promise.resolve({ data: googleStatusRow ? [googleStatusRow] : [], error: null });
+    }
+    if (fnName === "get_practice_bank_details") {
+      return Promise.resolve({ data: [{ ...bankDetailsRow }], error: null });
+    }
+    if (fnName === "set_practice_bank_details") {
+      setBankSpy(args);
+      bankDetailsRow.bank_name = (args?.p_bank_name as string) ?? "";
+      bankDetailsRow.bank_account_name = (args?.p_bank_account_name as string) ?? "";
+      bankDetailsRow.bank_sort_code = (args?.p_bank_sort_code as string) ?? "";
+      bankDetailsRow.bank_account_number = (args?.p_bank_account_number as string) ?? "";
+      bankDetailsRow.bank_payment_reference = (args?.p_bank_payment_reference as string) ?? "";
+      return Promise.resolve({ data: null, error: null });
     }
     return Promise.resolve({ data: [], error: null });
   });
@@ -306,6 +338,8 @@ const {
   return {
     supabaseMock,
     updateSpy,
+    setBankSpy,
+    bankDetailsRow,
     initialRow,
     currentRow,
     invokeSpy,
@@ -423,42 +457,38 @@ describe("SettingsPage — loading", () => {
 });
 
 describe("SettingsPage — bank details (client payment info)", () => {
-  it("saves a changed bank account number", async () => {
-    mockUseEncryption.mockImplementation(() => ({ ...defaultEncryptionValue, status: "unlocked" }));
+  it("saves a changed bank account number via the set_practice_bank_details RPC", async () => {
     await openBillingTab();
 
     fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
     fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
 
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ bank_account_number: "87654321" }));
+      expect(setBankSpy).toHaveBeenCalledWith(expect.objectContaining({ p_bank_account_number: "87654321" }));
     });
   });
 
-  // Regression: handleUpdateBank used to fall back to a plaintext passthrough
-  // whenever encryption wasn't unlocked, so bank details typed in without
-  // ever unlocking (the default state for any admin who's never opened a
-  // client's notes) went straight into the DB unencrypted, silently, with no
-  // warning. It must now refuse to save at all rather than degrade quietly.
-  it("never saves bank details in plaintext when encryption isn't unlocked — prompts to unlock instead", async () => {
-    // defaultEncryptionValue.status is "disabled" — the actual default for a
-    // fresh admin who's never touched encryption.
+  // Bank details moved from client-side encryption to DB-side encryption
+  // (migration 20260907000050): set_practice_bank_details encrypts inside
+  // Postgres, so there's no note-encryption key to unlock first — unlike
+  // email/phone/address, the client's PaymentModal has to be able to read
+  // these and holds no key.
+  it("saves bank details without needing note encryption unlocked", async () => {
+    // defaultEncryptionValue.status is "disabled" — a fresh admin who's never
+    // touched encryption. The save must still go through.
     await openBillingTab();
 
     fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
     fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
 
-    expect(await screen.findByText(/Set up note encryption/i)).toBeInTheDocument();
-    expect(updateSpy).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(setBankSpy).toHaveBeenCalledWith(expect.objectContaining({ p_bank_account_number: "87654321" }));
+    });
+    expect(screen.queryByText(/Set up note encryption/i)).not.toBeInTheDocument();
   });
 
   it("masks an already-saved bank field by default, with a toggle to reveal it", async () => {
-    currentRow.bank_account_number = '{"c":"ciphertext","iv":"someiv"}';
-    mockUseEncryption.mockImplementation(() => ({
-      ...defaultEncryptionValue,
-      status: "unlocked",
-      decryptPII: async (v: string) => (v === currentRow.bank_account_number ? "12345678" : v),
-    }));
+    bankDetailsRow.bank_account_number = "12345678";
     await openBillingTab();
 
     const input = await screen.findByDisplayValue("12345678");
@@ -468,15 +498,10 @@ describe("SettingsPage — bank details (client payment info)", () => {
     expect(input).toHaveAttribute("type", "text");
   });
 
-  it("copies a bank field's decrypted value to the clipboard", async () => {
+  it("copies a bank field's value to the clipboard", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    currentRow.bank_sort_code = '{"c":"ciphertext","iv":"someiv"}';
-    mockUseEncryption.mockImplementation(() => ({
-      ...defaultEncryptionValue,
-      status: "unlocked",
-      decryptPII: async (v: string) => (v === currentRow.bank_sort_code ? "20-00-00" : v),
-    }));
+    bankDetailsRow.bank_sort_code = "20-00-00";
     await openBillingTab();
 
     await screen.findByDisplayValue("20-00-00");
@@ -970,7 +995,7 @@ describe("SettingsPage — demo mode blocks every save action", () => {
     await openBillingTab();
     fireEvent.change(getFieldInput("Account number"), { target: { value: "87654321" } });
     fireEvent.click(screen.getByRole("button", { name: "Save bank details" }));
-    expect(updateSpy).not.toHaveBeenCalled();
+    expect(setBankSpy).not.toHaveBeenCalled();
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
   });
 

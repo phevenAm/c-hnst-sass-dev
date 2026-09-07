@@ -587,7 +587,6 @@ const AdminScheduler = () => {
             <SplitButton
               variant="primary"
               // size="sm"
-              iconOnly
               primaryLabel="Create a session"
               primaryAction={() => setNewSessionWithoutId(true)}
               options={[

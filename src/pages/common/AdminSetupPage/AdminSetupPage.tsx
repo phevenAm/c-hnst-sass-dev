@@ -7,8 +7,8 @@ import Button from "@components/shared/Button/Button";
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { useAuth } from "@context/AuthContext";
-import { useEncryption } from "@context/EncryptionContext";
 import { useToast } from "@context/ToastContext";
+import { saveBankDetails } from "@lib/bankDetails";
 import { supabase } from "@lib/supabase";
 import CreateStubModal from "@pages/admin/AdminClientsPage/modals/CreateStubModal/CreateStubModal";
 import ImportStubsModal from "@pages/admin/AdminClientsPage/modals/ImportStubsModal/ImportStubsModal";
@@ -63,10 +63,17 @@ const SKIPPABLE_STEPS = new Set([3, 4, 5, 6]);
 // here. Only business info + session types are required; codenames, the
 // onboarding contract, bank details, and adding a first client are all
 // optional and skippable.
-// Bank details are offered here too (same encrypted-at-rest fields Settings
-// uses) since a client can't be shown "how to pay" details for a payment
-// method that was never filled in — but they're optional, since Stripe
-// Connect alone is a valid setup with no bank transfer support at all.
+// Bank details are offered here too since a client can't be shown "how to
+// pay" details for a payment method that was never filled in — but they're
+// optional, since Stripe Connect alone is a valid setup with no bank
+// transfer support at all.
+//
+// Bank details are written via saveBankDetails() (the set_practice_bank_details
+// RPC), separately from the practice_settings.update() below — the bank_*
+// columns are encrypted at rest (migration 20260907000050, pgcrypto + a Vault
+// key) and must not be written directly. They're NOT put through the
+// client-side PII encryption used for email/phone/address: the client-facing
+// PaymentModal has to read them and holds no key.
 //
 // Step 4 (onboarding contract) writes the same practice_settings consent_*
 // columns Settings' Client consent card does, directly — not a pointer to
@@ -83,7 +90,6 @@ const SKIPPABLE_STEPS = new Set([3, 4, 5, 6]);
 export default function AdminSetupPage() {
   const { userProfile, practiceSettings, refreshPracticeSettings, updatePracticeSettingsLocal, isDemo, signOut } =
     useAuth();
-  const { status: encStatus, encryptPII } = useEncryption();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -269,15 +275,6 @@ export default function AdminSetupPage() {
       return;
     }
 
-    const encrypt = encStatus === "unlocked" ? encryptPII : (v: string) => Promise.resolve(v);
-    const bankPayload: Record<BankField, string> = {
-      bank_name: await encrypt(bankDetails.bank_name),
-      bank_account_name: await encrypt(bankDetails.bank_account_name),
-      bank_sort_code: await encrypt(bankDetails.bank_sort_code),
-      bank_account_number: await encrypt(bankDetails.bank_account_number),
-      bank_payment_reference: await encrypt(bankDetails.bank_payment_reference),
-    };
-
     const { error: updateError } = await supabase
       .from("practice_settings")
       .update({
@@ -294,11 +291,15 @@ export default function AdminSetupPage() {
         // NOT NULL too, but the sentence is a more useful default than a
         // blank footer.
         consent_counsellor_cta: consentCounsellorCta || "If you have any questions, speak to your counsellor.",
-        ...bankPayload,
       })
       .eq("admin_id", userProfile.id);
+
+    // Bank details go through their own RPC — the bank_* columns are encrypted
+    // at rest (migration 20260907000050) and must not be written directly.
+    const { error: bankError } = await saveBankDetails(bankDetails);
+
     setFinishing(false);
-    if (updateError) {
+    if (updateError || bankError) {
       showToast("Failed to save setup.", "danger");
       return;
     }
@@ -406,24 +407,31 @@ export default function AdminSetupPage() {
             Optional — hides real client names in your admin UI in favour of codenames. You can turn this on or off
             anytime in Settings → Practice → Client codenames.
           </p>
-          <label className={styles.toggleRow}>
+          {/* Not a <label> wrapping the whole row (like the other toggle rows):
+              the InfoTooltip renders a <button>, which can't sit inside a
+              <label>. Instead the text and the switch are each their own
+              <label htmlFor> for the same input, so both still toggle it. */}
+          <div className={styles.toggleRow}>
             <span className={styles.toggleLabel}>
               <strong>
-                Use codenames{" "}
+                <label htmlFor="setup-codenames">Use codenames</label>{" "}
                 <InfoTooltip text="Show codenames instead of real names in your admin UI. Set each client's codename from their profile page — if none is set, their real name is used as a fallback." />
               </strong>
             </span>
-            <span className={`${styles.toggleSwitch} ${enableCodenames ? styles.toggleSwitchOn : ""}`}>
+            <label
+              htmlFor="setup-codenames"
+              className={`${styles.toggleSwitch} ${enableCodenames ? styles.toggleSwitchOn : ""}`}
+            >
               <input
+                id="setup-codenames"
                 type="checkbox"
-                aria-label="Use codenames"
                 className={styles.toggleInput}
                 checked={enableCodenames}
                 onChange={(e) => setEnableCodenames(e.target.checked)}
               />
               <span className={styles.toggleThumb} />
-            </span>
-          </label>
+            </label>
+          </div>
         </div>
       )}
 
@@ -521,7 +529,7 @@ export default function AdminSetupPage() {
         <div className={styles.section}>
           <p className={styles.sectionHint}>
             Optional — only needed if you want to offer bank transfer as a payment option. Skip this if you're using
-            Stripe card payments only.
+            Stripe card payments only. Only you and your own clients can see these details.
           </p>
           <div className={styles.bankGrid}>
             {BANK_FIELDS.map((f) => (

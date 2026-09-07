@@ -162,7 +162,6 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
           )}
           <SplitButton
             variant="primary"
-            iconOnly
             primaryLabel="Add expense"
             primaryAction={() => {
               setEditing(null);
