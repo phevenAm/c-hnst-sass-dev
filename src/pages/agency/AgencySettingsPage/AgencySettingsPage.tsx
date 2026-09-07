@@ -8,7 +8,7 @@ import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
-import type { Agency, AgencyPlanKey } from "@models/agency";
+import type { Agency, AgencyPlanKey, AgencySettlementDefault, AgencySettlementDirection } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
   changeAgencyPlan,
@@ -24,6 +24,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 import { staffSeatUsage } from "../agencyFormat";
+import { effectiveSettlement, SETTLEMENT_DEFAULT_LABEL, SETTLEMENT_LABEL } from "./settlement";
 
 const PLAN_LABEL: Record<AgencyPlanKey, string> = {
   starter: "Starter",
@@ -91,6 +92,7 @@ export default function AgencySettingsPage() {
   const [switchingPlan, setSwitchingPlan] = useState<AgencyPlanKey | null>(null);
   const [confirmSwitch, setConfirmSwitch] = useState<{ plan: AgencyPlanKey; over: number } | null>(null);
   const [planSwitchError, setPlanSwitchError] = useState("");
+  const [savingSettlementFor, setSavingSettlementFor] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
@@ -174,6 +176,25 @@ export default function AgencySettingsPage() {
 
   const set = (patch: Partial<Agency>) => setDraft({ ...draft, ...patch });
 
+  // Per-member settlement override — saved immediately (not part of the form).
+  const setMemberSettlement = async (userId: string, value: AgencySettlementDirection | "") => {
+    setSavingSettlementFor(userId);
+    setError("");
+    try {
+      const { error: upErr } = await supabase
+        .from("agency_members")
+        .update({ settlement_direction: value === "" ? null : value })
+        .eq("user_id", userId);
+      if (upErr) throw upErr;
+      await dispatch(fetchAgencyMembers());
+      showToast("Payment direction updated.", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't update that member");
+    } finally {
+      setSavingSettlementFor(null);
+    }
+  };
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
@@ -194,6 +215,7 @@ export default function AgencySettingsPage() {
           staff_agreement_required: draft.staff_agreement_required,
           agreement_text: draft.agreement_text,
           agreement_pdf_url: draft.agreement_pdf_url,
+          default_settlement_direction: draft.default_settlement_direction,
         }),
       ).unwrap();
       showToast("Agency settings saved.", "success");
@@ -512,6 +534,83 @@ export default function AgencySettingsPage() {
           })()}
         </div>
 
+        {/* ── Payments between the agency and staff ── */}
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Payments between the agency and staff</h2>
+          <p className={styles.cardBlurb}>
+            Sets the direction agency invoices run in. “Staff pays the agency” is the usual freelancer seat / commission
+            fee; “Agency pays the staff member” is payroll for delivered work.
+          </p>
+
+          <div className={styles.field} style={{ maxWidth: 520 }}>
+            <label className={styles.label} htmlFor="ag-settlement-default">
+              Default for new staff
+            </label>
+            <select
+              id="ag-settlement-default"
+              className={styles.select}
+              value={draft.default_settlement_direction}
+              onChange={(e) => set({ default_settlement_direction: e.target.value as AgencySettlementDefault })}
+            >
+              {(Object.keys(SETTLEMENT_DEFAULT_LABEL) as AgencySettlementDefault[]).map((k) => (
+                <option key={k} value={k}>
+                  {SETTLEMENT_DEFAULT_LABEL[k]}
+                </option>
+              ))}
+            </select>
+            <span className={styles.cardBlurb} style={{ marginTop: "var(--sp-1)" }}>
+              Saved with the rest of this form.
+            </span>
+          </div>
+
+          {members.filter((m) => m.status === "active").length > 0 && (
+            <div style={{ marginTop: "var(--sp-3)" }}>
+              <span className={styles.label}>Per-staff overrides</span>
+              <div className={styles.list} style={{ marginTop: "var(--sp-2)" }}>
+                {members
+                  .filter((m) => m.status === "active")
+                  .map((m) => {
+                    const name =
+                      m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Staff";
+                    const effective = effectiveSettlement(
+                      m.settlement_direction,
+                      draft.default_settlement_direction,
+                      m.employment_type,
+                    );
+                    return (
+                      <div key={m.user_id} className={styles.row}>
+                        <div className={styles.rowMain}>
+                          <span className={styles.rowName}>{name}</span>
+                          <span className={styles.rowMeta}>
+                            {m.employment_type === "employee" ? "Employee" : "Freelance"} ·{" "}
+                            {SETTLEMENT_LABEL[effective]}
+                          </span>
+                        </div>
+                        <select
+                          className={styles.select}
+                          style={{ maxWidth: 220 }}
+                          value={m.settlement_direction ?? ""}
+                          disabled={savingSettlementFor === m.user_id}
+                          onChange={(e) =>
+                            setMemberSettlement(m.user_id, e.target.value as AgencySettlementDirection | "")
+                          }
+                          aria-label={`Payment direction for ${name}`}
+                        >
+                          <option value="">Follow agency default</option>
+                          {(Object.keys(SETTLEMENT_LABEL) as AgencySettlementDirection[]).map((k) => (
+                            <option key={k} value={k}>
+                              {SETTLEMENT_LABEL[k]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ── Microsoft Teams channel ── */}
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Microsoft Teams channel</h2>
@@ -588,20 +687,20 @@ export default function AgencySettingsPage() {
           </div>
         </div>
       </form>
-      confirmSwitch && (
-      <ConfirmModal
-        title={`Switch to ${PLAN_LABEL[confirmSwitch.plan]}?`}
-        danger={false}
-        confirming={switchingPlan === confirmSwitch.plan}
-        onConfirm={runPlanSwitch}
-        onClose={() => setConfirmSwitch(null)}
-      >
-        <p>
-          You'll move to <strong>{PLAN_LABEL[confirmSwitch.plan]}</strong>. This changes your staff limit immediately —
-          no payment is taken here yet.
-        </p>
-      </ConfirmModal>
-      );
+      {confirmSwitch && (
+        <ConfirmModal
+          title={`Switch to ${PLAN_LABEL[confirmSwitch.plan]}?`}
+          danger={false}
+          confirming={switchingPlan === confirmSwitch.plan}
+          onConfirm={runPlanSwitch}
+          onClose={() => setConfirmSwitch(null)}
+        >
+          <p>
+            You'll move to <strong>{PLAN_LABEL[confirmSwitch.plan]}</strong>. This changes your staff limit immediately
+            — no payment is taken here yet.
+          </p>
+        </ConfirmModal>
+      )}
     </>
   );
 }

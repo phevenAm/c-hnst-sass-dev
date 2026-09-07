@@ -196,6 +196,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
         )}
         {isAdmin &&
           !isCancelled &&
+          practiceSettings?.show_session_reference !== false &&
           (editingCode ? (
             <div className={styles.codeEdit}>
               <input
@@ -209,8 +210,9 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                     setEditingCode(false);
                   }
                 }}
-                placeholder="e.g. S-001"
+                placeholder="e.g. INV-014 or case ref"
                 maxLength={20}
+                aria-label="Your reference for this session"
               />
               <button type="button" className={styles.codeConfirm} onClick={handleSaveCode}>
                 ✓
@@ -227,12 +229,22 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
               </button>
             </div>
           ) : session.reference_code ? (
-            <button type="button" className={styles.codeBadge} onClick={() => setEditingCode(true)} title="Edit code">
-              {session.reference_code}
+            <button
+              type="button"
+              className={styles.codeBadge}
+              onClick={() => setEditingCode(true)}
+              title="Your reference for this session (e.g. an invoice or case number). Click to edit."
+            >
+              Ref: {session.reference_code}
             </button>
           ) : (
-            <button type="button" className={styles.addCodeBtn} onClick={() => setEditingCode(true)}>
-              + code
+            <button
+              type="button"
+              className={styles.addCodeBtn}
+              onClick={() => setEditingCode(true)}
+              title="Add your own reference for this session — an invoice number, case ref, anything you file it under."
+            >
+              + reference
             </button>
           ))}
       </div>

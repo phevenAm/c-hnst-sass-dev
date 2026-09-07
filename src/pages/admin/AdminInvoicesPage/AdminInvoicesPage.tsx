@@ -231,6 +231,7 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
           )}
           <SplitButton
             variant="primary"
+            iconOnly
             primaryLabel="New invoice"
             primaryAction={() => {
               setEditing(null);

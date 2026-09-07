@@ -20,14 +20,28 @@ const showToast = vi.fn();
 vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast }) }));
 
 const updateSpy = vi.fn();
+const rpcSpy = vi.fn(() => Promise.resolve({ data: null, error: null }));
 vi.mock("@lib/supabase", () => ({
   supabase: {
     from: () => ({
       update: (payload: Record<string, unknown>) => {
         updateSpy(payload);
-        return { eq: () => Promise.resolve({ data: null, error: null }) };
+        return {
+          // Supports both `await update().eq()` (fire-and-forget) and
+          // `update().eq().select().single()` (needs the row back).
+          eq: () => {
+            const done = Promise.resolve({ data: null, error: null }) as Promise<unknown> & {
+              select?: () => { single: () => Promise<unknown> };
+            };
+            done.select = () => ({
+              single: () => Promise.resolve({ data: { id: "s-1", ...payload }, error: null }),
+            });
+            return done;
+          },
+        };
       },
     }),
+    rpc: (name: string, args: Record<string, unknown>) => rpcSpy(name, args),
   },
 }));
 
@@ -263,6 +277,93 @@ test("the Deactivated tab shows (0) and an empty message when every client is ac
 
   fireEvent.click(screen.getByRole("tab", { name: /Deactivated \(0\)/ }));
   expect(screen.getByText("No deactivated clients.")).toBeInTheDocument();
+});
+
+// Client lifecycle: the row's "More options" menu must offer a Deactivate
+// path that archives (keeps history) rather than only Delete — the online
+// client version calls the admin_archive_client RPC.
+test("online client row: Deactivate archives the client via admin_archive_client", async () => {
+  store.dispatch(
+    fetchAllUsers.fulfilled(
+      [{ id: "c-1", role: "client", first_name: "Dana", last_name: "Doe", deleted_at: null, archived_at: null }],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchClientStubs.fulfilled([], "test", undefined));
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+
+  // Confirm dialog explains history is kept, then confirm.
+  expect(screen.getByText(/nothing is deleted/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Deactivate client" }));
+
+  await waitFor(() => {
+    expect(rpcSpy).toHaveBeenCalledWith("admin_archive_client", {
+      target_user_id: "c-1",
+      p_reason: null,
+      p_anonymise: false,
+    });
+  });
+});
+
+test("offline stub row: Deactivate sets archived_at instead of deleting", async () => {
+  store.dispatch(fetchAllUsers.fulfilled([], "test", undefined));
+  store.dispatch(
+    fetchClientStubs.fulfilled(
+      [{ id: "s-1", first_name: "Otto", last_name: "Offline", email: null, linked_user_id: null, archived_at: null }],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+  fireEvent.click(screen.getByRole("button", { name: "Deactivate client" }));
+
+  await waitFor(() => {
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ archived_at: expect.any(String) }));
+  });
+});
+
+test("an archived offline stub shows on the Deactivated tab with a Reactivate action", () => {
+  store.dispatch(fetchAllUsers.fulfilled([], "test", undefined));
+  store.dispatch(
+    fetchClientStubs.fulfilled(
+      [
+        {
+          id: "s-arch",
+          first_name: "Prue",
+          last_name: "Past",
+          email: null,
+          linked_user_id: null,
+          archived_at: "2026-08-10T00:00:00Z",
+        },
+      ],
+      "test",
+      undefined,
+    ),
+  );
+  store.dispatch(fetchQuestionnaires.fulfilled([], "test", undefined));
+  store.dispatch(fetchAllResponses.fulfilled([], "test", undefined));
+
+  renderPage();
+
+  // Not on the Active tab.
+  expect(screen.queryByText("Prue Past")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("tab", { name: /Deactivated \(1\)/ }));
+  expect(screen.getByText("Prue Past")).toBeInTheDocument();
+  expect(screen.getByText(/offline/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reactivate" })).toBeInTheDocument();
 });
 
 // Regression: fires once, the first time an admin's client count goes from 0

@@ -500,7 +500,7 @@ Deno.serve(async (req) => {
           });
 
           try {
-            const resendId = await sendEmail({ to: clientEmail, subject, html, resendKey, fromEmail });
+            const resendId = await sendEmail({ to: clientEmail, subject, html, resendKey, fromEmail, unsubscribeUrl });
             await logEmail(supabase, {
               adminId: clientProfile?.admin_id,
               clientId,

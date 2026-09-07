@@ -10,8 +10,42 @@
       content="Client management, wellbeing check-ins, payment tracking, and resource sharing — everything a solo therapy practice needs, built around how you actually work."
     />
 
-    <!-- Kept out of search results while the product is invite-only -->
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://withclarity.uk/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Clarity" />
+    <meta property="og:title" content="Clarity — practice management software for therapists" />
+    <meta
+      property="og:description"
+      content="Client management, scheduling, check-ins, payments, resources, and CPD for independent therapy practices."
+    />
+    <meta property="og:url" content="https://withclarity.uk/" />
+    <meta property="og:image" content="https://withclarity.uk/hero.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Clarity — practice management software for therapists" />
+    <meta
+      name="twitter:description"
+      content="Practice management software for independent counsellors and therapists."
+    />
+    <meta name="twitter:image" content="https://withclarity.uk/hero.webp" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Clarity",
+        "url": "https://withclarity.uk/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Practice management software for independent counsellors and therapists.",
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "GBP",
+          "lowPrice": "7.99",
+          "highPrice": "24.99",
+          "offerCount": "3"
+        }
+      }
+    </script>
 
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -40,14 +74,18 @@
           Clarity
         </a>
         <nav class="site-nav" aria-label="Primary">
-          <!-- <a class="site-nav__link" href="#why">Why</a> -->
-          <a class="site-nav__link" href="#features">Features</a>
-          <a class="site-nav__link" href="#demo">Demo</a>
-          <a class="site-nav__link" href="#pricing">Pricing</a>
-          <a class="site-nav__link" href="#faq">FAQ</a>
-          <!-- <a class="site-nav__link" href="#contact">Contact</a> -->
-          <a class="site-nav__link site-nav__link--login" href="/login">Log in</a>
-          <a class="btn btn--primary btn--sm" href="/register">Get started</a>
+          <span class="site-nav__primary">
+            <!-- <a class="site-nav__link" href="#why">Why</a> -->
+            <a class="site-nav__link" href="#features">Features</a>
+            <a class="site-nav__link" href="#demo">Demo</a>
+            <a class="site-nav__link" href="#pricing">Pricing</a>
+            <a class="site-nav__link" href="#faq">FAQ</a>
+            <!-- <a class="site-nav__link" href="#contact">Contact</a> -->
+          </span>
+          <span class="site-nav__actions">
+            <a class="site-nav__link site-nav__link--login" href="/login">Log in</a>
+            <a class="btn btn--primary btn--sm" href="/register">Get started</a>
+          </span>
         </nav>
       </div>
     </header>
@@ -62,8 +100,8 @@
             <p class="eyebrow">Practice management software</p>
             <h1 class="hero__title">Run your therapy practice <em>with clarity.</em></h1>
             <p class="hero__lede">
-              Client management, wellbeing check-ins, payment tracking, and resource sharing —
-              everything a solo therapy practice needs, built around how you actually work.
+              Keep the practical side of counselling in one place, and give clients a private way to stay
+              connected between sessions. Clarity makes the experience simpler for both of you.
             </p>
             <div class="hero__actions">
               <a class="btn btn--primary" href="/register">Get started</a>
@@ -84,28 +122,29 @@
           <ol class="why__list" role="list">
             <li class="why__item">
               <span class="why__num" aria-hidden="true">01</span>
-              <h3 class="why__head">A private library for your client-only material</h3>
+              <h3 class="why__head">Give clients more between sessions</h3>
               <p class="why__body">
-                Share worksheets, courses, articles, and exercises in a space only your clients can
-                see. Publish what&rsquo;s ready, keep sensitive material hidden until you choose to
-                send it.
+                Give each client a private portal with carefully chosen worksheets, articles, exercises,
+                check-ins, and progress to revisit between sessions. They can find what you have shared,
+                complete forms, and manage session requests without digging through old emails.
               </p>
             </li>
             <li class="why__item">
               <span class="why__num" aria-hidden="true">02</span>
-              <h3 class="why__head">Offline or online, one continuous record</h3>
+              <h3 class="why__head">Your clients don&rsquo;t have to be online</h3>
               <p class="why__body">
-                Run a client entirely yourself &mdash; sessions, notes, payments, email reminders
-                &mdash; or give them a portal login. Start offline and invite them later; their whole
-                history comes with them, nothing restarts.
+                Keep working with clients who are not ready for a portal. Track sessions, notes, payments,
+                and reminders yourself, then invite them whenever the time is right. Their history carries
+                across, so going online never means starting again.
               </p>
             </li>
             <li class="why__item">
               <span class="why__num" aria-hidden="true">03</span>
-              <h3 class="why__head">Your whole practice, one tool</h3>
+              <h3 class="why__head">The tools around your practice, together</h3>
               <p class="why__body">
-                Scheduling, payments, outcome measures, CPD, and supervision &mdash; all built in
-                and working together.
+                Scheduling, payments, client resources, forms, outcome measures, CPD, supervision, exports,
+                and practice records in one place. And when something would make your day easier, you have
+                a direct way to tell us what is missing, explain how you work, and help us prioritise useful changes.
               </p>
             </li>
           </ol>
@@ -193,9 +232,10 @@
               </span>
               <h3 class="feature__title">Outcome measures &amp; check-ins</h3>
               <p class="feature__body">
-                RCADS is built in &mdash; the 47-item anxiety and depression scale, auto-scored with
-                subscales and clinical bands. Add your own check-ins and feedback forms on any
-                schedule, and watch scores chart over time.
+                Built-in measures include PHQ-9, GAD-7, WSAS, PSS-10, PHQ-15, CORE-10, and RCADS-25,
+                with auto-scored totals, subscales, bands, and safeguarding flags where supported.
+                Add your own check-ins and feedback forms on any schedule, and watch scores chart over time.
+                These tools support practitioner review; they are not diagnoses or emergency alerts.
               </p>
             </li>
 
@@ -211,6 +251,23 @@
                 Role-based access, secure authentication, and per-practice data separation — built
                 with clinical confidentiality in mind. EU-hosted, and optional client-side encryption
                 for session notes.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 6h10" /><path d="M18 6h2" /><circle cx="16" cy="6" r="2" />
+                  <path d="M4 12h4" /><path d="M12 12h8" /><circle cx="10" cy="12" r="2" />
+                  <path d="M4 18h12" /><path d="M20 18h0.01" /><circle cx="18" cy="18" r="2" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Highly configurable</h3>
+              <p class="feature__body">
+                Tailor it to how your business actually runs — your cancellation and no-show
+                rules, exactly which emails go out and when, session types and pricing, your
+                branding. Accessibility is built in too: dark mode, reduced-motion, and per-person
+                text sizing. And every change to a client record is kept in an activity audit log.
               </p>
             </li>
           </ul>
@@ -639,6 +696,7 @@
 
             <!-- Honeypot — hidden from real visitors, bots tend to fill every field. -->
             <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="contact__hp" aria-hidden="true" />
+            <input type="hidden" name="_form_started_at" id="contactFormStartedAt" />
 
             <div class="contact__cta">
               <button type="submit" class="btn btn--primary">Send message</button>
@@ -746,10 +804,40 @@
         var errorEl = document.getElementById("contactError");
         var successEl = document.getElementById("contactSuccess");
         var submitBtn = form.querySelector('button[type="submit"]');
+        var startedAt = Date.now();
+        var startedAtField = document.getElementById("contactFormStartedAt");
+        var spamPhrases = [
+          /buy\s+backlinks?/i,
+          /guest\s+post(ing)?/i,
+          /casino\s+(bonus|online)/i,
+          /crypto\s+(investment|trading)/i,
+          /payday\s+loan/i,
+        ];
+
+        if (startedAtField) startedAtField.value = String(startedAt);
+
+        function looksLikeSpam() {
+          var honeypot = form.querySelector('input[name="_gotcha"]');
+          var message = (form.querySelector('textarea[name="message"]').value || "").trim();
+          var linkCount = (message.match(/https?:\/\/|www\./gi) || []).length;
+          var submittedTooQuickly = Date.now() - startedAt < 1500;
+          var containsSpamPhrase = spamPhrases.some(function (pattern) {
+            return pattern.test(message);
+          });
+
+          return Boolean(honeypot && honeypot.value.trim()) || submittedTooQuickly || linkCount > 3 || containsSpamPhrase;
+        }
 
         form.addEventListener("submit", function (e) {
           e.preventDefault();
           errorEl.hidden = true;
+
+          if (looksLikeSpam()) {
+            errorEl.textContent = "Please check your message and try again.";
+            errorEl.hidden = false;
+            return;
+          }
+
           submitBtn.disabled = true;
           submitBtn.textContent = "Sending…";
 
@@ -776,8 +864,8 @@
         // Mirror of the `plan_limits` table. Annual = ~10 months.
         var TIERS = [
           { name: "Starter", clients: "5", monthly: "7.99", annual: "79" },
-          { name: "Growth", clients: "15", monthly: "13.99", annual: "139" },
-          { name: "Unlimited", clients: null, monthly: "19.99", annual: "199" },
+          { name: "Growth", clients: "15", monthly: "16.99", annual: "169" },
+          { name: "Unlimited", clients: null, monthly: "24.99", annual: "249" },
         ];
 
         var range = document.getElementById("planRange");
@@ -857,14 +945,14 @@
           counsellor: [
             { d: "forms.webp", m: "mobile-forms.webp", t: "Outcome measures, feedback & onboarding forms", x: "Build a form in minutes — outcome measures, feedback forms, or onboarding paperwork. Assign it to clients and let the results come to you, no chasing needed." },
             { d: "clients.webp", m: "mobile-clients.webp", t: "Invite clients in a couple of clicks", x: "Send a personal email invitation, or add an offline client and invite them whenever you’re ready. Give any client a codename and their real name never appears on screen." },
-            { d: "schedule.webp", m: "mobile-schedule.webp", t: "Your full session history, at a glance", x: "See your attendance rate, upcoming appointments, and session history in one clean view — no spreadsheets, no separate tools." },
+            { d: "schedule.webp", m: "mobile-schedule.webp", scroll: true, t: "Your full session history, at a glance", x: "See your attendance rate, upcoming appointments, and session history in one clean view — no spreadsheets, no separate tools." },
             { d: "resources.webp", m: "mobile-resources.webp", t: "A library clients can actually use", x: "Upload or link articles, videos, worksheets, and websites. Filter by type, publish what’s ready, and hold back what isn’t." },
             { d: "cpd.webp", m: "mobile-cpd.webp", t: "CPD & supervision, logged as you go", x: "Track your continuing professional development and supervision sessions in one place, and export a clean record whenever your accrediting body asks for one." },
-            { d: "settings.webp", m: "mobile-settings.webp", t: "Your practice, your settings", x: "Customise your branding, manage notifications, and configure how the platform works for your practice — all from one place." },
+            { d: "settings.webp", m: "mobile-settings.webp", scroll: true, t: "Configure it around your business", x: "Set your cancellation and no-show rules, choose which emails fire and when, tune session types and pricing, and set accessibility defaults like dark mode and reduced motion — all from one place." },
             { d: "payments.webp", m: "mobile-payments.webp", t: "Payments, without the chasing", x: "See revenue collected, outstanding balances, and a full payment history — all in one place, without the awkward follow-up messages." }
           ],
           client: [
-            { d: "client-dashboard.webp", m: "mobile-client-dashboard.webp", t: "A clear view of their journey", x: "Clients see their next session, their wellbeing trend across every check-in, and what’s due next — all from their own private dashboard." },
+            { d: "client-dashboard.webp", m: "mobile-client-dashboard.webp", scroll: true, t: "A clear view of their journey", x: "Clients see their next session, their wellbeing trend across every check-in, and what’s due next — all from their own private dashboard." },
             { d: "client-sessions.webp", m: "mobile-client-sessions.webp", t: "Their sessions, in one place", x: "Every upcoming and past session, with pay, reschedule, and add-to-calendar right there." },
             { d: "client-calendar.webp", m: "mobile-client-calendar.webp", t: "…or as a calendar", x: "The same sessions in a week view, alongside the times their counsellor has open — so booking and rescheduling is obvious." },
             { d: "client-checkin.webp", m: "mobile-client-checkin.webp", t: "Check-ins done in minutes", x: "Clients complete RCADS and your own check-ins whenever suits them. Answers are auto-scored and feed straight into their progress chart and your view." },
@@ -882,9 +970,49 @@
         var frameEl = document.getElementById("demoFrame");
         if (!imgD) return;
 
+        var viewportEl = frameEl ? frameEl.querySelector(".browser-viewport") : null;
+        var noMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var autoScrollRaf = 0;
+
+        // Gently pans a tall screenshot (admin schedule, client dashboard) from
+        // top to bottom once it's shown, so the calendar / progress chart lower
+        // down actually gets seen. Manual scroll or a slide change cancels it.
+        function autoScroll() {
+          if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf);
+          if (!viewportEl) return;
+          viewportEl.scrollTop = 0;
+          var max = viewportEl.scrollHeight - viewportEl.clientHeight;
+          if (noMotion || max < 24) return;
+          var start = 0;
+          var HOLD = 900; // pause at the top before panning
+          var DUR = Math.min(9000, 2600 + max * 3); // slower for taller shots
+          function tick(now) {
+            if (!start) start = now;
+            var t = now - start;
+            if (t > HOLD) {
+              var p = Math.min(1, (t - HOLD) / DUR);
+              var eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+              viewportEl.scrollTop = eased * max;
+              if (p >= 1) return;
+            }
+            autoScrollRaf = requestAnimationFrame(tick);
+          }
+          autoScrollRaf = requestAnimationFrame(tick);
+        }
+        if (viewportEl) {
+          viewportEl.addEventListener("wheel", function () {
+            if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = 0; }
+          }, { passive: true });
+          viewportEl.addEventListener("touchstart", function () {
+            if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = 0; }
+          }, { passive: true });
+        }
+
         function render() {
           var list = SLIDES[tab];
           var s = list[i];
+          var scrollable = !!s.scroll;
+          frameEl.classList.toggle("is-scrollable", scrollable);
           imgD.src = S + s.d;
           imgD.alt = s.t;
           imgM.src = S + s.m;
@@ -904,6 +1032,13 @@
             frameEl.classList.remove("is-fading");
             void frameEl.offsetWidth;
             frameEl.classList.add("is-fading");
+          }
+          if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = 0; }
+          if (viewportEl) viewportEl.scrollTop = 0;
+          if (scrollable) {
+            // wait for the swapped-in image to lay out before measuring
+            if (imgD.complete) autoScroll();
+            else imgD.addEventListener("load", autoScroll, { once: true });
           }
         }
         function step(delta) {

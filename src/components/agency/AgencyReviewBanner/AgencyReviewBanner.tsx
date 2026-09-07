@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { fetchIncomingAssignments, selectIncomingAssignments, selectIsAgencyMember } from "@store/slices/agencySlice";
 
+import { isFeatureEnabled } from "@/lib/featureFlags";
+
 import styles from "./AgencyReviewBanner.module.scss";
 
 // Thin strip on the counselling side: only appears for an agency member who has
@@ -18,7 +20,7 @@ export default function AgencyReviewBanner() {
     if (isMember) dispatch(fetchIncomingAssignments());
   }, [dispatch, isMember]);
 
-  if (!isMember || incoming.length === 0) return null;
+  if (!isFeatureEnabled("agency") || !isMember || incoming.length === 0) return null;
 
   return (
     <Link to="/agency/incoming" className={styles.banner}>

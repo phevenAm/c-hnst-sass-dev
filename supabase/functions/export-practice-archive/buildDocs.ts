@@ -17,6 +17,9 @@ export type ExportInput = {
   stubSessions: Dict[];
   notes: Dict[];
   payments: Dict[];
+  /** audit_logs rows for this admin (created_at, action, table_name, record_id,
+   *  old_data, new_data) — the Activity page's feed, flattened. */
+  activity: Dict[];
   /** { [noteId]: plaintext } for notes the caller could decrypt in-browser. */
   decryptedNotes: Record<string, string>;
 };
@@ -33,6 +36,9 @@ export type Libs = {
   autoTable?: (doc: any, opts: any) => void;
   // deno-lint-ignore no-explicit-any
   JSZip: any;
+  /** Optional cover photo as a `data:image/jpeg;base64,…` URI (index.ts passes
+   *  PDF_COVER_JPEG). When absent the cover is a flat teal page. */
+  coverJpeg?: string;
 };
 
 // ── Brand ───────────────────────────────────────────────────────────────────
@@ -176,6 +182,50 @@ export function noteRows(input: ExportInput): Dict[] {
   });
 }
 
+// ── Activity log ────────────────────────────────────────────────────────────
+// Mirrors the sentence logic of AdminAuditLogsPage.formatMessage, kept factual
+// and column-shaped for a spreadsheet rather than prose.
+const ACTIVITY_TABLE_LABEL: Record<string, string> = {
+  users: "Client",
+  client_stubs: "Offline client",
+  sessions: "Session",
+  stub_sessions: "Offline session",
+  payments: "Payment",
+  questionnaires: "Form",
+  questionnaire_assignments: "Form assignment",
+  responses: "Form response",
+  resources: "Resource",
+  tags: "Tag",
+  session_notes: "Session note",
+  platform_access_token: "Client invite",
+  admin_reminder_mutes: "Session reminder",
+};
+const ACTIVITY_VERB: Record<string, string> = { INSERT: "Added", UPDATE: "Updated", DELETE: "Removed" };
+
+function activityItemName(data: Dict | null | undefined): string {
+  if (!data) return "";
+  for (const k of ["title", "name", "codename"]) {
+    if (typeof data[k] === "string" && data[k]) return data[k] as string;
+  }
+  const full = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+  return full;
+}
+
+export function activityRows(input: ExportInput): Dict[] {
+  return input.activity.map((l) => {
+    const data = (l.action === "DELETE" ? l.old_data : l.new_data) as Dict | null | undefined;
+    const amount = (data?.amount_pence ?? data?.price_pence) as number | null | undefined;
+    return {
+      When: fmtDate(l.created_at),
+      Action: ACTIVITY_VERB[String(l.action)] ?? String(l.action ?? ""),
+      Type: ACTIVITY_TABLE_LABEL[String(l.table_name)] ?? String(l.table_name ?? "").replace(/_/g, " "),
+      Item: activityItemName(data),
+      Amount: typeof amount === "number" ? money(amount) : "",
+      "Record ID": l.record_id ?? "",
+    };
+  });
+}
+
 /** Consolidated money-in: the manual `payments` table PLUS every paid session
  *  and paid offline session. The old export only read `payments`, so a practice
  *  that records income via the "paid" flag on sessions saw almost nothing. */
@@ -311,23 +361,37 @@ function buildPdf(
   };
 
   // ── Cover ──
+  // The frosted login-art photo when the caller supplies one (index.ts passes
+  // PDF_COVER_JPEG), else a flat teal page. Either way a solid teal band along
+  // the bottom carries the wordmark + title so the text stays crisp over the
+  // photo.
+  const bandTop = H - 70;
+  if (libs.coverJpeg) {
+    // The JPEG is a portrait-A4 crop; draw it cover-fit (full width, bleeding
+    // off top and bottom) so it isn't stretched on this landscape page.
+    const drawH = W * 1.414;
+    doc.addImage(libs.coverJpeg, "JPEG", 0, (H - drawH) / 2, W, drawH, undefined, "FAST");
+  } else {
+    doc.setFillColor(TEAL[0], TEAL[1], TEAL[2]);
+    doc.rect(0, 0, W, bandTop, "F");
+  }
   doc.setFillColor(TEAL[0], TEAL[1], TEAL[2]);
-  doc.rect(0, 0, W, H, "F");
-  drawSprout(doc, 22, 48, 14);
+  doc.rect(0, bandTop, W, H - bandTop, "F");
+
+  drawSprout(doc, 18, bandTop + 24, 11);
   doc.setTextColor(WHITE[0], WHITE[1], WHITE[2]);
   doc.setFont("times", "normal");
-  doc.setFontSize(36);
-  doc.text("Clarity", 36, 48);
-  doc.setFontSize(22);
-  doc.text(title, 20, 82);
-  doc.setFontSize(13);
-  doc.text(input.practiceName, 20, 94);
-  doc.text(`Generated ${input.exportedAt} UTC`, 20, 102);
+  doc.setFontSize(30);
+  doc.text("Clarity", 30, bandTop + 25);
+  doc.setFontSize(17);
+  doc.text(`${input.practiceName} — ${title}`, 20, bandTop + 42);
   doc.setFontSize(10);
+  doc.setTextColor(198, 216, 211);
+  doc.text(`Generated ${input.exportedAt} UTC`, 20, bandTop + 53);
   doc.text(
-    "Confidential — contains personal data. Store securely and delete when it is no longer needed.",
+    "Confidential — contains personal data. Store securely and delete it when no longer needed.",
     20,
-    H - 18,
+    bandTop + 61,
     { maxWidth: W - 40 },
   );
 
@@ -378,7 +442,7 @@ function readme(input: ExportInput, meta: ReturnType<typeof exportCounts>): stri
     `Generated ${input.exportedAt} UTC`,
     "",
     "Files",
-    "  clarity-practice-export.xlsx   one sheet per record type (Clients, Sessions, Session notes, Payments)",
+    "  clarity-practice-export.xlsx   one sheet per record type (Clients, Sessions, Session notes, Payments, Activity log)",
     "  clarity-practice-export.pdf    the same data, printable",
     "",
     "Records",
@@ -390,6 +454,7 @@ function readme(input: ExportInput, meta: ReturnType<typeof exportCounts>): stri
     `    from manual payments       ${meta.payments_manual}`,
     `    from paid sessions         ${meta.payments_from_sessions}`,
     `    from paid offline sessions ${meta.payments_from_offline_sessions}`,
+    `  Activity-log entries    ${meta.activity}`,
     "",
     "Codenames",
     "  Every client row carries the codename your anonymised records use, so a",
@@ -417,6 +482,7 @@ function exportCounts(input: ExportInput, totalPence: number, paymentCount: numb
     payments_from_sessions: input.sessions.filter((s) => s.paid).length,
     payments_from_offline_sessions: input.stubSessions.filter((s) => s.paid).length,
     payments_total_pence: totalPence,
+    activity: input.activity.length,
   };
 }
 
@@ -432,6 +498,7 @@ export async function buildExportZip(libs: Libs, input: ExportInput): Promise<Ex
   const sessions = sessionRows(input);
   const notes = noteRows(input);
   const { rows: payments, totalPence } = paymentRows(input);
+  const activity = activityRows(input);
   const paymentCount = Math.max(0, payments.length - 1); // minus the TOTAL row
   const counts = exportCounts(input, totalPence, paymentCount);
 
@@ -440,6 +507,7 @@ export async function buildExportZip(libs: Libs, input: ExportInput): Promise<Ex
     { name: "Sessions", rows: sessions },
     { name: "Session notes", rows: notes },
     { name: "Payments", rows: payments },
+    { name: "Activity log", rows: activity },
   ]);
 
   const pdf = buildPdf(libs, input, "Practice export", [
@@ -475,6 +543,11 @@ export async function buildExportZip(libs: Libs, input: ExportInput): Promise<Ex
       heading: "Payments",
       columns: ["Client", "Codename", "Source", "Amount (£)", "Description", "Date", "Recorded"],
       rows: payments,
+    },
+    {
+      heading: "Activity log",
+      columns: ["When", "Action", "Type", "Item", "Amount", "Record ID"],
+      rows: activity,
     },
   ]);
 

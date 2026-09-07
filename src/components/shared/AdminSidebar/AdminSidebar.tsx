@@ -142,13 +142,13 @@ export default function AdminSidebar({
     };
   }, [logsOpen, isFlyoutMode]);
 
-  // Autofocus first item on desktop keyboard navigation
-  useEffect(() => {
-    if (logsOpen && !isMobile) firstChildRef.current?.focus();
-  }, [logsOpen, isMobile]);
-
   const isActive = (to: string, exact: boolean) =>
     exact ? location.pathname === to : location.pathname.startsWith(to);
+
+  const openFlyout = () => {
+    if (groupBtnRef.current) setFlyoutTop(groupBtnRef.current.getBoundingClientRect().top);
+    setLogsOpen(true);
+  };
 
   const handleGroupClick = () => {
     if (!logsOpen && isFlyoutMode && groupBtnRef.current) {
@@ -156,6 +156,19 @@ export default function AdminSidebar({
     }
     setLogsOpen((v) => !v);
   };
+
+  // In flyout (collapsed / mobile-closed) mode, open on hover or keyboard
+  // focus and close when the pointer/focus leaves the whole group.
+  const groupHoverProps = isFlyoutMode
+    ? {
+        onMouseEnter: openFlyout,
+        onMouseLeave: () => setLogsOpen(false),
+        onFocus: openFlyout,
+        onBlur: (e: React.FocusEvent<HTMLLIElement>) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setLogsOpen(false);
+        },
+      }
+    : {};
 
   return (
     <>
@@ -179,7 +192,7 @@ export default function AdminSidebar({
               if (isGroup(item)) {
                 const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
                 return (
-                  <li key={item.label} className={styles.groupItem}>
+                  <li key={item.label} className={styles.groupItem} {...groupHoverProps}>
                     <button
                       ref={groupBtnRef}
                       type="button"

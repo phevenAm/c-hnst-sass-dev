@@ -21,10 +21,11 @@
 // ============================================================
 
 const C = {
-  // The page ground is a warm stone; the card is pure white and carries a
-  // hairline border on all four sides, so the body always reads as its own
-  // panel instead of blending into the page.
-  pageBg: "#e9e6da",
+  // Page ground and card are both pure white — a shadow + hairline border
+  // still lift the card off the page. (A tinted ground looked "broken" to
+  // recipients expecting a plain white email, and any near-white tone is
+  // exactly what a dark-mode client grabs onto to invert.)
+  pageBg: "#ffffff",
   cardBg: "#ffffff",
   header: "#1f4940",
   footer: "#1a3a35",
@@ -40,50 +41,14 @@ const C = {
   onDarkMuted: "#9db3ac",
 };
 
-// Dark-mode palette — mirrors `.dark` in src/styles/_colors.scss. The header
-// and footer are already dark teal in both modes, so only the page ground,
-// the body card, the detail/note panels and the text tones need to flip.
-// Applied three ways, because no single mechanism covers every inbox:
-//   • <style> @media (prefers-color-scheme:dark) — Apple Mail, iOS Mail, the
-//     newer Outlook builds. Targets the .em-* classes added below.
-//   • [data-ogsc]/[data-ogsb] — the attributes Outlook's iOS/Android apps
-//     stamp on elements when they invert.
-//   • bgcolor="" attributes on every structural cell — Gmail ignores the
-//     first two and runs its own contrast inversion; an explicit bgcolor is
-//     what makes that inversion land on a readable pairing instead of
-//     leaving dark text on a stripped (transparent) card.
-const D = {
-  pageBg: "#0d1a17",
-  cardBg: "#1a2d29",
-  panel: "#22403b",
-  hairline: "#254f49",
-  text: "#ecf5f3",
-  textSecondary: "#a8c8c2",
-  textMuted: "#6fa49c",
-  caption: "#8faaa4",
-  link: "#7fc9bd",
-};
-
+// These emails are light-only by design. The earlier attempt at a
+// prefers-color-scheme:dark variant (2026-09-03) made iOS/Apple Mail render
+// the card on a dark teal-grey ground, which read as broken — clients did
+// their own inversion on top of it. So: no dark palette, and the
+// color-scheme metas + `only light` below tell every compliant client not
+// to transform the message. Kept in lockstep with src/emails/emailHelpers.ts.
 const HEAD_STYLE = `<style>
-    :root { color-scheme: light dark; supported-color-schemes: light dark; }
-    @media (prefers-color-scheme: dark) {
-      .em-bg      { background: ${D.pageBg} !important; }
-      .em-card    { background: ${D.cardBg} !important; border-color: ${D.hairline} !important; }
-      .em-panel   { background: ${D.panel} !important; }
-      .em-text    { color: ${D.text} !important; }
-      .em-text-2  { color: ${D.textSecondary} !important; }
-      .em-text-3  { color: ${D.textMuted} !important; }
-      .em-caption { color: ${D.caption} !important; }
-      .em-hair    { border-color: ${D.hairline} !important; }
-      a.em-link   { color: ${D.link} !important; }
-    }
-    [data-ogsb] .em-bg    { background: ${D.pageBg} !important; }
-    [data-ogsb] .em-card  { background: ${D.cardBg} !important; }
-    [data-ogsb] .em-panel { background: ${D.panel} !important; }
-    [data-ogsc] .em-text    { color: ${D.text} !important; }
-    [data-ogsc] .em-text-2  { color: ${D.textSecondary} !important; }
-    [data-ogsc] .em-text-3  { color: ${D.textMuted} !important; }
-    [data-ogsc] .em-caption { color: ${D.caption} !important; }
+    :root { color-scheme: only light; supported-color-schemes: only light; }
   </style>`;
 
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -93,7 +58,8 @@ const SERIF = "Georgia,'Times New Roman',serif";
 // `logos` Storage bucket so it resolves in every inbox regardless of the
 // app deploy; override with the EMAIL_LOGO_URL secret if it ever moves.
 const LOGO_URL =
-  Deno.env.get("EMAIL_LOGO_URL") ||
+  // typeof guard so this module can also be imported under vitest (no Deno global)
+  (typeof Deno !== "undefined" ? Deno.env.get("EMAIL_LOGO_URL") : undefined) ||
   "https://mxyfdvfbdrusbjiozuzx.supabase.co/storage/v1/object/public/logos/system/email-logo.png";
 
 export type EmailTemplateOptions = {
@@ -139,8 +105,8 @@ export function emailTemplate({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="supported-color-schemes" content="light dark" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light" />
   <title>${label}</title>
   ${HEAD_STYLE}
 </head>
@@ -237,6 +203,25 @@ export function formatDate(iso: string): string {
   });
 }
 
+/** Rough HTML → plain-text for the text/plain part. A multipart message with
+ *  a real text alternative is a meaningful deliverability signal (spam filters
+ *  penalise HTML-only mail). Not pixel-perfect — just readable. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<head[\s\S]*?<\/head>/gi, "")
+    .replace(/<(?:br|\/p|\/tr|\/h\d|\/div)\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&rsquo;/g, "’")
+    .replace(/&rarr;/g, "→")
+    .replace(/&[a-z]+;/gi, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /**
  * Sends an email via the Resend API.
  * Returns the Resend email ID on success (for logging).
@@ -250,15 +235,26 @@ export async function sendEmail(opts: {
   fromEmail: string;
   /** Base64 attachments (no data: prefix), e.g. an invoice PDF. */
   attachments?: { filename: string; content: string }[];
+  /** When set, adds RFC 8058 one-click List-Unsubscribe headers — Gmail /
+   *  Outlook weight these heavily and Gmail now requires them for volume
+   *  senders. Pass the same URL used in the footer link. */
+  unsubscribeUrl?: string;
 }): Promise<string> {
   const payload: Record<string, unknown> = {
     from: opts.fromEmail,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
+    // Always send a multipart message — never HTML-only.
+    text: opts.text ?? htmlToText(opts.html),
   };
-  if (opts.text) payload.text = opts.text;
   if (opts.attachments?.length) payload.attachments = opts.attachments;
+  if (opts.unsubscribeUrl) {
+    payload.headers = {
+      "List-Unsubscribe": `<${opts.unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  }
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

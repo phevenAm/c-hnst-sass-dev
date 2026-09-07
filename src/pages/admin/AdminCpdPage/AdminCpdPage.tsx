@@ -310,6 +310,7 @@ export default function AdminCpdPage() {
           </div>
           <SplitButton
             variant="primary"
+            iconOnly
             primaryLabel="Add entry"
             primaryAction={() => {
               setEditing(null);

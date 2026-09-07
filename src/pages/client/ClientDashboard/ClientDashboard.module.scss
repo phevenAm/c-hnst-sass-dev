@@ -175,6 +175,7 @@
 .resourcesCard {
   height: 100%;
   padding: $sp-6;
+  border-radius: var(--r-md);
   background: linear-gradient(135deg, var(--accent-subtle), var(--accent-light));
 }
 
@@ -195,7 +196,7 @@
 // ── Quotes section ─────────────────────────────────────────
 .quotes {
   padding: $sp-6;
-  background: var(--accent-light);
+  background: var(--accent-secondary);
   border-radius: var(--r-md);
   position: relative;
   margin-bottom: $sp-5;

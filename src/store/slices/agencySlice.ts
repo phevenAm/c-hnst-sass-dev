@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
+import { isFeatureEnabled } from "../../lib/featureFlags";
 import { supabase } from "../../lib/supabase.js";
 import type {
   Agency,
@@ -44,7 +45,11 @@ type AgencyState = {
 const initialState: AgencyState = {
   membership: null,
   agency: null,
-  bootstrapStatus: "idle",
+  // When the agency feature is flagged off, bootstrap never runs — start
+  // "succeeded" with no membership so every `agencyStatus === "idle"` gate
+  // (SubscriptionGate, AdminSetupGate, AgencyGate) falls straight through
+  // instead of waiting forever on a fetch that will never happen.
+  bootstrapStatus: isFeatureEnabled("agency") ? "idle" : "succeeded",
   members: [],
   membersStatus: "idle",
   clients: [],
@@ -350,6 +355,7 @@ export const updateAgencyPolicies = createAsyncThunk(
         | "staff_agreement_required"
         | "agreement_text"
         | "agreement_pdf_url"
+        | "default_settlement_direction"
       >
     >,
     { rejectWithValue },

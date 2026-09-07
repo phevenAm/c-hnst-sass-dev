@@ -784,7 +784,7 @@ export default function AdminClientsPageDetailed() {
 
   const sessionsGroupByType = useMemo((): Session[] => {
     const now = new Date();
-    return clientSessions.filter((session) => {
+    const rows = clientSessions.filter((session) => {
       // state.sessions.sessions is a shared list — if the last page to fill it
       // was a whole-practice fetch, guard against showing another client's
       // sessions here until fetchSessionsByClientId replaces it.
@@ -792,6 +792,10 @@ export default function AdminClientsPageDetailed() {
       const scheduledAt = new Date(session.scheduled_at);
       return sessionsDateTab === "upcoming" ? scheduledAt >= now : scheduledAt < now;
     });
+    // Upcoming: soonest first (your next session sits at the top). Past: most
+    // recent first. clientSessions arrives in fetch order otherwise.
+    const dir = sessionsDateTab === "upcoming" ? 1 : -1;
+    return rows.sort((a, b) => dir * (new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()));
   }, [sessionsDateTab, clientSessions, clientId]);
 
   const searchResults = useMemo(

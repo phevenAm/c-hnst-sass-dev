@@ -4,6 +4,7 @@ import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { bootstrapAgency } from "@store/slices/agencySlice";
 
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/lib/supabase";
 
 const PENDING_INVITE_KEY = "pendingAgencyInvite";
@@ -28,9 +29,10 @@ export function useAgencyBootstrap() {
   const { isAuthenticated, loading } = useAuth();
   const status = useAppSelector((s) => s.agency.bootstrapStatus);
   const ranFor = useRef<string | null>(null);
+  const agencyEnabled = isFeatureEnabled("agency");
 
   useEffect(() => {
-    if (loading || !isAuthenticated) return;
+    if (!agencyEnabled || loading || !isAuthenticated) return;
 
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -69,12 +71,13 @@ export function useAgencyBootstrap() {
 
       dispatch(bootstrapAgency());
     })();
-  }, [isAuthenticated, loading, dispatch]);
+  }, [agencyEnabled, isAuthenticated, loading, dispatch]);
 
   // Re-fetch if a caller reset the slice (RESET_ALL) back to idle mid-session.
   useEffect(() => {
+    if (!agencyEnabled) return;
     if (!loading && isAuthenticated && status === "idle" && ranFor.current) {
       dispatch(bootstrapAgency());
     }
-  }, [status, isAuthenticated, loading, dispatch]);
+  }, [agencyEnabled, status, isAuthenticated, loading, dispatch]);
 }

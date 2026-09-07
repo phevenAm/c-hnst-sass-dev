@@ -125,7 +125,7 @@ a:hover {
 .eyebrow {
   margin-bottom: $sp-3;
   color: var(--accent);
-  font-size: $text-xs;
+  font-size: $text-sm;
   font-weight: $weight-semibold;
   letter-spacing: $tracking-widest;
   text-transform: uppercase;
@@ -170,9 +170,9 @@ a:hover {
 }
 
 .site-header__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: $sp-6;
   min-height: 4.25rem;
 }
@@ -208,19 +208,44 @@ a:hover {
 }
 
 .site-nav {
+  display: contents;
+  align-items: center;
+}
+
+.site-nav__primary {
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: $sp-5;
 }
 
+.site-nav__actions {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-3;
+}
+
 .site-nav__link {
   color: var(--ink-soft);
-  font-size: $text-sm;
+  font-size: $text-base;
   font-weight: $weight-medium;
 
   &:hover {
     color: var(--ink);
     text-decoration: none;
+  }
+}
+
+.site-nav__link--login {
+  padding: $sp-3 $sp-4;
+  border: 1px solid var(--line-strong);
+  border-radius: $r-full;
+  color: var(--ink);
+
+  &:hover {
+    background: var(--surface);
   }
 }
 
@@ -463,6 +488,13 @@ a:hover {
   grid-template-columns: repeat(3, 1fr);
   gap: $sp-5;
   margin-top: $sp-12;
+
+  // 7 cards in a 3-col grid leaves a lone card on the last row — centre it
+  // rather than letting it sit hard-left under an empty gap. Only applies
+  // when the count actually is 3n+1; harmless otherwise.
+  > .feature:last-child:nth-child(3n + 1) {
+    grid-column: 2;
+  }
 }
 
 // Onboarding's 4 cards don't divide evenly into 3 columns (3-then-1
@@ -655,6 +687,16 @@ a:hover {
   overflow: hidden;
   line-height: 0;
   aspect-ratio: 1280 / 800;
+}
+
+.carousel-frame.is-scrollable .browser-viewport {
+  overflow-y: auto;
+  scrollbar-color: rgba(36, 56, 52, 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+.carousel-frame.is-scrollable .demo-screenshot {
+  max-width: none;
 }
 
 .demo-screenshot {
@@ -1564,8 +1606,22 @@ a:hover {
 }
 
 @media (max-width: 640px) {
+  .site-header__inner {
+    display: flex;
+  }
+
   .site-nav {
+    display: flex;
+    margin-left: auto;
     gap: $sp-3;
+
+    .site-nav__primary {
+      display: contents;
+    }
+
+    .site-nav__actions {
+      gap: $sp-2;
+    }
 
     .site-nav__link {
       display: none;

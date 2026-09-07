@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
         });
 
         try {
-          const resendId = await sendEmail({ to: toEmail, subject, html, resendKey, fromEmail });
+          const resendId = await sendEmail({ to: toEmail, subject, html, resendKey, fromEmail, unsubscribeUrl });
           await logEmail(supabase, {
             adminId: profile.adminId,
             clientId: session.client_id,
@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
 
       let resendId: string | null = null;
       try {
-        resendId = await sendEmail({ to: toEmail, subject: baseSubject, html, resendKey, fromEmail });
+        resendId = await sendEmail({ to: toEmail, subject: baseSubject, html, resendKey, fromEmail, unsubscribeUrl });
       } catch (sendErr: any) {
         await logEmail(supabase, { ...logBase, status: "failed", errorMessage: sendErr.message });
         throw sendErr;

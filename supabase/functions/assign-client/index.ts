@@ -101,6 +101,9 @@ Deno.serve(async (req) => {
       user_id: toAdminId,
       type: "client_assignment",
       message: `New client to review: ${clientName}`,
+      // Deep-link to the same place the AgencyReviewBanner points at, so the
+      // in-app notification isn't a dead end.
+      url: "/agency/incoming",
     });
 
     // Best-effort email — don't fail the assignment if mail is down / unconfigured.

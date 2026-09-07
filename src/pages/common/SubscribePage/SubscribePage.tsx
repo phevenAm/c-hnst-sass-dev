@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
@@ -68,64 +68,20 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
   },
   growth: {
     label: "Growth",
-    monthly: 13.99,
-    annual: 139,
+    monthly: 16.99,
+    annual: 169,
     desc: "For a growing practice",
     capacity: "15 active · 15 archived",
   },
   unlimited: {
     label: "Unlimited",
-    monthly: 19.99,
-    annual: 199,
+    monthly: 24.99,
+    annual: 249,
     desc: "No limit",
     capacity: "Unlimited clients",
   },
 };
 const PLAN_ORDER: Plan[] = ["starter", "growth", "unlimited"];
-
-const TERMS_SECTIONS: { title: string; body: ReactNode }[] = [
-  {
-    title: "1. Introduction",
-    body: "These Terms & Conditions govern your use of Clarity, operated by Clarity. By registering an account or subscribing, you agree to be bound by these Terms.",
-  },
-  {
-    title: "2. Service description",
-    body: "Clarity is a practice management platform for independent counsellors and therapists — managing clients, scheduling, session notes, surveys, payments, and related practice tools, with new features added over time. Provided on a monthly subscription basis.",
-  },
-  {
-    title: "3. Subscription & payment",
-    body: "Access requires an active monthly subscription billed in advance via Stripe. You may cancel at any time through Settings; access continues until end of the current billing period. Client payments processed via Stripe Connect go directly to your account — Clarity itself takes no cut, though Stripe's own processing fees apply to card payments.",
-  },
-  {
-    title: "4. Data & privacy",
-    body: "You are the data controller for all client data. You are responsible for obtaining appropriate consent from clients and complying with UK GDPR. Clarity acts as data processor on your behalf. If your subscription lapses your account becomes read-only and your data is retained — we do not auto-delete it. Deleting your account erases your practice and all client records immediately, with no retention period; you are offered a full export first.",
-  },
-  {
-    title: "5. Session notes",
-    body: (
-      <>
-        Clarity supports storing session notes directly in the platform, with optional client-side encryption you can
-        enable so the note content is unreadable to anyone without your unlock code, Clarity included. Encryption is
-        opt-in and the unlock code is generated only for you — if it's lost, there is no way for us to recover access to
-        notes encrypted under it. Whether or not you enable encryption, you remain solely responsible for your own
-        professional record-keeping obligations (retention periods, access controls, and identification practices) in
-        line with BACP guidance and UK GDPR.
-      </>
-    ),
-  },
-  {
-    title: "6. Cancellation & account deletion",
-    body: "Cancel your subscription at any time via Settings → Manage subscription. Delete your account and all data via Settings → Delete account. Deletion is permanent and cannot be undone.",
-  },
-  {
-    title: "7. Limitation of liability",
-    body: "The Platform is provided 'as is'. Clarity excludes all liability for indirect or consequential loss. Total liability in any 12-month period shall not exceed subscription fees paid in that period.",
-  },
-  {
-    title: "8. Governing law",
-    body: "These Terms are governed by the laws of England and Wales. Disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.",
-  },
-];
 
 export default function SubscribePage() {
   const [searchParams] = useSearchParams();
@@ -196,7 +152,7 @@ export default function SubscribePage() {
         body: { plan, billing, ...(referralCode ? { referral_code: referralCode } : {}) },
       });
 
-      console.log(data)
+      console.log(data);
 
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
@@ -390,21 +346,39 @@ export default function SubscribePage() {
             </div>
 
             <div className={styles.modalBody}>
-              <p className={styles.modalIntro}>Last updated: August 2026. Please read carefully before subscribing.</p>
+              <p className={styles.modalIntro}>
+                Last updated: 6 September 2026. Please read the complete documents before subscribing.
+              </p>
 
               <div className={styles.purposeBox}>
-                <strong>Clarity is a practice management platform</strong> for independent counsellors and therapists —
-                clients, scheduling, session notes, surveys, and payments, with more added over time. Session notes
-                support <strong>optional client-side encryption</strong> you control, but you remain responsible for
-                meeting your own professional record-keeping obligations.
+                <strong>Clarity is a practice management platform</strong> for independent counsellors and therapists.
+                It currently provides client records, scheduling, session notes, forms, communications, exports, and
+                payment features. It is software, not a healthcare provider, emergency service, or substitute for
+                professional judgement.
               </div>
 
-              {TERMS_SECTIONS.map(({ title: st, body }) => (
-                <div key={st} className={styles.termSection}>
-                  <h3>{st}</h3>
-                  <p>{body}</p>
-                </div>
-              ))}
+              <div className={styles.termSection}>
+                <h3>What you are agreeing to</h3>
+                <p>
+                  You are responsible for your practice, the client data you enter, lawful processing, professional
+                  records, and checking that Clarity is suitable for your work. Subscription pricing, cancellation, plan
+                  changes, pausing, deletion, support, and data responsibilities are set out in the full Terms of
+                  Service and Privacy Policy.
+                </p>
+                <p>
+                  <a href="/terms" target="_blank" rel="noreferrer">
+                    Read the full Terms of Service
+                  </a>
+                  <br />
+                  <a href="/privacy" target="_blank" rel="noreferrer">
+                    Read the Privacy Policy
+                  </a>
+                </p>
+                <p>
+                  A separate Data Processing Agreement is not currently published. Do not upload client data at scale
+                  until that agreement and the operator details on the legal pages have been completed and reviewed.
+                </p>
+              </div>
             </div>
 
             <div className={styles.modalFooter}>

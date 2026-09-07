@@ -69,10 +69,12 @@ test.describe("Admin settings", () => {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 10000 });
   });
 
-  test("Profile tab is the default and shows the edit-profile form", async () => {
+  test("Profile tab is the default and shows the edit-profile form and account lifecycle card", async () => {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: /display name/i })).toBeVisible();
     await expect(page.getByRole("button", { name: "Update profile" })).toBeVisible();
+    // pause / export / delete moved here from the Billing tab
+    await expect(page.getByRole("heading", { name: "Pause or close your account" })).toBeVisible();
   });
 
   // The 2026-09-03 tab rework (6 tabs: Profile / Practice / Schedule & bookings
@@ -81,7 +83,8 @@ test.describe("Admin settings", () => {
   // time, so it kept clicking "Practice" and asserting headings that had
   // actually moved to Schedule & bookings / Billing. Split to match reality.
   test("Practice tab renders business info and client consent", async () => {
-    await page.getByRole("button", { name: "Practice" }).click();
+    // exact: the Profile tab's "Pause practice" lifecycle button also contains "Practice"
+    await page.getByRole("button", { name: "Practice", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "Business information" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Client consent" })).toBeVisible();
@@ -95,12 +98,11 @@ test.describe("Admin settings", () => {
     await expect(page.getByRole("heading", { name: "Reschedule & cancellation cutoff" })).toBeVisible();
   });
 
-  test("Billing tab renders bank details, card payments, and the pause/delete card", async () => {
+  test("Billing tab renders bank details and card payments", async () => {
     await page.getByRole("button", { name: "Billing" }).click();
 
     await expect(page.getByRole("heading", { name: "Bank details" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Card payments" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Pause or close your practice" })).toBeVisible();
   });
 
   test("Emails tab lists the transactional email templates", async () => {

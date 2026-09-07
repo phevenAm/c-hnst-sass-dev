@@ -7,13 +7,14 @@ export default function PrivacyPage() {
     <div className="page">
       <div className={`inner ${styles.container}`}>
         <h1>Privacy Policy</h1>
-        <p className={styles.updated}>Last updated: 4 September 2026</p>
+        <p className={styles.updated}>Last updated: 6 September 2026</p>
 
         <section>
           <h2>1. Who we are</h2>
           <p>
-            Clarity is operated by Clarity, a sole trader ("we", "us", "our"). Our business address is [Registered
-            business address — TBD, pending forwarding address registration]. For privacy questions, contact us at{" "}
+            Clarity is currently operated by its founder as a sole-trader business ("we", "us", "our"). The operator's
+            legal name and service address will be displayed here before paid customer contracts begin. For privacy
+            questions, contact us at{" "}
             <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>.
           </p>
         </section>
@@ -213,8 +214,9 @@ export default function PrivacyPage() {
             that additional protection — see our <NewTabLink href="/security">Security page</NewTabLink> for details.
           </p>
           <p>
-            Private journal entries are encrypted client-side. Neither Clarity nor your practitioner can read your
-            journal.
+            Where a feature is described as encrypted client-side, its availability and protection depend on the
+            relevant feature being enabled. Do not treat this policy as a guarantee that every note or journal entry is
+            encrypted. Check the in-app setting and the Security page before entering sensitive information.
           </p>
         </section>
 
@@ -239,10 +241,9 @@ export default function PrivacyPage() {
               <tr>
                 <td>Deleted practitioner accounts</td>
                 <td>
-                  Erased immediately on deletion — the practitioner profile, practice settings, and all client records
-                  in that practice (sessions, attendance, payments, session notes). No retention period. A full export
-                  is offered to the practitioner immediately before deletion. Backups containing the data are
-                  overwritten within 30 days.
+                  Deletion is intended to remove the practitioner profile, practice settings, and practice records. A
+                  full export is offered before deletion. Some billing, security, audit, legal, and backup records may
+                  be retained for as long as reasonably necessary or legally required.
                 </td>
               </tr>
               <tr>
@@ -257,7 +258,7 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td>Billing records</td>
-                <td>7 years (UK tax law) — held by our payment processor (Stripe), not in the deleted practice</td>
+                <td>Retained by Clarity and Stripe for as long as needed for accounting, fraud prevention, disputes, and legal obligations.</td>
               </tr>
               <tr>
                 <td>Email delivery logs</td>
@@ -356,7 +357,8 @@ export default function PrivacyPage() {
         <section>
           <h2>11. Contact</h2>
           <p>
-            For any privacy-related questions: <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>
+            For any privacy-related questions: <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. Please
+            do not include clinical notes or unnecessary health information in an ordinary email.
           </p>
           <p>
             For complaints, you may also contact the ICO:{" "}

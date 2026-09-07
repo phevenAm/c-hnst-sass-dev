@@ -12,6 +12,7 @@ import {
   ChevronRightIcon,
   ClipboardIcon,
   DocumentIcon,
+  HistoryIcon,
   HomeIcon,
   MoneyIcon,
   RescheduleIcon,
@@ -148,6 +149,18 @@ export default function AgencyLayout() {
         </nav>
 
         <div className={styles.sidebarFoot}>
+          {isManager && (
+            <NavLink
+              to="/agency/activity"
+              title={railOpen ? undefined : "Activity"}
+              className={({ isActive }) => `${styles.modeSwitch} ${isActive ? styles.active : ""}`}
+            >
+              <span className={styles.linkIcon}>
+                <HistoryIcon />
+              </span>
+              <span className={styles.linkLabel}>Activity</span>
+            </NavLink>
+          )}
           {membership.counselling_enabled && (
             <Link to="/admin" className={styles.modeSwitch} title={railOpen ? undefined : "Counselling view"}>
               <span className={styles.linkIcon}>

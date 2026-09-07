@@ -628,6 +628,10 @@ describe("SettingsPage — client consent", () => {
   it("does not send consent_questionnaire_id on save", async () => {
     await openPracticeTab();
     fireEvent.click(screen.getByRole("checkbox", { name: /require consent before app access/i }));
+    // heading + agreement text are both required before the save will proceed
+    fireEvent.change(screen.getByLabelText(/agreement text/i), {
+      target: { value: "By continuing you agree to our confidentiality policy." },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save consent settings" }));
 
     await waitFor(() => expect(updateSpy).toHaveBeenCalled());
@@ -724,33 +728,19 @@ describe("SettingsPage — Stripe Connect", () => {
 });
 
 describe("SettingsPage — Google Calendar sync", () => {
-  it("shows a connect button when no calendar is linked", async () => {
+  it("marks Google Calendar sync as work in progress", async () => {
     await openScheduleTab();
-    expect(screen.getByRole("button", { name: "Connect Google Calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Google Calendar (auto-sync)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Connect Google Calendar" })).toBeDisabled();
   });
 
-  it("pauses sync for an already-connected calendar", async () => {
+  it("does not enable controls for an already-connected calendar", async () => {
     setGoogleStatusRow({ connected: true, google_email: "admin@example.com", sync_enabled: true });
     await openScheduleTab();
 
     const syncToggle = await screen.findByRole("checkbox", { name: /sync to google calendar/i });
-    fireEvent.click(syncToggle);
-
-    await waitFor(() => {
-      expect(supabaseMock.rpc).toHaveBeenCalledWith("set_google_calendar_sync_enabled", { p_enabled: false });
-    });
-  });
-
-  it("disconnects Google Calendar after confirming", async () => {
-    setGoogleStatusRow({ connected: true, google_email: "admin@example.com", sync_enabled: true });
-    await openScheduleTab();
-
-    fireEvent.click(await screen.findByRole("button", { name: "Disconnect Google Calendar" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Yes, disconnect" }));
-
-    await waitFor(() => {
-      expect(invokeSpy).toHaveBeenCalledWith("google-calendar-disconnect");
-    });
+    expect(syncToggle).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Disconnect Google Calendar" })).toBeDisabled();
   });
 });
 
@@ -786,6 +776,31 @@ describe("SettingsPage — subscription", () => {
     expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
   });
+
+  // Agency-managed counsellors have no subscription of their own — the agency
+  // owns billing — so the Subscription / pause-or-close / referral cards are
+  // replaced with a single "managed by <agency>" explainer.
+  describe("agency-managed account", () => {
+    beforeEach(() => {
+      mockAgencyState.membership = { status: "active" } as never;
+      mockAgencyState.agency = { name: "Beacon Counselling" } as never;
+    });
+    afterEach(() => {
+      mockAgencyState.membership = null;
+      mockAgencyState.agency = null;
+    });
+
+    it("swaps subscription/lifecycle for a managed-by-agency card", async () => {
+      currentRow.billing_customer_id = "cus_123";
+      await openProfileTab();
+
+      expect(await screen.findByRole("heading", { name: "Your account" })).toBeInTheDocument();
+      expect(screen.getByText(/managed by/i)).toHaveTextContent("Beacon Counselling");
+      expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Pause or close your account" })).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe("SettingsPage — data export", () => {
@@ -797,17 +812,19 @@ describe("SettingsPage — data export", () => {
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:export");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
 
-    await openBillingTab();
+    await openProfileTab();
     fireEvent.click(await screen.findByRole("button", { name: "Export my data" }));
 
-    await waitFor(() => expect(invokeSpy).toHaveBeenCalledWith("export-practice-archive", { body: { decrypted_notes: {} } }));
+    await waitFor(() =>
+      expect(invokeSpy).toHaveBeenCalledWith("export-practice-archive", { body: { decrypted_notes: {} } }),
+    );
     expect(await screen.findByText("Downloaded clarity-export.zip.")).toBeInTheDocument();
   });
 });
 
 describe("SettingsPage — pause / resume practice", () => {
   async function openPauseConfirm(cardButtonName: RegExp) {
-    await openBillingTab();
+    await openProfileTab();
     fireEvent.click(await screen.findByRole("button", { name: cardButtonName }));
     return within(await screen.findByRole("dialog"));
   }
@@ -920,7 +937,7 @@ describe("SettingsPage — refer a friend", () => {
       ...defaultAuthValue,
       practiceSettings: { ...defaultAuthValue.practiceSettings, referral_code: "ABC12345" },
     }));
-    await openBillingTab();
+    await openProfileTab();
 
     expect(await screen.findByText(/register\?ref=ABC12345/)).toBeInTheDocument();
 
@@ -932,7 +949,7 @@ describe("SettingsPage — refer a friend", () => {
   });
 
   it("does not show the card when the admin has no referral code yet (sad path)", async () => {
-    await openBillingTab();
+    await openProfileTab();
     expect(screen.queryByText("Refer a friend")).not.toBeInTheDocument();
   });
 });

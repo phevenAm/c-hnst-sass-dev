@@ -722,7 +722,8 @@ export default function AdminQuestionnairesPage() {
             </p>
           </div>
           <SplitButton
-            primaryLabel="+ New form"
+            iconOnly
+            primaryLabel="New form"
             primaryAction={() => setShowBuilder(true)}
             options={[{ label: "Manage tags", onClick: () => setShowTagsModal(true) }]}
             secondaryLabel="More options"

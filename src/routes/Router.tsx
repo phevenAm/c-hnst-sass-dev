@@ -27,6 +27,7 @@ import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
 import { useResolvedTheme } from "../Hooks/useResolvedTheme";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
+import { isFeatureEnabled } from "../lib/featureFlags";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
@@ -85,6 +86,7 @@ const AgencyInvoicesPage = lazy(() => import("../pages/agency/AgencyInvoicesPage
 const AgencyIncomingPage = lazy(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
 const AgencyFinancePage = lazy(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
 const AgencyOnboardingPage = lazy(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
+const AgencyActivityPage = lazy(() => import("../pages/agency/AgencyActivityPage/AgencyActivityPage"));
 const AgencySettingsPage = lazy(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
@@ -97,7 +99,8 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 
 function RootRedirect() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState variant="splash" />;
+  // if (loading) return <AuthLoadingState variant="splash" />;
+  if (loading) return <HeroSplashBridge />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
@@ -109,7 +112,8 @@ function RootRedirect() {
 // login screen. Guard on `loading` first, same as RootRedirect.
 function LoginRoute() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState variant="splash" />;
+  // if (loading) return <AuthLoadingState variant="splash" />;
+  if (loading) return <HeroSplashBridge />;
   if (isAuthenticated) {
     if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
     return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
@@ -206,7 +210,8 @@ function RoleAwareLayout() {
 
 function SuperAdminGate({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState />;
+  // if (loading) return <AuthLoadingState />;
+  if (loading) return <HeroSplashBridge />;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -233,7 +238,8 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   // agency member briefly reads as "not an agency member yet" and gets
   // bounced to /subscribe before their membership has loaded.
   if (loading || verifying || agencyStatus === "loading" || agencyStatus === "idle") {
-    return <AuthLoadingState variant="splash" />;
+    return <HeroSplashBridge />;
+    // return <AuthLoadingState variant="splash" />;
   }
 
   // Agency members are billed at the agency level (staff-count tiers), not
@@ -265,7 +271,8 @@ function AdminSetupGate({ children }: { children: React.ReactNode }) {
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
 
   if (loading || agencyStatus === "loading" || agencyStatus === "idle") {
-    return <AuthLoadingState variant="splash" />;
+    return <HeroSplashBridge />;
+    // return <AuthLoadingState variant="splash" />;
   }
   // An invited agency member isn't setting up their own practice — the
   // agency owner already did. Same exemption as SubscriptionGate above.
@@ -284,6 +291,7 @@ function ConsentGate() {
 
 function OnboardingGate() {
   const { userProfile, isAuthenticated, loading, isAdmin, isDemo, practiceSettings } = useAuth();
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -292,10 +300,11 @@ function OnboardingGate() {
       setShow(false);
       return;
     }
-    // Demo admin skips the subscribed/setup-done requirement below — it's a
-    // canned account with no real subscription or practice-setup flow to
-    // finish, so gating on those would just mean the modal can never show.
-    if (!isAdmin || isDemo) {
+    // Demo admin and agency-managed counsellors skip the subscribed/setup-done
+    // requirement below — neither has a subscription or a practice-setup flow of
+    // their own to finish, so gating on those would mean the modal never shows
+    // and an agency-invited counsellor gets zero onboarding.
+    if (!isAdmin || isDemo || isAgencyMember) {
       setShow(true);
       return;
     }
@@ -308,7 +317,7 @@ function OnboardingGate() {
       practiceSettings?.subscription_status === "active" || practiceSettings?.subscription_status === "trialing";
     const setupDone = !!practiceSettings && !practiceSettings.onboarding_required;
     setShow(subscribed && setupDone);
-  }, [loading, isAuthenticated, userProfile, isAdmin, isDemo, practiceSettings]);
+  }, [loading, isAuthenticated, userProfile, isAdmin, isDemo, isAgencyMember, practiceSettings]);
 
   if (!show) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
@@ -346,7 +355,8 @@ export default function AppRoutes() {
           <OnboardingGate />
           <AgencyBootstrapper />
           <WalkthroughOverlay />
-          <Suspense fallback={<AuthLoadingState variant="splash" />}>
+          {/* <Suspense fallback={<AuthLoadingState variant="splash" />}> */}
+          <Suspense fallback={<HeroSplashBridge />}>
             <Routes>
               <Route path="/login" element={<LoginRoute />} />
               <Route path="/demo" element={<DemoPage />} />
@@ -459,32 +469,39 @@ export default function AppRoutes() {
                 }
               />
 
-              {/* Agency "manage mode" — standalone shell, gated to agency members */}
-              <Route
-                path="/register/agency"
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <CreateAgencyPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AgencyLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/agency" element={<AgencyOverviewPage />} />
-                <Route path="/agency/members" element={<AgencyMembersPage />} />
-                <Route path="/agency/clients" element={<AgencyClientsPage />} />
-                <Route path="/agency/sessions" element={<AgencySessionsPage />} />
-                <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
-                <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
-                <Route path="/agency/finance" element={<AgencyFinancePage />} />
-                <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
-                <Route path="/agency/settings" element={<AgencySettingsPage />} />
-              </Route>
+              {/* Agency "manage mode" — standalone shell, gated to agency members.
+                  Behind the `agency` feature flag: off in production until the
+                  agency flows are finished, so /agency/* 404s there. */}
+              {isFeatureEnabled("agency") && (
+                <>
+                  <Route
+                    path="/register/agency"
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <CreateAgencyPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <AgencyLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/agency" element={<AgencyOverviewPage />} />
+                    <Route path="/agency/members" element={<AgencyMembersPage />} />
+                    <Route path="/agency/clients" element={<AgencyClientsPage />} />
+                    <Route path="/agency/sessions" element={<AgencySessionsPage />} />
+                    <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
+                    <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
+                    <Route path="/agency/finance" element={<AgencyFinancePage />} />
+                    <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
+                    <Route path="/agency/activity" element={<AgencyActivityPage />} />
+                    <Route path="/agency/settings" element={<AgencySettingsPage />} />
+                  </Route>
+                </>
+              )}
 
               <Route path="/" element={<RootRedirect />} />
               <Route path="*" element={<NotFoundPage />} />

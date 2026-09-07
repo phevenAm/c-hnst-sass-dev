@@ -1,0 +1,20 @@
+# Clarity
+
+Clarity is web-based practice-management software for independent counsellors and therapists in the UK.
+
+## Public pages
+
+- [Homepage](https://withclarity.uk/): Product overview, features, pricing, and FAQs.
+- [Terms of Service](https://withclarity.uk/terms): Current service terms.
+- [Privacy Policy](https://withclarity.uk/privacy): Privacy information for website and product users.
+- [Security](https://withclarity.uk/security): Security and data-protection information.
+- [Subprocessors](https://withclarity.uk/legal/subprocessors): Third-party services used to operate Clarity.
+- [Support](https://withclarity.uk/help): Help and support contact options.
+
+## Product scope
+
+Clarity includes client management, scheduling, session records, payment tracking, client resources, forms, outcome measures, CPD, supervision, exports, and an optional client portal. Clients can be managed without a portal account and invited later.
+
+Built-in outcome measures include PHQ-9, GAD-7, WSAS, PSS-10, PHQ-15, CORE-10, and RCADS-25. These support practitioner review and are not diagnoses or emergency alerts.
+
+Clarity is software, not a healthcare provider, emergency service, or substitute for professional judgement.
