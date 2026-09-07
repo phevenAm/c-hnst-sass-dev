@@ -225,6 +225,7 @@ export type Database = {
           consent_pdf_url: string | null
           consent_text: string | null
           created_at: string
+          default_settlement_direction: string
           id: string
           invoice_prefix: string
           locked_consent: boolean
@@ -248,6 +249,7 @@ export type Database = {
           consent_pdf_url?: string | null
           consent_text?: string | null
           created_at?: string
+          default_settlement_direction?: string
           id?: string
           invoice_prefix?: string
           locked_consent?: boolean
@@ -271,6 +273,7 @@ export type Database = {
           consent_pdf_url?: string | null
           consent_text?: string | null
           created_at?: string
+          default_settlement_direction?: string
           id?: string
           invoice_prefix?: string
           locked_consent?: boolean
@@ -293,6 +296,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "agency_plan_limits"
             referencedColumns: ["plan"]
+          },
+        ]
+      }
+      agency_activity_events: {
+        Row: {
+          actor_id: string | null
+          agency_id: string
+          created_at: string
+          event_type: string
+          id: string
+          meta: Json
+          subject_id: string | null
+          subject_type: string | null
+          summary: string
+        }
+        Insert: {
+          actor_id?: string | null
+          agency_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          meta?: Json
+          subject_id?: string | null
+          subject_type?: string | null
+          summary: string
+        }
+        Update: {
+          actor_id?: string | null
+          agency_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json
+          subject_id?: string | null
+          subject_type?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_activity_events_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -387,12 +434,14 @@ export type Database = {
           amount_pence: number
           created_at: string
           description: string | null
+          direction: string
           due_date: string | null
           id: string
           issue_date: string
           issued_by: string | null
           number: number
           paid_at: string | null
+          payment_method: string | null
           reference: string
           sent_at: string | null
           staff_user_id: string | null
@@ -404,12 +453,14 @@ export type Database = {
           amount_pence?: number
           created_at?: string
           description?: string | null
+          direction?: string
           due_date?: string | null
           id?: string
           issue_date?: string
           issued_by?: string | null
           number: number
           paid_at?: string | null
+          payment_method?: string | null
           reference: string
           sent_at?: string | null
           staff_user_id?: string | null
@@ -421,12 +472,14 @@ export type Database = {
           amount_pence?: number
           created_at?: string
           description?: string | null
+          direction?: string
           due_date?: string | null
           id?: string
           issue_date?: string
           issued_by?: string | null
           number?: number
           paid_at?: string | null
+          payment_method?: string | null
           reference?: string
           sent_at?: string | null
           staff_user_id?: string | null
@@ -455,6 +508,7 @@ export type Database = {
           invited_at: string | null
           joined_at: string
           role: string
+          settlement_direction: string | null
           status: string
           user_id: string
         }
@@ -469,6 +523,7 @@ export type Database = {
           invited_at?: string | null
           joined_at?: string
           role?: string
+          settlement_direction?: string | null
           status?: string
           user_id: string
         }
@@ -483,6 +538,7 @@ export type Database = {
           invited_at?: string | null
           joined_at?: string
           role?: string
+          settlement_direction?: string | null
           status?: string
           user_id?: string
         }
@@ -1462,6 +1518,8 @@ export type Database = {
           billing_period: string
           business_name: string | null
           card_payments_enabled: boolean
+          complimentary: boolean
+          complimentary_reason: string | null
           consent_body: string
           consent_counsellor_cta: string
           consent_enabled: boolean
@@ -1488,6 +1546,8 @@ export type Database = {
           paused_reason: string | null
           payment_deadline_hours: number
           phone: string | null
+          promo_code: string | null
+          promo_trial_ends_at: string | null
           reduce_motion: boolean
           referral_code: string | null
           referred_by_code: string | null
@@ -1526,6 +1586,8 @@ export type Database = {
           billing_period?: string
           business_name?: string | null
           card_payments_enabled?: boolean
+          complimentary?: boolean
+          complimentary_reason?: string | null
           consent_body?: string
           consent_counsellor_cta?: string
           consent_enabled?: boolean
@@ -1552,6 +1614,8 @@ export type Database = {
           paused_reason?: string | null
           payment_deadline_hours?: number
           phone?: string | null
+          promo_code?: string | null
+          promo_trial_ends_at?: string | null
           reduce_motion?: boolean
           referral_code?: string | null
           referred_by_code?: string | null
@@ -1590,6 +1654,8 @@ export type Database = {
           billing_period?: string
           business_name?: string | null
           card_payments_enabled?: boolean
+          complimentary?: boolean
+          complimentary_reason?: string | null
           consent_body?: string
           consent_counsellor_cta?: string
           consent_enabled?: boolean
@@ -1616,6 +1682,8 @@ export type Database = {
           paused_reason?: string | null
           payment_deadline_hours?: number
           phone?: string | null
+          promo_code?: string | null
+          promo_trial_ends_at?: string | null
           reduce_motion?: boolean
           referral_code?: string | null
           referred_by_code?: string | null
@@ -1635,6 +1703,47 @@ export type Database = {
           subscription_status?: string
           updated_at?: string
           use_client_codenames?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_settings_promo_code_fkey"
+            columns: ["promo_code"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          expires_at: string | null
+          max_redemptions: number | null
+          months_free: number
+          note: string | null
+          redeemed_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          max_redemptions?: number | null
+          months_free?: number
+          note?: string | null
+          redeemed_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          max_redemptions?: number | null
+          months_free?: number
+          note?: string | null
+          redeemed_count?: number
         }
         Relationships: []
       }
@@ -2613,6 +2722,7 @@ export type Database = {
       }
     }
     Functions: {
+      _person_name: { Args: { p_uid: string }; Returns: string }
       _practice_slot_has_conflict_all: {
         Args: {
           p_admin_id: string
@@ -2638,11 +2748,40 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      agency_activity_feed: {
+        Args: {
+          p_before?: string
+          p_limit?: number
+          p_member?: string
+          p_since?: string
+        }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          category: string
+          detail: Json
+          event_time: string
+          source: string
+          summary: string
+        }[]
+      }
       agency_finance_summary: {
         Args: { p_from?: string; p_to?: string }
         Returns: Json
       }
+      agency_member_settlement: { Args: { p_user: string }; Returns: string }
       agency_plan_change_check: { Args: { p_target: string }; Returns: Json }
+      agency_settlement_overview: {
+        Args: never
+        Returns: {
+          effective_direction: string
+          employment_type: string
+          name: string
+          override: string
+          role: string
+          user_id: string
+        }[]
+      }
       allocate_agency_invoice_number: { Args: never; Returns: number }
       allocate_invoice_number: { Args: never; Returns: number }
       anonymise_client: { Args: { p_user_id: string }; Returns: undefined }
@@ -2672,6 +2811,7 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      expire_promo_trials: { Args: never; Returns: number }
       generate_client_codename: { Args: never; Returns: string }
       get_availability_for_date: {
         Args: { p_admin_id: string; p_date: string }
@@ -2731,8 +2871,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_agency_event: {
+        Args: {
+          p_actor: string
+          p_agency: string
+          p_meta?: Json
+          p_subject_id: string
+          p_subject_type: string
+          p_summary: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       mark_agency_invoice_paid: {
-        Args: { p_invoice_id: string; p_paid_at?: string }
+        Args: { p_invoice_id: string; p_method?: string; p_paid_at?: string }
         Returns: undefined
       }
       mark_invoice_paid: {
@@ -2772,6 +2924,7 @@ export type Database = {
         Args: { p_ref: string; p_type: string }
         Returns: undefined
       }
+      redeem_promo_code: { Args: { p_code: string }; Returns: string }
       request_manual_payment: {
         Args: { p_session_id: string }
         Returns: undefined

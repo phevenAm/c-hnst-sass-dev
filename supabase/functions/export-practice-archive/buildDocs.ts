@@ -17,6 +17,9 @@ export type ExportInput = {
   stubSessions: Dict[];
   notes: Dict[];
   payments: Dict[];
+  /** audit_logs rows for this admin (created_at, action, table_name, record_id,
+   *  old_data, new_data) — the Activity page's feed, flattened. */
+  activity: Dict[];
   /** { [noteId]: plaintext } for notes the caller could decrypt in-browser. */
   decryptedNotes: Record<string, string>;
 };
@@ -175,6 +178,50 @@ export function noteRows(input: ExportInput): Dict[] {
       "Linked session": n.session_id ? "Yes" : "No",
       Encrypted: state,
       Note: content,
+    };
+  });
+}
+
+// ── Activity log ────────────────────────────────────────────────────────────
+// Mirrors the sentence logic of AdminAuditLogsPage.formatMessage, kept factual
+// and column-shaped for a spreadsheet rather than prose.
+const ACTIVITY_TABLE_LABEL: Record<string, string> = {
+  users: "Client",
+  client_stubs: "Offline client",
+  sessions: "Session",
+  stub_sessions: "Offline session",
+  payments: "Payment",
+  questionnaires: "Form",
+  questionnaire_assignments: "Form assignment",
+  responses: "Form response",
+  resources: "Resource",
+  tags: "Tag",
+  session_notes: "Session note",
+  platform_access_token: "Client invite",
+  admin_reminder_mutes: "Session reminder",
+};
+const ACTIVITY_VERB: Record<string, string> = { INSERT: "Added", UPDATE: "Updated", DELETE: "Removed" };
+
+function activityItemName(data: Dict | null | undefined): string {
+  if (!data) return "";
+  for (const k of ["title", "name", "codename"]) {
+    if (typeof data[k] === "string" && data[k]) return data[k] as string;
+  }
+  const full = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+  return full;
+}
+
+export function activityRows(input: ExportInput): Dict[] {
+  return input.activity.map((l) => {
+    const data = (l.action === "DELETE" ? l.old_data : l.new_data) as Dict | null | undefined;
+    const amount = (data?.amount_pence ?? data?.price_pence) as number | null | undefined;
+    return {
+      When: fmtDate(l.created_at),
+      Action: ACTIVITY_VERB[String(l.action)] ?? String(l.action ?? ""),
+      Type: ACTIVITY_TABLE_LABEL[String(l.table_name)] ?? String(l.table_name ?? "").replace(/_/g, " "),
+      Item: activityItemName(data),
+      Amount: typeof amount === "number" ? money(amount) : "",
+      "Record ID": l.record_id ?? "",
     };
   });
 }
@@ -395,7 +442,7 @@ function readme(input: ExportInput, meta: ReturnType<typeof exportCounts>): stri
     `Generated ${input.exportedAt} UTC`,
     "",
     "Files",
-    "  clarity-practice-export.xlsx   one sheet per record type (Clients, Sessions, Session notes, Payments)",
+    "  clarity-practice-export.xlsx   one sheet per record type (Clients, Sessions, Session notes, Payments, Activity log)",
     "  clarity-practice-export.pdf    the same data, printable",
     "",
     "Records",
@@ -407,6 +454,7 @@ function readme(input: ExportInput, meta: ReturnType<typeof exportCounts>): stri
     `    from manual payments       ${meta.payments_manual}`,
     `    from paid sessions         ${meta.payments_from_sessions}`,
     `    from paid offline sessions ${meta.payments_from_offline_sessions}`,
+    `  Activity-log entries    ${meta.activity}`,
     "",
     "Codenames",
     "  Every client row carries the codename your anonymised records use, so a",
@@ -434,6 +482,7 @@ function exportCounts(input: ExportInput, totalPence: number, paymentCount: numb
     payments_from_sessions: input.sessions.filter((s) => s.paid).length,
     payments_from_offline_sessions: input.stubSessions.filter((s) => s.paid).length,
     payments_total_pence: totalPence,
+    activity: input.activity.length,
   };
 }
 
@@ -449,6 +498,7 @@ export async function buildExportZip(libs: Libs, input: ExportInput): Promise<Ex
   const sessions = sessionRows(input);
   const notes = noteRows(input);
   const { rows: payments, totalPence } = paymentRows(input);
+  const activity = activityRows(input);
   const paymentCount = Math.max(0, payments.length - 1); // minus the TOTAL row
   const counts = exportCounts(input, totalPence, paymentCount);
 
@@ -457,6 +507,7 @@ export async function buildExportZip(libs: Libs, input: ExportInput): Promise<Ex
     { name: "Sessions", rows: sessions },
     { name: "Session notes", rows: notes },
     { name: "Payments", rows: payments },
+    { name: "Activity log", rows: activity },
   ]);
 
   const pdf = buildPdf(libs, input, "Practice export", [
@@ -492,6 +543,11 @@ export async function buildExportZip(libs: Libs, input: ExportInput): Promise<Ex
       heading: "Payments",
       columns: ["Client", "Codename", "Source", "Amount (£)", "Description", "Date", "Recorded"],
       rows: payments,
+    },
+    {
+      heading: "Activity log",
+      columns: ["When", "Action", "Type", "Item", "Amount", "Record ID"],
+      rows: activity,
     },
   ]);
 

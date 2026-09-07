@@ -8,6 +8,11 @@ export type AssignmentStatus = "pending" | "accepted" | "declined";
 export type OnboardingAudience = "client" | "admin";
 export type AgencyPlanKey = "starter" | "growth" | "scale" | "unlimited";
 export type AgencyInvoiceStatus = "draft" | "sent" | "due" | "paid" | "overdue" | "cancelled";
+// How money moves between the agency and a staff member.
+export type AgencySettlementDefault = "auto" | "staff_pays_agency" | "agency_pays_staff" | "none";
+export type AgencySettlementDirection = "staff_pays_agency" | "agency_pays_staff" | "none";
+export type AgencyInvoiceDirection = "staff_to_agency" | "agency_to_staff";
+export type AgencyInvoicePaymentMethod = "cash" | "bank_transfer" | "stripe" | "other";
 
 export interface Agency {
   id: string;
@@ -27,6 +32,7 @@ export interface Agency {
   agreement_version: number;
   subscription_plan: AgencyPlanKey;
   billing_interval: "month" | "year";
+  default_settlement_direction: AgencySettlementDefault;
   next_invoice_number: number;
   invoice_prefix: string;
   created_at: string;
@@ -46,6 +52,8 @@ export interface AgencyMember {
   agreement_accepted_at: string | null;
   agreement_accepted_version: number | null;
   agreement_signed_name: string | null;
+  /** null = follow the agency default (see agency.default_settlement_direction). */
+  settlement_direction: AgencySettlementDirection | null;
 }
 
 export interface AgencyPlanLimit {
@@ -66,6 +74,8 @@ export interface AgencyInvoice {
   description: string | null;
   amount_pence: number;
   status: AgencyInvoiceStatus;
+  direction: AgencyInvoiceDirection;
+  payment_method: AgencyInvoicePaymentMethod | null;
   issue_date: string;
   due_date: string | null;
   sent_at: string | null;

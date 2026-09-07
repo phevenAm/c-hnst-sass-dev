@@ -355,6 +355,7 @@ export const updateAgencyPolicies = createAsyncThunk(
         | "staff_agreement_required"
         | "agreement_text"
         | "agreement_pdf_url"
+        | "default_settlement_direction"
       >
     >,
     { rejectWithValue },

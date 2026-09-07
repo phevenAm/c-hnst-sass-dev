@@ -11,6 +11,7 @@ import {
   selectAuditLogsStatus,
 } from "@store/slices/auditLogsSlice";
 
+import { type ActivityExportRow, exportActivityCsv, exportActivityPdf } from "@/Helpers/activityLogExport";
 import { isPageStatusLoading } from "@/Helpers/Helpers";
 
 import styles from "./AdminAuditLogsPage.module.scss";
@@ -228,6 +229,7 @@ export default function AdminAuditLogsPage() {
   const [search, setSearch] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useFetchOnIdle(
     (state: RootState) => state.auditLogs.status,
@@ -270,6 +272,43 @@ export default function AdminAuditLogsPage() {
     });
   }, [logs, currentFilter, search]);
 
+  const toExportRows = (items: AuditLog[]): ActivityExportRow[] =>
+    items.map((log) => ({
+      when: formatDateTime(log.created_at),
+      who: log.actor ? [log.actor.first_name, log.actor.last_name].filter(Boolean).join(" ") : "System",
+      summary: formatMessage(log),
+      details: changedFields(log)
+        .map((c) => `${c.field}: ${c.from} → ${c.to}`)
+        .join("; "),
+    }));
+
+  const exportStamp = () => new Date().toISOString().slice(0, 10);
+  const exportMetaLabel = activeFilter === "All" ? "All activity" : `Filter: ${activeFilter}`;
+
+  const handleExportCsv = () => {
+    exportActivityCsv(toExportRows(filtered), {
+      filename: `activity-log-${exportStamp()}`,
+      title: "Activity log",
+      meta: [
+        ["Scope", exportMetaLabel],
+        ["Entries", filtered.length],
+      ],
+    });
+  };
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await exportActivityPdf(toExportRows(filtered), {
+        filename: `activity-log-${exportStamp()}`,
+        title: "Activity log",
+        subtitle: exportMetaLabel,
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const guard = isPageStatusLoading(status);
   if (guard) return guard;
 
@@ -286,14 +325,27 @@ export default function AdminAuditLogsPage() {
               {visible.length < filtered.length ? ` — showing ${visible.length}` : ""}
             </p>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => dispatch(resetAuditLogs())}
-            disabled={status === "loading"}
-          >
-            {status === "loading" ? "Loading…" : "Refresh"}
-          </Button>
+          <div style={{ display: "flex", gap: "var(--sp-2)", flexWrap: "wrap" }}>
+            <Button variant="secondary" size="sm" onClick={handleExportCsv} disabled={filtered.length === 0}>
+              Export CSV
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={filtered.length === 0 || exportingPdf}
+            >
+              {exportingPdf ? "Preparing…" : "Export PDF"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => dispatch(resetAuditLogs())}
+              disabled={status === "loading"}
+            >
+              {status === "loading" ? "Loading…" : "Refresh"}
+            </Button>
+          </div>
         </div>
 
         <div className={styles.filterRow} id="audit-filters">

@@ -70,45 +70,55 @@ Deno.serve(async (req) => {
     const adminId = user.id;
 
     // ── Gather ────────────────────────────────────────────────────────────
-    const [clientsRes, stubsRes, sessionsRes, stubSessionsRes, notesRes, paymentsRes, practiceRes] = await Promise.all([
-      supabase
-        .from("users")
-        .select(
-          "id, first_name, last_name, display_name, admin_codename, email, dob, disabled, archived_at, archived_reason, anonymised_at, created_at",
-        )
-        .eq("admin_id", adminId),
-      supabase
-        .from("client_stubs")
-        .select("id, first_name, last_name, codename, email, created_at, archived_at, linked_user_id")
-        .eq("created_by", adminId),
-      supabase
-        .from("sessions")
-        .select(
-          "id, client_id, scheduled_at, duration_minutes, status, attended, paid, paid_at, price_pence, location, reference_code, is_supervision",
-        )
-        .eq("created_by", adminId)
-        .order("scheduled_at", { ascending: true }),
-      supabase
-        .from("stub_sessions")
-        .select(
-          "id, stub_id, scheduled_at, duration_minutes, status, paid, amount_paid, price_pence, location, code, notes",
-        )
-        .eq("admin_id", adminId)
-        .order("scheduled_at", { ascending: true }),
-      supabase
-        .from("session_notes")
-        .select("id, session_id, user_id, stub_id, content, is_encrypted, note_iv, created_at")
-        .eq("admin_id", adminId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("payments")
-        .select("id, client_id, stub_id, amount_pence, description, paid_at, created_at")
-        .eq("admin_id", adminId)
-        .order("paid_at", { ascending: true }),
-      supabase.from("practice_settings").select("business_name").eq("admin_id", adminId).single(),
-    ]);
+    const [clientsRes, stubsRes, sessionsRes, stubSessionsRes, notesRes, paymentsRes, activityRes, practiceRes] =
+      await Promise.all([
+        supabase
+          .from("users")
+          .select(
+            "id, first_name, last_name, display_name, admin_codename, email, dob, disabled, archived_at, archived_reason, anonymised_at, created_at",
+          )
+          .eq("admin_id", adminId),
+        supabase
+          .from("client_stubs")
+          .select("id, first_name, last_name, codename, email, created_at, archived_at, linked_user_id")
+          .eq("created_by", adminId),
+        supabase
+          .from("sessions")
+          .select(
+            "id, client_id, scheduled_at, duration_minutes, status, attended, paid, paid_at, price_pence, location, reference_code, is_supervision",
+          )
+          .eq("created_by", adminId)
+          .order("scheduled_at", { ascending: true }),
+        supabase
+          .from("stub_sessions")
+          .select(
+            "id, stub_id, scheduled_at, duration_minutes, status, paid, amount_paid, price_pence, location, code, notes",
+          )
+          .eq("admin_id", adminId)
+          .order("scheduled_at", { ascending: true }),
+        supabase
+          .from("session_notes")
+          .select("id, session_id, user_id, stub_id, content, is_encrypted, note_iv, created_at")
+          .eq("admin_id", adminId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("payments")
+          .select("id, client_id, stub_id, amount_pence, description, paid_at, created_at")
+          .eq("admin_id", adminId)
+          .order("paid_at", { ascending: true }),
+        // Activity log — the same rows the /admin/audit-logs page shows this
+        // admin (RLS already scopes audit_logs to actor_id = auth.uid(), but the
+        // service-role client bypasses RLS so filter explicitly).
+        supabase
+          .from("audit_logs")
+          .select("created_at, action, table_name, record_id, old_data, new_data")
+          .eq("actor_id", adminId)
+          .order("created_at", { ascending: false })
+          .limit(5000),
+        supabase.from("practice_settings").select("business_name").eq("admin_id", adminId).single(),
+      ]);
 
-    for (const r of [clientsRes, stubsRes, sessionsRes, stubSessionsRes, notesRes, paymentsRes]) {
+    for (const r of [clientsRes, stubsRes, sessionsRes, stubSessionsRes, notesRes, paymentsRes, activityRes]) {
       if (r.error) throw new Error(r.error.message);
     }
 
@@ -121,6 +131,7 @@ Deno.serve(async (req) => {
       stubSessions: stubSessionsRes.data ?? [],
       notes: notesRes.data ?? [],
       payments: paymentsRes.data ?? [],
+      activity: activityRes.data ?? [],
       decryptedNotes,
     };
 

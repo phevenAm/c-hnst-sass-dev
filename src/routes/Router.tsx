@@ -86,6 +86,7 @@ const AgencyInvoicesPage = lazy(() => import("../pages/agency/AgencyInvoicesPage
 const AgencyIncomingPage = lazy(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
 const AgencyFinancePage = lazy(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
 const AgencyOnboardingPage = lazy(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
+const AgencyActivityPage = lazy(() => import("../pages/agency/AgencyActivityPage/AgencyActivityPage"));
 const AgencySettingsPage = lazy(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
@@ -496,6 +497,7 @@ export default function AppRoutes() {
                     <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
                     <Route path="/agency/finance" element={<AgencyFinancePage />} />
                     <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
+                    <Route path="/agency/activity" element={<AgencyActivityPage />} />
                     <Route path="/agency/settings" element={<AgencySettingsPage />} />
                   </Route>
                 </>
