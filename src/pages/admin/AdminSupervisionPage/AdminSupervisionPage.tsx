@@ -616,7 +616,6 @@ export default function AdminSupervisionPage() {
           </div>
           <SplitButton
             variant="primary"
-            iconOnly
             primaryLabel="Add session"
             primaryAction={() => {
               setEditing(null);
