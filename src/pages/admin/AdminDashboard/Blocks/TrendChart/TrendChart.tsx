@@ -9,6 +9,25 @@ import styles from "./TrendChart.module.scss";
 
 const identity = (v: number) => String(v);
 
+// Round the axis up to a "nice" ceiling and hand back evenly-spaced round
+// ticks, so a max of ~2050 reads as 0 / 750 / 1500 / 2250 rather than
+// Recharts' auto 0 / 550 / 1100 / 1650 / 2200.
+function niceStep(rough: number): number {
+  const mag = 10 ** Math.floor(Math.log10(rough));
+  const norm = rough / mag;
+  const factor = [1, 2, 2.5, 5, 10].find((f) => norm <= f) ?? 10;
+  return factor * mag;
+}
+
+function niceAxis(rawMax: number, count = 4): { max: number; ticks: number[] } {
+  if (rawMax <= 0) return { max: 1, ticks: [0, 1] };
+  const step = niceStep(rawMax / count);
+  const max = Math.ceil(rawMax / step) * step;
+  const ticks: number[] = [];
+  for (let t = 0; t <= max + step / 2; t += step) ticks.push(Math.round(t * 100) / 100);
+  return { max, ticks };
+}
+
 type TooltipProps = {
   active?: boolean;
   label?: string;
@@ -49,6 +68,9 @@ export default function TrendChart({
   const { reduceMotion } = useInterfacePrefs();
   const hasData = data.some((d) => d.value > 0);
   const axis = { fill: "var(--text-muted)", fontSize: 11 };
+  // Rounded y-axis (unless the caller pinned an explicit domain, e.g. the 0–10
+  // wellbeing chart).
+  const nice = yDomain ? null : niceAxis(Math.max(...data.map((d) => d.value), 0));
 
   return (
     <Card className={styles.card}>
@@ -67,7 +89,8 @@ export default function TrendChart({
                   axisLine={false}
                   tickLine={false}
                   width={40}
-                  domain={yDomain}
+                  domain={nice ? [0, nice.max] : yDomain}
+                  ticks={nice?.ticks}
                   allowDecimals={false}
                 />
                 <Tooltip
