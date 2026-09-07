@@ -221,8 +221,9 @@ $transition: 0.22s ease;
   }
 }
 
+// A child route being active shouldn't also fill the parent — that stacked
+// two filled pills. Just weight + colour the parent label.
 .groupActive {
-  background: var(--accent-light);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -310,9 +311,10 @@ $tree-x: 1.4rem;
     color: var(--text-primary);
   }
 
+  // Selected child: bold + accent text, no fill (the fill stacked under the
+  // parent's and read as heavy). The elbow picks up the accent as the anchor.
   &.active {
-    background: var(--accent-light);
-    color: var(--text-primary);
+    color: var(--accent);
     font-weight: 600;
 
     &::before {
