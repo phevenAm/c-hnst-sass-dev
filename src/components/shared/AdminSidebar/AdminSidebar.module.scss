@@ -243,6 +243,9 @@ $transition: 0.22s ease;
   position: relative;
 }
 
+// Left edge of the tree connector — sits under the parent row's icon centre.
+$tree-x: 1.4rem;
+
 .groupChildren {
   list-style: none;
   display: flex;
@@ -251,17 +254,35 @@ $transition: 0.22s ease;
   overflow: hidden;
   max-height: 0;
   transition: max-height $transition;
+  position: relative;
+
+  // Vertical trunk. Ends at the last child's elbow (see .groupChildrenOpen)
+  // so the whole shape reads as an "L".
+  &::before {
+    content: "";
+    position: absolute;
+    left: $tree-x;
+    top: 0;
+    width: 1px;
+    height: 0;
+    background: var(--border);
+    transition: height $transition;
+  }
 }
 
 .groupChildrenOpen {
-  max-height: 120px;
+  max-height: 240px;
+
+  &::before {
+    height: calc(100% - 1.15rem);
+  }
 }
 
 .childLink {
   display: flex;
   align-items: center;
   gap: $sp-3;
-  padding: $sp-2 $sp-3 $sp-2 calc($sp-5 + $sp-3);
+  padding: $sp-2 $sp-3 $sp-2 calc(#{$tree-x} + #{$sp-4});
   border-radius: var(--r-md);
   text-decoration: none;
   color: var(--text-secondary);
@@ -270,8 +291,19 @@ $transition: 0.22s ease;
   overflow: hidden;
   touch-action: manipulation;
   transition: background var(--transition-base), color var(--transition-base);
-  margin: $sp-1 0 $sp-1 $sp-2;
-  width: 95%;
+  margin: 1px 0;
+  position: relative;
+
+  // Horizontal elbow into the trunk.
+  &::before {
+    content: "";
+    position: absolute;
+    left: $tree-x;
+    top: 50%;
+    width: $sp-3;
+    height: 1px;
+    background: var(--border);
+  }
 
   &:hover {
     background: var(--bg-muted);
@@ -282,6 +314,10 @@ $transition: 0.22s ease;
     background: var(--accent-light);
     color: var(--text-primary);
     font-weight: 600;
+
+    &::before {
+      background: var(--accent);
+    }
   }
 
   &:focus-visible {
@@ -409,6 +445,19 @@ $transition: 0.22s ease;
       min-width: 150px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       z-index: 300;
+
+      // No tree connector inside the floating popover.
+      &::before {
+        display: none;
+      }
+
+      .childLink {
+        padding-left: $sp-3;
+
+        &::before {
+          display: none;
+        }
+      }
     }
 
     .groupChildrenOpen {
@@ -443,7 +492,7 @@ $transition: 0.22s ease;
         display: flex;
       }
 
-      // Revert to inline dropdown
+      // Revert to inline dropdown — tree connector comes back
       .groupChildren {
         position: static;
         max-height: 0;
@@ -456,10 +505,22 @@ $transition: 0.22s ease;
         padding: 0;
         min-width: unset;
         transition: max-height $transition;
+
+        &::before {
+          display: block;
+        }
+
+        .childLink {
+          padding-left: calc(#{$tree-x} + #{$sp-4});
+
+          &::before {
+            display: block;
+          }
+        }
       }
 
       .groupChildrenOpen {
-        max-height: 120px;
+        max-height: 240px;
       }
     }
   }
