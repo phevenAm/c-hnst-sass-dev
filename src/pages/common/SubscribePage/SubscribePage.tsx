@@ -68,15 +68,15 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
   },
   growth: {
     label: "Growth",
-    monthly: 13.99,
-    annual: 139,
+    monthly: 16.99,
+    annual: 169,
     desc: "For a growing practice",
     capacity: "15 active · 15 archived",
   },
   unlimited: {
     label: "Unlimited",
-    monthly: 19.99,
-    annual: 199,
+    monthly: 24.99,
+    annual: 249,
     desc: "No limit",
     capacity: "Unlimited clients",
   },
@@ -152,7 +152,7 @@ export default function SubscribePage() {
         body: { plan, billing, ...(referralCode ? { referral_code: referralCode } : {}) },
       });
 
-      console.log(data)
+      console.log(data);
 
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
@@ -346,7 +346,9 @@ export default function SubscribePage() {
             </div>
 
             <div className={styles.modalBody}>
-              <p className={styles.modalIntro}>Last updated: 6 September 2026. Please read the complete documents before subscribing.</p>
+              <p className={styles.modalIntro}>
+                Last updated: 6 September 2026. Please read the complete documents before subscribing.
+              </p>
 
               <div className={styles.purposeBox}>
                 <strong>Clarity is a practice management platform</strong> for independent counsellors and therapists.
@@ -359,8 +361,8 @@ export default function SubscribePage() {
                 <h3>What you are agreeing to</h3>
                 <p>
                   You are responsible for your practice, the client data you enter, lawful processing, professional
-                  records, and checking that Clarity is suitable for your work. Subscription pricing, cancellation,
-                  plan changes, pausing, deletion, support, and data responsibilities are set out in the full Terms of
+                  records, and checking that Clarity is suitable for your work. Subscription pricing, cancellation, plan
+                  changes, pausing, deletion, support, and data responsibilities are set out in the full Terms of
                   Service and Privacy Policy.
                 </p>
                 <p>

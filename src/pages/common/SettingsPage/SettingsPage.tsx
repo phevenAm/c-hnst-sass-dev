@@ -72,8 +72,8 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
 type TierKey = "starter" | "growth" | "unlimited";
 const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
   starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
-  growth: { label: "Growth", monthly: 13.99, annual: 139, blurb: "For a growing practice" },
-  unlimited: { label: "Unlimited", monthly: 19.99, annual: 199, blurb: "No client limit" },
+  growth: { label: "Growth", monthly: 16.99, annual: 169, blurb: "For a growing practice" },
+  unlimited: { label: "Unlimited", monthly: 24.99, annual: 249, blurb: "No client limit" },
 };
 const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
 
