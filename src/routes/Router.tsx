@@ -290,6 +290,7 @@ function ConsentGate() {
 
 function OnboardingGate() {
   const { userProfile, isAuthenticated, loading, isAdmin, isDemo, practiceSettings } = useAuth();
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -298,10 +299,11 @@ function OnboardingGate() {
       setShow(false);
       return;
     }
-    // Demo admin skips the subscribed/setup-done requirement below — it's a
-    // canned account with no real subscription or practice-setup flow to
-    // finish, so gating on those would just mean the modal can never show.
-    if (!isAdmin || isDemo) {
+    // Demo admin and agency-managed counsellors skip the subscribed/setup-done
+    // requirement below — neither has a subscription or a practice-setup flow of
+    // their own to finish, so gating on those would mean the modal never shows
+    // and an agency-invited counsellor gets zero onboarding.
+    if (!isAdmin || isDemo || isAgencyMember) {
       setShow(true);
       return;
     }
@@ -314,7 +316,7 @@ function OnboardingGate() {
       practiceSettings?.subscription_status === "active" || practiceSettings?.subscription_status === "trialing";
     const setupDone = !!practiceSettings && !practiceSettings.onboarding_required;
     setShow(subscribed && setupDone);
-  }, [loading, isAuthenticated, userProfile, isAdmin, isDemo, practiceSettings]);
+  }, [loading, isAuthenticated, userProfile, isAdmin, isDemo, isAgencyMember, practiceSettings]);
 
   if (!show) return null;
   return <OnboardingModal onComplete={() => setShow(false)} />;
