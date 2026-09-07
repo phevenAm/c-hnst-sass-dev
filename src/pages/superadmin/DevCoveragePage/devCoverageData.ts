@@ -47,19 +47,19 @@ export type CoverageEntry = {
 
 export const SUITE_SUMMARY = {
   unit: {
-    filesPassed: 60,
+    filesPassed: 73,
     filesSkipped: 9,
-    testsPassed: 599,
+    testsPassed: 720,
     testsTodo: 43,
     command: "npx vitest run",
-    ranAt: "2026-09-04",
+    ranAt: "2026-09-07",
   },
   e2e: {
-    files: 17,
-    tests: 70,
+    files: 21,
+    tests: 84,
     command: "npx playwright test",
-    note: "Counted from source (test() calls per spec) — not every suite was re-run this session. Suites actually re-run and confirmed green today: account-lifecycle (8, API-level) and account-lifecycle-ui (2, browser-driven with video).",
-    ranAt: "2026-09-04",
+    note: "Counted from source (test() calls per spec) — not every suite was re-run this session. Suites actually re-run and confirmed green today: auth-redirects (5), token-signup (3), resources-favourites (3), reschedule-approval (3) — all four new this session, browser-driven where it matters, self-cleaning.",
+    ranAt: "2026-09-07",
   },
 };
 
@@ -69,12 +69,14 @@ export type TestFileEntry = { kind: "unit" | "e2e"; file: string; count: number 
 // green as of the date above" list — not a claim that every one of these was
 // individually re-verified beyond its own assertions passing.
 export const ALL_TEST_FILES: TestFileEntry[] = [
-  { kind: "unit", file: "src/Helpers/Helpers.test.ts", count: 23 },
+  { kind: "unit", file: "src/Helpers/Helpers.test.ts", count: 37 },
+  { kind: "unit", file: "src/Helpers/calendarExport.test.ts", count: 13 },
   { kind: "unit", file: "src/Helpers/csvExport.test.ts", count: 5 },
   { kind: "unit", file: "src/Helpers/outcomeMeasureScoring.test.ts", count: 13 },
   { kind: "unit", file: "src/Helpers/pdfBranding.test.ts", count: 6 },
   { kind: "unit", file: "src/Helpers/rcadsScoring.test.ts", count: 20 },
-  { kind: "unit", file: "src/Helpers/sessionDate.test.ts", count: 3 },
+  { kind: "unit", file: "src/Helpers/referral.test.ts", count: 8 },
+  { kind: "unit", file: "src/Helpers/sessionDate.test.ts", count: 14 },
   { kind: "unit", file: "src/Helpers/sessionGrouping.test.ts", count: 8 },
   { kind: "unit", file: "src/Helpers/sessionOverlap.test.ts", count: 12 },
   { kind: "unit", file: "src/components/Consent/ConsentModal.test.tsx", count: 4 },
@@ -136,6 +138,7 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "unit", file: "src/pages/superadmin/SuperAdminPage/SuperAdminPage.test.tsx", count: 3 },
   { kind: "unit", file: "src/store/slices/__tests__/resourceFavouritesSlice.test.ts", count: 4 },
   { kind: "unit", file: "src/store/slices/__tests__/resourcesSlice.test.ts", count: 3 },
+  { kind: "unit", file: "src/store/slices/__tests__/responsesSlice.test.ts", count: 10 },
   { kind: "unit", file: "src/store/slices/__tests__/sessionsSlice.test.ts", count: 11 },
   { kind: "unit", file: "src/store/slices/sessionsSlice.test.ts", count: 11 },
   { kind: "unit", file: "src/store/slices/tagsSlice.test.ts", count: 4 },
@@ -145,6 +148,7 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
 
   { kind: "e2e", file: "e2e/account-lifecycle/account-lifecycle.spec.ts", count: 8 },
   { kind: "e2e", file: "e2e/account-lifecycle/account-lifecycle-ui.spec.ts", count: 2 },
+  { kind: "e2e", file: "e2e/auth-redirects/auth-redirects.spec.ts", count: 5 },
   { kind: "e2e", file: "e2e/auto-cancel/auto-cancel.spec.ts", count: 4 },
   { kind: "e2e", file: "e2e/axe-scan.spec.ts", count: 6 },
   { kind: "e2e", file: "e2e/change-plan/change-plan.spec.ts", count: 2 },
@@ -153,12 +157,15 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "e2e", file: "e2e/client-lifecycle/client-lifecycle.spec.ts", count: 3 },
   { kind: "e2e", file: "e2e/offline-invite-merge/offline-invite-merge.spec.ts", count: 2 },
   { kind: "e2e", file: "e2e/reminder-notification/reminder-notification.spec.ts", count: 1 },
+  { kind: "e2e", file: "e2e/reschedule-approval/reschedule-approval.spec.ts", count: 3 },
+  { kind: "e2e", file: "e2e/resources-favourites/resources-favourites.spec.ts", count: 3 },
   { kind: "e2e", file: "e2e/session-extras/session-extras.spec.ts", count: 5 },
   { kind: "e2e", file: "e2e/session-payment/session-payment.spec.ts", count: 2 },
   { kind: "e2e", file: "e2e/session-realtime/session-realtime.spec.ts", count: 2 },
   { kind: "e2e", file: "e2e/settings/settings-behavior.spec.ts", count: 12 },
   { kind: "e2e", file: "e2e/settings/settings.spec.ts", count: 5 },
   { kind: "e2e", file: "e2e/stripe/stripe.spec.ts", count: 8 },
+  { kind: "e2e", file: "e2e/token-signup/token-signup.spec.ts", count: 3 },
   { kind: "e2e", file: "e2e/update-banner/update-banner.spec.ts", count: 2 },
 ];
 
@@ -167,6 +174,73 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
 // went beyond "the assertions passed" — see the file-level comment above.
 
 export const COVERAGE: CoverageEntry[] = [
+  {
+    id: "coverage-expansion-20260907",
+    title: "Coverage expansion — auth gate, token signup, resources, reschedule",
+    summary:
+      "Filled four e2e blind spots (nothing about them was tested before) plus untested pure-logic helpers. Every e2e spec was run live against the real Supabase project this session, confirmed green, and confirmed to leave no fixture rows behind.",
+    unit: [
+      {
+        file: "src/Helpers/calendarExport.test.ts",
+        count: 13,
+        note: "new — ICS shape, CRLF, RFC-5545 75-octet folding, DTEND from duration, filename slug",
+      },
+      {
+        file: "src/Helpers/referral.test.ts",
+        count: 8,
+        note: "new — ?ref= capture/normalise, no-clobber on param-less nav",
+      },
+      {
+        file: "src/store/slices/__tests__/responsesSlice.test.ts",
+        count: 10,
+        note: "new — id-keyed merge on re-fetch, prepend/delete, chart selectors",
+      },
+      {
+        file: "src/Helpers/sessionDate.test.ts",
+        count: 14,
+        note: "+11 — formatDate/formatTime + csvToIso strict parsing",
+      },
+      {
+        file: "src/Helpers/Helpers.test.ts",
+        count: 37,
+        note: "+14 — getResponseDate, pickColor, isPdfUrl, maskedProfileValue",
+      },
+    ],
+    e2e: [
+      {
+        file: "e2e/auth-redirects/auth-redirects.spec.ts",
+        count: 5,
+        note: "browser — wrong password, unauth deep-link, client/admin role bounces, sign-out re-gates",
+      },
+      {
+        file: "e2e/token-signup/token-signup.spec.ts",
+        count: 3,
+        note: "browser + RPC — /signup links client to practice + burns token; bad token refused at form; used token refused by consume_platform_access_token",
+      },
+      {
+        file: "e2e/resources-favourites/resources-favourites.spec.ts",
+        count: 3,
+        note: "browser — pinned-first order, star -> Favourites tab + survives reload, un-star removes",
+      },
+      {
+        file: "e2e/reschedule-approval/reschedule-approval.spec.ts",
+        count: 3,
+        note: "API/RLS — client files request, cannot self-approve, admin approval moves the session + marks both rows",
+      },
+    ],
+    verifiedAt: "2026-09-07",
+    verification: [
+      "All four e2e specs run this session against the real deployed Supabase project via the shared e2e-settings fixture: auth-redirects 5/5, token-signup 3/3, resources-favourites 3/3, reschedule-approval 3/3.",
+      "token-signup drives the actual /signup form in a browser, then reads public.users / platform_access_token straight from the DB to confirm the account linked to the fixture practice and the token flipped is_used = true.",
+      "Ran a DB sweep after the suite (resources like 'E2E %', tokens like 'E2E-SIGNUP-%', tokensignup users, orphan reschedule_requests) — 0 rows left behind. token-signup also carries a namespaced afterAll sweep so a SIGKILLed run self-heals.",
+      "Full unit suite re-run: npx vitest run -> 720 passed / 43 todo. biome check + tsc --noEmit clean on every new/changed file.",
+    ],
+    gaps: [
+      "reschedule-approval exercises the request INSERT + admin-approve writes and their RLS, not the MUI date-picker modal the client actually uses (same trade-off as session-payment.spec.ts).",
+      "token-signup's happy path does not assert the welcome email / auto-confirm-signup side effects, only the DB end state.",
+      "Resources favourites: no coverage of the admin side (pinning a resource from /admin/resources) — only the client-facing consumption of is_pinned.",
+    ],
+  },
   {
     id: "account-pause-export-delete",
     title: "Practice pause, full-practice export, and account deletion",

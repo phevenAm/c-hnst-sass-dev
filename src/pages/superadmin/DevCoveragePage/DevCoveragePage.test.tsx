@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import DevCoveragePage from "./DevCoveragePage";
-import { ALL_TEST_FILES, SUITE_SUMMARY } from "./devCoverageData";
+import { ALL_TEST_FILES, COVERAGE, SUITE_SUMMARY } from "./devCoverageData";
 
 const unitFileCount = ALL_TEST_FILES.filter((f) => f.kind === "unit").length;
 const e2eFileCount = ALL_TEST_FILES.filter((f) => f.kind === "e2e").length;
@@ -37,7 +37,7 @@ describe("DevCoveragePage", () => {
       String(unitFileCount),
       String(SUITE_SUMMARY.e2e.tests),
       String(e2eFileCount),
-      "3",
+      String(COVERAGE.length),
     ]);
   });
 
