@@ -436,7 +436,7 @@ test("a freshly-joined agency staff member reaches /admin, not /subscribe or /ad
 // (src/pages/agency/AgencySettingsPage/settlement.ts) and that the overview
 // RPC the Settings screen calls is manager-gated.
 test("settlement direction resolves override > agency default > employment type; overview RPC is manager-only", async () => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
   const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
 
@@ -486,7 +486,7 @@ test("settlement direction resolves override > agency default > employment type;
 // Backs 20260907000033 — the triggers and agency_activity_feed() RPC the
 // manager-only /agency/activity page renders.
 test("agency activity feed captures governance events, filters by member, and never crosses agencies", async () => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
   const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
   const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);

@@ -88,10 +88,23 @@
         background: #162622;
         color: #2d5047;
       }
-      /* No fade-in delay: the mark is visible immediately, the SMIL
-         animation just plays from t=0. */
+      /* Fade the mark in over the first ~0.9s. This hides the least
+         interesting part of the SMIL animation (the initial stem-dot phase,
+         which also visibly stutters while the ~1 MB app bundle parses on the
+         main thread) — this CSS opacity animation runs on the compositor, so
+         it stays smooth even while that JS jank freezes the SVG. */
       #boot-splash-mark {
-        opacity: 1;
+        opacity: 0;
+        animation: boot-splash-fade-in 900ms ease both;
+      }
+      @keyframes boot-splash-fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        /* Reduced motion: no fade, just show it. bootSplash.ts additionally
+           cancels this for the app's own "Stop animations" toggle. */
+        #boot-splash-mark { opacity: 1; animation: none; }
       }
     </style>
   </head>

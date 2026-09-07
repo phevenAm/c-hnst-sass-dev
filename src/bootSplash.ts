@@ -24,12 +24,12 @@ declare global {
 // No exit fade — the splash is removed instantly once done, rather than
 // cross-fading into the app underneath.
 const FADE_MS = 0;
-// "sapling animated.svg"'s keyTimes were rescaled so it starts moving
-// immediately instead of opening on ~0.6s of a static dot before the stem/
-// leaves visibly moved. Growth now finishes by ~32% of the 5s loop (~1.6s);
-// give it a little past that so the held pose is clearly visible before
-// fading.
-const ONE_CYCLE_MS = 2200;
+// The mark fades in over 900ms (app.html) and the SMIL grow-in settles by
+// ~32% of the 5s loop (~1.6s). Hold past both so the finished sapling is
+// clearly visible before the splash goes — well short of the 5s loop wrap
+// where it snaps back to the start. finish() also waits on "clarity:auth-
+// ready", so real loads are usually longer than this.
+const ONE_CYCLE_MS = 3200;
 // Frozen frame for reduced motion: past all growth (~1.6s in), short of the
 // 5s loop boundary where behaviour at the exact wrap point is unreliable.
 const HELD_FRAME_S = 4.5;
@@ -79,6 +79,10 @@ function boot() {
   };
 
   if (reducedMotion) {
+    // The CSS fade-in keys off prefers-reduced-motion only; the app's own
+    // "Stop animations" toggle is JS-only, so cancel the fade here too.
+    mark.style.animation = "none";
+    mark.style.opacity = "1";
     try {
       svgEl.setCurrentTime?.(HELD_FRAME_S);
       svgEl.pauseAnimations?.();
