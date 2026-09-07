@@ -488,6 +488,13 @@ a:hover {
   grid-template-columns: repeat(3, 1fr);
   gap: $sp-5;
   margin-top: $sp-12;
+
+  // 7 cards in a 3-col grid leaves a lone card on the last row — centre it
+  // rather than letting it sit hard-left under an empty gap. Only applies
+  // when the count actually is 3n+1; harmless otherwise.
+  > .feature:last-child:nth-child(3n + 1) {
+    grid-column: 2;
+  }
 }
 
 // Onboarding's 4 cards don't divide evenly into 3 columns (3-then-1
