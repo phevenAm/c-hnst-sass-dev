@@ -169,9 +169,12 @@ export default function AdminSidebar({
     setLogsOpen((v) => !v);
   };
 
-  // In flyout (collapsed / mobile-closed) mode, open on hover or keyboard
-  // focus and close when the pointer/focus leaves the whole group.
-  const groupHoverProps = isFlyoutMode
+  // Hover to open the flyout ONLY on a real pointer (desktop, collapsed rail).
+  // On touch, mobile browsers synthesise mouseenter on tap — combined with the
+  // click toggle that meant "tap once to open, tap again because the first tap
+  // opened-then-closed". Touch gets click-only (handleGroupClick).
+  const hoverFlyout = collapsed && !isMobile;
+  const groupHoverProps = hoverFlyout
     ? {
         onMouseEnter: openFlyout,
         onMouseLeave: scheduleCloseFlyout,
@@ -225,8 +228,8 @@ export default function AdminSidebar({
                       ref={flyoutListRef}
                       className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}
                       style={isFlyoutMode ? ({ "--flyout-top": `${flyoutTop}px` } as React.CSSProperties) : undefined}
-                      onMouseEnter={isFlyoutMode ? openFlyout : undefined}
-                      onMouseLeave={isFlyoutMode ? scheduleCloseFlyout : undefined}
+                      onMouseEnter={hoverFlyout ? openFlyout : undefined}
+                      onMouseLeave={hoverFlyout ? scheduleCloseFlyout : undefined}
                     >
                       {item.children.map((child, i) => {
                         const active = location.pathname.startsWith(child.to);
