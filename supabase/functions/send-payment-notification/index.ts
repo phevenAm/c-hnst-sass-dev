@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
 
     let resendId: string | null = null;
     try {
-      resendId = await sendEmail({ to: clientEmail, subject, html, resendKey, fromEmail });
+      resendId = await sendEmail({ to: clientEmail, subject, html, resendKey, fromEmail, unsubscribeUrl });
     } catch (sendErr: any) {
       await logEmail(supabase, { ...logBase, status: "failed", errorMessage: sendErr.message });
       throw sendErr;

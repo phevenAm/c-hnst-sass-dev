@@ -3,9 +3,9 @@
 // Palette from src/styles/_colors.scss (Clarity teal/sage).
 
 const C = {
-  // Warm stone ground + a pure-white card with a hairline border, so the body
-  // always reads as its own panel. Mirrors supabase/functions/_shared/email.ts.
-  pageBg: "#e9e6da",
+  // Page ground and card both pure white (shadow + hairline lift the card).
+  // Light-only email — mirrors supabase/functions/_shared/email.ts.
+  pageBg: "#ffffff",
   cardBg: "#ffffff",
   header: "#1f4940",
   footer: "#1a3a35",
