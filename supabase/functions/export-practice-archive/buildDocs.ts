@@ -33,6 +33,9 @@ export type Libs = {
   autoTable?: (doc: any, opts: any) => void;
   // deno-lint-ignore no-explicit-any
   JSZip: any;
+  /** Optional cover photo as a `data:image/jpeg;base64,…` URI (index.ts passes
+   *  PDF_COVER_JPEG). When absent the cover is a flat teal page. */
+  coverJpeg?: string;
 };
 
 // ── Brand ───────────────────────────────────────────────────────────────────
@@ -311,23 +314,37 @@ function buildPdf(
   };
 
   // ── Cover ──
+  // The frosted login-art photo when the caller supplies one (index.ts passes
+  // PDF_COVER_JPEG), else a flat teal page. Either way a solid teal band along
+  // the bottom carries the wordmark + title so the text stays crisp over the
+  // photo.
+  const bandTop = H - 70;
+  if (libs.coverJpeg) {
+    // The JPEG is a portrait-A4 crop; draw it cover-fit (full width, bleeding
+    // off top and bottom) so it isn't stretched on this landscape page.
+    const drawH = W * 1.414;
+    doc.addImage(libs.coverJpeg, "JPEG", 0, (H - drawH) / 2, W, drawH, undefined, "FAST");
+  } else {
+    doc.setFillColor(TEAL[0], TEAL[1], TEAL[2]);
+    doc.rect(0, 0, W, bandTop, "F");
+  }
   doc.setFillColor(TEAL[0], TEAL[1], TEAL[2]);
-  doc.rect(0, 0, W, H, "F");
-  drawSprout(doc, 22, 48, 14);
+  doc.rect(0, bandTop, W, H - bandTop, "F");
+
+  drawSprout(doc, 18, bandTop + 24, 11);
   doc.setTextColor(WHITE[0], WHITE[1], WHITE[2]);
   doc.setFont("times", "normal");
-  doc.setFontSize(36);
-  doc.text("Clarity", 36, 48);
-  doc.setFontSize(22);
-  doc.text(title, 20, 82);
-  doc.setFontSize(13);
-  doc.text(input.practiceName, 20, 94);
-  doc.text(`Generated ${input.exportedAt} UTC`, 20, 102);
+  doc.setFontSize(30);
+  doc.text("Clarity", 30, bandTop + 25);
+  doc.setFontSize(17);
+  doc.text(`${input.practiceName} — ${title}`, 20, bandTop + 42);
   doc.setFontSize(10);
+  doc.setTextColor(198, 216, 211);
+  doc.text(`Generated ${input.exportedAt} UTC`, 20, bandTop + 53);
   doc.text(
-    "Confidential — contains personal data. Store securely and delete when it is no longer needed.",
+    "Confidential — contains personal data. Store securely and delete it when no longer needed.",
     20,
-    H - 18,
+    bandTop + 61,
     { maxWidth: W - 40 },
   );
 
