@@ -8,6 +8,8 @@ import form from "@pages/agency/agency.module.scss";
 import { formatPence } from "@pages/agency/agencyFormat";
 import { useAppDispatch } from "@store/hooks";
 import { respondToAssignment } from "@store/slices/agencySlice";
+import { fetchClientStubs } from "@store/slices/clientStubsSlice";
+import { fetchAllUsers } from "@store/slices/userDirectorySlice";
 
 type ReviewAssignment = ClientAssignment & { client_name: string };
 
@@ -39,6 +41,12 @@ export default function ClientReviewModal({
           decline_reason: accept ? undefined : reason.trim() || undefined,
         }),
       ).unwrap();
+      if (accept) {
+        // Pull the new client/stub into Redux now so the caseload count and
+        // the first-client confetti update immediately, not on next reload.
+        dispatch(fetchAllUsers());
+        dispatch(fetchClientStubs());
+      }
       showToast(
         accept
           ? `${assignment.client_name} is now on your caseload.`
