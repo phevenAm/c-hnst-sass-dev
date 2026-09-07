@@ -267,7 +267,8 @@ $guide-x: 1.4rem;
     left: $guide-x;
     top: 4px;
     bottom: 4px;
-    width: 1px;
+    width: 2px;
+    border-radius: 1px;
     background: var(--border);
   }
 }
@@ -424,7 +425,10 @@ $guide-x: 1.4rem;
       display: none;
     }
 
-    // Icon-strip: a plain popover menu flush against the sidebar's right edge.
+    // Icon-strip flyout: a popover that overlaps the rail by 4px so the pointer
+    // never crosses a gap on its way in (paired with the hover-intent grace
+    // timer in AdminSidebar.tsx). Keeps the same guide line + active accent
+    // segment as the expanded submenu.
     .groupChildren {
       position: fixed;
       left: calc(#{$w-collapsed} - 4px);
@@ -441,30 +445,23 @@ $guide-x: 1.4rem;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--r-lg);
-      padding: $sp-2;
+      padding: $sp-2 $sp-2 $sp-2 0;
       min-width: 172px;
       box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
       z-index: 300;
       transition: opacity 120ms ease, transform 120ms ease;
 
-      // No guide line in the floating menu.
       &::before {
-        display: none;
+        display: block;
       }
 
       .childLink {
-        padding: $sp-3 $sp-3;
+        padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-4});
         font-size: 0.85rem;
-        margin: 0;
+        margin: 1px 0;
 
         &::before {
-          display: none;
-        }
-
-        &.active {
-          background: var(--accent-secondary);
-          color: var(--text-primary);
-          font-weight: 600;
+          display: block;
         }
       }
     }
