@@ -36,6 +36,7 @@ export {
   LockOpenIcon,
   MailIcon,
   MenuIcon,
+  MegaphoneIcon,
   MoneyIcon,
   MoonIcon,
   NotificationBellIcon,

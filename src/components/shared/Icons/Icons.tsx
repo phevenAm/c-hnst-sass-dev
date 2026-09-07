@@ -28,6 +28,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
 import Lottie from "lottie-react";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 
 import { useResolvedTheme } from "../../../Hooks/useResolvedTheme";
 import saplingSway from "../../../LOGO Asset/sapling-sway.json";
@@ -725,3 +726,5 @@ export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
 export const CpdIcon = () => <WebStoriesOutlinedIcon />;
 export const CreateSession = () => <InsertInvitationIcon />;
 export const AssignmentClipIcon = () => <AssignmentOutlinedIcon />;
+
+export const MegaphoneIcon = () => <CampaignOutlinedIcon />;
