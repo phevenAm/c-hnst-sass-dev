@@ -48,7 +48,7 @@ $transition: 0.22s ease;
 
   .groupChildren {
     position: fixed;
-    left: $w-collapsed;
+    left: calc(#{$w-collapsed} - 6px); // 6px overlap onto the rail — no gap to cross
     top: var(--flyout-top, 0px);
     max-height: none !important;
     overflow: visible;
@@ -57,10 +57,23 @@ $transition: 0.22s ease;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: $sp-2;
+    padding: $sp-2 $sp-2 $sp-2 0;
     min-width: 150px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     z-index: 300;
+
+    // Invisible bridge: extends the flyout's hover hit-area back across the
+    // rail so the pointer never lands in dead space between the icon and the
+    // panel (which would fire mouseleave on the group and close it). Only live
+    // while the flyout is open (pointer-events flips with .groupChildrenOpen).
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -22px;
+      width: 22px;
+    }
   }
 
   .groupChildrenOpen {
