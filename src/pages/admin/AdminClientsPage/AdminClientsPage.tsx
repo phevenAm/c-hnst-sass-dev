@@ -7,18 +7,19 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Card from "@components/shared/Card/Card";
 import ClientCapBanner from "@components/shared/ClientCapBanner/ClientCapBanner";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import FirstClientTipsModal from "@components/shared/FirstClientTipsModal/FirstClientTipsModal";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { supabase } from "@lib/supabase";
 import type { ClientStub, Questionnaire, Response, UserProfile } from "@models/globalTypes";
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
-import { deleteClientStub, fetchClientStubs, selectAllStubs } from "@store/slices/clientStubsSlice";
+import { deleteClientStub, fetchClientStubs, selectAllStubs, updateClientStub } from "@store/slices/clientStubsSlice";
 import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 import { fetchAllAssignments, selectPlottedAssignmentByUser } from "@store/slices/questionnaireAssignmentsSlice";
 import { fetchQuestionnaires, selectAllQuestionnaires } from "@store/slices/questionnairesSlice";
 import { fetchAllResponses, selectResponsesByUser } from "@store/slices/responsesSlice";
-import { fetchAllUsers, selectAllUsers, unarchiveClient } from "@store/slices/userDirectorySlice";
+import { archiveClient, fetchAllUsers, selectAllUsers, unarchiveClient } from "@store/slices/userDirectorySlice";
 
 import { Button } from "@/components/shared";
 import HideableSection from "@/components/shared/HideableSection/HideableSection";
@@ -51,7 +52,9 @@ function ClientRow({ user }: { user: UserProfile }) {
   const allResponses = useAppSelector(selectResponsesByUser(user.id));
   const questionnaires = useAppSelector(selectAllQuestionnaires);
   const plottedAssignment = useAppSelector(selectPlottedAssignmentByUser(user.id));
-  const { practiceSettings } = useAuth();
+  const { practiceSettings, isDemo } = useAuth();
+  const dispatch = useAppDispatch();
+  const { showToast } = useToast();
   const displayName = clientDisplayName(user, practiceSettings?.use_client_codenames ?? false);
   // Email is intentionally not shown in the list row — it overflowed the layout
   // on narrow screens and added little at a glance. It's on the client's detail
@@ -73,8 +76,29 @@ function ClientRow({ user }: { user: UserProfile }) {
 
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState("");
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeactivateOpen, setDeactivateOpen] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
   const [isNotesOpen, setNotesOpen] = useState(false);
   const navigate = useNavigate();
+
+  const handleDeactivate = async () => {
+    if (isDemo) {
+      showToast("Deactivating clients is disabled in the demo.", "danger");
+      setDeactivateOpen(false);
+      return;
+    }
+    setDeactivating(true);
+    try {
+      await dispatch(archiveClient({ id: user.id })).unwrap();
+      dispatch(fetchAllUsers());
+      showToast(`${displayName} moved to Deactivated. Their history is kept.`);
+      setDeactivateOpen(false);
+    } catch {
+      showToast("Couldn't deactivate this client.", "danger");
+    } finally {
+      setDeactivating(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedQuestionnaireId && questionnaireOptions[0]?.id) {
@@ -151,12 +175,31 @@ function ClientRow({ user }: { user: UserProfile }) {
           <SplitButton
             primaryLabel="Manage"
             primaryAction={() => navigate(`/admin/clients/${user.id}`)}
-            options={[{ label: "Remove", onClick: () => setDeleteModalOpen(true) }]}
+            options={[
+              { label: "Deactivate", onClick: () => setDeactivateOpen(true) },
+              { label: "Delete", onClick: () => setDeleteModalOpen(true) },
+            ]}
             secondaryLabel="More options"
             variant="secondary"
           />
         </div>
       </div>
+
+      {isDeactivateOpen && (
+        <ConfirmModal
+          title={`Deactivate ${displayName}?`}
+          confirmLabel="Deactivate client"
+          confirming={deactivating}
+          onConfirm={handleDeactivate}
+          onClose={() => setDeactivateOpen(false)}
+        >
+          <p>
+            Moves them to the <strong>Deactivated</strong> tab. Their sessions, notes, check-ins and payment history are
+            all kept — nothing is deleted. They lose access to the app and stop counting toward your client limit.
+          </p>
+          <p>You can reactivate them at any time. To anonymise their details too, use the client's own page.</p>
+        </ConfirmModal>
+      )}
 
       {isDeleteModalOpen && (
         <DeleteClientModal
@@ -165,7 +208,8 @@ function ClientRow({ user }: { user: UserProfile }) {
           modalTitle="Delete user"
           bodyText={
             <>
-              Are you sure you want to delete <strong>{displayName}</strong>?
+              Are you sure you want to delete <strong>{displayName}</strong>? This permanently erases their sessions,
+              notes and check-ins. To keep their history, choose <strong>Deactivate</strong> instead.
             </>
           }
         />
@@ -186,6 +230,8 @@ function StubRow({ stub }: { stub: ClientStub }) {
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -219,6 +265,24 @@ function StubRow({ stub }: { stub: ClientStub }) {
     } catch {
       showToast("Failed to delete client.", "danger");
       setDeleting(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (isDemo) {
+      showToast("Deactivating clients is disabled in the demo.", "danger");
+      setDeactivateOpen(false);
+      return;
+    }
+    setDeactivating(true);
+    try {
+      await dispatch(updateClientStub({ id: stub.id, archived_at: new Date().toISOString() })).unwrap();
+      showToast(`${displayName} moved to Deactivated. Their record is kept.`);
+      setDeactivateOpen(false);
+    } catch {
+      showToast("Couldn't deactivate this client.", "danger");
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -328,6 +392,7 @@ function StubRow({ stub }: { stub: ClientStub }) {
               ...(stub.email && !stub.linked_user_id
                 ? [{ label: "Send invite email", onClick: () => setInviteOpen(true) }]
                 : []),
+              { label: "Deactivate", onClick: () => setDeactivateOpen(true) },
               { label: "Delete", onClick: () => setConfirmDelete(true) },
               {
                 label: "Link to real client",
@@ -345,6 +410,22 @@ function StubRow({ stub }: { stub: ClientStub }) {
 
       {editOpen && <CreateStubModal existing={stub} onClose={() => setEditOpen(false)} />}
       {inviteOpen && <InviteStubModal stub={stub} onClose={() => setInviteOpen(false)} />}
+
+      {deactivateOpen && (
+        <ConfirmModal
+          title={`Deactivate ${displayName}?`}
+          confirmLabel="Deactivate client"
+          confirming={deactivating}
+          onConfirm={handleDeactivate}
+          onClose={() => setDeactivateOpen(false)}
+        >
+          <p>
+            Moves this offline record to the <strong>Deactivated</strong> tab. Their sessions, notes and payment history
+            are kept — nothing is deleted — and they stop counting toward your client limit.
+          </p>
+          <p>You can reactivate them at any time.</p>
+        </ConfirmModal>
+      )}
     </>
   );
 }
@@ -399,6 +480,60 @@ function ArchivedClientRow({ user }: { user: UserProfile }) {
   );
 }
 
+// ── Archived (deactivated) offline-client row ─────────────────
+
+function ArchivedStubRow({ stub }: { stub: ClientStub }) {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { showToast } = useToast();
+  const { isDemo, practiceSettings } = useAuth();
+  const [restoring, setRestoring] = useState(false);
+  const useCodenames = practiceSettings?.use_client_codenames ?? false;
+  const displayName = useCodenames && stub.codename ? stub.codename : `${stub.first_name} ${stub.last_name}`.trim();
+
+  const handleReactivate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDemo) {
+      showToast("Demo mode — changes are not saved.", "warning");
+      return;
+    }
+    setRestoring(true);
+    try {
+      await dispatch(updateClientStub({ id: stub.id, archived_at: null })).unwrap();
+      showToast("Offline client reactivated.");
+    } catch {
+      showToast("Couldn't reactivate this client.", "danger");
+      setRestoring(false);
+    }
+  };
+
+  return (
+    <div
+      className={styles.clientRow}
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/admin/clients/stub/${stub.id}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(`/admin/clients/stub/${stub.id}`);
+        }
+      }}
+    >
+      <Avatar name={displayName} imageSrc="" size={40} />
+      <div className={styles.clientMeta}>
+        <p className={styles.clientName}>{displayName}</p>
+        <p className={styles.clientEmail}>
+          Deactivated{stub.archived_at ? ` ${dayjs(stub.archived_at).format("D MMM YYYY")}` : ""} · offline
+        </p>
+      </div>
+      <Button variant="secondary" size="sm" disabled={isDemo || restoring} onClick={handleReactivate}>
+        Reactivate
+      </Button>
+    </div>
+  );
+}
+
 // ── Subheaded, independently-paginated list ───────────────────
 
 function PaginatedGroup({
@@ -443,7 +578,8 @@ export default function AdminClientsPage() {
   const dispatch = useAppDispatch();
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const allStubs = useAppSelector(selectAllStubs);
-  const unlinkedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id), [allStubs]);
+  const unlinkedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id && !s.archived_at), [allStubs]);
+  const archivedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id && s.archived_at), [allStubs]);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [manageTokensModal, setManageTokensModal] = useState(false);
@@ -539,15 +675,17 @@ export default function AdminClientsPage() {
   const onlineClients = activeClients.filter(userMatches);
   const offlineClients = unlinkedStubs.filter(stubMatches);
   const deactivatedItems = deactivatedClients.filter(userMatches);
+  const deactivatedStubItems = archivedStubs.filter(stubMatches);
+  const deactivatedCount = deactivatedItems.length + deactivatedStubItems.length;
 
   const activeCount = onlineClients.length + offlineClients.length;
-  const totalClients = activeClients.length + deactivatedClients.length + unlinkedStubs.length;
+  const totalClients = activeClients.length + deactivatedClients.length + unlinkedStubs.length + archivedStubs.length;
 
   const emptyMsg = search.trim() ? "No clients match your search." : null;
 
   const renderTabBody = () => {
     if (tab === "deactivated") {
-      if (deactivatedItems.length === 0) {
+      if (deactivatedCount === 0) {
         return (
           <Card>
             <div className={styles.empty}>
@@ -559,12 +697,15 @@ export default function AdminClientsPage() {
       return (
         <PaginatedGroup
           heading="Deactivated"
-          total={deactivatedItems.length}
+          total={deactivatedCount}
           visible={visible.deactivated}
           onShowMore={() => showMore("deactivated")}
         >
           {deactivatedItems.slice(0, visible.deactivated).map((u) => (
             <ArchivedClientRow key={u.id} user={u} />
+          ))}
+          {deactivatedStubItems.slice(0, Math.max(0, visible.deactivated - deactivatedItems.length)).map((s) => (
+            <ArchivedStubRow key={s.id} stub={s} />
           ))}
         </PaginatedGroup>
       );
@@ -636,7 +777,9 @@ export default function AdminClientsPage() {
             <h1>Clients</h1>
             <p>
               {activeClients.length} active
-              {deactivatedClients.length > 0 ? ` · ${deactivatedClients.length} deactivated` : ""}
+              {deactivatedClients.length + archivedStubs.length > 0
+                ? ` · ${deactivatedClients.length + archivedStubs.length} deactivated`
+                : ""}
               {unlinkedStubs.length > 0 ? ` · ${unlinkedStubs.length} offline` : ""}
             </p>
           </div>
@@ -695,7 +838,7 @@ export default function AdminClientsPage() {
               {(
                 [
                   ["active", "Active", activeClients.length + unlinkedStubs.length],
-                  ["deactivated", "Deactivated", deactivatedClients.length],
+                  ["deactivated", "Deactivated", deactivatedClients.length + archivedStubs.length],
                 ] as const
               ).map(([key, label, count]) => (
                 <button
