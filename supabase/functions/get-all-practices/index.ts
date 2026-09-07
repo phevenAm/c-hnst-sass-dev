@@ -17,7 +17,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // Anon key + the caller's JWT forwarded, so auth.uid() resolves to the
+    // caller inside the SECURITY DEFINER RPC (which does the superadmin gate).
+    // We deliberately DON'T use the service-role key here — the previous
+    // implementation did, and its supabase.auth.admin.listUsers() call started
+    // returning 500 "Database error finding users" on this project. The RPC
+    // reads auth.users.email itself, in one round trip, and also stitches in
+    // agencies.
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     const {
       data: { user },
@@ -27,75 +36,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    // Verify caller is superadmin
-    const { data: caller } = await supabase.from("users").select("is_superadmin").eq("id", user.id).single();
-
-    if (!caller?.is_superadmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+    const { data, error } = await supabase.rpc("superadmin_directory");
+    if (error) {
+      // The RPC raises 'Forbidden' (SQLSTATE 42501) for a non-superadmin.
+      const status = error.code === "42501" || /forbidden/i.test(error.message) ? 403 : 500;
+      return new Response(JSON.stringify({ error: error.message }), { status, headers: corsHeaders });
     }
 
-    // Fetch all practices. We deliberately DON'T use a PostgREST embed to
-    // public.users here: (a) email lives on auth.users, not public.users, and
-    // (b) the admin_id FK points at auth.users, so the embed can't resolve.
-    // Instead we fetch owners separately and stitch in JS.
-    const { data: practices, error: fetchError } = await supabase
-      .from("practice_settings")
-      .select(`
-        id,
-        admin_id,
-        business_name,
-        subscription_status,
-        subscription_plan,
-        stripe_subscription_id,
-        billing_customer_id,
-        is_paused,
-        paused_reason,
-        updated_at
-      `)
-      .order("updated_at", { ascending: false });
-
-    if (fetchError) throw new Error(fetchError.message);
-
-    const list = practices ?? [];
-
-    // No practices — return early (avoids an empty .in() query error).
-    if (list.length === 0) {
-      return new Response(JSON.stringify({ practices: [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const adminIds = [...new Set(list.map((p) => p.admin_id).filter(Boolean))];
-
-    // Owner name/status from public.users (email is NOT stored here).
-    const { data: profiles, error: profErr } = await supabase
-      .from("users")
-      .select("id, first_name, last_name, created_at, disabled")
-      .in("id", adminIds);
-    if (profErr) throw new Error(profErr.message);
-    const profileById = new Map((profiles ?? []).map((u) => [u.id, u]));
-
-    // Owner email from auth.users (service-role admin API).
-    // perPage is generous for now; paginate if the platform outgrows it.
-    const { data: authList, error: authListErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (authListErr) throw new Error(authListErr.message);
-    const emailById = new Map(authList.users.map((u) => [u.id, u.email ?? null]));
-
-    const enriched = list.map((p) => {
-      const prof = profileById.get(p.admin_id);
-      return {
-        ...p,
-        users: {
-          first_name: prof?.first_name ?? null,
-          last_name: prof?.last_name ?? null,
-          email: emailById.get(p.admin_id) ?? null,
-          created_at: prof?.created_at ?? null,
-          disabled: prof?.disabled ?? false,
-        },
-      };
-    });
-
-    return new Response(JSON.stringify({ practices: enriched }), {
+    // data is { practices: [...], agencies: [...] } — pass it straight through.
+    return new Response(JSON.stringify(data ?? { practices: [], agencies: [] }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: unknown) {

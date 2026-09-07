@@ -29,6 +29,22 @@ type Practice = {
   } | null;
 };
 
+// get-all-practices now returns { practices, agencies }. `practices` is
+// standalone admins only (not attached to an agency); agencies get their own
+// section rather than each member admin showing as a separate practice row.
+type Agency = {
+  id: string;
+  name: string;
+  subscription_plan: string | null;
+  billing_interval: string | null;
+  created_at: string;
+  updated_at: string;
+  owner_id: string | null;
+  active_member_count: number;
+  linked_admin_count: number;
+  owner: { first_name: string | null; last_name: string | null; email: string | null } | null;
+};
+
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   active: { label: "Active", cls: styles.statusActive },
   trialing: { label: "Trial", cls: styles.statusTrial },
@@ -59,6 +75,7 @@ const FEEDBACK_STATUSES: FeedbackRow["status"][] = ["new", "reviewing", "done"];
 export default function SuperAdminPage() {
   const { signOut } = useAuth();
   const [practices, setPractices] = useState<Practice[]>([]);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -73,6 +90,7 @@ export default function SuperAdminPage() {
       const { data, error: fnError } = await supabase.functions.invoke("get-all-practices");
       if (fnError) throw new Error(fnError.message);
       setPractices(data.practices ?? []);
+      setAgencies(data.agencies ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load practices");
     } finally {
@@ -192,72 +210,129 @@ export default function SuperAdminPage() {
       {error && <p className={styles.errorMsg}>{error}</p>}
 
       {!loading && !error && (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Practice</th>
-                <th>Owner</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>Registered</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
+        <>
+          <h2 className={styles.sectionTitle}>Practices ({filtered.length})</h2>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={6} className={styles.empty}>
-                    No practices found.
-                  </td>
+                  <th>Practice</th>
+                  <th>Owner</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Registered</th>
+                  <th>Actions</th>
                 </tr>
-              )}
-              {filtered.map((p) => {
-                const status = STATUS_LABELS[p.subscription_status] ?? {
-                  label: p.subscription_status,
-                  cls: styles.statusInactive,
-                };
-                const ownerName = [p.users?.first_name, p.users?.last_name].filter(Boolean).join(" ") || "—";
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      <span className={styles.practiceName}>{p.business_name || "Unnamed practice"}</span>
-                    </td>
-                    <td>
-                      <span className={styles.ownerName}>{ownerName}</span>
-                      {p.users?.email && <span className={styles.ownerEmail}>{p.users.email}</span>}
-                    </td>
-                    <td>
-                      <span className={styles.planTag}>{PLAN_LABELS[p.subscription_plan] ?? p.subscription_plan}</span>
-                    </td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${status.cls}`}>{status.label}</span>
-                      {p.is_paused && <span className={`${styles.statusBadge} ${styles.statusPaused}`}>Paused</span>}
-                    </td>
-                    <td className={styles.dateCell}>
-                      {new Date(p.users?.created_at ?? p.updated_at).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td>
-                      {p.is_paused ? (
-                        <Button variant="secondary" size="sm" onClick={() => setResumingPractice(p)}>
-                          Resume
-                        </Button>
-                      ) : (
-                        <Button variant="ghost-danger" size="sm" onClick={() => setPausingPractice(p)}>
-                          Pause
-                        </Button>
-                      )}
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className={styles.empty}>
+                      No practices found.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                )}
+                {filtered.map((p) => {
+                  const status = STATUS_LABELS[p.subscription_status] ?? {
+                    label: p.subscription_status,
+                    cls: styles.statusInactive,
+                  };
+                  const ownerName = [p.users?.first_name, p.users?.last_name].filter(Boolean).join(" ") || "—";
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        <span className={styles.practiceName}>{p.business_name || "Unnamed practice"}</span>
+                      </td>
+                      <td>
+                        <span className={styles.ownerName}>{ownerName}</span>
+                        {p.users?.email && <span className={styles.ownerEmail}>{p.users.email}</span>}
+                      </td>
+                      <td>
+                        <span className={styles.planTag}>
+                          {PLAN_LABELS[p.subscription_plan] ?? p.subscription_plan}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`${styles.statusBadge} ${status.cls}`}>{status.label}</span>
+                        {p.is_paused && <span className={`${styles.statusBadge} ${styles.statusPaused}`}>Paused</span>}
+                      </td>
+                      <td className={styles.dateCell}>
+                        {new Date(p.users?.created_at ?? p.updated_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td>
+                        {p.is_paused ? (
+                          <Button variant="secondary" size="sm" onClick={() => setResumingPractice(p)}>
+                            Resume
+                          </Button>
+                        ) : (
+                          <Button variant="ghost-danger" size="sm" onClick={() => setPausingPractice(p)}>
+                            Pause
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <h2 className={styles.sectionTitle}>Agencies ({agencies.length})</h2>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Agency</th>
+                  <th>Owner</th>
+                  <th>Plan</th>
+                  <th>Members</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agencies.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={styles.empty}>
+                      No agencies.
+                    </td>
+                  </tr>
+                )}
+                {agencies.map((a) => {
+                  const ownerName = [a.owner?.first_name, a.owner?.last_name].filter(Boolean).join(" ") || "—";
+                  return (
+                    <tr key={a.id}>
+                      <td>
+                        <span className={styles.practiceName}>{a.name}</span>
+                      </td>
+                      <td>
+                        <span className={styles.ownerName}>{ownerName}</span>
+                        {a.owner?.email && <span className={styles.ownerEmail}>{a.owner.email}</span>}
+                      </td>
+                      <td>
+                        <span className={styles.planTag}>{a.subscription_plan ?? "—"}</span>
+                      </td>
+                      <td>
+                        {a.active_member_count} active
+                        {a.linked_admin_count !== a.active_member_count && ` / ${a.linked_admin_count} linked`}
+                      </td>
+                      <td className={styles.dateCell}>
+                        {new Date(a.created_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {pausingPractice && (
