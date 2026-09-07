@@ -52,7 +52,7 @@ test("assign a check-in with a new tag, complete it, and see it plotted — with
   await loginInBrowser(page, FIXTURES.admin.email, FIXTURES.admin.password);
   await page.goto(`${APP_URL}/admin/forms`, { waitUntil: "load", timeout: 20000 });
 
-  await page.getByRole("button", { name: "+ New form" }).click();
+  await page.getByRole("button", { name: "New form" }).click();
   await page.locator("#q-title").fill(FORM_TITLE);
   await page.locator("#q-freq").selectOption("weekly");
   await page.getByPlaceholder("Question text…").fill("How are you feeling?");

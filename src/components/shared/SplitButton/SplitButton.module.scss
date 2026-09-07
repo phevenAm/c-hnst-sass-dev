@@ -139,6 +139,18 @@
     }
 }
 
+// Primary rendered as a bare "+" — square, never grows/shrinks with a label.
+.iconOnly {
+    padding-left: $sp-3 !important;
+    padding-right: $sp-3 !important;
+    flex-shrink: 0;
+
+    svg {
+        width: 1.05rem;
+        height: 1.05rem;
+    }
+}
+
 // ── Sizes ──────────────────────────────────────────────────
 .sm {
     padding: $sp-2 $sp-4;

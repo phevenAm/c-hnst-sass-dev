@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { Size, Variant } from "@constants/constants";
 
-import { ChevronDown } from "../Icons/Icons";
+import { ChevronDown, PlusIcon } from "../Icons/Icons";
 
 import styles from "./SplitButton.module.scss";
 
@@ -13,6 +13,10 @@ export interface SplitButtonProps extends React.ButtonHTMLAttributes<HTMLButtonE
   options: { label: string; onClick: () => void }[];
   primaryLabel: string;
   secondaryLabel?: string;
+  /** Render the primary action as just a "+" icon (label moves to
+   *  aria-label + tooltip). For page-header CTAs that must stay inline with
+   *  the title and never wrap. */
+  iconOnly?: boolean;
 }
 
 const SplitButton = ({
@@ -22,6 +26,7 @@ const SplitButton = ({
   options = [],
   primaryLabel = "placeholder primary label",
   secondaryLabel = "Show more options",
+  iconOnly = false,
 }: SplitButtonProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [opensUpward, setOpensUpward] = useState(false);
@@ -64,10 +69,12 @@ const SplitButton = ({
     <div ref={wrapperRef} className={wrapperClass}>
       <button
         type="button"
-        className={[classes, styles.mainButton].filter(Boolean).join(" ")}
+        className={[classes, styles.mainButton, iconOnly ? styles.iconOnly : ""].filter(Boolean).join(" ")}
         onClick={() => primaryAction()}
+        aria-label={iconOnly ? primaryLabel : undefined}
+        title={iconOnly ? primaryLabel : undefined}
       >
-        {primaryLabel}
+        {iconOnly ? <PlusIcon /> : primaryLabel}
       </button>
       <button
         type="button"
