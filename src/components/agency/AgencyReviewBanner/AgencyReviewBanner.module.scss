@@ -4,8 +4,10 @@
   justify-content: center;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
+  // Light mode: --accent resolves to teal-700 (#235c50), a dark teal — white
+  // text on it clears WCAG AA (~7.6:1).
   background: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
@@ -13,6 +15,19 @@
 
   &:hover {
     background: var(--accent-dark);
+  }
+
+  // Dark mode: --accent resolves to teal-400 (#5aaa99), a light sage — white
+  // text on that is unreadable (~2.3:1). Keep the accent fill the user asked
+  // for, but flip the text (and the CTA chip) to a dark ink (~6:1).
+  :global(.dark) & {
+    color: #0f231e;
+    border-bottom-color: rgba(0, 0, 0, 0.25);
+
+    &:hover {
+      background: var(--accent);
+      filter: brightness(0.95);
+    }
   }
 }
 
@@ -22,11 +37,20 @@
   gap: var(--sp-1);
   padding: 0.15rem 0.6rem;
   border-radius: var(--r-full);
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.22);
   font-weight: 700;
   white-space: nowrap;
 
   .banner:hover & {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.32);
+  }
+
+  :global(.dark) .banner & {
+    background: rgba(0, 0, 0, 0.16);
+    color: #0f231e;
+  }
+
+  :global(.dark) .banner:hover & {
+    background: rgba(0, 0, 0, 0.24);
   }
 }

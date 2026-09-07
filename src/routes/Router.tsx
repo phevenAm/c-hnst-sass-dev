@@ -27,6 +27,7 @@ import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
 import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
 import { useResolvedTheme } from "../Hooks/useResolvedTheme";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
+import { isFeatureEnabled } from "../lib/featureFlags";
 import LoginPage from "../pages/client/LoginPage/LoginPage";
 import NotFoundPage from "../pages/common/NotFoundPage/NotFoundPage";
 import { useAppSelector } from "../store/hooks";
@@ -465,32 +466,38 @@ export default function AppRoutes() {
                 }
               />
 
-              {/* Agency "manage mode" — standalone shell, gated to agency members */}
-              <Route
-                path="/register/agency"
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <CreateAgencyPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AgencyLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/agency" element={<AgencyOverviewPage />} />
-                <Route path="/agency/members" element={<AgencyMembersPage />} />
-                <Route path="/agency/clients" element={<AgencyClientsPage />} />
-                <Route path="/agency/sessions" element={<AgencySessionsPage />} />
-                <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
-                <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
-                <Route path="/agency/finance" element={<AgencyFinancePage />} />
-                <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
-                <Route path="/agency/settings" element={<AgencySettingsPage />} />
-              </Route>
+              {/* Agency "manage mode" — standalone shell, gated to agency members.
+                  Behind the `agency` feature flag: off in production until the
+                  agency flows are finished, so /agency/* 404s there. */}
+              {isFeatureEnabled("agency") && (
+                <>
+                  <Route
+                    path="/register/agency"
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <CreateAgencyPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <AgencyLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/agency" element={<AgencyOverviewPage />} />
+                    <Route path="/agency/members" element={<AgencyMembersPage />} />
+                    <Route path="/agency/clients" element={<AgencyClientsPage />} />
+                    <Route path="/agency/sessions" element={<AgencySessionsPage />} />
+                    <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
+                    <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
+                    <Route path="/agency/finance" element={<AgencyFinancePage />} />
+                    <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
+                    <Route path="/agency/settings" element={<AgencySettingsPage />} />
+                  </Route>
+                </>
+              )}
 
               <Route path="/" element={<RootRedirect />} />
               <Route path="*" element={<NotFoundPage />} />

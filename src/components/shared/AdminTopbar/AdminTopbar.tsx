@@ -7,6 +7,7 @@ import { useToast } from "@context/ToastContext";
 import { useAppSelector } from "@store/hooks";
 import { selectIsAgencyManager, selectIsAgencyMember } from "@store/slices/agencySlice";
 
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
 import { RescheduleIcon, Settingsicon } from "../Icons/Icons";
@@ -60,7 +61,7 @@ export default function AdminTopbar() {
   return (
     <header className={styles.topbar}>
       <div className={styles.actions}>
-        {(isAgencyManager || isAgencyMember) && (
+        {isFeatureEnabled("agency") && (isAgencyManager || isAgencyMember) && (
           <Link to={isAgencyManager ? "/agency" : "/agency/incoming"} className={styles.modeSwitch}>
             <RescheduleIcon />
             Agency view
