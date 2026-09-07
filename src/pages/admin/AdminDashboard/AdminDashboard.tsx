@@ -10,6 +10,7 @@ import {
   CreateSession,
   FormsIcon,
   MailIcon,
+  MegaphoneIcon,
   MoneyIcon,
   RescheduleIcon,
 } from "@components/shared/Icons/Icons";
@@ -236,8 +237,8 @@ export default function AdminDashboard() {
                 onClick={() => setAnnounceOpen(true)}
                 title="Send an announcement to clients"
               >
-                <div className={`${styles.metricIcon} ${styles.sky}`}>
-                  <ChatIcon />
+                <div className={`${styles.metricIcon} ${styles.sky} ${styles.announce}`}>
+                  <MegaphoneIcon />
                 </div>
               </button>
             </div>

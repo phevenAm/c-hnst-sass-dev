@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { hardRefresh, useVersionCheck } from "@Hooks/useVersionCheck";
 
+import { showUpdatingSplash } from "@/lib/updatingSplash";
+
 import styles from "./UpdateBanner.module.scss";
 
 function isPWA(): boolean {
@@ -54,6 +56,9 @@ export default function UpdateBanner() {
             // no-op'd. hardRefresh() now always ends in a reload one way or
             // another, so there's nothing to reset this to afterward.
             setUpdating(true);
+            // Cover the app with the animated sapling + "Updating…" until the
+            // reload lands (app.html's #boot-splash then takes over).
+            showUpdatingSplash();
             void hardRefresh();
           }}
         >
