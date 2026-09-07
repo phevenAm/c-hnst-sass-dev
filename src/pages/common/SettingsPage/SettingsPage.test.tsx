@@ -776,6 +776,31 @@ describe("SettingsPage — subscription", () => {
     expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
   });
+
+  // Agency-managed counsellors have no subscription of their own — the agency
+  // owns billing — so the Subscription / pause-or-close / referral cards are
+  // replaced with a single "managed by <agency>" explainer.
+  describe("agency-managed account", () => {
+    beforeEach(() => {
+      mockAgencyState.membership = { status: "active" } as never;
+      mockAgencyState.agency = { name: "Beacon Counselling" } as never;
+    });
+    afterEach(() => {
+      mockAgencyState.membership = null;
+      mockAgencyState.agency = null;
+    });
+
+    it("swaps subscription/lifecycle for a managed-by-agency card", async () => {
+      currentRow.billing_customer_id = "cus_123";
+      await openProfileTab();
+
+      expect(await screen.findByRole("heading", { name: "Your account" })).toBeInTheDocument();
+      expect(screen.getByText(/managed by/i)).toHaveTextContent("Beacon Counselling");
+      expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Pause or close your account" })).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe("SettingsPage — data export", () => {

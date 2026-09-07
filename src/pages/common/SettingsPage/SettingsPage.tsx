@@ -1245,7 +1245,25 @@ const SettingsPage = () => {
     setDisconnectingMicrosoft(false);
   };
 
-  const practiceLifecycleCard = isAdmin && (
+  // Agency-managed counsellors don't have their own subscription, billing, or
+  // account-lifecycle — the agency owns all of that. Replace those cards with a
+  // single explainer so there's no dead "manage your subscription" UI.
+  const agencyManagedCard = isAgencyMember && (
+    <SettingsCard title="Your account" storageKey="settings:profile:agency-managed" searchQuery="">
+      <section className={styles.businessSection}>
+        <p>
+          This account is managed by {agency?.name ? <strong>{agency.name}</strong> : "your agency"}. Your subscription,
+          billing and account lifecycle are handled by them — there's nothing to set up or pay here.
+        </p>
+        <p>
+          Use <strong>Agency view</strong> in the top bar to see the clients assigned to you and the rest of the agency
+          workspace.
+        </p>
+      </section>
+    </SettingsCard>
+  );
+
+  const practiceLifecycleCard = isAdmin && !isAgencyMember && (
     <SettingsCard
       title="Pause or close your account"
       storageKey="settings:practice:lifecycle"
@@ -1316,7 +1334,7 @@ const SettingsPage = () => {
     </SettingsCard>
   );
 
-  const referralCard = isAdmin && practiceSettings?.referral_code && (
+  const referralCard = isAdmin && !isAgencyMember && practiceSettings?.referral_code && (
     <SettingsCard title="Refer a friend" storageKey="settings:profile:referral" searchQuery="">
       <section className={styles.businessSection}>
         <p>
@@ -1349,7 +1367,7 @@ const SettingsPage = () => {
     </SettingsCard>
   );
 
-  const subscriptionCard = isAdmin && practiceSettings && (
+  const subscriptionCard = isAdmin && !isAgencyMember && practiceSettings && (
     <SettingsCard title="Subscription" storageKey="settings:practice:subscription" searchQuery="" id="subscription">
       <section className={styles.businessSection}>
         <p>
@@ -1635,6 +1653,7 @@ const SettingsPage = () => {
         )}
 
         {activeTab === "profile" && subscriptionCard}
+        {activeTab === "profile" && agencyManagedCard}
         {activeTab === "profile" && practiceLifecycleCard}
         {activeTab === "profile" && referralCard}
 
