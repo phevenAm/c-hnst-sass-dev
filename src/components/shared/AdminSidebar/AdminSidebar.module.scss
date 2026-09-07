@@ -246,8 +246,8 @@ $transition: 0.22s ease;
   position: relative;
 }
 
-// Left edge of the tree connector — sits under the parent row's icon centre.
-$tree-x: 1.4rem;
+// x of the single vertical guide line — under the parent row's icon centre.
+$guide-x: 1.4rem;
 
 .groupChildren {
   list-style: none;
@@ -259,33 +259,28 @@ $tree-x: 1.4rem;
   transition: max-height $transition;
   position: relative;
 
-  // Vertical trunk. Ends at the last child's elbow (see .groupChildrenOpen)
-  // so the whole shape reads as an "L".
+  // One continuous guide line down the left of the nested items — no per-row
+  // elbows (those never lined up between the two rows).
   &::before {
     content: "";
     position: absolute;
-    left: $tree-x;
-    top: 0;
+    left: $guide-x;
+    top: 4px;
+    bottom: 4px;
     width: 1px;
-    height: 0;
     background: var(--border);
-    transition: height $transition;
   }
 }
 
 .groupChildrenOpen {
   max-height: 240px;
-
-  &::before {
-    height: calc(100% - 1.15rem);
-  }
 }
 
 .childLink {
   display: flex;
   align-items: center;
   gap: $sp-3;
-  padding: $sp-2 $sp-3 $sp-2 calc(#{$tree-x} + #{$sp-4});
+  padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-4});
   border-radius: var(--r-md);
   text-decoration: none;
   color: var(--text-secondary);
@@ -297,29 +292,25 @@ $tree-x: 1.4rem;
   margin: 1px 0;
   position: relative;
 
-  // Horizontal elbow into the trunk.
-  &::before {
-    content: "";
-    position: absolute;
-    left: $tree-x;
-    top: 50%;
-    width: $sp-3;
-    height: 1px;
-    background: var(--border);
-  }
-
   &:hover {
     background: var(--bg-muted);
     color: var(--text-primary);
   }
 
-  // Selected child: bold + accent text, no fill (the fill stacked under the
-  // parent's and read as heavy). The elbow picks up the accent as the anchor.
+  // Selected child: bold + accent text, plus a 2px accent segment sitting on
+  // the guide line as the anchor.
   &.active {
     color: var(--accent);
     font-weight: 600;
 
     &::before {
+      content: "";
+      position: absolute;
+      left: calc(#{$guide-x} - 0.5px);
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      border-radius: 1px;
       background: var(--accent);
     }
   }
@@ -433,39 +424,55 @@ $tree-x: 1.4rem;
       display: none;
     }
 
-    // Icon-strip: fly out to the right of the sidebar
+    // Icon-strip: a plain popover menu flush against the sidebar's right edge.
     .groupChildren {
       position: fixed;
-      left: $w-collapsed;
+      left: calc(#{$w-collapsed} - 4px);
       top: var(--flyout-top, 0px);
       max-height: none !important;
       overflow: visible;
       visibility: hidden;
+      opacity: 0;
+      transform: translateX(-4px);
       pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--r-md);
+      border-radius: var(--r-lg);
       padding: $sp-2;
-      min-width: 150px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      min-width: 172px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
       z-index: 300;
+      transition: opacity 120ms ease, transform 120ms ease;
 
-      // No tree connector inside the floating popover.
+      // No guide line in the floating menu.
       &::before {
         display: none;
       }
 
       .childLink {
-        padding-left: $sp-3;
+        padding: $sp-3 $sp-3;
+        font-size: 0.85rem;
+        margin: 0;
 
         &::before {
           display: none;
+        }
+
+        &.active {
+          background: var(--accent-secondary);
+          color: var(--text-primary);
+          font-weight: 600;
         }
       }
     }
 
     .groupChildrenOpen {
       visibility: visible;
+      opacity: 1;
+      transform: translateX(0);
       pointer-events: auto;
 
       .label {
@@ -496,12 +503,15 @@ $tree-x: 1.4rem;
         display: flex;
       }
 
-      // Revert to inline dropdown — tree connector comes back
+      // Revert to the inline dropdown — the base .groupChildren / .childLink
+      // rules (guide line, indent, active segment) take over again.
       .groupChildren {
         position: static;
         max-height: 0;
         overflow: hidden;
         visibility: visible;
+        opacity: 1;
+        transform: none;
         pointer-events: auto;
         box-shadow: none;
         border: none;
@@ -515,11 +525,8 @@ $tree-x: 1.4rem;
         }
 
         .childLink {
-          padding-left: calc(#{$tree-x} + #{$sp-4});
-
-          &::before {
-            display: block;
-          }
+          padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-4});
+          font-size: 0.82rem;
         }
       }
 
