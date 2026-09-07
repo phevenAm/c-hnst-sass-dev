@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import type { Response } from "../models/globalTypes";
 import {
   ageFromDob,
   clientDisplayName,
   getInitials,
+  getResponseDate,
   isAdultFromDob,
+  isPdfUrl,
   isQuestionnaireCheckInDue,
+  maskedProfileValue,
+  pickColor,
   timeAgo,
 } from "./Helpers";
 
@@ -156,5 +161,80 @@ describe("clientDisplayName", () => {
     expect(clientDisplayName({ first_name: "", last_name: "", display_name: null, admin_codename: null })).toBe(
       "Unnamed client",
     );
+  });
+});
+
+describe("getResponseDate", () => {
+  it("prefers submitted_at when present", () => {
+    const r = { submitted_at: "2026-05-01T09:00:00Z", created_at: "2026-04-01T09:00:00Z" } as Response;
+    expect(getResponseDate(r)).toBe("2026-05-01T09:00:00Z");
+  });
+
+  it("falls back to created_at when submitted_at is missing", () => {
+    const r = { submitted_at: null, created_at: "2026-04-01T09:00:00Z" } as unknown as Response;
+    expect(getResponseDate(r)).toBe("2026-04-01T09:00:00Z");
+  });
+
+  it("returns an empty string when neither is set", () => {
+    const r = { submitted_at: null, created_at: null } as unknown as Response;
+    expect(getResponseDate(r)).toBe("");
+  });
+});
+
+describe("pickColor", () => {
+  it("returns one of the known avatar colours", () => {
+    expect(["teal", "sage", "stone", "sky", "clay"]).toContain(pickColor("abc123"));
+  });
+
+  it("is deterministic for the same id", () => {
+    expect(pickColor("user-42")).toBe(pickColor("user-42"));
+  });
+
+  it("keys only off the first character", () => {
+    expect(pickColor("Axxxxx")).toBe(pickColor("Ayyyyy"));
+  });
+});
+
+describe("isPdfUrl", () => {
+  it("is true for a .pdf path regardless of case or query string", () => {
+    expect(isPdfUrl("https://example.com/docs/agreement.pdf")).toBe(true);
+    expect(isPdfUrl("https://example.com/docs/AGREEMENT.PDF")).toBe(true);
+    expect(isPdfUrl("https://example.com/docs/agreement.pdf?token=abc")).toBe(true);
+  });
+
+  it("is false for non-pdf resources", () => {
+    expect(isPdfUrl("https://example.com/docs/agreement.docx")).toBe(false);
+    expect(isPdfUrl("https://example.com/pdf-guide/")).toBe(false);
+  });
+
+  it("is false for a string that is not a URL", () => {
+    expect(isPdfUrl("not a url.pdf")).toBe(false);
+    expect(isPdfUrl("")).toBe(false);
+  });
+});
+
+describe("maskedProfileValue", () => {
+  it("returns the stringified value when shown and not masked", () => {
+    expect(maskedProfileValue(42, { show: true })).toBe("42");
+    expect(maskedProfileValue("jane@example.com", { show: true })).toBe("jane@example.com");
+  });
+
+  it("returns null when the field is not shown for this client", () => {
+    expect(maskedProfileValue("jane@example.com", { show: false })).toBeNull();
+    expect(maskedProfileValue("jane@example.com", { show: null })).toBeNull();
+  });
+
+  it("returns null when the practice-wide master switch hides everything", () => {
+    expect(maskedProfileValue("jane@example.com", { show: true, masterHidden: true })).toBeNull();
+  });
+
+  it("returns null for empty or nullish values", () => {
+    expect(maskedProfileValue(null, { show: true })).toBeNull();
+    expect(maskedProfileValue(undefined, { show: true })).toBeNull();
+    expect(maskedProfileValue("", { show: true })).toBeNull();
+  });
+
+  it("masks with *** when codenames are on", () => {
+    expect(maskedProfileValue("jane@example.com", { show: true, codenames: true })).toBe("***");
   });
 });
