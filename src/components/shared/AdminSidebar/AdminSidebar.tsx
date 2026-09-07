@@ -74,6 +74,7 @@ export default function AdminSidebar({
   const bottomRef = useRef<HTMLDivElement>(null);
   const groupBtnRef = useRef<HTMLButtonElement>(null);
   const flyoutListRef = useRef<HTMLUListElement>(null);
+  const closeTimer = useRef<number | undefined>(undefined);
   const firstChildRef = useRef<HTMLAnchorElement>(null);
   const [measured, setMeasured] = useState({ top: 55, bottom: 120 });
 
@@ -146,9 +147,20 @@ export default function AdminSidebar({
     exact ? location.pathname === to : location.pathname.startsWith(to);
 
   const openFlyout = () => {
+    window.clearTimeout(closeTimer.current);
     if (groupBtnRef.current) setFlyoutTop(groupBtnRef.current.getBoundingClientRect().top);
     setLogsOpen(true);
   };
+
+  // Grace period on leave so the pointer can cross the gap between the collapsed
+  // rail and the fixed-position flyout without it snapping shut. Re-entering the
+  // button OR the flyout cancels it (openFlyout clears the timer).
+  const scheduleCloseFlyout = () => {
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => setLogsOpen(false), 180);
+  };
+
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   const handleGroupClick = () => {
     if (!logsOpen && isFlyoutMode && groupBtnRef.current) {
@@ -162,7 +174,7 @@ export default function AdminSidebar({
   const groupHoverProps = isFlyoutMode
     ? {
         onMouseEnter: openFlyout,
-        onMouseLeave: () => setLogsOpen(false),
+        onMouseLeave: scheduleCloseFlyout,
         onFocus: openFlyout,
         onBlur: (e: React.FocusEvent<HTMLLIElement>) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setLogsOpen(false);
@@ -213,6 +225,8 @@ export default function AdminSidebar({
                       ref={flyoutListRef}
                       className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}
                       style={isFlyoutMode ? ({ "--flyout-top": `${flyoutTop}px` } as React.CSSProperties) : undefined}
+                      onMouseEnter={isFlyoutMode ? openFlyout : undefined}
+                      onMouseLeave={isFlyoutMode ? scheduleCloseFlyout : undefined}
                     >
                       {item.children.map((child, i) => {
                         const active = location.pathname.startsWith(child.to);

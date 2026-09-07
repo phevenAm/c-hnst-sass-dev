@@ -79,6 +79,11 @@
       #boot-splash {
         position: fixed;
         inset: 0;
+        /* Top of the stack — above every in-app layer (Navbar/toasts sit at
+           9999, walkthrough/modal overlays in the 9000s). Without this the
+           app content that mounts underneath while the splash is still up
+           paints straight through it. Matches src/lib/updatingSplash.ts. */
+        z-index: 2147483000;
         display: grid;
         place-items: center;
         background: #f3f1ea;
@@ -88,14 +93,17 @@
         background: #162622;
         color: #2d5047;
       }
-      /* Fade the mark in over the first ~0.9s. This hides the least
-         interesting part of the SMIL animation (the initial stem-dot phase,
-         which also visibly stutters while the ~1 MB app bundle parses on the
-         main thread) — this CSS opacity animation runs on the compositor, so
-         it stays smooth even while that JS jank freezes the SVG. */
+      /* Hold the mark hidden for ~0.9s, then fade it in over 0.5s. The SMIL
+         animation's clock is driven by the main thread, so while the ~1 MB
+         app bundle parses it freezes on its first frame — a lone stem dot —
+         for the better part of a second. Skipping straight past that with a
+         delayed fade means the mark only becomes visible once the sapling is
+         actually drawing (or already grown), never as a frozen dot. The
+         fade itself runs on the compositor so it stays smooth through the
+         jank. Until then #boot-splash's solid brand ground is all you see. */
       #boot-splash-mark {
         opacity: 0;
-        animation: boot-splash-fade-in 900ms ease both;
+        animation: boot-splash-fade-in 500ms ease 900ms both;
       }
       @keyframes boot-splash-fade-in {
         from { opacity: 0; }

@@ -21,15 +21,17 @@ declare global {
   }
 }
 
-// No exit fade — the splash is removed instantly once done, rather than
-// cross-fading into the app underneath.
-const FADE_MS = 0;
-// The mark fades in over 900ms (app.html) and the SMIL grow-in settles by
-// ~32% of the 5s loop (~1.6s). Hold past both so the finished sapling is
-// clearly visible before the splash goes — well short of the 5s loop wrap
-// where it snaps back to the start. finish() also waits on "clarity:auth-
-// ready", so real loads are usually longer than this.
-const ONE_CYCLE_MS = 3200;
+// Short cross-fade out into the app underneath, rather than a hard cut — by
+// the time this runs the app has rendered (auth is ready), so it's fading to
+// real content, not a blank frame.
+const FADE_MS = 300;
+// The mark starts fading in at ~1.4s (900ms delay + 500ms fade, app.html)
+// and the SMIL grow-in settles ~2s in — later still if bundle-parse jank
+// held its clock. Hold past that so the finished sapling is clearly visible
+// before the splash goes, with headroom for a slow first paint — still well
+// short of the 5s loop wrap where it snaps back to the start. finish() also
+// waits on "clarity:auth-ready", so real loads are usually longer than this.
+const ONE_CYCLE_MS = 3600;
 // Frozen frame for reduced motion: past all growth (~1.6s in), short of the
 // 5s loop boundary where behaviour at the exact wrap point is unreliable.
 const HELD_FRAME_S = 4.5;
