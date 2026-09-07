@@ -74,14 +74,18 @@
           Clarity
         </a>
         <nav class="site-nav" aria-label="Primary">
-          <!-- <a class="site-nav__link" href="#why">Why</a> -->
-          <a class="site-nav__link" href="#features">Features</a>
-          <a class="site-nav__link" href="#demo">Demo</a>
-          <a class="site-nav__link" href="#pricing">Pricing</a>
-          <a class="site-nav__link" href="#faq">FAQ</a>
-          <!-- <a class="site-nav__link" href="#contact">Contact</a> -->
-          <a class="site-nav__link site-nav__link--login" href="/login">Log in</a>
-          <a class="btn btn--primary btn--sm" href="/register">Get started</a>
+          <span class="site-nav__primary">
+            <!-- <a class="site-nav__link" href="#why">Why</a> -->
+            <a class="site-nav__link" href="#features">Features</a>
+            <a class="site-nav__link" href="#demo">Demo</a>
+            <a class="site-nav__link" href="#pricing">Pricing</a>
+            <a class="site-nav__link" href="#faq">FAQ</a>
+            <!-- <a class="site-nav__link" href="#contact">Contact</a> -->
+          </span>
+          <span class="site-nav__actions">
+            <a class="site-nav__link site-nav__link--login" href="/login">Log in</a>
+            <a class="btn btn--primary btn--sm" href="/register">Get started</a>
+          </span>
         </nav>
       </div>
     </header>
@@ -96,8 +100,8 @@
             <p class="eyebrow">Practice management software</p>
             <h1 class="hero__title">Run your therapy practice <em>with clarity.</em></h1>
             <p class="hero__lede">
-              Client management, wellbeing check-ins, payment tracking, and resource sharing —
-              everything a solo therapy practice needs, built around how you actually work.
+              Keep the practical side of counselling in one place, and give clients a private way to stay
+              connected between sessions. Clarity makes the experience simpler for both of you.
             </p>
             <div class="hero__actions">
               <a class="btn btn--primary" href="/register">Get started</a>
@@ -675,6 +679,7 @@
 
             <!-- Honeypot — hidden from real visitors, bots tend to fill every field. -->
             <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="contact__hp" aria-hidden="true" />
+            <input type="hidden" name="_form_started_at" id="contactFormStartedAt" />
 
             <div class="contact__cta">
               <button type="submit" class="btn btn--primary">Send message</button>
@@ -782,10 +787,40 @@
         var errorEl = document.getElementById("contactError");
         var successEl = document.getElementById("contactSuccess");
         var submitBtn = form.querySelector('button[type="submit"]');
+        var startedAt = Date.now();
+        var startedAtField = document.getElementById("contactFormStartedAt");
+        var spamPhrases = [
+          /buy\s+backlinks?/i,
+          /guest\s+post(ing)?/i,
+          /casino\s+(bonus|online)/i,
+          /crypto\s+(investment|trading)/i,
+          /payday\s+loan/i,
+        ];
+
+        if (startedAtField) startedAtField.value = String(startedAt);
+
+        function looksLikeSpam() {
+          var honeypot = form.querySelector('input[name="_gotcha"]');
+          var message = (form.querySelector('textarea[name="message"]').value || "").trim();
+          var linkCount = (message.match(/https?:\/\/|www\./gi) || []).length;
+          var submittedTooQuickly = Date.now() - startedAt < 1500;
+          var containsSpamPhrase = spamPhrases.some(function (pattern) {
+            return pattern.test(message);
+          });
+
+          return Boolean(honeypot && honeypot.value.trim()) || submittedTooQuickly || linkCount > 3 || containsSpamPhrase;
+        }
 
         form.addEventListener("submit", function (e) {
           e.preventDefault();
           errorEl.hidden = true;
+
+          if (looksLikeSpam()) {
+            errorEl.textContent = "Please check your message and try again.";
+            errorEl.hidden = false;
+            return;
+          }
+
           submitBtn.disabled = true;
           submitBtn.textContent = "Sending…";
 

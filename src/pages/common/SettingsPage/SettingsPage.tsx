@@ -1245,6 +1245,110 @@ const SettingsPage = () => {
     setDisconnectingMicrosoft(false);
   };
 
+  const practiceLifecycleCard = isAdmin && (
+    <SettingsCard
+      title="Pause or close your account"
+      storageKey="settings:practice:lifecycle"
+      searchQuery=""
+      id="practice-lifecycle"
+    >
+      <section className={styles.businessSection}>
+        <h2>Pause your practice</h2>
+        {isPaused ? (
+          <p>
+            Your practice is <strong>paused</strong>. It's read-only for you, your clients can't sign in, and billing is
+            stopped. Resume whenever you're ready — nothing has been lost.
+          </p>
+        ) : (
+          <p>
+            Pausing makes the whole practice read-only, signs your clients out until you return, and stops your billing.
+            Nothing is deleted. This is the right choice if you've stopped practising for now but might come back.
+          </p>
+        )}
+        <div className={[styles.actions, styles.managePractice]}>
+          <Button
+            variant={isPaused ? "primary" : "secondary"}
+            className={styles.saveButton}
+            onClick={() => setConfirmPauseToggle(true)}
+            disabled={pausing}
+          >
+            {pausing ? "Working…" : isPaused ? "Resume practice" : "Pause practice"}
+          </Button>
+        </div>
+      </section>
+
+      <section className={styles.businessSection}>
+        <h2>Export your data</h2>
+        <p>
+          Download a copy of your practice data, including clients, sessions, attendance, notes, and payments. This is
+          separate from account deletion and does not change anything in your account.
+        </p>
+        <Button variant="secondary" size="sm" onClick={handleExportData} disabled={exportingData || isDemo}>
+          {exportingData ? "Preparing…" : exportedDataName ? "Export again" : "Export my data"}
+        </Button>
+        {exportedDataName && (
+          <p style={{ color: "var(--success, var(--accent))", fontSize: "0.9rem", marginTop: "0.4rem" }}>
+            Downloaded {exportedDataName}.
+          </p>
+        )}
+        {exportDataError && (
+          <p role="alert" style={{ color: "var(--error)", fontSize: "0.9rem", marginTop: "0.4rem" }}>
+            {exportDataError}
+          </p>
+        )}
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
+          Encrypted notes are included as placeholders unless encryption is unlocked on this device.
+        </p>
+      </section>
+
+      <section className={styles.businessSection}>
+        <div className={styles.deleteAccountBlock}>
+          <h2>Delete your account</h2>
+          <p>
+            Permanent and immediate. Erases your profile, your practice, and every client record — sessions, attendance,
+            payments and notes. We can't recover it. You'll be offered a full export first.
+          </p>
+          <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)} disabled={isDemo}>
+            Delete account
+          </Button>
+        </div>
+      </section>
+    </SettingsCard>
+  );
+
+  const referralCard = isAdmin && practiceSettings?.referral_code && (
+    <SettingsCard title="Refer a friend" storageKey="settings:profile:referral" searchQuery="">
+      <section className={styles.businessSection}>
+        <p>
+          Share your link — when a colleague subscribes with it, you get <strong>2 months free</strong> credited to your
+          account.
+        </p>
+        <p>
+          The credit lands automatically once their subscription <strong>renews into its second month</strong>, so a
+          sign-up that's cancelled straight away doesn't count — and you need to still be subscribed yourself when it
+          lands.
+        </p>
+        <div className={styles.field}>
+          <label>Your referral link</label>
+          <div className={styles.copyField}>
+            <span
+              className={styles.copyFieldValue}
+            >{`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}</span>
+            <button
+              type="button"
+              className={styles.copyFieldBtn}
+              onClick={handleCopyReferralLink}
+              aria-label="Copy referral link"
+              title="Copy referral link"
+            >
+              {referralCopied ? <span className={styles.copyFieldDone}>✓</span> : <CopyIcon />}
+            </button>
+          </div>
+        </div>
+      </section>
+    </SettingsCard>
+  );
+
   const subscriptionCard = isAdmin && practiceSettings && (
     <SettingsCard title="Subscription" storageKey="settings:practice:subscription" searchQuery="" id="subscription">
       <section className={styles.businessSection}>
@@ -1263,7 +1367,8 @@ const SettingsPage = () => {
           </strong>
           {practiceSettings.subscription_cancel_at_period_end && (
             <>
-              {" "}— cancels{" "}
+              {" "}
+              — cancels{" "}
               {practiceSettings.subscription_current_period_end
                 ? `on ${new Date(practiceSettings.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
                 : "at the end of the current billing period"}
@@ -1349,7 +1454,11 @@ const SettingsPage = () => {
                 })}
               </div>
 
-              {planSwitchError && <p className={styles.planSwitchError} role="alert">{planSwitchError}</p>}
+              {planSwitchError && (
+                <p className={styles.planSwitchError} role="alert">
+                  {planSwitchError}
+                </p>
+              )}
               {!billingCustomerId && <p>Start a subscription below before you can switch tier.</p>}
             </section>
           );
@@ -1526,6 +1635,8 @@ const SettingsPage = () => {
         )}
 
         {activeTab === "profile" && subscriptionCard}
+        {activeTab === "profile" && practiceLifecycleCard}
+        {activeTab === "profile" && referralCard}
 
         {/* ── Interface (clients only — admins have their own tab below) ── */}
         {!isAdmin && (
@@ -1910,121 +2021,123 @@ const SettingsPage = () => {
                     </p>
                   </div>
 
-                  <div className={styles.syncOption}>
-                    <h3 className={styles.syncOptionTitle}>Google Calendar (auto-sync)</h3>
-                    <p className={styles.syncOptionDesc}>
-                      Connect your Google account once — every session you book, reschedule, or cancel is pushed to your
-                      Google Calendar automatically. One-way only: changes made directly in Google don't come back into
-                      Clarity.
-                    </p>
-                    <div className={styles.syncOptionAction}>
-                      {googleStatus?.connected ? (
-                        <>
-                          <label className={styles.toggleRow}>
-                            <span className={styles.toggleLabel}>
-                              <strong>Sync to Google Calendar</strong>
-                              <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
-                            </span>
-                            <span
-                              className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
-                            >
-                              <input
-                                type="checkbox"
-                                className={styles.toggleInput}
-                                checked={googleStatus.sync_enabled}
-                                disabled={savingGoogleSync}
-                                onChange={handleToggleGoogleSync}
-                              />
-                              <span className={styles.toggleThumb} />
-                            </span>
-                          </label>
-                          <div className={styles.actions}>
-                            <Button
-                              variant="ghost-danger"
-                              size="sm"
-                              onClick={() => setConfirmDisconnectGoogle(true)}
-                              disabled={disconnectingGoogle}
-                            >
-                              {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <Button variant="primary" onClick={handleConnectGoogleCalendar}>
-                          Connect Google Calendar
-                        </Button>
-                      )}
+                  <WIP>
+                    <div className={styles.syncOption}>
+                      <h3 className={styles.syncOptionTitle}>Google Calendar (auto-sync)</h3>
+                      <p className={styles.syncOptionDesc}>
+                        Automatic Google Calendar sync is not available yet. Use the built-in calendar download above in
+                        the meantime.
+                      </p>
+                      <div className={styles.syncOptionAction}>
+                        {googleStatus?.connected ? (
+                          <>
+                            <label className={styles.toggleRow}>
+                              <span className={styles.toggleLabel}>
+                                <strong>Sync to Google Calendar</strong>
+                                <span>Connected as {googleStatus.google_email ?? "unknown account"}</span>
+                              </span>
+                              <span
+                                className={`${styles.toggleSwitch} ${googleStatus.sync_enabled ? styles.toggleSwitchOn : ""}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className={styles.toggleInput}
+                                  checked={googleStatus.sync_enabled}
+                                  disabled
+                                  onChange={handleToggleGoogleSync}
+                                />
+                                <span className={styles.toggleThumb} />
+                              </span>
+                            </label>
+                            <div className={styles.actions}>
+                              <Button
+                                variant="ghost-danger"
+                                size="sm"
+                                onClick={() => setConfirmDisconnectGoogle(true)}
+                                disabled
+                              >
+                                {disconnectingGoogle ? "Disconnecting…" : "Disconnect Google Calendar"}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <Button variant="secondary" disabled onClick={handleConnectGoogleCalendar}>
+                            Connect Google Calendar
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </WIP>
 
-                  <div className={styles.syncOption}>
-                    <h3 className={styles.syncOptionTitle}>Microsoft 365 / Outlook (auto-sync)</h3>
-                    <p className={styles.syncOptionDesc}>
-                      Connect your Microsoft account once — sessions push to your Outlook calendar automatically,
-                      one-way, the same as Google. Online sessions also get a Microsoft Teams meeting link added
-                      automatically (needs a Microsoft 365 Business account with Teams).
-                    </p>
-                    <div className={styles.syncOptionAction}>
-                      {microsoftStatus?.connected ? (
-                        <>
-                          <label className={styles.toggleRow}>
-                            <span className={styles.toggleLabel}>
-                              <strong>Sync to Outlook</strong>
-                              <span>Connected as {microsoftStatus.microsoft_email ?? "unknown account"}</span>
-                            </span>
-                            <span
-                              className={`${styles.toggleSwitch} ${
-                                microsoftStatus.sync_enabled ? styles.toggleSwitchOn : ""
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                className={styles.toggleInput}
-                                checked={microsoftStatus.sync_enabled}
-                                disabled={savingMicrosoftSync}
-                                onChange={handleToggleMicrosoftSync}
-                              />
-                              <span className={styles.toggleThumb} />
-                            </span>
-                          </label>
-                          <label className={styles.toggleRow}>
-                            <span className={styles.toggleLabel}>
-                              <strong>Add Teams meeting links</strong>
-                              <span>Online sessions get a Microsoft Teams join link automatically</span>
-                            </span>
-                            <span
-                              className={`${styles.toggleSwitch} ${
-                                microsoftStatus.create_teams_links ? styles.toggleSwitchOn : ""
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                className={styles.toggleInput}
-                                checked={microsoftStatus.create_teams_links}
-                                disabled={savingTeamsLinks || !microsoftStatus.sync_enabled}
-                                onChange={handleToggleTeamsLinks}
-                              />
-                              <span className={styles.toggleThumb} />
-                            </span>
-                          </label>
-                          <div className={styles.actions}>
-                            <Button
-                              variant="ghost-danger"
-                              size="sm"
-                              onClick={() => setConfirmDisconnectMicrosoft(true)}
-                              disabled={disconnectingMicrosoft}
-                            >
-                              {disconnectingMicrosoft ? "Disconnecting…" : "Disconnect Microsoft calendar"}
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <Button variant="primary" onClick={handleConnectMicrosoftCalendar}>
-                          Connect Microsoft calendar
-                        </Button>
-                      )}
+                  <WIP>
+                    <div className={styles.syncOption}>
+                      <h3 className={styles.syncOptionTitle}>Microsoft 365 / Outlook (auto-sync)</h3>
+                      <p className={styles.syncOptionDesc}>
+                        Automatic Outlook sync and Teams links are not available yet. Use the built-in calendar download
+                        above in the meantime.
+                      </p>
+                      <div className={styles.syncOptionAction}>
+                        {microsoftStatus?.connected ? (
+                          <>
+                            <label className={styles.toggleRow}>
+                              <span className={styles.toggleLabel}>
+                                <strong>Sync to Outlook</strong>
+                                <span>Connected as {microsoftStatus.microsoft_email ?? "unknown account"}</span>
+                              </span>
+                              <span
+                                className={`${styles.toggleSwitch} ${
+                                  microsoftStatus.sync_enabled ? styles.toggleSwitchOn : ""
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className={styles.toggleInput}
+                                  checked={microsoftStatus.sync_enabled}
+                                  disabled
+                                  onChange={handleToggleMicrosoftSync}
+                                />
+                                <span className={styles.toggleThumb} />
+                              </span>
+                            </label>
+                            <label className={styles.toggleRow}>
+                              <span className={styles.toggleLabel}>
+                                <strong>Add Teams meeting links</strong>
+                                <span>Online sessions get a Microsoft Teams join link automatically</span>
+                              </span>
+                              <span
+                                className={`${styles.toggleSwitch} ${
+                                  microsoftStatus.create_teams_links ? styles.toggleSwitchOn : ""
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className={styles.toggleInput}
+                                  checked={microsoftStatus.create_teams_links}
+                                  disabled
+                                  onChange={handleToggleTeamsLinks}
+                                />
+                                <span className={styles.toggleThumb} />
+                              </span>
+                            </label>
+                            <div className={styles.actions}>
+                              <Button
+                                variant="ghost-danger"
+                                size="sm"
+                                onClick={() => setConfirmDisconnectMicrosoft(true)}
+                                disabled
+                              >
+                                {disconnectingMicrosoft ? "Disconnecting…" : "Disconnect Microsoft calendar"}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <Button variant="secondary" disabled onClick={handleConnectMicrosoftCalendar}>
+                            Connect Microsoft calendar
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </WIP>
                 </div>
               </section>
             </SettingsCard>
@@ -2643,111 +2756,6 @@ const SettingsPage = () => {
                 )}
               </section>
             </SettingsCard>
-
-            {/* Pause or close the practice */}
-            <SettingsCard
-              title="Pause or close your practice"
-              storageKey="settings:practice:lifecycle"
-              searchQuery={billingSearch}
-              id="practice-lifecycle"
-            >
-              <section className={styles.businessSection}>
-                <h2>Pause your practice</h2>
-                {isPaused ? (
-                  <p>
-                    Your practice is <strong>paused</strong>. It's read-only for you, your clients can't sign in, and
-                    billing is stopped. Resume whenever you're ready — nothing has been lost.
-                  </p>
-                ) : (
-                  <p>
-                    Pausing makes the whole practice read-only, signs your clients out until you return, and stops your
-                    billing. Nothing is deleted. This is the right choice if you've stopped practising for now but might
-                    come back.
-                  </p>
-                )}
-                <div className={styles.actions}>
-                  <Button
-                    variant={isPaused ? "primary" : "secondary"}
-                    className={styles.saveButton}
-                    onClick={() => setConfirmPauseToggle(true)}
-                    disabled={pausing}
-                  >
-                    {pausing ? "Working…" : isPaused ? "Resume practice" : "Pause practice"}
-                  </Button>
-                </div>
-              </section>
-
-              <section className={styles.businessSection}>
-                <h2>Delete your account</h2>
-                <p>
-                  Permanent and immediate. Erases your profile, your practice, and every client record — sessions,
-                  attendance, payments and notes. We can't recover it. You'll be offered a full export first.
-                </p>
-                <div className={styles.deleteAccountBlock}>
-                  <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)} disabled={isDemo}>
-                    Delete account
-                  </Button>
-                </div>
-              </section>
-
-              <section className={styles.businessSection}>
-                <h2>Export your data</h2>
-                <p>
-                  Download a copy of your practice data, including clients, sessions, attendance, notes, and payments.
-                  This is separate from account deletion and does not change anything in your account.
-                </p>
-                <Button variant="secondary" size="sm" onClick={handleExportData} disabled={exportingData || isDemo}>
-                  {exportingData ? "Preparing…" : exportedDataName ? "Export again" : "Export my data"}
-                </Button>
-                {exportedDataName && (
-                  <p style={{ color: "var(--success, var(--accent))", fontSize: "0.9rem", marginTop: "0.4rem" }}>
-                    Downloaded {exportedDataName}.
-                  </p>
-                )}
-                {exportDataError && (
-                  <p role="alert" style={{ color: "var(--error)", fontSize: "0.9rem", marginTop: "0.4rem" }}>
-                    {exportDataError}
-                  </p>
-                )}
-                <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
-                  Encrypted notes are included as placeholders unless encryption is unlocked on this device.
-                </p>
-              </section>
-            </SettingsCard>
-
-            {/* Refer a friend */}
-            {practiceSettings?.referral_code && (
-              <SettingsCard title="Refer a friend" storageKey="settings:practice:referral" searchQuery={billingSearch}>
-                <section className={styles.businessSection}>
-                  <p>
-                    Share your link — when a colleague subscribes with it, you get <strong>2 months free</strong>{" "}
-                    credited to your account.
-                  </p>
-                  <p>
-                    The credit lands automatically once their subscription <strong>renews into its second month</strong>
-                    , so a sign-up that's cancelled straight away doesn't count — and you need to still be subscribed
-                    yourself when it lands.
-                  </p>
-                  <div className={styles.field}>
-                    <label>Your referral link</label>
-                    <div className={styles.copyField}>
-                      <span className={styles.copyFieldValue}>
-                        {`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}
-                      </span>
-                      <button
-                        type="button"
-                        className={styles.copyFieldBtn}
-                        onClick={handleCopyReferralLink}
-                        aria-label="Copy referral link"
-                        title="Copy referral link"
-                      >
-                        {referralCopied ? <span className={styles.copyFieldDone}>✓</span> : <CopyIcon />}
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </SettingsCard>
-            )}
           </>
         )}
 
@@ -3152,6 +3160,7 @@ const SettingsPage = () => {
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}
+      {showEncUnlockModal && <EncryptionUnlockModal onClose={() => setShowEncUnlockModal(false)} />}
       {announceOpen && (
         <SendAnnouncementModal
           useCodenames={practiceSettings?.use_client_codenames ?? false}

@@ -97,7 +97,8 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 
 function RootRedirect() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState variant="splash" />;
+  // if (loading) return <AuthLoadingState variant="splash" />;
+  if (loading) return <HeroSplashBridge />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
   return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
@@ -109,7 +110,8 @@ function RootRedirect() {
 // login screen. Guard on `loading` first, same as RootRedirect.
 function LoginRoute() {
   const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState variant="splash" />;
+  // if (loading) return <AuthLoadingState variant="splash" />;
+  if (loading) return <HeroSplashBridge />;
   if (isAuthenticated) {
     if (isSuperAdmin) return <Navigate to="/superadmin" replace />;
     return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
@@ -206,7 +208,8 @@ function RoleAwareLayout() {
 
 function SuperAdminGate({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useAuth();
-  if (loading) return <AuthLoadingState />;
+  // if (loading) return <AuthLoadingState />;
+  if (loading) return <HeroSplashBridge />;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -233,7 +236,8 @@ function SubscriptionGate({ children }: { children: React.ReactNode }) {
   // agency member briefly reads as "not an agency member yet" and gets
   // bounced to /subscribe before their membership has loaded.
   if (loading || verifying || agencyStatus === "loading" || agencyStatus === "idle") {
-    return <AuthLoadingState variant="splash" />;
+    return <HeroSplashBridge />;
+    // return <AuthLoadingState variant="splash" />;
   }
 
   // Agency members are billed at the agency level (staff-count tiers), not
@@ -265,7 +269,8 @@ function AdminSetupGate({ children }: { children: React.ReactNode }) {
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
 
   if (loading || agencyStatus === "loading" || agencyStatus === "idle") {
-    return <AuthLoadingState variant="splash" />;
+    return <HeroSplashBridge />;
+    // return <AuthLoadingState variant="splash" />;
   }
   // An invited agency member isn't setting up their own practice — the
   // agency owner already did. Same exemption as SubscriptionGate above.
@@ -346,7 +351,8 @@ export default function AppRoutes() {
           <OnboardingGate />
           <AgencyBootstrapper />
           <WalkthroughOverlay />
-          <Suspense fallback={<AuthLoadingState variant="splash" />}>
+          {/* <Suspense fallback={<AuthLoadingState variant="splash" />}> */}
+          <Suspense fallback={<HeroSplashBridge />}>
             <Routes>
               <Route path="/login" element={<LoginRoute />} />
               <Route path="/demo" element={<DemoPage />} />

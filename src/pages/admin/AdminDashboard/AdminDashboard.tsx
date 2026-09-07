@@ -13,7 +13,7 @@ import {
   MoneyIcon,
   RescheduleIcon,
 } from "@components/shared/Icons/Icons";
-import { Card, CollapsibleSection, HideableSection } from "@components/shared/index";
+import { Card, CollapsibleSection, HideableSection, NotificationBadge } from "@components/shared/index";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
@@ -278,12 +278,16 @@ export default function AdminDashboard() {
           {(pendingRequests.length > 0 || pendingBankTransfers.length > 0) && (
             <Card className={styles.sectionCard}>
               <CollapsibleSection
-                title={`Needs attention (${pendingRequests.length + pendingBankTransfers.length})`}
+                title="Needs attention"
                 storageKey="dash:attention"
+                forceOpen
                 headerRight={
-                  <Link to="/admin/clients" className={styles.sectionLink}>
-                    View all →
-                  </Link>
+                  <>
+                    <NotificationBadge number={pendingRequests.length + pendingBankTransfers.length} />
+                    <Link to="/admin/clients" className={styles.sectionLink}>
+                      View all →
+                    </Link>
+                  </>
                 }
               >
                 <div className={styles.recentList}>

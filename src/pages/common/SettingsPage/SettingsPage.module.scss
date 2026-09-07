@@ -391,6 +391,7 @@ input.copyFieldValue {
   // has around its button, which is what threw off the "centered" look.
   padding: $sp-6;
 
+
   h2 {
     @extend .sectionTitle;
   }
@@ -421,6 +422,10 @@ input.copyFieldValue {
   align-items: stretch;
   gap: $sp-4;
 }
+
+// .managePractice {
+//   // padding-left: 0;
+// }
 
 .primaryAction,
 .utilityActions {
@@ -454,9 +459,13 @@ input.copyFieldValue {
 
 // ── Delete account ─────────────────────────────────────────
 .deleteAccountBlock {
-  padding-top: $sp-4;
+  padding: $sp-4 0;
   border-top: 1px solid var(--border);
   width: 100%;
+
+  button {
+    padding-left: 0;
+  }
 }
 
 // ── Tabs (admin only) ──────────────────────────────────────

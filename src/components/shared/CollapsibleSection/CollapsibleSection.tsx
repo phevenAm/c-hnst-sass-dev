@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { ChevronDown } from "../Icons/Icons";
 
@@ -20,6 +20,8 @@ interface CollapsibleSectionProps {
   /** localStorage key — collapse state persists across route changes + reloads. */
   storageKey: string;
   defaultOpen?: boolean;
+  /** Reopens the section when urgent content appears, while preserving manual collapse afterward. */
+  forceOpen?: boolean;
   /** Optional content pinned to the right of the header (stays visible when collapsed). */
   headerRight?: ReactNode;
   children: ReactNode;
@@ -29,10 +31,15 @@ export default function CollapsibleSection({
   title,
   storageKey,
   defaultOpen = true,
+  forceOpen = false,
   headerRight,
   children,
 }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(() => readStored(storageKey, defaultOpen));
+  const [open, setOpen] = useState(() => readStored(storageKey, defaultOpen || forceOpen));
+
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
 
   const toggle = () => {
     setOpen((prev) => {
