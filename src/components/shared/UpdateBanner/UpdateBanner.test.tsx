@@ -37,6 +37,10 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  // showUpdatingSplash() appends a plain-DOM node to <body> and never removes
+  // it (the real code relies on the reload it triggers). Clear it by hand so
+  // its dedupe guard doesn't carry a stale splash into the next test.
+  document.getElementById("updating-splash")?.remove();
   reloadSpy.mockClear();
   replaceSpy.mockClear();
   vi.restoreAllMocks();
@@ -108,5 +112,30 @@ describe("UpdateBanner", () => {
 
     expect(await screen.findByRole("button", { name: /updating/i })).toBeDisabled();
     await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith(expect.stringContaining("force-update=")));
+  });
+
+  it("'Update now' covers the whole app with the sapling 'Updating…' splash while the reload is pending (happy path)", async () => {
+    mockDisplayMode({ standalone: true });
+    mockVersionResponse("99.0.0-newer");
+    render(<UpdateBanner />);
+
+    // No splash until the user actually asks for the update.
+    expect(document.getElementById("updating-splash")).toBeNull();
+
+    fireEvent.click(await screen.findByRole("button", { name: /update now/i }));
+
+    const splash = await waitFor(() => {
+      const el = document.getElementById("updating-splash");
+      if (!el) throw new Error("updating splash not shown");
+      return el;
+    });
+
+    // The sapling mark, the "loading" caption, and a full-screen top-of-stack
+    // overlay that's announced to assistive tech.
+    expect(splash.querySelector("svg")).toBeInTheDocument();
+    expect(splash).toHaveTextContent(/updating/i);
+    expect(splash.getAttribute("role")).toBe("status");
+    expect(splash.getAttribute("aria-live")).toBe("polite");
+    expect(splash.style.position).toBe("fixed");
   });
 });
