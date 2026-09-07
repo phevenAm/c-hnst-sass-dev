@@ -60,8 +60,11 @@
   --danger-light: #{$color-danger-light};
   --danger-border: #{$color-danger-border};
   --success: #{$color-success};
+  --success-light: rgba(31, 122, 90, 0.12);
   --warning: #{$color-warning};
   --warning-light: #{$color-warning-light};
+  --info: #5566c4; // periwinkle — decorative accent, not buttons
+  --info-light: rgba(85, 102, 196, 0.12);
 
   // Shadows
   --shadow-xs: #{$shadow-xs};
@@ -182,13 +185,18 @@
   --border-strong: #{$dark-border};
   --border-focus: #{$teal-300};
 
-  // Feedback — adjusted for dark bg contrast
+  // Feedback — adjusted for dark bg contrast. Own hues so dark mode isn't
+  // all teal: success is a real spearmint green (was teal-300, which read as
+  // the accent), info is a soft periwinkle for neutral/decorative highlights.
   --danger: #f87171; // red-400 — reads as a real warning; #fca5a5 was too pink/soft
   --danger-light: rgba(185, 28, 28, 0.2);
   --danger-border: rgba(185, 28, 28, 0.4);
-  --success: #{$teal-300};
+  --success: #46d6a0; // spearmint — ~9:1 on the dark ground, dark text on it ~7:1
+  --success-light: rgba(16, 122, 87, 0.22);
   --warning: #fcd34d;
   --warning-light: rgba(146, 64, 14, 0.2);
+  --info: #93a4e6; // periwinkle — decorative accent, not buttons
+  --info-light: rgba(79, 96, 189, 0.2);
 
   // Shadows — stronger on dark
   --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.35);
