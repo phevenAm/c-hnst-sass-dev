@@ -928,14 +928,14 @@
           counsellor: [
             { d: "forms.webp", m: "mobile-forms.webp", t: "Outcome measures, feedback & onboarding forms", x: "Build a form in minutes — outcome measures, feedback forms, or onboarding paperwork. Assign it to clients and let the results come to you, no chasing needed." },
             { d: "clients.webp", m: "mobile-clients.webp", t: "Invite clients in a couple of clicks", x: "Send a personal email invitation, or add an offline client and invite them whenever you’re ready. Give any client a codename and their real name never appears on screen." },
-            { d: "schedule.webp", m: "mobile-schedule.webp", t: "Your full session history, at a glance", x: "See your attendance rate, upcoming appointments, and session history in one clean view — no spreadsheets, no separate tools." },
+            { d: "schedule.webp", m: "mobile-schedule.webp", scroll: true, t: "Your full session history, at a glance", x: "See your attendance rate, upcoming appointments, and session history in one clean view — no spreadsheets, no separate tools." },
             { d: "resources.webp", m: "mobile-resources.webp", t: "A library clients can actually use", x: "Upload or link articles, videos, worksheets, and websites. Filter by type, publish what’s ready, and hold back what isn’t." },
             { d: "cpd.webp", m: "mobile-cpd.webp", t: "CPD & supervision, logged as you go", x: "Track your continuing professional development and supervision sessions in one place, and export a clean record whenever your accrediting body asks for one." },
             { d: "settings.webp", m: "mobile-settings.webp", t: "Your practice, your settings", x: "Customise your branding, manage notifications, and configure how the platform works for your practice — all from one place." },
             { d: "payments.webp", m: "mobile-payments.webp", t: "Payments, without the chasing", x: "See revenue collected, outstanding balances, and a full payment history — all in one place, without the awkward follow-up messages." }
           ],
           client: [
-            { d: "client-dashboard.webp", m: "mobile-client-dashboard.webp", t: "A clear view of their journey", x: "Clients see their next session, their wellbeing trend across every check-in, and what’s due next — all from their own private dashboard." },
+            { d: "client-dashboard.webp", m: "mobile-client-dashboard.webp", scroll: true, t: "A clear view of their journey", x: "Clients see their next session, their wellbeing trend across every check-in, and what’s due next — all from their own private dashboard." },
             { d: "client-sessions.webp", m: "mobile-client-sessions.webp", t: "Their sessions, in one place", x: "Every upcoming and past session, with pay, reschedule, and add-to-calendar right there." },
             { d: "client-calendar.webp", m: "mobile-client-calendar.webp", t: "…or as a calendar", x: "The same sessions in a week view, alongside the times their counsellor has open — so booking and rescheduling is obvious." },
             { d: "client-checkin.webp", m: "mobile-client-checkin.webp", t: "Check-ins done in minutes", x: "Clients complete RCADS and your own check-ins whenever suits them. Answers are auto-scored and feed straight into their progress chart and your view." },
@@ -953,10 +953,49 @@
         var frameEl = document.getElementById("demoFrame");
         if (!imgD) return;
 
+        var viewportEl = frameEl ? frameEl.querySelector(".browser-viewport") : null;
+        var noMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var autoScrollRaf = 0;
+
+        // Gently pans a tall screenshot (admin schedule, client dashboard) from
+        // top to bottom once it's shown, so the calendar / progress chart lower
+        // down actually gets seen. Manual scroll or a slide change cancels it.
+        function autoScroll() {
+          if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf);
+          if (!viewportEl) return;
+          viewportEl.scrollTop = 0;
+          var max = viewportEl.scrollHeight - viewportEl.clientHeight;
+          if (noMotion || max < 24) return;
+          var start = 0;
+          var HOLD = 900; // pause at the top before panning
+          var DUR = Math.min(9000, 2600 + max * 3); // slower for taller shots
+          function tick(now) {
+            if (!start) start = now;
+            var t = now - start;
+            if (t > HOLD) {
+              var p = Math.min(1, (t - HOLD) / DUR);
+              var eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+              viewportEl.scrollTop = eased * max;
+              if (p >= 1) return;
+            }
+            autoScrollRaf = requestAnimationFrame(tick);
+          }
+          autoScrollRaf = requestAnimationFrame(tick);
+        }
+        if (viewportEl) {
+          viewportEl.addEventListener("wheel", function () {
+            if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = 0; }
+          }, { passive: true });
+          viewportEl.addEventListener("touchstart", function () {
+            if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = 0; }
+          }, { passive: true });
+        }
+
         function render() {
           var list = SLIDES[tab];
           var s = list[i];
-          frameEl.classList.toggle("is-scrollable", s.d === "schedule.webp");
+          var scrollable = !!s.scroll;
+          frameEl.classList.toggle("is-scrollable", scrollable);
           imgD.src = S + s.d;
           imgD.alt = s.t;
           imgM.src = S + s.m;
@@ -976,6 +1015,13 @@
             frameEl.classList.remove("is-fading");
             void frameEl.offsetWidth;
             frameEl.classList.add("is-fading");
+          }
+          if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = 0; }
+          if (viewportEl) viewportEl.scrollTop = 0;
+          if (scrollable) {
+            // wait for the swapped-in image to lay out before measuring
+            if (imgD.complete) autoScroll();
+            else imgD.addEventListener("load", autoScroll, { once: true });
           }
         }
         function step(delta) {
