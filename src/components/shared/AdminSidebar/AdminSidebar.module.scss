@@ -503,15 +503,12 @@ $guide-x: 1.4rem;
         display: flex;
       }
 
-      // Revert to the inline dropdown — the base .groupChildren / .childLink
-      // rules (guide line, indent, active segment) take over again.
+      // Revert to inline dropdown — tree connector comes back
       .groupChildren {
         position: static;
         max-height: 0;
         overflow: hidden;
         visibility: visible;
-        opacity: 1;
-        transform: none;
         pointer-events: auto;
         box-shadow: none;
         border: none;
@@ -525,8 +522,11 @@ $guide-x: 1.4rem;
         }
 
         .childLink {
-          padding: $sp-2 $sp-3 $sp-2 calc(#{$guide-x} + #{$sp-4});
-          font-size: 0.82rem;
+          padding-left: calc(#{$tree-x} + #{$sp-4});
+
+          &::before {
+            display: block;
+          }
         }
       }
 

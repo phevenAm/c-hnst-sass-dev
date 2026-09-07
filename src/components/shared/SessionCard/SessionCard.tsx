@@ -196,6 +196,7 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
         )}
         {isAdmin &&
           !isCancelled &&
+          practiceSettings?.show_session_reference !== false &&
           (editingCode ? (
             <div className={styles.codeEdit}>
               <input

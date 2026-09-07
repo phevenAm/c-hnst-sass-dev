@@ -60,6 +60,9 @@ type PracticeSettings = {
   use_client_codenames: boolean;
   hide_client_profile_pii: boolean;
   referral_code: string | null;
+  /** When false, the per-session reference/code field is hidden on session
+   *  cards. Optional here until the practiceSettings slice selects it. */
+  show_session_reference?: boolean;
 };
 
 type AuthContextType = {
