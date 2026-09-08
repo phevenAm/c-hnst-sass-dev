@@ -172,7 +172,7 @@ export default function AgencyActivityPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-activity-header">
         <div>
           <h1 className={styles.title}>Activity</h1>
           <p className={styles.subtitle}>
@@ -192,7 +192,7 @@ export default function AgencyActivityPage() {
         </div>
       </div>
 
-      <div className={styles.filterRow}>
+      <div className={styles.filterRow} id="agency-activity-filters">
         <select
           className={styles.select}
           value={member}

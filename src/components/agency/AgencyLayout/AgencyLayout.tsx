@@ -124,6 +124,12 @@ export default function AgencyLayout() {
   const agencyName = agency?.name ?? "Agency";
   const railOpen = !isMobile || expanded;
 
+  // The pill under the agency name doubles as a role marker. Managers are
+  // "managing" the agency; everyone else is here as staff — an employee, or a
+  // freelance associate — so say which rather than mislabel them "Manage mode".
+  let rolePill = "Manage mode";
+  if (!isManager) rolePill = membership.employment_type === "freelance" ? "Associate" : "Staff";
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -150,7 +156,7 @@ export default function AgencyLayout() {
             )}
             <span className={styles.agencyName}>{agencyName}</span>
           </Link>
-          <span className={styles.modePill}>Manage mode</span>
+          <span className={`${styles.modePill} ${isManager ? "" : styles.modePillStaff}`}>{rolePill}</span>
         </div>
 
         <nav className={styles.nav}>

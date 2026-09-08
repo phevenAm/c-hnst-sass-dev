@@ -64,7 +64,7 @@ export default function AgencyOnboardingPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-onboarding-header">
         <div>
           <h1 className={styles.title}>Onboarding material</h1>
           <p className={styles.subtitle}>

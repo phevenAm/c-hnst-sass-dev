@@ -88,7 +88,7 @@ export default function AgencyFinancePage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-finance-header">
         <div>
           <h1 className={styles.title}>Finance</h1>
           <p className={styles.subtitle}>Client payments across the agency, against what you record as outgoings.</p>

@@ -88,6 +88,14 @@ $rail: 56px;
   padding: 2px 8px;
 }
 
+// Non-managers (employees / freelance associates) get the same pill in a
+// muted, non-accent treatment — it marks their role, it isn't a mode they act in.
+.modePillStaff {
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  border-color: var(--border);
+}
+
 .nav {
   display: flex;
   flex-direction: column;
@@ -154,6 +162,7 @@ $rail: 56px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative; // anchors the collapsed-rail flyout (SidebarNavGroup)
 }
 
 /* the parent row: link fills it, a chevron button sits on the right */
@@ -377,6 +386,16 @@ $rail: 56px;
     .sidebarFoot {
       padding: var(--sp-2);
       align-items: center;
+    }
+
+    /* the slim icon rail is short enough to fit — a scrollbar gutter here is
+       just noise in a 56px column. Keep it scrollable, hide the chrome. */
+    .nav {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
 
     .link,

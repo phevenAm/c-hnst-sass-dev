@@ -272,7 +272,7 @@ export default function AgencySettingsPage() {
   return (
     <>
       <form onSubmit={save}>
-        <div className={styles.header}>
+        <div className={styles.header} id="agency-settings-header">
           <div>
             <h1 className={styles.title}>Settings</h1>
             <p className={styles.subtitle}>Your agency's identity and the rules that apply to every member.</p>
