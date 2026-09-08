@@ -264,13 +264,6 @@ function sampleInvoice(notes: string | null): { invoice: Invoice; lines: Invoice
  *  unsaved form so the preview tracks what's on screen. */
 export async function previewInvoicePdf(practice: InvoicePracticeDetails, notes: string | null): Promise<void> {
   const { invoice, lines } = sampleInvoice(notes);
-  // Demo the "From" block even before the caller wires real contact lines in.
-  const demo: InvoicePracticeDetails = {
-    ...practice,
-    fromLines: practice.fromLines?.some((l) => l?.trim())
-      ? practice.fromLines
-      : ["hello@yourpractice.example", "01234 567890"],
-  };
-  const doc = await renderInvoiceDoc(invoice, lines, "Sample Client", demo);
+  const doc = await renderInvoiceDoc(invoice, lines, "Sample Client", practice);
   doc.output("dataurlnewwindow");
 }
