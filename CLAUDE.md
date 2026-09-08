@@ -70,3 +70,15 @@ VITE_SUPABASE_ANON_KEY=...
 Key tables mirrored in `src/models/globalTypes.tsx`: `users`, `questionnaires`, `questions`, `questionnaire_assignments`, `responses`, `resources`, `platform_access_token`.
 
 `UserRole` enum uses `"admin"` / `"client"` — note `globalTypes.tsx` defines both a string union `Role` (`"admin" | "user"`) and an enum `UserRole` (`"admin" | "client"`). The live codebase uses `"client"` (not `"user"`) for the client role.
+
+### Database migrations — deploy discipline
+
+There is **one** Supabase project and `supabase db push` applies straight to it (production, live users). Migrations run fine against a live DB **except** when a batch is large or stacked. On 2026-09-08 nine migrations pushed within ~5 minutes wedged PostgREST for ~1 hour (each `notify pgrst, 'reload schema'` forces a full schema-cache rebuild; `ALTER TABLE … ENABLE RLS` / `ADD CONSTRAINT` take brief exclusive locks — stack them under traffic and API requests time out). Nothing was lost, but the API was down/degraded.
+
+Rules:
+- **One migration workstream at a time.** Never run two agent sessions both doing `db push` to this project — 2026-09-08 was two sessions' batches compounding.
+- **Keep batches small.** A few migrations per push, not ten. Squash related changes into one file where practical, with a single `notify pgrst, 'reload schema'` at the end.
+- **Schedule the heavy stuff.** Mass `ENABLE ROW LEVEL SECURITY`, `ADD CONSTRAINT`, column-type changes, data backfills → run in the users' quiet hours (late evening / early morning UK), and one at a time. Prefer `CREATE INDEX CONCURRENTLY`.
+- Add column / function / grant / RLS policy / trigger, and single small migrations — fine to push any time.
+- No formal "maintenance mode" needed for normal migrations; the above spacing is the mitigation.
+- If PostgREST wedges again (repeated `Thread killed by timeout manager`, slow schema-cache queries): Supabase dashboard → Fast Database Reboot, and pause further pushes until traffic is low.
