@@ -504,6 +504,7 @@ export default function AdminSetupPage() {
                 {consentPdfUrlError && <p className={styles.error}>{consentPdfUrlError}</p>}
                 <PdfUpload
                   adminId={userProfile?.id ?? ""}
+                  pathKey="consent"
                   value={consentPdfUrl}
                   onChange={(url) => {
                     setConsentPdfUrl(url);

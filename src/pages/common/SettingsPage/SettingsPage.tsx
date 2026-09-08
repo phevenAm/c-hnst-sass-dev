@@ -2027,6 +2027,7 @@ const SettingsPage = () => {
                       {consentPdfUrlError && <p className={styles.fieldError}>{consentPdfUrlError}</p>}
                       <PdfUpload
                         adminId={userProfile?.id ?? ""}
+                        pathKey="consent"
                         value={consentPdfUrl}
                         onChange={(url) => {
                           setConsentPdfUrl(url);
