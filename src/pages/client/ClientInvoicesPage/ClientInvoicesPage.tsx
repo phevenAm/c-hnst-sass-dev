@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -37,37 +39,95 @@ const STATUS_LABEL: Record<Invoice["status"], string> = {
   void: "Cancelled",
 };
 
+/** Pull the human message out of a functions.invoke() error (its body is a
+ *  Response on FunctionsHttpError). */
+async function invokeErrorMessage(error: unknown, fallback: string): Promise<string> {
+  const ctx = (error as { context?: Response })?.context;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const body = (await ctx.json()) as { error?: string };
+      if (body?.error) return body.error;
+    } catch {
+      /* not JSON */
+    }
+  }
+  return fallback;
+}
+
 export default function ClientInvoicesPage() {
   const { userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   // useAuth().practiceSettings is admin-only; the shared slice cache is
   // populated for clients too (their own practice's row, via RLS).
   const invoicesEnabled = useAppSelector((s) => s.practiceSettings.data?.invoices_enabled !== false);
+  const cardPaymentsAvailable = useAppSelector(
+    (s) => !!s.practiceSettings.data?.card_payments_enabled && !!s.practiceSettings.data?.stripe_connect_onboarded,
+  );
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchInvoices = useCallback(async () => {
     if (!userProfile?.id) return;
     // RLS already limits this to the client's own non-draft invoices; the
     // filters just keep the intent obvious.
-    supabase
+    const { data, error } = await supabase
       .from("invoices")
       .select("id, reference, status, issue_date, due_date, notes, total_pence, invoice_line_items(*)")
       .eq("client_id", userProfile.id)
       .neq("status", "draft")
-      .order("issue_date", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) showToast("Couldn't load your invoices", "error");
-        else setInvoices((data as Invoice[]) ?? []);
-        setLoading(false);
-      });
+      .order("issue_date", { ascending: false });
+    if (error) showToast("Couldn't load your invoices", "error");
+    else setInvoices((data as Invoice[]) ?? []);
+    setLoading(false);
   }, [userProfile?.id, showToast]);
+
+  useEffect(() => {
+    void fetchInvoices();
+  }, [fetchInvoices]);
+
+  // Coming back from Stripe Checkout.
+  useEffect(() => {
+    const outcome = searchParams.get("payment");
+    if (!outcome) return;
+    if (outcome === "success") {
+      showToast("Payment received — thank you.");
+      void fetchInvoices();
+    } else if (outcome === "cancelled") {
+      showToast("Payment cancelled — nothing was charged.");
+    }
+    setSearchParams(
+      (p) => {
+        p.delete("payment");
+        return p;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams, showToast, fetchInvoices]);
 
   const outstanding = useMemo(
     () => invoices.filter((i) => i.status === "sent").reduce((s, i) => s + i.total_pence, 0),
     [invoices],
   );
+
+  const handlePay = async (inv: Invoice) => {
+    if (isDemo) {
+      showToast("Demo mode — no real payment is taken.");
+      return;
+    }
+    setPayingId(inv.id);
+    const { data, error } = await supabase.functions.invoke("create-invoice-checkout", {
+      body: { invoice_id: inv.id },
+    });
+    if (error || !data?.url) {
+      setPayingId(null);
+      showToast(await invokeErrorMessage(error, "Couldn't start the payment — try again."), "error");
+      return;
+    }
+    window.location.href = data.url as string;
+  };
 
   // The practice can turn invoicing off entirely — mirror the admin gating.
   if (!invoicesEnabled) {
@@ -144,6 +204,20 @@ export default function ClientInvoicesPage() {
                             </tbody>
                           </table>
                           {inv.notes && <p className={styles.notes}>{inv.notes}</p>}
+
+                          {inv.status === "sent" && (
+                            <div className={styles.payRow}>
+                              {cardPaymentsAvailable && (
+                                <Button size="sm" onClick={() => void handlePay(inv)} disabled={payingId === inv.id}>
+                                  {payingId === inv.id ? "Starting…" : `Pay ${money(inv.total_pence)} by card`}
+                                </Button>
+                              )}
+                              <span className={styles.payHint}>
+                                Or pay by bank transfer using the details on your emailed invoice — quote the reference{" "}
+                                {inv.reference}.
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </Card>

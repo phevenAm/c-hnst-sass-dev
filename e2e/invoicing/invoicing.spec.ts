@@ -109,7 +109,11 @@ test.beforeAll(() => {
 
 test.afterAll(() => {
   purge();
-  dbQuery(`update public.practice_settings set invoices_enabled = true where admin_id = '${adminId}';`);
+  dbQuery(
+    `update public.practice_settings
+       set invoices_enabled = true, card_payments_enabled = false, stripe_connect_onboarded = false
+     where admin_id = '${adminId}';`,
+  );
 });
 
 test("a client cannot see a draft invoice, but sees it once it's sent (RLS)", async ({ page }) => {
@@ -261,6 +265,48 @@ test("create-invoice-checkout rejects a wrong-client / no-Connect payment attemp
   const noConnect = await invokeInvoiceCheckout(await clientAccessToken(), { invoice_id: invoiceId });
   expect(noConnect.status).toBe(422);
   expect(noConnect.body.error).toMatch(/bank transfer/i);
+});
+
+test("the client /invoices page offers 'Pay by card' only when the practice has card payments on", async ({ page }) => {
+  test.setTimeout(120_000);
+
+  dbQuery(
+    `update public.invoices set status = 'sent', paid_at = null where id = '${invoiceId}';
+     update public.practice_settings
+       set card_payments_enabled = false, stripe_connect_onboarded = false
+     where admin_id = '${adminId}';`,
+  );
+
+  await login(page, FIXTURES.client.email, FIXTURES.client.password);
+  await page.goto(`${APP_URL}/invoices`, { waitUntil: "load", timeout: 20_000 });
+  await page.getByRole("button", { name: new RegExp(REF) }).click(); // expand the row
+
+  // Card payments off → no card button, but the bank-transfer fallback (with
+  // the reference to quote) is always there.
+  await expect(page.getByText(new RegExp(`quote the reference ${REF}`, "i"))).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: /Pay .* by card/i })).toHaveCount(0);
+
+  // Turn card payments on (but no real connected account) → button appears;
+  // clicking it hits create-invoice-checkout, which 422s and surfaces the
+  // bank-transfer message as a toast.
+  dbQuery(
+    `update public.practice_settings
+       set card_payments_enabled = true, stripe_connect_onboarded = true
+     where admin_id = '${adminId}';`,
+  );
+  await page.reload({ waitUntil: "load" });
+  await page.getByRole("button", { name: new RegExp(REF) }).click();
+
+  const payBtn = page.getByRole("button", { name: /Pay .* by card/i });
+  await expect(payBtn).toBeVisible({ timeout: 15_000 });
+  await payBtn.click();
+  await expect(page.getByText(/bank transfer/i)).toBeVisible({ timeout: 15_000 });
+
+  dbQuery(
+    `update public.practice_settings
+       set card_payments_enabled = false, stripe_connect_onboarded = false
+     where admin_id = '${adminId}';`,
+  );
 });
 
 test("turning invoicing off hides the Finances tab, the client nav link and the client page", async ({ browser }) => {

@@ -152,6 +152,23 @@
   white-space: pre-wrap;
 }
 
+.payRow {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.payHint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 12rem;
+}
+
 .empty {
   padding: var(--sp-8);
   text-align: center;

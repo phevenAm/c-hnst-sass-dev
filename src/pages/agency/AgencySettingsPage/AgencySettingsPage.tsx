@@ -351,6 +351,7 @@ export default function AgencySettingsPage() {
                 <span className={styles.label}>Or attach a consent PDF</span>
                 <PdfUpload
                   adminId={authUser.id}
+                  pathKey="agency-consent"
                   value={draft.consent_pdf_url ?? ""}
                   onChange={(url) => set({ consent_pdf_url: url })}
                 />
@@ -438,6 +439,7 @@ export default function AgencySettingsPage() {
                 <span className={styles.label}>Or attach an agreement PDF</span>
                 <PdfUpload
                   adminId={authUser.id}
+                  pathKey="agency-agreement"
                   value={draft.agreement_pdf_url ?? ""}
                   onChange={(url) => set({ agreement_pdf_url: url })}
                 />
