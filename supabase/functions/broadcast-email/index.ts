@@ -10,6 +10,7 @@ const corsHeaders = {
 const EMAIL_TYPE = "announcement";
 const MAX_RECIPIENTS = 500;
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const ATTACHMENT_FETCH_TIMEOUT_MS = 10_000;
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -21,14 +22,45 @@ const bodyToHtml = (raw: string) =>
     .map((block) => para(escapeHtml(block).replace(/\n/g, "<br/>")))
     .join("");
 
-async function fetchAttachment(url: string): Promise<{ filename: string; content: string } | null> {
-  const res = await fetch(url);
+// SSRF guard. `attachment_url` arrives in the request body, and without this
+// the function would `fetch()` any URL server-side (cloud metadata, localhost,
+// internal services) and base64 the response into an email the caller reads.
+// The only legitimate value is a public URL for a PDF this same practice just
+// uploaded to the `documents` bucket (see src/components/shared/PdfUpload:
+// path is `<adminId>/<uuid>-<file>.pdf`). Lock to exactly that: same Supabase
+// project, that bucket, this caller's own folder. `new URL()` normalises `..`
+// and does not decode `%2f`, so path-traversal and encoded-slash tricks fail
+// the prefix check.
+function validatedAttachmentUrl(rawUrl: string, ownerId: string): URL {
+  const base = new URL(Deno.env.get("SUPABASE_URL")!);
+  let u: URL;
+  try {
+    u = new URL(rawUrl);
+  } catch {
+    throw new Error("Invalid attachment URL");
+  }
+  const prefix = `/storage/v1/object/public/documents/${ownerId}/`;
+  if (u.protocol !== "https:" || u.host !== base.host || !u.pathname.startsWith(prefix)) {
+    throw new Error("Attachment must be a PDF uploaded to this practice's own documents");
+  }
+  return u;
+}
+
+async function fetchAttachment(url: URL): Promise<{ filename: string; content: string } | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ATTACHMENT_FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, { redirect: "error", signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) return null;
   const buf = new Uint8Array(await res.arrayBuffer());
   if (buf.byteLength > MAX_ATTACHMENT_BYTES) throw new Error("Attachment is larger than 15MB");
   let binary = "";
   for (let i = 0; i < buf.byteLength; i++) binary += String.fromCharCode(buf[i]);
-  const filename = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "attachment.pdf");
+  const filename = decodeURIComponent(url.pathname.split("/").pop() ?? "attachment.pdf");
   return { filename, content: btoa(binary) };
 }
 
@@ -100,7 +132,16 @@ Deno.serve(async (req) => {
 
     let attachments: { filename: string; content: string }[] | undefined;
     if (attachment_url) {
-      const a = await fetchAttachment(attachment_url);
+      let safeUrl: URL;
+      try {
+        safeUrl = validatedAttachmentUrl(String(attachment_url), user.id);
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Invalid attachment" }), {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      const a = await fetchAttachment(safeUrl);
       if (a) attachments = [a];
     }
 

@@ -367,9 +367,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const newUserId = signUpData.user.id;
 
-        // Auto-confirm email — invite email is proof the address is valid
+        // Auto-confirm email — invite email is proof the address is valid.
+        // signUp() with the project's auto-confirm on returns a session, so
+        // this invoke carries the new user's bearer token; the function
+        // confirms that caller (not an arbitrary user_id in the body).
         await supabase.functions.invoke("auto-confirm-signup", {
-          body: { user_id: newUserId, access_token: cleanedToken },
+          body: { access_token: cleanedToken },
         });
 
         // Sign in so auth.uid() is set when consume_platform_access_token runs
