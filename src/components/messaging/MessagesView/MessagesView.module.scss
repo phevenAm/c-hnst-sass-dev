@@ -4,7 +4,12 @@ $listW: 20rem;
   display: grid;
   grid-template-columns: $listW 1fr;
   gap: 0;
-  height: calc(100vh - var(--navbar-height, 60px) - 2 * var(--sp-4));
+  // Fill the routed page area exactly. Both shells (#main-content via
+  // AppLayout / AdminLayout) hand .page-content a definite bounded height off
+  // #root's 100dvh, so height:100% resolves; the extra var(--sp-8) is
+  // .page-content's ::after scroll-spacer, which would otherwise push the
+  // composer below the fold on the client layout.
+  height: calc(100% - var(--sp-8));
   min-height: 24rem;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -292,7 +297,8 @@ $listW: 20rem;
 @media (max-width: 720px) {
   .wrap {
     grid-template-columns: 1fr;
-    height: calc(100vh - var(--navbar-height, 60px) - var(--sp-4));
+    // .page-content's ::after is var(--sp-5) below the md breakpoint.
+    height: calc(100% - var(--sp-5));
   }
 
   .list {

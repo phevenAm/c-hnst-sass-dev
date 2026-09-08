@@ -196,8 +196,10 @@ grant execute on function public.get_or_create_conversation(uuid, uuid) to authe
 
 -- List the caller's conversations, newest activity first, each enriched with
 -- the other party's public profile fields, an unread count, and a preview of
--- the last message. SECURITY INVOKER — it only ever reads rows the caller's
--- RLS already allows, and the WHERE clause pins it to their own threads.
+-- the last message. SECURITY DEFINER: the users join needs to read the peer's
+-- profile row, which a client's RLS wouldn't allow for their admin. The WHERE
+-- clause pins the result to the caller's own threads, and only name + avatar
+-- of the peer are exposed. (Was INVOKER; see 20260908000110.)
 create or replace function public.list_my_conversations()
 returns table (
   id              uuid,
@@ -215,7 +217,7 @@ returns table (
 )
 language sql
 stable
-security invoker
+security definer
 set search_path = ''
 as $func$
   select

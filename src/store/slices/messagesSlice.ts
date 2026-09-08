@@ -112,7 +112,9 @@ export const openConversation = createAsyncThunk(
     });
     if (error) return rejectWithValue(error.message);
     const conversationId = data as string;
-    dispatch(fetchConversations());
+    // Await the list so `activeConvo` (and the composer) is ready the moment
+    // the caller navigates to the thread; the thread itself starts empty.
+    await dispatch(fetchConversations());
     dispatch(fetchThread(conversationId));
     return conversationId;
   },
