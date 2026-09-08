@@ -14,7 +14,16 @@
 
 export type FeatureFlag = "agency";
 
-const isOn = (raw: unknown): boolean => raw === true || raw === "true" || raw === "1";
+// Tolerate a trailing inline comment / stray whitespace in a .env value
+// (dotenv keeps everything after `=`, so `VITE_FF_AGENCY=true # on` is the
+// literal string "true # on" — take the first token).
+const isOn = (raw: unknown): boolean => {
+  if (raw === true) return true;
+  const token = String(raw ?? "")
+    .trim()
+    .split(/\s+/)[0];
+  return token === "true" || token === "1";
+};
 
 /** True when `flag` is switched on for this build. */
 export function isFeatureEnabled(flag: FeatureFlag): boolean {

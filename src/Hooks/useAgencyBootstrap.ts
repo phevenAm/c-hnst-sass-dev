@@ -35,8 +35,12 @@ export function useAgencyBootstrap() {
     if (!agencyEnabled || loading || !isAuthenticated) return;
 
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id;
+      // getSession(), not getUser(): no /auth/v1/user round trip and no
+      // auth-token lock held across the network (see agencySlice.bootstrapAgency).
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const uid = session?.user?.id;
       if (!uid || ranFor.current === uid) return;
       ranFor.current = uid;
 

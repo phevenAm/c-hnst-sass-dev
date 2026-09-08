@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
-import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from "react-router-dom";
 
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
@@ -8,6 +8,7 @@ import {
   BookIcon,
   CalendarIcon,
   CancelIcon,
+  ChevronDownSmIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ClipboardIcon,
@@ -31,10 +32,19 @@ import {
 
 import styles from "./AgencyLayout.module.scss";
 
-const MANAGER_LINKS = [
+type NavLeaf = { to: string; label: string; end?: boolean; Icon: React.ComponentType };
+type NavItem = NavLeaf & { children?: NavLeaf[] };
+
+const MANAGER_LINKS: NavItem[] = [
   { to: "/agency", label: "Overview", end: true, Icon: HomeIcon },
-  { to: "/agency/clients?view=active", label: "Clients", Icon: AssignmentClipIcon },
-  { to: "/agency/clients?view=waiting", label: "Waiting list", Icon: ClipboardIcon },
+  {
+    to: "/agency/clients?view=active",
+    label: "Clients",
+    Icon: AssignmentClipIcon,
+    // Waiting list is the same page (AgencyClientsPage) on ?view=waiting —
+    // nest it under Clients rather than as a sibling row.
+    children: [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: ClipboardIcon }],
+  },
   { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
   { to: "/agency/members", label: "Staff", Icon: UsersIcon },
   { to: "/agency/invoices", label: "Invoices", Icon: DocumentIcon },
@@ -43,7 +53,11 @@ const MANAGER_LINKS = [
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },
 ];
 
-const COUNSELLOR_LINKS = [{ to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon }];
+const COUNSELLOR_LINKS: NavItem[] = [
+  { to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon },
+];
+
+const CLIENTS_PATH = "/agency/clients";
 
 const MOBILE_Q = "(max-width: 860px)";
 
@@ -55,6 +69,7 @@ export default function AgencyLayout() {
   const { loading, signOut } = useAuth();
   const { showToast } = useToast();
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
   const status = useAppSelector(selectAgencyBootstrapStatus);
   const membership = useAppSelector(selectAgencyMembership);
   const agency = useAppSelector(selectAgency);
@@ -62,6 +77,13 @@ export default function AgencyLayout() {
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   const [expanded, setExpanded] = useState(false);
+  // "Clients" submenu (holds Waiting list) — open whenever a clients view is showing.
+  const onClientsPage = pathname === CLIENTS_PATH || pathname.startsWith(`${CLIENTS_PATH}/`);
+  const [clientsOpen, setClientsOpen] = useState(onClientsPage);
+  useEffect(() => {
+    if (onClientsPage) setClientsOpen(true);
+  }, [onClientsPage]);
+  const clientsView = searchParams.get("view");
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_Q);
@@ -132,20 +154,68 @@ export default function AgencyLayout() {
         </div>
 
         <nav className={styles.nav}>
-          {links.map(({ to, label, end, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              title={railOpen ? undefined : label}
-              className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ""}`}
-            >
-              <span className={styles.linkIcon}>
-                <Icon />
-              </span>
-              <span className={styles.linkLabel}>{label}</span>
-            </NavLink>
-          ))}
+          {links.map((item) => {
+            if (item.children?.length) {
+              // "Clients" — a link that also toggles a nested submenu (Waiting list).
+              const parentActive = onClientsPage && clientsView !== "waiting";
+              return (
+                <div key={item.to} className={styles.navGroup}>
+                  <div className={`${styles.link} ${styles.groupRow} ${parentActive ? styles.active : ""}`}>
+                    <NavLink to={item.to} className={styles.groupLink} title={railOpen ? undefined : item.label}>
+                      <span className={styles.linkIcon}>
+                        <item.Icon />
+                      </span>
+                      <span className={styles.linkLabel}>{item.label}</span>
+                    </NavLink>
+                    <button
+                      type="button"
+                      className={styles.groupToggle}
+                      aria-expanded={clientsOpen}
+                      aria-label={clientsOpen ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                      onClick={() => setClientsOpen((v) => !v)}
+                    >
+                      <span className={`${styles.groupChevron} ${clientsOpen ? styles.groupChevronOpen : ""}`}>
+                        <ChevronDownSmIcon />
+                      </span>
+                    </button>
+                  </div>
+                  <div className={`${styles.groupChildren} ${clientsOpen ? styles.groupChildrenOpen : ""}`}>
+                    {item.children.map((child) => {
+                      const childActive = onClientsPage && clientsView === "waiting";
+                      return (
+                        <NavLink
+                          key={child.to}
+                          to={child.to}
+                          tabIndex={clientsOpen ? undefined : -1}
+                          title={railOpen ? undefined : child.label}
+                          className={`${styles.link} ${styles.childLink} ${childActive ? styles.active : ""}`}
+                        >
+                          <span className={styles.linkIcon}>
+                            <child.Icon />
+                          </span>
+                          <span className={styles.linkLabel}>{child.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                title={railOpen ? undefined : item.label}
+                className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ""}`}
+              >
+                <span className={styles.linkIcon}>
+                  <item.Icon />
+                </span>
+                <span className={styles.linkLabel}>{item.label}</span>
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className={styles.sidebarFoot}>

@@ -31,8 +31,12 @@ npm install
 npm run start       # dev server
 npm run build       # production build → dist/
 npm run test        # Vitest in watch mode
+npm run test:run    # Vitest — whole suite once, no watch
 npm run sync-tokens # sync SCSS $variables → CSS custom properties
 ```
+
+See [`docs/testing.md`](docs/testing.md) for the full picture — unit vs e2e,
+how to seed and run the Playwright suite, a11y, and the pre-PR checklist.
 
 ---
 

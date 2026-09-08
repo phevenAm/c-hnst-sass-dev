@@ -96,7 +96,6 @@ end;
 $func$;
 
 revoke all on function public.superadmin_directory() from public, anon;
-
 grant execute on function public.superadmin_directory() to authenticated;
 
 comment on function public.superadmin_directory() is
