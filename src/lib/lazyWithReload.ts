@@ -1,5 +1,7 @@
 import { type ComponentType, type LazyExoticComponent, lazy } from "react";
 
+import { showUpdatingSplash } from "./updatingSplash";
+
 // Vite fingerprints every code-split chunk's filename. After a deploy the
 // browser can still be holding the previous index.html, so an `import()` of a
 // route chunk 404s — "Failed to fetch dynamically imported module
@@ -61,6 +63,9 @@ export function lazyWithReload<T extends ComponentType<Record<string, never>>>(
     } catch (err) {
       if (classifyImportError(err) === "reload") {
         writeFlag(true);
+        // Same "Updating…" sapling the UpdateBanner shows on a manual update,
+        // so the deploy-triggered auto-reload isn't a silent white flash.
+        showUpdatingSplash();
         window.location.reload();
         // Never resolve — React shouldn't flash the error boundary in the
         // moment before the reload takes hold.

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
 import { useRealtimeTable } from "@Hooks/useRealtimeTable";
+import ClientInvoicesCard from "@components/client/ClientInvoicesCard/ClientInvoicesCard";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
@@ -275,6 +276,9 @@ export default function ClientDashboard() {
               every question that shares a tag; it falls back to per-question lines
               only when no tags are set. Tag questions in the form builder. */}
         </div>
+
+        {/* Self-hides unless the practice has invoicing on AND this client has invoices. */}
+        <ClientInvoicesCard />
 
         <div className={styles.bottomGrid} id="client-checkins">
           <Card>

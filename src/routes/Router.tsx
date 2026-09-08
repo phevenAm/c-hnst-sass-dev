@@ -56,7 +56,6 @@ const AdminStubDetailPage = lazyWithReload(() => import("../pages/admin/AdminStu
 const AdminSupervisionPage = lazyWithReload(() => import("../pages/admin/AdminSupervisionPage/AdminSupervisionPage"));
 const CheckInPage = lazyWithReload(() => import("../pages/client/CheckInPage/CheckInPage"));
 const ClientDashboard = lazyWithReload(() => import("../pages/client/ClientDashboard/ClientDashboard"));
-const ClientInvoicesPage = lazyWithReload(() => import("../pages/client/ClientInvoicesPage/ClientInvoicesPage"));
 const ClientSchedule = lazyWithReload(() => import("../pages/client/ClientSchedule/ClientSchedule"));
 const RcadsAssessmentPage = lazyWithReload(() => import("../pages/client/RcadsAssessmentPage/RcadsAssessmentPage"));
 const ResourcesPage = lazyWithReload(() => import("../pages/client/ResourcesPage/ResourcesPage"));
@@ -408,7 +407,6 @@ export default function AppRoutes() {
                 <Route path="/dashboard" element={<ClientDashboard />} />
                 <Route path="/check-in" element={<CheckInPage />} />
                 <Route path="/my-sessions" element={<ClientSchedule />} />
-                <Route path="/invoices" element={<ClientInvoicesPage />} />
                 <Route path="/resources" element={<ResourcesPage />} />
                 <Route path="/rcads" element={<RcadsAssessmentPage />} />
               </Route>

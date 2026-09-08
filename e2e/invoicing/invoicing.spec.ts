@@ -116,18 +116,20 @@ test.afterAll(() => {
   );
 });
 
-test("a client cannot see a draft invoice, but sees it once it's sent (RLS)", async ({ page }) => {
+test("the dashboard invoices card hides a draft and shows the invoice once it's sent (RLS)", async ({ page }) => {
   test.setTimeout(90_000);
 
   await login(page, FIXTURES.client.email, FIXTURES.client.password);
-  await page.goto(`${APP_URL}/invoices`, { waitUntil: "load", timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Invoices" })).toBeVisible({ timeout: 15_000 });
+  await page.goto(`${APP_URL}/dashboard`, { waitUntil: "load", timeout: 20_000 });
+  // The card self-hides when the client has no visible invoices — a draft is
+  // invisible to them (RLS), so nothing shows.
   await expect(page.getByText(REF)).toHaveCount(0);
 
   // Promote to `sent` out of band and reload — the client session's RLS now lets it through.
   dbQuery(`update public.invoices set status = 'sent', sent_at = now() where id = '${invoiceId}';`);
   await page.reload({ waitUntil: "load" });
 
+  await expect(page.getByRole("heading", { name: "Invoices from your counsellor" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(REF)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("£120.00").first()).toBeVisible();
 });
@@ -267,7 +269,9 @@ test("create-invoice-checkout rejects a wrong-client / no-Connect payment attemp
   expect(noConnect.body.error).toMatch(/bank transfer/i);
 });
 
-test("the client /invoices page offers 'Pay by card' only when the practice has card payments on", async ({ page }) => {
+test("the dashboard invoices card offers 'Pay by card' only when the practice has card payments on", async ({
+  page,
+}) => {
   test.setTimeout(120_000);
 
   dbQuery(
@@ -278,7 +282,7 @@ test("the client /invoices page offers 'Pay by card' only when the practice has 
   );
 
   await login(page, FIXTURES.client.email, FIXTURES.client.password);
-  await page.goto(`${APP_URL}/invoices`, { waitUntil: "load", timeout: 20_000 });
+  await page.goto(`${APP_URL}/dashboard`, { waitUntil: "load", timeout: 20_000 });
   await page.getByRole("button", { name: new RegExp(REF) }).click(); // expand the row
 
   // Card payments off → no card button, but the bank-transfer fallback (with
@@ -309,10 +313,13 @@ test("the client /invoices page offers 'Pay by card' only when the practice has 
   );
 });
 
-test("turning invoicing off hides the Finances tab, the client nav link and the client page", async ({ browser }) => {
+test("turning invoicing off hides the Finances tab and the client dashboard card", async ({ browser }) => {
   test.setTimeout(120_000);
 
-  dbQuery(`update public.practice_settings set invoices_enabled = false where admin_id = '${adminId}';`);
+  dbQuery(
+    `update public.invoices set status = 'sent', sent_at = now() where id = '${invoiceId}';
+     update public.practice_settings set invoices_enabled = false where admin_id = '${adminId}';`,
+  );
 
   const adminCtx = await browser.newContext();
   const adminPage = await adminCtx.newPage();
@@ -327,14 +334,14 @@ test("turning invoicing off hides the Finances tab, the client nav link and the 
   await expect(adminPage.getByText("Recent activity")).toBeVisible({ timeout: 15_000 });
   await adminCtx.close();
 
+  // Client: the invoices card doesn't render even though there's a sent invoice.
   const clientCtx = await browser.newContext();
   const clientPage = await clientCtx.newPage();
   await login(clientPage, FIXTURES.client.email, FIXTURES.client.password);
   await clientPage.goto(`${APP_URL}/dashboard`, { waitUntil: "load", timeout: 20_000 });
-  await expect(clientPage.getByRole("link", { name: "Invoices" })).toHaveCount(0);
-
-  await clientPage.goto(`${APP_URL}/invoices`, { waitUntil: "load", timeout: 20_000 });
-  await expect(clientPage.getByText(/aren't available for your account/i)).toBeVisible({ timeout: 15_000 });
+  await expect(clientPage.getByRole("heading", { name: "Your Check-ins" })).toBeVisible({ timeout: 15_000 });
+  await expect(clientPage.getByText("Invoices from your counsellor")).toHaveCount(0);
+  await expect(clientPage.getByText(REF)).toHaveCount(0);
   await clientCtx.close();
 
   dbQuery(`update public.practice_settings set invoices_enabled = true where admin_id = '${adminId}';`);

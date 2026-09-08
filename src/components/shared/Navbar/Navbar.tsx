@@ -25,7 +25,6 @@ export default function Navbar() {
 
   useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
   const practiceLogoUrl = useAppSelector((state) => state.practiceSettings.data?.logo_url ?? null);
-  const invoicesEnabled = useAppSelector((state) => state.practiceSettings.data?.invoices_enabled !== false);
 
   const handleLogout = async () => {
     try {
@@ -82,7 +81,6 @@ export default function Navbar() {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/my-sessions", label: "My sessions" },
     { to: "/check-in", label: "Check-in" },
-    ...(invoicesEnabled ? [{ to: "/invoices", label: "Invoices" }] : []),
     { to: "/resources", label: "Resources" },
   ];
 
