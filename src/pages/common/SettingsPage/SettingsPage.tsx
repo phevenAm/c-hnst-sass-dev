@@ -805,6 +805,7 @@ const SettingsPage = () => {
           bankAccountNumber: bankDetails.bank_account_number || null,
           bankReference: bankDetails.bank_payment_reference || null,
           accentHex: /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : null,
+          footerText: invoiceFooterText.trim() || null,
         },
         invoiceDefaultNotes.trim() || null,
       );

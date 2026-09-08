@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  fmtDate,
   formatReference,
   hexToRgb,
   initialDueDate,
@@ -70,6 +71,19 @@ describe("invoiceMath", () => {
     for (const empty of [null, undefined, "", "   "]) {
       expect(invoiceBandBrand(empty)).toBe("Clarity");
     }
+  });
+
+  it("fmtDate renders an ISO date (or timestamp) as a UK long date", () => {
+    expect(fmtDate("2026-09-08")).toBe("8 September 2026");
+    expect(fmtDate("2026-09-08T22:00:00.000Z")).toBe("8 September 2026");
+    expect(fmtDate("2026-01-01")).toBe("1 January 2026");
+  });
+
+  it("fmtDate returns '' for nullish and passes through an unparseable string", () => {
+    expect(fmtDate(null)).toBe("");
+    expect(fmtDate(undefined)).toBe("");
+    expect(fmtDate("")).toBe("");
+    expect(fmtDate("not-a-date")).toBe("not-a-date");
   });
 
   it("hexToRgb parses a 6-digit hex and rejects everything else", () => {

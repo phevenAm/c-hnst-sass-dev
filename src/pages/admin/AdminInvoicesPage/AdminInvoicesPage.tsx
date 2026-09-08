@@ -177,6 +177,7 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
     bankAccountNumber: settings?.bank_account_number ?? null,
     bankReference: settings?.bank_payment_reference ?? null,
     accentHex: settings?.invoice_accent_hex ?? null,
+    footerText: settings?.invoice_footer_text ?? null,
   });
 
   const sendEmail = async (inv: Invoice) => {
