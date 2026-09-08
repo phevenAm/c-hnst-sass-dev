@@ -103,8 +103,8 @@ Deno.serve(async (req) => {
           },
         ],
         metadata: { invoice_id: invoice.id },
-        success_url: `${appUrl}/invoices?payment=success`,
-        cancel_url: `${appUrl}/invoices?payment=cancelled`,
+        success_url: `${appUrl}/dashboard?payment=success`,
+        cancel_url: `${appUrl}/dashboard?payment=cancelled`,
       },
       { stripeAccount: ps.stripe_connect_account_id },
     );
