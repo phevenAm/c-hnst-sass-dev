@@ -20,7 +20,9 @@ export function dbQuery<T = Record<string, unknown>>(sql: string): { rows: T[] }
   writeFileSync(file, sql);
   let out: string;
   try {
-    out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked"], {
+    // --output-format json: the CLI otherwise prints an ASCII table unless it
+    // detects an agent host.
+    out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked", "--output-format", "json"], {
       encoding: "utf8",
       shell: true,
     });
@@ -31,8 +33,19 @@ export function dbQuery<T = Record<string, unknown>>(sql: string): { rows: T[] }
     const e = err as { stdout?: string; stderr?: string; message: string };
     throw new Error(`dbQuery failed.\nSQL: ${sql}\nstdout: ${e.stdout}\nstderr: ${e.stderr}`);
   }
-  const jsonStart = out.indexOf("{");
-  return JSON.parse(out.slice(jsonStart));
+  // Output shape depends on host detection: an agent host (e.g. Claude Code)
+  // gets { boundary, rows, warning }; a plain terminal with --output-format
+  // json gets a bare [ ...rows ] array; without the flag, an ASCII table.
+  const start = out.search(/[[{]/);
+  if (start === -1) {
+    throw new Error(
+      `\`supabase db query\` produced no JSON. Raw output:\n${out || "(empty)"}\n` +
+        "Run `npx supabase db query --file <any.sql> --linked --output-format json` by hand " +
+        "once to clear a first-run npx prompt.",
+    );
+  }
+  const parsed = JSON.parse(out.slice(start)) as T[] | { rows: T[] };
+  return { rows: Array.isArray(parsed) ? parsed : parsed.rows };
 }
 
 // Each `supabase db query` invocation pays a ~4s CLI/login-role startup cost

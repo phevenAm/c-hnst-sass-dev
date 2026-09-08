@@ -19,6 +19,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parseDbRows } from "../cli-json.mjs";
 
 const GROWTH_PRODUCT_ID = "prod_VAzASNT2h23opo"; // Clarity Growth
 
@@ -35,7 +36,10 @@ export const FIXTURES = {
 
 function stripeCli(args) {
   const out = execFileSync("stripe", args, { encoding: "utf8", shell: true });
-  return JSON.parse(out.slice(out.indexOf("{")));
+  const cmd = `stripe ${args.join(" ")}`;
+  const jsonStart = out.indexOf("{");
+  if (jsonStart === -1) throw new Error(`\`${cmd}\` produced no JSON output:\n${out || "(empty)"}`);
+  return JSON.parse(out.slice(jsonStart));
 }
 
 // New fixtures are inserted straight into auth.users rather than via
@@ -64,12 +68,21 @@ const tmpDir = mkdtempSync(join(tmpdir(), "stripe-e2e-seed-"));
 function dbQuery(sql) {
   const file = join(tmpDir, `q-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
   writeFileSync(file, sql);
-  const out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked"], {
-    encoding: "utf8",
-    shell: true,
-  });
-  const jsonStart = out.indexOf("{");
-  return JSON.parse(out.slice(jsonStart));
+  let out;
+  try {
+    // --output-format json: the CLI defaults to a human-readable ASCII table
+    // ("text") and only auto-switches to JSON when it detects an agent host, so
+    // pass it explicitly for plain-terminal runs.
+    out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked", "--output-format", "json"], {
+      encoding: "utf8",
+      shell: true,
+    });
+  } catch (err) {
+    // execFileSync's thrown error drops stderr, where the real Postgres/CLI
+    // message lives.
+    throw new Error(`dbQuery failed.\nSQL: ${sql}\nstdout: ${err.stdout}\nstderr: ${err.stderr}`);
+  }
+  return parseDbRows(out, "supabase db query --linked");
 }
 
 async function main() {
