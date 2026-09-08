@@ -2,6 +2,7 @@ import { type ComponentType, type CSSProperties, useEffect, useRef, useState } f
 import { Link, NavLink } from "react-router-dom";
 
 import { ChevronDownSmIcon } from "@components/shared/Icons/Icons";
+import itemStyles from "@components/shared/SidebarNavItem/SidebarNavItem.module.scss";
 
 import styles from "./SidebarNavGroup.module.scss";
 
@@ -16,7 +17,9 @@ export type SidebarNavGroupClasses = {
   group: string;
   /** parent row container (holds the link + chevron, or just the button). */
   row: string;
-  rowActive: string;
+  /** optional extra class on the active parent row — the selected colour is
+   *  owned by the shared component, this is only for host-specific tweaks. */
+  rowActive?: string;
   /** single toggle button — used when the group has no `to` of its own. */
   button?: string;
   /** parent link — used when the group has a `to` (a separate chevron toggles). */
@@ -31,7 +34,7 @@ export type SidebarNavGroupClasses = {
   children: string;
   childrenOpen: string;
   childLink: string;
-  childActive: string;
+  childActive?: string;
 };
 
 type Props = {
@@ -52,6 +55,8 @@ type Props = {
   forceOpen?: boolean;
   /** Native tooltip on the collapsed rows. */
   showTitle?: boolean;
+  /** Override the shared selected background/text — `[bg, fg]`. */
+  accent?: [bg: string, fg: string];
   onNavigate?: () => void;
   cx: SidebarNavGroupClasses;
 };
@@ -67,9 +72,13 @@ export default function SidebarNavGroup({
   hoverIntent,
   forceOpen = false,
   showTitle = false,
+  accent,
   onNavigate,
   cx,
 }: Props) {
+  const accentStyle = accent
+    ? ({ "--nav-selected-bg": accent[0], "--nav-selected-fg": accent[1] } as CSSProperties)
+    : undefined;
   const [open, setOpen] = useState(forceOpen);
   const [flyoutTop, setFlyoutTop] = useState(0);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -142,8 +151,8 @@ export default function SidebarNavGroup({
     : `${cx.children} ${shown ? cx.childrenOpen : ""}`;
 
   return (
-    <div className={cx.group} {...hoverProps}>
-      <div ref={rowRef} className={`${cx.row} ${parentActive ? cx.rowActive : ""}`}>
+    <div className={cx.group} style={accentStyle} {...hoverProps}>
+      <div ref={rowRef} className={`${cx.row} ${parentActive ? `${cx.rowActive ?? ""} ${itemStyles.selected}` : ""}`}>
         {to ? (
           <>
             <NavLink to={to} className={cx.link} title={showTitle ? label : undefined} onClick={onNavigate}>
@@ -196,7 +205,9 @@ export default function SidebarNavGroup({
               tabIndex={shown ? undefined : -1}
               title={showTitle ? child.label : undefined}
               aria-current={active ? "page" : undefined}
-              className={`${cx.childLink} ${flyoutMode ? styles.flyoutItem : ""} ${active ? cx.childActive : ""}`}
+              className={`${cx.childLink} ${flyoutMode ? styles.flyoutItem : ""} ${
+                active ? `${cx.childActive ?? ""} ${itemStyles.selected}` : ""
+              }`}
               onClick={() => {
                 setOpen(false);
                 onNavigate?.();
