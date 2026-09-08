@@ -33,6 +33,7 @@ const TOTAL_PENCE = QTY * UNIT_PENCE; // £120.00
 let adminId = "";
 let clientId = "";
 let invoiceId = "";
+let reconcileSessionId = "";
 
 async function login(page: Page, email: string, password: string) {
   await page.addInitScript(() => localStorage.setItem("walkthrough_globally_dismissed", "true"));
@@ -52,6 +53,26 @@ function purge() {
   dbQuery(`delete from public.invoices where admin_id = '${adminId}' and reference = '${REF}';`);
   dbQuery(`delete from public.notifications where user_id = '${clientId}' and type = 'invoice';`);
   dbQuery(`delete from public.email_logs where client_id = '${clientId}' and email_type = 'invoice';`);
+  if (reconcileSessionId) dbQuery(`delete from public.sessions where id = '${reconcileSessionId}';`);
+}
+
+async function clientAccessToken(): Promise<string> {
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: FIXTURES.client.email,
+    password: FIXTURES.client.password,
+  });
+  if (error || !data.session) throw new Error(`client sign-in failed: ${error?.message}`);
+  return data.session.access_token;
+}
+
+async function invokeInvoiceCheckout(token: string, body: unknown) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/create-invoice-checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  return { status: res.status, body: (await res.json().catch(() => ({}))) as { url?: string; error?: string } };
 }
 
 test.beforeAll(() => {
@@ -145,7 +166,9 @@ test("the admin's Send action logs an email, notifies the client, and marks the 
        order by created_at desc limit 1;`,
   ).rows[0];
   expect(notif).toBeTruthy();
-  expect(notif.url).toBe("/invoices");
+  // "/dashboard" until the client /invoices page ships to prod (PR dev→main),
+  // then send-invoice-email flips both this and the email CTA back to /invoices.
+  expect(notif.url).toBe("/dashboard");
   expect(notif.message).toContain(REF);
 
   // status flipped.
@@ -187,6 +210,57 @@ test("Mark paid mirrors the invoice into the payments ledger (feeds Finances inc
   expect(
     dbQuery<{ status: string }>(`select status from public.invoices where id = '${invoiceId}';`).rows[0].status,
   ).toBe("paid");
+});
+
+test("paying an invoice settles the sessions billed on it (no double-charge on /my-sessions)", async () => {
+  test.setTimeout(90_000);
+
+  // A real unpaid session for the fixture client; tracked for afterAll cleanup.
+  reconcileSessionId = dbQuery<{ id: string }>(
+    `insert into public.sessions (client_id, created_by, scheduled_at, duration_minutes, status, location, price_pence, paid)
+     values ('${clientId}', '${adminId}', now() - interval '7 days', 50, 'scheduled', 'remote', ${UNIT_PENCE}, false)
+     returning id;`,
+  ).rows[0].id;
+
+  // Put it on the E2E invoice as a session-linked line, and reset the invoice to sent.
+  dbQuery(
+    `update public.invoices set status = 'sent', paid_at = null where id = '${invoiceId}';
+     delete from public.payments where admin_id = '${adminId}' and description = 'Invoice ${REF}';
+     insert into public.invoice_line_items (invoice_id, description, quantity, unit_amount_pence, session_id, sort_order)
+     values ('${invoiceId}', 'Session on account', 1, ${UNIT_PENCE}, '${reconcileSessionId}', 1);`,
+  );
+
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  await sb.auth.signInWithPassword({ email: FIXTURES.admin.email, password: FIXTURES.admin.password });
+  const { error } = await sb.rpc("mark_invoice_paid", { p_invoice_id: invoiceId });
+  expect(error).toBeNull();
+
+  const session = dbQuery<{ paid: boolean }>(`select paid from public.sessions where id = '${reconcileSessionId}';`)
+    .rows[0];
+  expect(session.paid).toBe(true);
+});
+
+test("create-invoice-checkout rejects a wrong-client / no-Connect payment attempt", async () => {
+  test.setTimeout(90_000);
+
+  dbQuery(`update public.invoices set status = 'sent', paid_at = null where id = '${invoiceId}';`);
+
+  // Wrong caller: the admin's own token can't pay a client's invoice.
+  const adminSb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: adminAuth } = await adminSb.auth.signInWithPassword({
+    email: FIXTURES.admin.email,
+    password: FIXTURES.admin.password,
+  });
+  const adminToken = adminAuth.session?.access_token;
+  if (!adminToken) throw new Error("admin sign-in returned no token");
+  const wrongCaller = await invokeInvoiceCheckout(adminToken, { invoice_id: invoiceId });
+  expect(wrongCaller.status).toBe(403);
+
+  // Right client, but the fixture practice has no Stripe Connect account —
+  // the fn refuses and points them at bank transfer.
+  const noConnect = await invokeInvoiceCheckout(await clientAccessToken(), { invoice_id: invoiceId });
+  expect(noConnect.status).toBe(422);
+  expect(noConnect.body.error).toMatch(/bank transfer/i);
 });
 
 test("turning invoicing off hides the Finances tab, the client nav link and the client page", async ({ browser }) => {

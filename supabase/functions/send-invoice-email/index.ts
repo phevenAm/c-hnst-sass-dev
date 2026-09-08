@@ -143,7 +143,9 @@ Deno.serve(async (req) => {
           `When you pay, please quote the reference <strong>${escapeHtml(paymentReference)}</strong> so your payment can be matched to this invoice.`,
         ) +
         (invoice.notes ? para(escapeHtml(invoice.notes).replace(/\n/g, "<br/>")) : ""),
-      cta: appUrl ? { label: "Open Clarity", url: `${appUrl}/invoices` } : undefined,
+      // TODO: point at `${appUrl}/invoices` once the client invoice page is live
+      // on prod (PR dev→main). Until then that route 404s for clients.
+      cta: appUrl ? { label: "Open Clarity", url: `${appUrl}/dashboard` } : undefined,
       footerNote:
         (settings?.invoice_footer_text ? `${escapeHtml(settings.invoice_footer_text)}<br/><br/>` : "") +
         `This invoice was sent to you by ${escapeHtml(practiceName)} via Clarity.`,
@@ -200,7 +202,8 @@ Deno.serve(async (req) => {
         user_id: invoice.client_id,
         type: "invoice",
         message: `New invoice ${invoice.reference} from ${practiceName} — ${money(invoice.total_pence)}`,
-        url: "/invoices",
+        // TODO: "/invoices" once that client page is live on prod (PR dev→main).
+        url: "/dashboard",
       });
     }
 
