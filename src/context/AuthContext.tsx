@@ -63,6 +63,11 @@ type PracticeSettings = {
   /** When false, the per-session reference/code field is hidden on session
    *  cards. Optional here until the practiceSettings slice selects it. */
   show_session_reference?: boolean;
+  /** Invoicing master switch + appearance defaults. */
+  invoices_enabled: boolean;
+  invoice_payment_terms_days: number | null;
+  invoice_default_notes: string | null;
+  invoice_accent_hex: string | null;
 };
 
 type AuthContextType = {

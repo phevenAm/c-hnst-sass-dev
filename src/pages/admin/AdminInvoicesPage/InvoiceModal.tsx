@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import dayjs from "dayjs";
 
@@ -12,7 +12,7 @@ import { useToast } from "@context/ToastContext";
 import { supabase } from "@/lib/supabase";
 import type { ClientStub, UserProfile } from "@/models/globalTypes";
 import type { Invoice, InvoiceLine } from "./AdminInvoicesPage";
-import { formatReference, lineTotalPence, money } from "./invoiceMath";
+import { formatReference, initialDueDate, lineTotalPence, money } from "./invoiceMath";
 
 import styles from "./InvoiceModal.module.scss";
 
@@ -30,6 +30,11 @@ type Props = {
   clients: UserProfile[];
   stubs: ClientStub[];
   useCodenames: boolean;
+  /** Preselect this client when opening a fresh invoice (from a client's page
+   *  or a session). Ignored when editing an existing invoice. */
+  presetClientId?: string | null;
+  /** Preload a line item for this session (from "Invoice this session"). */
+  presetSessionId?: string | null;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -52,9 +57,10 @@ const toDraftLine = (l: InvoiceLine): DraftLine => ({
   session_id: l.session_id,
 });
 
-const initialClientValue = (initial: Invoice | null): string => {
+const initialClientValue = (initial: Invoice | null, presetClientId?: string | null): string => {
   if (initial?.client_id) return `user:${initial.client_id}`;
   if (initial?.stub_id) return `stub:${initial.stub_id}`;
+  if (!initial && presetClientId) return `user:${presetClientId}`;
   return "";
 };
 
@@ -64,15 +70,28 @@ const linePence = (l: DraftLine) => lineTotalPence({ quantity: draftQty(l), unit
 
 type SessionRow = { id: string; scheduled_at: string; price_pence: number };
 
-export default function InvoiceModal({ initial, adminId, clients, stubs, useCodenames, onClose, onSaved }: Props) {
+export default function InvoiceModal({
+  initial,
+  adminId,
+  clients,
+  stubs,
+  useCodenames,
+  presetClientId,
+  presetSessionId,
+  onClose,
+  onSaved,
+}: Props) {
   const { showToast } = useToast();
-  const { isDemo } = useAuth();
+  const { isDemo, practiceSettings } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const [clientValue, setClientValue] = useState(initialClientValue(initial));
-  const [issueDate, setIssueDate] = useState(initial?.issue_date ?? new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState(initial?.due_date ?? "");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const firstIssueDate = initial?.issue_date ?? new Date().toISOString().split("T")[0];
+  const termsDays = practiceSettings?.invoice_payment_terms_days ?? null;
+
+  const [clientValue, setClientValue] = useState(initialClientValue(initial, presetClientId));
+  const [issueDate, setIssueDate] = useState(firstIssueDate);
+  const [dueDate, setDueDate] = useState(initialDueDate(initial, firstIssueDate, termsDays));
+  const [notes, setNotes] = useState(initial ? (initial.notes ?? "") : (practiceSettings?.invoice_default_notes ?? ""));
   const [lines, setLines] = useState<DraftLine[]>(
     initial && initial.invoice_line_items.length > 0
       ? [...initial.invoice_line_items].sort((a, b) => a.sort_order - b.sort_order).map(toDraftLine)
@@ -113,7 +132,7 @@ export default function InvoiceModal({ initial, adminId, clients, stubs, useCode
     setSessionPicker((data ?? []).filter((s) => !alreadyAdded.has(s.id)));
   };
 
-  const addSessionLine = (s: SessionRow) => {
+  const addSessionLine = useCallback((s: SessionRow) => {
     setLines((prev) => [
       ...prev.filter((l) => !(l.description === "" && l.unitStr === "" && l.session_id === null)),
       {
@@ -125,7 +144,27 @@ export default function InvoiceModal({ initial, adminId, clients, stubs, useCode
       },
     ]);
     setSessionPicker((prev) => prev?.filter((row) => row.id !== s.id) ?? null);
-  };
+  }, []);
+
+  // "Invoice this session" deep-links in with a session id — pull that one row
+  // and drop it in as the opening line. Fires once, for a fresh invoice only.
+  const preloadedSession = useRef(false);
+  useEffect(() => {
+    if (preloadedSession.current || initial || !presetSessionId || !clientId) return;
+    preloadedSession.current = true;
+    let cancelled = false;
+    void supabase
+      .from("sessions")
+      .select("id, scheduled_at, price_pence")
+      .eq("id", presetSessionId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) addSessionLine(data as SessionRow);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [presetSessionId, clientId, initial, addSessionLine]);
 
   const handleSave = async () => {
     if (isDemo) {

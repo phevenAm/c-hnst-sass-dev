@@ -51,6 +51,7 @@ const AdminStubDetailPage = lazy(() => import("../pages/admin/AdminStubDetailPag
 const AdminSupervisionPage = lazy(() => import("../pages/admin/AdminSupervisionPage/AdminSupervisionPage"));
 const CheckInPage = lazy(() => import("../pages/client/CheckInPage/CheckInPage"));
 const ClientDashboard = lazy(() => import("../pages/client/ClientDashboard/ClientDashboard"));
+const ClientInvoicesPage = lazy(() => import("../pages/client/ClientInvoicesPage/ClientInvoicesPage"));
 const ClientSchedule = lazy(() => import("../pages/client/ClientSchedule/ClientSchedule"));
 const RcadsAssessmentPage = lazy(() => import("../pages/client/RcadsAssessmentPage/RcadsAssessmentPage"));
 const ResourcesPage = lazy(() => import("../pages/client/ResourcesPage/ResourcesPage"));
@@ -402,6 +403,7 @@ export default function AppRoutes() {
                 <Route path="/dashboard" element={<ClientDashboard />} />
                 <Route path="/check-in" element={<CheckInPage />} />
                 <Route path="/my-sessions" element={<ClientSchedule />} />
+                <Route path="/invoices" element={<ClientInvoicesPage />} />
                 <Route path="/resources" element={<ResourcesPage />} />
                 <Route path="/rcads" element={<RcadsAssessmentPage />} />
               </Route>

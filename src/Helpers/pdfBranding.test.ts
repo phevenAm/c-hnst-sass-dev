@@ -54,6 +54,13 @@ describe("runningHeader", () => {
     expect(y).toBe(CONTENT_TOP);
     expect(texts.map((t) => t.s)).toEqual(["Clarity", "Client Report"]);
   });
+
+  it("uses a caller-supplied brand for the band wordmark (invoices pass the business name)", () => {
+    const { doc, texts } = mockDoc(1);
+    // biome-ignore lint/suspicious/noExplicitAny: mock doc
+    runningHeader(doc as any, "Invoice INV-0007", "Bright Path Counselling");
+    expect(texts.map((t) => t.s)).toEqual(["Bright Path Counselling", "Invoice INV-0007"]);
+  });
 });
 
 describe("stampChrome", () => {
@@ -75,5 +82,20 @@ describe("stampChrome", () => {
     stampChrome(doc as any, { title: "Invoice OT-1", hasCover: false });
     expect(texts.some((t) => t.page === 1)).toBe(true);
     expect(texts.some((t) => /^Page /.test(t.s))).toBe(false);
+  });
+
+  it("footerBrand swaps the footer line for a plain 'Powered by Clarity' and honours the band brand", () => {
+    const { doc, texts } = mockDoc(1);
+    // biome-ignore lint/suspicious/noExplicitAny: mock doc
+    stampChrome(doc as any, {
+      title: "Invoice INV-0007",
+      hasCover: false,
+      brand: "Bright Path Counselling",
+      footerBrand: true,
+    });
+    const strings = texts.map((t) => t.s);
+    expect(strings).toContain("Powered by Clarity");
+    expect(strings).toContain("Bright Path Counselling"); // band wordmark
+    expect(strings.some((s) => s.includes("· Generated"))).toBe(false); // old footer gone
   });
 });

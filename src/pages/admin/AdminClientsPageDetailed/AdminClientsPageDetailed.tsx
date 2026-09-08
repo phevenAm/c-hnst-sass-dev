@@ -140,6 +140,11 @@ export default function AdminClientsPageDetailed() {
   const { showToast } = useToast();
   const { status: encStatus, decryptNote } = useEncryption();
 
+  const invoicingEnabled = practiceSettings?.invoices_enabled !== false;
+  const invoiceSessionHandler = invoicingEnabled
+    ? (sess: { id: string }) => navigate(`/admin/finances?view=invoices&new=true&client=${clientId}&session=${sess.id}`)
+    : undefined;
+
   useRealtimeTable("sessions", clientId ? `client_id=eq.${clientId}` : undefined, () =>
     dispatch(fetchSessionsByClientId(clientId!)),
   );
@@ -1058,6 +1063,14 @@ export default function AdminClientsPageDetailed() {
                   onClick: handleToggleReminderMute,
                   disabled: togglingMute,
                 },
+                ...(practiceSettings?.invoices_enabled !== false
+                  ? [
+                      {
+                        label: "Raise invoice",
+                        onClick: () => navigate(`/admin/finances?view=invoices&new=true&client=${clientId}`),
+                      },
+                    ]
+                  : []),
               ]}
             />
           </div>
@@ -1379,6 +1392,7 @@ export default function AdminClientsPageDetailed() {
                           isAdmin
                           clientLabel={displayedClientName}
                           onNotesClick={(id) => setSelectedNoteSessionId(id)}
+                          onInvoiceSession={invoiceSessionHandler}
                         />
                       </div>
                     );
@@ -1549,6 +1563,7 @@ export default function AdminClientsPageDetailed() {
             isDemo={isDemo}
             clientLabel={displayedClientName}
             onNotesClick={(id) => setSelectedNoteSessionId(id)}
+            onInvoiceSession={invoiceSessionHandler}
           />
         </Modal>
       )}

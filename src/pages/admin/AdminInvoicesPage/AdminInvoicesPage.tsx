@@ -71,15 +71,22 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
   const [editing, setEditing] = useState<Invoice | null>(null);
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Deep-link presets from "Raise invoice" on a client page / session card.
+  const [presetClientId, setPresetClientId] = useState<string | null>(null);
+  const [presetSessionId, setPresetSessionId] = useState<string | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (searchParams.get("new") === "true") {
       setEditing(null);
+      setPresetClientId(searchParams.get("client"));
+      setPresetSessionId(searchParams.get("session"));
       setModalOpen(true);
       setSearchParams(
         (p) => {
           p.delete("new");
+          p.delete("client");
+          p.delete("session");
           return p;
         },
         { replace: true },
@@ -169,6 +176,7 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
     bankSortCode: settings?.bank_sort_code ?? null,
     bankAccountNumber: settings?.bank_account_number ?? null,
     bankReference: settings?.bank_payment_reference ?? null,
+    accentHex: settings?.invoice_accent_hex ?? null,
   });
 
   const sendEmail = async (inv: Invoice) => {
@@ -229,15 +237,17 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
               <p className={styles.sub}>Raise invoices, send them, and mark them paid</p>
             </div>
           )}
-          <SplitButton
+          <Button
             variant="primary"
-            primaryLabel="New invoice"
-            primaryAction={() => {
+            onClick={() => {
               setEditing(null);
+              setPresetClientId(null);
+              setPresetSessionId(null);
               setModalOpen(true);
             }}
-            options={[]}
-          />
+          >
+            New invoice
+          </Button>
         </div>
 
         <div className={styles.tiles}>
@@ -306,19 +316,18 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
                           <SplitButton
                             size="sm"
                             variant="secondary"
-                            primaryLabel="Mark paid"
-                            primaryAction={() => void markPaid(inv)}
+                            primaryLabel={inv.status === "sent" ? "Resend email" : "Send email"}
+                            primaryAction={() => void sendEmail(inv)}
                             options={[
+                              { label: "Mark paid", onClick: () => void markPaid(inv) },
                               {
                                 label: "Edit",
                                 onClick: () => {
                                   setEditing(inv);
+                                  setPresetClientId(null);
+                                  setPresetSessionId(null);
                                   setModalOpen(true);
                                 },
-                              },
-                              {
-                                label: inv.status === "sent" ? "Resend email" : "Send email",
-                                onClick: () => void sendEmail(inv),
                               },
                               { label: "Download PDF", onClick: () => void downloadPdf(inv) },
                               { label: "Void", onClick: () => void setStatus(inv, "void") },
@@ -342,6 +351,8 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
           clients={clients}
           stubs={activeStubs}
           useCodenames={useCodenames}
+          presetClientId={presetClientId}
+          presetSessionId={presetSessionId}
           onClose={() => setModalOpen(false)}
           onSaved={() => {
             setModalOpen(false);

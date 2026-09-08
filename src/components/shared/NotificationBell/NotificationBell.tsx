@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 
 import dayjs from "dayjs";
@@ -7,6 +8,7 @@ import { BellIcon } from "@components/shared/Icons/Icons";
 
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase.js";
+import { computeDropdownCoords, type DropdownCoords } from "./dropdownPosition";
 
 import styles from "./NotificationBell.module.scss";
 
@@ -19,12 +21,19 @@ type Notification = {
   url: string | null;
 };
 
+// The dropdown is rendered in a portal on document.body so it escapes the
+// AdminTopbar's `z-index: 100` stacking context — otherwise it paints *behind*
+// the mobile sidebar drawer (z-index 199–300). Position is measured off the
+// bell button each time it opens (see dropdownPosition.ts).
+
 export function NotificationBell() {
   const { userProfile, isDemo } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<DropdownCoords>({ top: 0, left: "auto", right: 0, width: "auto" });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
@@ -81,11 +90,31 @@ export function NotificationBell() {
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || dropdownRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Keep the panel glued to the bell while it's open — the topbar is sticky so
+  // scrolling the page doesn't move the bell, but a resize / zoom does.
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      setCoords(computeDropdownCoords(r, window.innerWidth));
+    };
+    reposition();
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open]);
 
   const markAllRead = async () => {
     if (!userProfile?.id || unreadCount === 0) return;
@@ -111,71 +140,82 @@ export function NotificationBell() {
     if (next) markAllRead();
   };
 
+  const dropdown = open && (
+    <div
+      ref={dropdownRef}
+      className={styles.dropdown}
+      style={{
+        top: coords.top,
+        left: coords.left,
+        right: coords.right,
+        width: coords.width,
+      }}
+    >
+      <div className={styles.titleRow}>
+        <p className={styles.title}>Notifications</p>
+        {notifications.length > 0 && (
+          <button type="button" className={styles.clearAll} onClick={clearAll}>
+            Clear all
+          </button>
+        )}
+      </div>
+      {notifications.length === 0 && <p className={styles.empty}>Nothing here yet</p>}
+      {notifications.length > 0 && isDemo && (
+        <p className={styles.demoMessage}>Notifications are hidden in demo mode</p>
+      )}
+      {notifications.length > 0 && !isDemo && (
+        <ul className={styles.list}>
+          {notifications.map((n) => (
+            <li key={n.id} className={[styles.item, !n.read ? styles.unread : ""].filter(Boolean).join(" ")}>
+              {n.url ? (
+                <button
+                  type="button"
+                  className={[styles.itemBody, styles.clickable].filter(Boolean).join(" ")}
+                  onClick={() => {
+                    setOpen(false);
+                    navigate(n.url?.replace(window.location.origin, ""));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setOpen(false);
+                      navigate(n.url?.replace(window.location.origin, ""));
+                    }
+                  }}
+                >
+                  <p className={styles.message}>{n.message}</p>
+                  <p className={styles.date}>{dayjs(n.created_at).format("D MMM [at] h:mma")}</p>
+                </button>
+              ) : (
+                <div className={styles.itemBody}>
+                  <p className={styles.message}>{n.message}</p>
+                  <p className={styles.date}>{dayjs(n.created_at).format("D MMM [at] h:mma")}</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={styles.dismiss}
+                onClick={(e) => dismissOne(n.id, e)}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   return (
-    <div ref={ref} className={styles.wrapper}>
-      <button type="button" className={styles.bell} onClick={handleToggle} aria-label="Notifications">
+    <div className={styles.wrapper}>
+      <button ref={btnRef} type="button" className={styles.bell} onClick={handleToggle} aria-label="Notifications">
         <BellIcon />
         {unreadCount > 0 && <span className={styles.badge}>{unreadCount > 9 ? "9+" : unreadCount}</span>}
       </button>
 
-      {open && (
-        <div className={styles.dropdown}>
-          <div className={styles.titleRow}>
-            <p className={styles.title}>Notifications</p>
-            {notifications.length > 0 && (
-              <button type="button" className={styles.clearAll} onClick={clearAll}>
-                Clear all
-              </button>
-            )}
-          </div>
-          {notifications.length === 0 && <p className={styles.empty}>Nothing here yet</p>}
-          {notifications.length > 0 && isDemo && (
-            <p className={styles.demoMessage}>Notifications are hidden in demo mode</p>
-          )}
-          {notifications.length > 0 && !isDemo && (
-            <ul className={styles.list}>
-              {notifications.map((n) => (
-                <li key={n.id} className={[styles.item, !n.read ? styles.unread : ""].filter(Boolean).join(" ")}>
-                  {n.url ? (
-                    <button
-                      type="button"
-                      className={[styles.itemBody, styles.clickable].filter(Boolean).join(" ")}
-                      onClick={() => {
-                        setOpen(false);
-                        navigate(n.url?.replace(window.location.origin, ""));
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setOpen(false);
-                          navigate(n.url?.replace(window.location.origin, ""));
-                        }
-                      }}
-                    >
-                      <p className={styles.message}>{n.message}</p>
-                      <p className={styles.date}>{dayjs(n.created_at).format("D MMM [at] h:mma")}</p>
-                    </button>
-                  ) : (
-                    <div className={styles.itemBody}>
-                      <p className={styles.message}>{n.message}</p>
-                      <p className={styles.date}>{dayjs(n.created_at).format("D MMM [at] h:mma")}</p>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    className={styles.dismiss}
-                    onClick={(e) => dismissOne(n.id, e)}
-                    aria-label="Dismiss"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      {dropdown && createPortal(dropdown, document.body)}
     </div>
   );
 }
