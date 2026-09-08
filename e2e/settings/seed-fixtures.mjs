@@ -14,6 +14,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parseDbRows } from "../cli-json.mjs";
 
 export const FIXTURES = {
   admin: { email: "smissah321+e2e-settings-admin@gmail.com", password: "E2eSettingsAdmin2026!" },
@@ -25,12 +26,18 @@ const tmpDir = mkdtempSync(join(tmpdir(), "settings-e2e-seed-"));
 function dbQuery(sql) {
   const file = join(tmpDir, `q-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
   writeFileSync(file, sql);
-  const out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked"], {
-    encoding: "utf8",
-    shell: true,
-  });
-  const jsonStart = out.indexOf("{");
-  return JSON.parse(out.slice(jsonStart));
+  let out;
+  try {
+    // --output-format json: the CLI otherwise prints an ASCII table unless it
+    // detects an agent host.
+    out = execFileSync("npx", ["supabase", "db", "query", "--file", file, "--linked", "--output-format", "json"], {
+      encoding: "utf8",
+      shell: true,
+    });
+  } catch (err) {
+    throw new Error(`dbQuery failed.\nSQL: ${sql}\nstdout: ${err.stdout}\nstderr: ${err.stderr}`);
+  }
+  return parseDbRows(out, "supabase db query --linked");
 }
 
 // Create a login-capable auth user by inserting straight into auth.users

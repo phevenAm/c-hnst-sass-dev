@@ -1,10 +1,20 @@
 import type { Questionnaire, Response, Session, UserProfile } from "../../../models/globalTypes";
 
 export const generateAccessToken = () => {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const groups = Array.from({ length: 3 }, () =>
-    Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join(""),
-  );
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 31 chars, no ambiguous 0/O/1/I
+  // crypto.getRandomValues, not Math.random(): V8's PRNG state is recoverable
+  // from a few outputs, which would make sequentially-generated tokens
+  // predictable. Reject bytes >= 248 (the largest multiple of 31) so the
+  // modulo below stays unbiased.
+  const LIMIT = 256 - (256 % alphabet.length);
+  const pick = () => {
+    const buf = new Uint8Array(1);
+    do {
+      crypto.getRandomValues(buf);
+    } while (buf[0] >= LIMIT);
+    return alphabet[buf[0] % alphabet.length];
+  };
+  const groups = Array.from({ length: 3 }, () => Array.from({ length: 4 }, pick).join(""));
 
   return groups.join("-");
 };

@@ -68,7 +68,9 @@ type DebugWindow = {
 // recording at the exact moment something goes wrong. The settled log
 // survives until the tab closes (sessionStorage), so it's still there even
 // if the page had to be reloaded to recover from a stuck spinner.
-if (typeof window !== "undefined") {
+// DEV only: in production these globals just expose request URLs (with their
+// PostgREST filter values) to anything running in the page.
+if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as unknown as DebugWindow).__supabaseRequestLog = readLog;
   (window as unknown as DebugWindow).__supabasePendingRequests = readPending;
 }

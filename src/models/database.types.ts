@@ -1537,7 +1537,12 @@ export type Database = {
           hidden_sections: string[]
           hide_client_profile_pii: boolean
           id: string
+          invoice_accent_hex: string | null
+          invoice_default_notes: string | null
+          invoice_footer_text: string | null
+          invoice_payment_terms_days: number | null
           invoice_prefix: string
+          invoices_enabled: boolean
           is_paused: boolean
           logo_url: string | null
           next_invoice_number: number
@@ -1558,6 +1563,7 @@ export type Database = {
           reschedule_cutoff_hours: number | null
           saved_locations: Json
           session_buffer_minutes: number
+          show_session_reference: boolean
           stripe_connect_account_id: string | null
           stripe_connect_onboarded: boolean
           stripe_subscription_id: string | null
@@ -1605,7 +1611,12 @@ export type Database = {
           hidden_sections?: string[]
           hide_client_profile_pii?: boolean
           id?: string
+          invoice_accent_hex?: string | null
+          invoice_default_notes?: string | null
+          invoice_footer_text?: string | null
+          invoice_payment_terms_days?: number | null
           invoice_prefix?: string
+          invoices_enabled?: boolean
           is_paused?: boolean
           logo_url?: string | null
           next_invoice_number?: number
@@ -1626,6 +1637,7 @@ export type Database = {
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
           session_buffer_minutes?: number
+          show_session_reference?: boolean
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
           stripe_subscription_id?: string | null
@@ -1673,7 +1685,12 @@ export type Database = {
           hidden_sections?: string[]
           hide_client_profile_pii?: boolean
           id?: string
+          invoice_accent_hex?: string | null
+          invoice_default_notes?: string | null
+          invoice_footer_text?: string | null
+          invoice_payment_terms_days?: number | null
           invoice_prefix?: string
+          invoices_enabled?: boolean
           is_paused?: boolean
           logo_url?: string | null
           next_invoice_number?: number
@@ -1694,6 +1711,7 @@ export type Database = {
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
           session_buffer_minutes?: number
+          show_session_reference?: boolean
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
           stripe_subscription_id?: string | null
@@ -2722,6 +2740,9 @@ export type Database = {
       }
     }
     Functions: {
+      _bank_decrypt: { Args: { p: string }; Returns: string }
+      _bank_enc_key: { Args: never; Returns: string }
+      _bank_encrypt: { Args: { p: string }; Returns: string }
       _person_name: { Args: { p_uid: string }; Returns: string }
       _practice_slot_has_conflict_all: {
         Args: {
@@ -2852,6 +2873,16 @@ export type Database = {
       get_my_is_paused: { Args: never; Returns: boolean }
       get_my_reschedule_cutoff_hours: { Args: never; Returns: number }
       get_my_role: { Args: never; Returns: string }
+      get_practice_bank_details: {
+        Args: { p_admin_id: string }
+        Returns: {
+          bank_account_name: string
+          bank_account_number: string
+          bank_name: string
+          bank_payment_reference: string
+          bank_sort_code: string
+        }[]
+      }
       get_practice_busy_slots: {
         Args: { exclude_session_id?: string }
         Returns: {
@@ -2970,6 +3001,17 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: undefined
       }
+      set_practice_bank_details: {
+        Args: {
+          p_bank_account_name: string
+          p_bank_account_number: string
+          p_bank_name: string
+          p_bank_payment_reference: string
+          p_bank_sort_code: string
+        }
+        Returns: undefined
+      }
+      superadmin_directory: { Args: never; Returns: Json }
       trigger_client_cap_warnings: { Args: never; Returns: undefined }
       trigger_client_session_reminders: { Args: never; Returns: undefined }
       validate_agency_invite: { Args: { input_token: string }; Returns: Json }

@@ -150,15 +150,17 @@ export function addCoverPage(doc: jsPDF, { title, subtitle, meta }: CoverOptions
 }
 
 /** Draws the teal header band + wordmark + right-aligned title on the current
- *  page. Used by `runningHeader`, `tableBlock`'s didDrawPage, and `stampChrome`. */
-function drawRunningBand(doc: jsPDF, title: string): void {
+ *  page. Used by `runningHeader` and `stampChrome`. `brand` is the left-hand
+ *  wordmark — defaults to "Clarity"; client-facing docs (invoices) pass the
+ *  practice's business name instead. */
+function drawRunningBand(doc: jsPDF, title: string, brand = "Clarity"): void {
   const W = doc.internal.pageSize.getWidth();
   doc.setFillColor(...TEAL);
   doc.rect(0, 0, W, BAND_H, "F");
   doc.setFont(SERIF, "normal");
   doc.setFontSize(12);
   doc.setTextColor(255, 255, 255);
-  doc.text("Clarity", MARGIN, 10.5);
+  doc.text(brand, MARGIN, 10.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(title, W - MARGIN, 10.5, { align: "right" });
@@ -168,8 +170,8 @@ function drawRunningBand(doc: jsPDF, title: string): void {
 
 /** Teal band at the top of the first content page. Returns the y content should
  *  start at. Call once, right after the `doc.addPage()` that follows the cover. */
-export function runningHeader(doc: jsPDF, title: string): number {
-  drawRunningBand(doc, title);
+export function runningHeader(doc: jsPDF, title: string, brand?: string): number {
+  drawRunningBand(doc, title, brand);
   return CONTENT_TOP;
 }
 
@@ -180,21 +182,30 @@ export type ChromeOptions = {
   footer?: string;
   /** Whether page 1 is a photo cover to skip (default true). Invoices pass false. */
   hasCover?: boolean;
+  /** Left-hand wordmark in the running band (default "Clarity"). Invoices pass
+   *  the practice's business name. */
+  brand?: string;
+  /** Replace the "Clarity · <title> · Generated …" footer line with a plain
+   *  "Powered by Clarity". Used for client-facing docs (invoices). */
+  footerBrand?: boolean;
 };
 
 /** Stamps the running header and the footer + "Page X of Y" across every content
  *  page. Run last, immediately before `doc.save()` — it covers pages that
  *  autoTable or manual `addPage()` calls created after the first. */
-export function stampChrome(doc: jsPDF, { title, footer, hasCover = true }: ChromeOptions): void {
+export function stampChrome(
+  doc: jsPDF,
+  { title, footer, hasCover = true, brand, footerBrand = false }: ChromeOptions,
+): void {
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const total = doc.getNumberOfPages();
   const first = hasCover ? 2 : 1;
   const count = total - first + 1;
-  const left = `Clarity · ${footer ?? title} · Generated ${formatToday()}`;
+  const left = footerBrand ? "Powered by Clarity" : `Clarity · ${footer ?? title} · Generated ${formatToday()}`;
   for (let p = first; p <= total; p++) {
     doc.setPage(p);
-    drawRunningBand(doc, title);
+    drawRunningBand(doc, title, brand);
     doc.setDrawColor(...WASH);
     doc.setLineWidth(0.3);
     doc.line(MARGIN, H - 12, W - MARGIN, H - 12);

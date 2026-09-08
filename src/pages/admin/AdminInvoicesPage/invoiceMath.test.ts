@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { formatReference, invoiceTotalPence, lineTotalPence, money } from "./invoiceMath";
+import {
+  formatReference,
+  hexToRgb,
+  initialDueDate,
+  invoiceBandBrand,
+  invoiceTotalPence,
+  lineTotalPence,
+  money,
+} from "./invoiceMath";
 
 describe("invoiceMath", () => {
   it("lineTotalPence multiplies quantity by unit and rounds to whole pence", () => {
@@ -36,5 +44,41 @@ describe("invoiceMath", () => {
     expect(money(8500)).toBe("£85.00");
     expect(money(0)).toBe("£0.00");
     expect(money(2498)).toBe("£24.98");
+  });
+
+  it("initialDueDate adds the payment-terms window to a new invoice's issue date", () => {
+    expect(initialDueDate(null, "2026-09-08", 14)).toBe("2026-09-22");
+    expect(initialDueDate(null, "2026-09-08", 0)).toBe("2026-09-08");
+    expect(initialDueDate(null, "2026-01-31", 30)).toBe("2026-03-02");
+  });
+
+  it("initialDueDate leaves a new invoice open-ended when there are no default terms", () => {
+    expect(initialDueDate(null, "2026-09-08", null)).toBe("");
+  });
+
+  it("initialDueDate preserves an existing invoice's stored due date", () => {
+    expect(initialDueDate({ due_date: "2026-10-01" }, "2026-09-08", 14)).toBe("2026-10-01");
+    expect(initialDueDate({ due_date: null }, "2026-09-08", 14)).toBe("");
+  });
+
+  it("invoiceBandBrand uses the (trimmed) business name for the PDF's top band", () => {
+    expect(invoiceBandBrand("Bright Path Counselling")).toBe("Bright Path Counselling");
+    expect(invoiceBandBrand("  Bright Path  ")).toBe("Bright Path");
+  });
+
+  it("invoiceBandBrand falls back to 'Clarity' when there's no business name", () => {
+    for (const empty of [null, undefined, "", "   "]) {
+      expect(invoiceBandBrand(empty)).toBe("Clarity");
+    }
+  });
+
+  it("hexToRgb parses a 6-digit hex and rejects everything else", () => {
+    expect(hexToRgb("#1f4940")).toEqual([31, 73, 64]);
+    expect(hexToRgb("#FFFFFF")).toEqual([255, 255, 255]);
+    expect(hexToRgb("#abc")).toBeNull();
+    expect(hexToRgb("1f4940")).toBeNull();
+    expect(hexToRgb("")).toBeNull();
+    expect(hexToRgb(null)).toBeNull();
+    expect(hexToRgb(undefined)).toBeNull();
   });
 });

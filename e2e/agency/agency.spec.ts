@@ -439,27 +439,38 @@ test("settlement direction resolves override > agency default > employment type;
   test.setTimeout(120_000);
   const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
   const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
 
-  const resolved = () =>
-    dbQuery<{ d: string }>(`select public.agency_member_settlement('${ids.aStaff}') as d;`).rows[0].d;
+  // Resolve through the authenticated RPC. agency_member_settlement() is
+  // tenant-scoped to auth.uid()'s agency (20260908000010), so a bare
+  // unauthenticated dbQuery would now return NULL — call it as the manager.
+  const resolved = async () => {
+    const { data, error } = await asAManager.rpc("agency_member_settlement", { p_user: ids.aStaff });
+    expect(error).toBeNull();
+    return data as string;
+  };
 
   // Baseline: agency default 'auto', no per-member override, staff is freelance.
   dbQuery(`update public.agencies set default_settlement_direction = 'auto' where id = '${ids.agencyA}';`);
   dbQuery(
     `update public.agency_members set settlement_direction = null, employment_type = 'freelance' where user_id = '${ids.aStaff}';`,
   );
-  expect(resolved()).toBe("staff_pays_agency"); // auto + freelance
+  expect(await resolved()).toBe("staff_pays_agency"); // auto + freelance
 
   dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
-  expect(resolved()).toBe("agency_pays_staff"); // auto + employee
+  expect(await resolved()).toBe("agency_pays_staff"); // auto + employee
 
   dbQuery(`update public.agencies set default_settlement_direction = 'none' where id = '${ids.agencyA}';`);
-  expect(resolved()).toBe("none"); // pinned default beats employment type
+  expect(await resolved()).toBe("none"); // pinned default beats employment type
 
   dbQuery(
     `update public.agency_members set settlement_direction = 'staff_pays_agency' where user_id = '${ids.aStaff}';`,
   );
-  expect(resolved()).toBe("staff_pays_agency"); // per-member override beats everything
+  expect(await resolved()).toBe("staff_pays_agency"); // per-member override beats everything
+
+  // Tenant scoping: Agency B's manager cannot resolve an Agency A member.
+  const { data: crossAgency } = await asBManager.rpc("agency_member_settlement", { p_user: ids.aStaff });
+  expect(crossAgency).toBeNull();
 
   // agency_settlement_overview(): manager gets a row per active member with the
   // resolved direction; a counsellor is rejected.

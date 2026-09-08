@@ -50,6 +50,7 @@ import {
   previewSessionRescheduled,
 } from "@/emails/emailHelpers";
 import { supabase } from "@/lib/supabase";
+import { previewInvoicePdf } from "@/pages/admin/AdminInvoicesPage/invoicePdf";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
 import DeleteUserModal from "./DeleteUserModal/DeleteUserModal";
 import { exportPracticeArchive } from "./exportPracticeArchive";
@@ -365,6 +366,15 @@ const SettingsPage = () => {
   const [referralCopied, setReferralCopied] = useState(false);
   const [billingCustomerId, setBillingCustomerId] = useState<string | null>(null);
 
+  // Invoicing — the master on/off switch plus the "appearance" fields that
+  // shape the emailed invoice + PDF without a template editor.
+  const [invoicesEnabled, setInvoicesEnabled] = useState(true);
+  const [invoiceFooterText, setInvoiceFooterText] = useState("");
+  const [invoicePaymentTermsDays, setInvoicePaymentTermsDays] = useState("");
+  const [invoiceDefaultNotes, setInvoiceDefaultNotes] = useState("");
+  const [invoiceAccentHex, setInvoiceAccentHex] = useState("");
+  const [savingInvoiceSettings, setSavingInvoiceSettings] = useState(false);
+
   // Subscription tier switcher. planLimits === null while loading / if the
   // plan_limits table isn't there yet (migration not applied) — the whole
   // switcher block just stays hidden in that case, leaving the existing
@@ -546,6 +556,13 @@ const SettingsPage = () => {
         setBankDetails(await fetchBankDetails(userProfile.id));
         setStripeConnected(data.stripe_connect_onboarded ?? false);
         setCardPaymentsEnabled(data.card_payments_enabled ?? false);
+        setInvoicesEnabled(data.invoices_enabled ?? true);
+        setInvoiceFooterText(data.invoice_footer_text ?? "");
+        setInvoicePaymentTermsDays(
+          data.invoice_payment_terms_days != null ? String(data.invoice_payment_terms_days) : "",
+        );
+        setInvoiceDefaultNotes(data.invoice_default_notes ?? "");
+        setInvoiceAccentHex(data.invoice_accent_hex ?? "");
         setBillingCustomerId(data.billing_customer_id ?? null);
         setReminderHours(data.reminder_hours_before ?? 120);
         setReminderSubject(data.reminder_email_subject ?? "");
@@ -742,6 +759,58 @@ const SettingsPage = () => {
       .eq("admin_id", userProfile.id);
     setSavingAutoCancel(false);
     showToast("Auto-cancel settings saved.");
+  };
+
+  const handleSaveInvoiceSettings = async () => {
+    if (guardDemo()) return;
+    if (!userProfile?.id) return;
+    const termsRaw = invoicePaymentTermsDays.trim();
+    const terms = termsRaw === "" ? null : Number(termsRaw);
+    if (terms != null && (!Number.isFinite(terms) || terms < 0 || terms > 365)) {
+      showToast("Payment terms must be a whole number of days (0–365).", "error");
+      return;
+    }
+    const hex = invoiceAccentHex.trim();
+    if (hex !== "" && !/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      showToast("Accent colour must be a hex value like #1f4940.", "error");
+      return;
+    }
+    setSavingInvoiceSettings(true);
+    const { error } = await supabase
+      .from("practice_settings")
+      .update({
+        invoices_enabled: invoicesEnabled,
+        invoice_footer_text: invoiceFooterText.trim() || null,
+        invoice_payment_terms_days: terms,
+        invoice_default_notes: invoiceDefaultNotes.trim() || null,
+        invoice_accent_hex: hex || null,
+      })
+      .eq("admin_id", userProfile.id);
+    await refreshPracticeSettings();
+    setSavingInvoiceSettings(false);
+    if (error) showToast("Couldn't save invoice settings.", "error");
+    else showToast("Invoice settings saved.");
+  };
+
+  const handlePreviewInvoice = async () => {
+    const hex = invoiceAccentHex.trim();
+    try {
+      await previewInvoicePdf(
+        {
+          // Demo a name in the masthead even before Business details are filled in.
+          businessName: practiceDetails.business_name?.trim() || "Your Practice Name",
+          bankName: bankDetails.bank_name || null,
+          bankAccountName: bankDetails.bank_account_name || null,
+          bankSortCode: bankDetails.bank_sort_code || null,
+          bankAccountNumber: bankDetails.bank_account_number || null,
+          bankReference: bankDetails.bank_payment_reference || null,
+          accentHex: /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : null,
+        },
+        invoiceDefaultNotes.trim() || null,
+      );
+    } catch {
+      showToast("Couldn't build the preview — try again.", "error");
+    }
   };
 
   const handleSaveRescheduleCutoff = async () => {
@@ -2631,6 +2700,134 @@ const SettingsPage = () => {
                   </div>
                 </div>
               </section>
+            </SettingsCard>
+
+            {/* Invoicing */}
+            <SettingsCard
+              title="Invoicing"
+              storageKey="settings:practice:invoicing"
+              searchQuery={billingSearch}
+              id="invoicing"
+            >
+              <section className={styles.businessSection}>
+                <p>
+                  Raise invoices from Finances, a client's page, or a session, then email them as a PDF. Turn the whole
+                  feature off if you invoice elsewhere.
+                </p>
+
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Enable invoicing</strong>
+                    <span>
+                      When off, the Invoices tab, the client's invoice list, and every "Raise invoice" button are
+                      hidden.
+                    </span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${invoicesEnabled ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={invoicesEnabled}
+                      onChange={(e) => setInvoicesEnabled(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+
+                {invoicesEnabled && (
+                  <form className={styles.form}>
+                    <div className={styles.field}>
+                      <label>Business name on invoices</label>
+                      <p className={styles.toggleHint}>
+                        {practiceDetails.business_name?.trim() ? (
+                          <>
+                            Invoices show <strong>{practiceDetails.business_name.trim()}</strong> at the top. Change it
+                            under Practice → Business details.
+                          </>
+                        ) : (
+                          <>
+                            Add a business name under Practice → Business details and it appears at the top of every
+                            invoice.
+                          </>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="inv-terms">Default payment terms (days)</label>
+                      <input
+                        id="inv-terms"
+                        type="number"
+                        min="0"
+                        max="365"
+                        step="1"
+                        value={invoicePaymentTermsDays}
+                        placeholder="e.g. 14 — leave blank for no due date"
+                        onChange={(e) => setInvoicePaymentTermsDays(e.target.value)}
+                      />
+                      <p className={styles.toggleHint}>
+                        New invoices default their due date to this many days after the issue date.
+                      </p>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="inv-notes">Default notes</label>
+                      <textarea
+                        id="inv-notes"
+                        className={styles.textarea}
+                        rows={2}
+                        value={invoiceDefaultNotes}
+                        placeholder="e.g. Please use your invoice number as the payment reference."
+                        onChange={(e) => setInvoiceDefaultNotes(e.target.value)}
+                      />
+                      <p className={styles.toggleHint}>Pre-fills the notes field when you start a new invoice.</p>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="inv-footer">Email footer line</label>
+                      <textarea
+                        id="inv-footer"
+                        className={styles.textarea}
+                        rows={2}
+                        value={invoiceFooterText}
+                        placeholder="e.g. Registered with the BACP · Company no. 12345678"
+                        onChange={(e) => setInvoiceFooterText(e.target.value)}
+                      />
+                      <p className={styles.toggleHint}>Shown above the standard footer in the emailed invoice.</p>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label htmlFor="inv-accent">PDF accent colour</label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <input
+                          id="inv-accent"
+                          type="color"
+                          value={invoiceAccentHex || "#1f4940"}
+                          onChange={(e) => setInvoiceAccentHex(e.target.value)}
+                        />
+                        {invoiceAccentHex && (
+                          <Button variant="ghost" size="sm" onClick={() => setInvoiceAccentHex("")}>
+                            Reset to default
+                          </Button>
+                        )}
+                      </div>
+                      <p className={styles.toggleHint}>Used for the masthead rule on the invoice PDF.</p>
+                    </div>
+                  </form>
+                )}
+              </section>
+              <div className={styles.actions}>
+                <div className={styles.utilityActions}>
+                  <Button variant="primary" onClick={handleSaveInvoiceSettings} disabled={savingInvoiceSettings}>
+                    {savingInvoiceSettings ? "Saving…" : "Save invoice settings"}
+                  </Button>
+                  {invoicesEnabled && (
+                    <Button variant="secondary" onClick={handlePreviewInvoice}>
+                      Preview invoice
+                    </Button>
+                  )}
+                </div>
+              </div>
             </SettingsCard>
 
             {/* Bank details */}
