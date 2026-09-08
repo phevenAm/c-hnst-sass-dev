@@ -66,6 +66,11 @@ describe("SidebarNavGroup", () => {
     expect(screen.getByRole("button", { name: "Collapse Clients" })).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("marks the active child current, which drives the shared selected style", () => {
+    renderGroup({ forceOpen: true, isItemActive: (to) => to === "/agency/clients?view=waiting" });
+    expect(screen.getByRole("link", { name: "Waiting list" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("hover opens the collapsed flyout (hoverIntent + flyoutMode) and an outside click closes it", () => {
     const { container } = renderGroup({ flyoutMode: true, hoverIntent: true });
     const group = container.querySelector(".group") as HTMLElement;
