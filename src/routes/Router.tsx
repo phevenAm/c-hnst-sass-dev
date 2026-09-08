@@ -24,6 +24,7 @@ import { useAgencyBootstrap } from "../Hooks/useAgencyBootstrap";
 import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
 import { useConsentPending } from "../Hooks/useConsentPending";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
+import { useMessagesRealtime } from "../Hooks/useMessagesRealtime";
 import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
 import { useResolvedTheme } from "../Hooks/useResolvedTheme";
 import { useSessionsRealtime } from "../Hooks/useSessionsRealtime";
@@ -56,6 +57,8 @@ const AdminStubDetailPage = lazyWithReload(() => import("../pages/admin/AdminStu
 const AdminSupervisionPage = lazyWithReload(() => import("../pages/admin/AdminSupervisionPage/AdminSupervisionPage"));
 const CheckInPage = lazyWithReload(() => import("../pages/client/CheckInPage/CheckInPage"));
 const ClientDashboard = lazyWithReload(() => import("../pages/client/ClientDashboard/ClientDashboard"));
+const MessagesPage = lazyWithReload(() => import("../pages/client/MessagesPage/MessagesPage"));
+const AdminMessagesPage = lazyWithReload(() => import("../pages/admin/AdminMessagesPage/AdminMessagesPage"));
 const ClientSchedule = lazyWithReload(() => import("../pages/client/ClientSchedule/ClientSchedule"));
 const RcadsAssessmentPage = lazyWithReload(() => import("../pages/client/RcadsAssessmentPage/RcadsAssessmentPage"));
 const ResourcesPage = lazyWithReload(() => import("../pages/client/ResourcesPage/ResourcesPage"));
@@ -131,6 +134,7 @@ function AppLayout() {
   useSessionsRealtime();
   useAssignmentsRealtime();
   usePracticeSettingsRealtime();
+  useMessagesRealtime();
 
   return (
     <>
@@ -155,6 +159,7 @@ function AdminLayout() {
   const { pathname } = useLocation();
   useSessionsRealtime();
   usePracticeSettingsRealtime();
+  useMessagesRealtime();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );
@@ -409,6 +414,12 @@ export default function AppRoutes() {
                 <Route path="/my-sessions" element={<ClientSchedule />} />
                 <Route path="/resources" element={<ResourcesPage />} />
                 <Route path="/rcads" element={<RcadsAssessmentPage />} />
+                {isFeatureEnabled("messaging") && (
+                  <>
+                    <Route path="/messages" element={<MessagesPage />} />
+                    <Route path="/messages/:conversationId" element={<MessagesPage />} />
+                  </>
+                )}
               </Route>
 
               {/* Standalone — no navbar, forced first-run setup for new admins */}
@@ -449,6 +460,12 @@ export default function AppRoutes() {
                 <Route path="/admin/expenses" element={<Navigate to="/admin/finances?view=expenses" replace />} />
                 <Route path="/admin/cpd" element={<AdminCpdPage />} />
                 <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
+                {isFeatureEnabled("messaging") && (
+                  <>
+                    <Route path="/admin/messages" element={<AdminMessagesPage />} />
+                    <Route path="/admin/messages/:conversationId" element={<AdminMessagesPage />} />
+                  </>
+                )}
                 {/* //! make admin/schedule/userSchedule route */}
               </Route>
 

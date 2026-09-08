@@ -564,6 +564,46 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
     ],
   },
 
+  // ── Messaging ────────────────────────────────────────────────
+
+  "/messages": {
+    pageTitle: "Messages",
+    steps: [
+      {
+        id: "messages-client-intro",
+        order: 1,
+        title: "Messaging your counsellor",
+        body: "A direct line to your counsellor for quick, practical things — running late, moving a session, a question between appointments.",
+        target: "#messages-view",
+      },
+      {
+        id: "messages-client-scope",
+        order: 2,
+        title: "Keep it light",
+        body: "This is for logistics, not for anything you'd want kept as part of your clinical record — bring those to your sessions.",
+      },
+    ],
+  },
+
+  "/admin/messages": {
+    pageTitle: "Messages",
+    steps: [
+      {
+        id: "messages-admin-intro",
+        order: 1,
+        title: "Direct messages with clients",
+        body: "A lightweight channel for practical back-and-forth with a client. Threads appear on the left; open one to read and reply.",
+        target: "#messages-view",
+      },
+      {
+        id: "messages-admin-new",
+        order: 2,
+        title: "Starting a conversation",
+        body: "Use New message to pick a client and open a thread. They see it in their portal and get notified like any other update.",
+      },
+    ],
+  },
+
   // ── Agency "manage mode" ──────────────────────────────────────
 
   "/agency": {

@@ -5,7 +5,9 @@ import { pickColor } from "@Helpers/Helpers";
 
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
+import { isFeatureEnabled } from "../../../lib/featureFlags";
 import { useAppSelector, useFetchOnIdle } from "../../../store/hooks";
+import { selectTotalUnread } from "../../../store/slices/messagesSlice";
 import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
 import Avatar from "../Avatar/Avatar";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
@@ -25,6 +27,8 @@ export default function Navbar() {
 
   useFetchOnIdle((state) => state.practiceSettings.status, fetchPracticeSettings, "Failed to load practice settings");
   const practiceLogoUrl = useAppSelector((state) => state.practiceSettings.data?.logo_url ?? null);
+  const totalUnread = useAppSelector(selectTotalUnread);
+  const messagingOn = isFeatureEnabled("messaging");
 
   const handleLogout = async () => {
     try {
@@ -81,6 +85,7 @@ export default function Navbar() {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/my-sessions", label: "My sessions" },
     { to: "/check-in", label: "Check-in" },
+    ...(messagingOn ? [{ to: "/messages", label: "Messages" }] : []),
     { to: "/resources", label: "Resources" },
   ];
 
@@ -123,7 +128,9 @@ export default function Navbar() {
         {/* Desktop nav links */}
         <ul className={styles.desktopNav}>
           {links.map((link) => {
-            const active = location.pathname === link.to;
+            const active =
+              location.pathname === link.to || (link.to === "/messages" && location.pathname.startsWith("/messages"));
+            const showUnread = link.to === "/messages" && totalUnread > 0;
             return (
               <li key={link.to}>
                 <Link
@@ -133,6 +140,11 @@ export default function Navbar() {
                   data-testid={`navbar-link-${createLinkRoleTestId(link)}`}
                 >
                   {link.label}
+                  {showUnread && (
+                    <span className={styles.navUnread} aria-label={`${totalUnread} unread`}>
+                      {totalUnread}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
