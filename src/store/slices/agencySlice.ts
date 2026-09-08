@@ -67,8 +67,14 @@ const initialState: AgencyState = {
 // ── Reads ──────────────────────────────────────────────────────────────────
 
 export const bootstrapAgency = createAsyncThunk("agency/bootstrap", async (_, { rejectWithValue }) => {
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
+  // getSession() reads the cached session — no /auth/v1/user round trip, and
+  // it doesn't hold the sb-auth-token lock across a network call (getUser()
+  // does, which under a slow backend times out at 20s and starves other auth
+  // work — see the AgencyReviewBanner timeout reports).
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const uid = session?.user?.id;
   if (!uid) return { membership: null, agency: null };
 
   const { data: membership, error: mErr } = await supabase
@@ -148,8 +154,10 @@ export const fetchAgencyClients = createAsyncThunk(
 );
 
 export const fetchIncomingAssignments = createAsyncThunk("agency/fetchIncoming", async (_, { rejectWithValue }) => {
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession(); // not getUser() — see bootstrapAgency
+  const uid = session?.user?.id;
   if (!uid) return [];
   const { data, error } = await supabase
     .from("client_assignments")

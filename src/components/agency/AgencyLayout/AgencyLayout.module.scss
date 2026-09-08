@@ -149,6 +149,112 @@ $rail: 56px;
   font-weight: 600;
 }
 
+/* ── "Clients" submenu (holds Waiting list) ─────────────────────────────── */
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* the parent row: link fills it, a chevron button sits on the right */
+.groupRow {
+  padding: 0;
+  gap: 0;
+
+  &:hover {
+    background: none;
+  }
+}
+
+.groupLink {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--r-md);
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+}
+
+.groupToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  align-self: stretch;
+  border: 0;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--r-md);
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
+}
+
+.groupChevron {
+  display: inline-flex;
+  transition: transform var(--transition-base);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.groupChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* nested items — collapsed by default, guide line on the left */
+.groupChildren {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height var(--transition-base), opacity var(--transition-base);
+  margin-left: calc(var(--sp-3) + 9px);
+  border-left: 1px solid var(--border);
+  padding-left: var(--sp-2);
+}
+
+.groupChildrenOpen {
+  max-height: 160px;
+  opacity: 1;
+}
+
+.childLink {
+  font-size: 0.86rem;
+}
+
+/* on the collapsed mobile icon rail the guide line + chevron just add noise */
+@media (max-width: 860px) {
+  .sidebar:not(.open) {
+    .groupChildren {
+      margin-left: 0;
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    .groupToggle {
+      display: none;
+    }
+  }
+}
+
 .sidebarFoot {
   padding: var(--sp-3);
   border-top: 1px solid var(--border);
