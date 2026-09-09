@@ -97,6 +97,18 @@ describe("SidebarNavGroup", () => {
     expect(screen.getByRole("button", { name: /Clients/ }).className).toMatch(/selected/i);
   });
 
+  it("fills the parent row once the user collapses the accordion while still on a child page", () => {
+    renderGroup({ isItemActive: (to) => to === "/agency/clients?view=waiting" });
+    const row = screen.getByRole("button", { name: /Clients/ });
+    // open by default onto the active child, which owns the highlight
+    expect(row.className).not.toMatch(/selected/i);
+
+    fireEvent.click(row); // collapse it shut
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    // the active child is hidden now, so the parent row takes the fill
+    expect(row.className).toMatch(/selected/i);
+  });
+
   describe("collapsed rail flyout", () => {
     it("opens on click and an outside click closes it", () => {
       renderGroup({ flyoutMode: true });

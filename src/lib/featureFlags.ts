@@ -25,14 +25,25 @@ const isOn = (raw: unknown): boolean => {
   return token === "true" || token === "1";
 };
 
+// Mirror of isOn for a default-ON flag: only an explicit "false" / "0" turns
+// it off, an unset var leaves it enabled.
+const isOff = (raw: unknown): boolean => {
+  if (raw === false) return true;
+  const token = String(raw ?? "")
+    .trim()
+    .split(/\s+/)[0];
+  return token === "false" || token === "0";
+};
+
 /** True when `flag` is switched on for this build. */
 export function isFeatureEnabled(flag: FeatureFlag): boolean {
   switch (flag) {
-    // Agency "manage mode" (multi-admin agencies). Half-built — kept dark in
-    // production until the agency flows are finished and tested. Enable on a
-    // preview / staging deploy with VITE_FF_AGENCY=true.
+    // Agency "manage mode" (multi-admin agencies). On by default — the /agency
+    // routes and the mode switch are already account-gated to agency
+    // members/managers, so a stray practice never sees it. Force it dark with
+    // VITE_FF_AGENCY=false.
     case "agency":
-      return isOn(import.meta.env.VITE_FF_AGENCY);
+      return !isOff(import.meta.env.VITE_FF_AGENCY);
     // Direct messaging (client ↔ their counsellor). New client-facing surface +
     // a prod migration — kept dark until it's been run in-browser and the copy
     // signed off. Enable with VITE_FF_MESSAGING=true.

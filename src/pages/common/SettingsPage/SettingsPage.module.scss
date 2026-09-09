@@ -469,80 +469,10 @@ input.copyFieldValue {
 }
 
 // ── Tabs (admin only) ──────────────────────────────────────
+// The bar itself is <SettingsTabs> (src/components/shared/SettingsTabs); this
+// card just gives it the same inset as the panels below it.
 .tabsCard {
   padding: $sp-2 $sp-4 0;
-}
-
-// Arrow-scroll wrapper: the tab list can't be trusted to signal its own
-// overflow (the scrollbar is hidden below, and trackpad/mouse users on a
-// small screen won't reliably discover two-finger/shift-scroll). Real
-// buttons that appear only on the side that still has clipped tabs replace
-// that signal instead of just hinting at it.
-.tabsWrap {
-  display: flex;
-  align-items: center;
-  gap: $sp-1;
-  border-bottom: 1px solid var(--border);
-}
-
-// A tinted, bordered circle rather than a bare icon on the card background
-// — the flat version was too close in contrast to the card to read as a
-// button at a glance, especially in dark mode.
-.tabsArrow {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  margin: $sp-1 0;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--accent-subtle);
-  color: var(--accent-dark);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: var(--accent-light);
-    border-color: var(--accent);
-  }
-}
-
-.tabs {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  gap: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.tab {
-  padding: $sp-3 $sp-5;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-
-  &:hover {
-    color: var(--text-primary);
-  }
-}
-
-.tabActive {
-  color: var(--accent-dark);
-  border-bottom-color: var(--accent);
 }
 
 // ── Toggle switch ───────────────────────────────────────────
