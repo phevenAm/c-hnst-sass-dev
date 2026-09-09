@@ -23,11 +23,15 @@ import SidebarNavGroup, { type SidebarNavGroupClasses } from "@components/shared
 import SidebarNavItem, { type SidebarNavItemClasses } from "@components/shared/SidebarNavItem/SidebarNavItem";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
-import { useAppSelector } from "@store/hooks";
+import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
+  fetchAgencyClients,
+  fetchAgencyMembers,
   selectAgency,
   selectAgencyBootstrapStatus,
+  selectAgencyClientsStatus,
   selectAgencyMembership,
+  selectAgencyMembersStatus,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
 
@@ -90,10 +94,13 @@ export default function AgencyLayout() {
   const { showToast } = useToast();
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
   const status = useAppSelector(selectAgencyBootstrapStatus);
   const membership = useAppSelector(selectAgencyMembership);
   const agency = useAppSelector(selectAgency);
   const isManager = useAppSelector(selectIsAgencyManager);
+  const membersStatus = useAppSelector(selectAgencyMembersStatus);
+  const clientsStatus = useAppSelector(selectAgencyClientsStatus);
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   const [expanded, setExpanded] = useState(false);
@@ -116,6 +123,30 @@ export default function AgencyLayout() {
   useEffect(() => {
     setExpanded(false);
   }, [pathname]);
+
+  // A manager's pages (Overview, Clients, Sessions, Staff, Finance, Invoices)
+  // all read the same members + clients lists from the store. Prime them once
+  // here at the layout so those pages mount with data instead of each flashing
+  // its own empty state for a beat while its effect fetches. Plain counsellors
+  // only see the intake inbox, which loads its own data.
+  useEffect(() => {
+    if (status !== "succeeded" || !isManager || !agency) return;
+    if (membersStatus === "idle") dispatch(fetchAgencyMembers());
+    if (clientsStatus === "idle") dispatch(fetchAgencyClients(agency.id));
+  }, [status, isManager, agency, membersStatus, clientsStatus, dispatch]);
+
+  // While that shared data is still coming in, the chrome (sidebar, header)
+  // renders as normal and only the content area shows a spinner — so a manager
+  // never sees a page's empty state (0 clients, blank charts) flash before it
+  // fills. Only for a manager, and never past a failed fetch (the pages show
+  // their own error/empty state then rather than spinning forever here).
+  const coreDataPending =
+    isManager &&
+    !!agency &&
+    (membersStatus === "idle" ||
+      membersStatus === "loading" ||
+      clientsStatus === "idle" ||
+      clientsStatus === "loading");
 
   if (loading || status === "idle" || status === "loading") {
     return <AuthLoadingState variant="splash" />;
@@ -274,7 +305,7 @@ export default function AgencyLayout() {
 
       <main id="main-content" className={styles.main}>
         <Suspense fallback={<AuthLoadingState variant="plain" />}>
-          <Outlet />
+          {coreDataPending ? <AuthLoadingState variant="plain" /> : <Outlet />}
         </Suspense>
       </main>
     </div>

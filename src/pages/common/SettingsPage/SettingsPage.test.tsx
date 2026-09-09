@@ -1039,3 +1039,63 @@ describe("SettingsPage — interface preferences", () => {
     expect(localStorage.getItem("adminSidebarBtnPos")).toBe("bottom");
   });
 });
+
+// A client's Settings now uses the same accessible <SettingsTabs> bar as the
+// admin/agency pages (roving tabindex, arrow-key nav, role="tabpanel" panels)
+// rather than one long unlabelled scroll. Two tabs only: Profile · Interface.
+describe("SettingsPage — client view (tabbed, accessible)", () => {
+  beforeEach(() => {
+    mockUseAuth.mockImplementation(() => ({
+      ...defaultAuthValue,
+      isAdmin: false,
+      userProfile: { ...defaultUserProfile, role: "client" },
+    }));
+  });
+
+  it("renders a tablist with exactly Profile and Interface & accessibility", () => {
+    render(<SettingsPage />);
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Profile", "Interface & accessibility"]);
+    // no admin-only tabs leak in
+    expect(screen.queryByRole("tab", { name: "Practice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Billing" })).not.toBeInTheDocument();
+  });
+
+  it("starts on Profile, and each tab controls a labelled tabpanel", () => {
+    render(<SettingsPage />);
+    const profileTab = screen.getByRole("tab", { name: "Profile" });
+    expect(profileTab).toHaveAttribute("aria-selected", "true");
+    expect(profileTab).toHaveAttribute("tabindex", "0");
+
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveAttribute("id", "settings-panel-profile");
+    expect(panel).toHaveAttribute("aria-labelledby", "settings-tab-profile");
+    // roving tabindex: the unselected tab is not in the tab sequence
+    expect(screen.getByRole("tab", { name: "Interface & accessibility" })).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("switches to the Interface panel on click and swaps the visible tabpanel", () => {
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "Interface & accessibility" }));
+
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveAttribute("id", "settings-panel-interface");
+    expect(panel).toHaveAttribute("aria-labelledby", "settings-tab-interface");
+    // the profile panel is unmounted, not just hidden
+    expect(document.getElementById("settings-panel-profile")).toBeNull();
+    // Interface content is there
+    expect(within(panel).getByText("These settings only affect this device.")).toBeInTheDocument();
+  });
+
+  it("moves selection with the arrow keys (WAI-ARIA tab pattern)", () => {
+    render(<SettingsPage />);
+    const list = screen.getByRole("tablist");
+    screen.getByRole("tab", { name: "Profile" }).focus();
+
+    fireEvent.keyDown(list, { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: "Interface & accessibility" })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(list, { key: "ArrowLeft" });
+    expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute("aria-selected", "true");
+  });
+});

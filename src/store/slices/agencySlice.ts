@@ -672,7 +672,9 @@ export const selectIsAgencyManager = (s: WithAgency) =>
   s.agency.membership?.role === "manager" && s.agency.membership.status === "active";
 export const selectIsAgencyMember = (s: WithAgency) => s.agency.membership?.status === "active";
 export const selectAgencyMembers = (s: WithAgency) => s.agency.members;
+export const selectAgencyMembersStatus = (s: WithAgency) => s.agency.membersStatus;
 export const selectAgencyClients = (s: WithAgency) => s.agency.clients;
+export const selectAgencyClientsStatus = (s: WithAgency) => s.agency.clientsStatus;
 export const selectIncomingAssignments = (s: WithAgency) => s.agency.incoming;
 export const selectAgencyExpenses = (s: WithAgency) => s.agency.expenses;
 export const selectOnboardingItems = (s: WithAgency) => s.agency.onboardingItems;

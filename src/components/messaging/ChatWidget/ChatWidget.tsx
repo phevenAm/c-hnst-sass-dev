@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { pickColor } from "@Helpers/Helpers";
@@ -29,6 +29,7 @@ import {
 } from "@store/slices/messagesSlice";
 
 import { isFeatureEnabled } from "@/lib/featureFlags";
+import { isHeroSplashDone, subscribeHeroSplashDone } from "@/lib/heroSplashState";
 
 import styles from "./ChatWidget.module.scss";
 
@@ -64,6 +65,10 @@ export default function ChatWidget() {
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   const [{ open, minimised, activeId }, setState] = useState<WidgetState>(readState);
+
+  // Don't paint the launcher while the cold-boot splash is still up / hasn't
+  // resolved — it would flash into the corner before any page content does.
+  const heroSplashDone = useSyncExternalStore(subscribeHeroSplashDone, isHeroSplashDone, () => true);
 
   const conversations = useAppSelector(selectConversations);
   const conversationsStatus = useAppSelector(selectConversationsStatus);
@@ -138,7 +143,16 @@ export default function ChatWidget() {
     );
   };
 
-  if (!authUser || !isFeatureEnabled("messaging") || onFullPage) return null;
+  if (!authUser || !isFeatureEnabled("messaging") || onFullPage || !heroSplashDone) return null;
+
+  // The launcher only earns a spot in the corner once there's a conversation to
+  // come back to — an unread message, or an existing thread. No history yet =
+  // nothing floating over every page. `conversations` is primed app-wide by
+  // useMessagesRealtime, so this is known without opening the panel. Demo always
+  // shows it (the scripted thread is the feature tour); an open/minimised panel
+  // keeps rendering regardless so a just-started chat doesn't vanish.
+  const hasOngoingChat = conversations.length > 0 || totalUnread > 0;
+  if (!open && !hasOngoingChat && !isDemo) return null;
 
   // ── Mobile / closed: just the button ──────────────────────────────────────
   const launcher = (
