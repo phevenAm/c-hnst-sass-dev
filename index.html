@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -20,14 +20,20 @@
       content="Client management, scheduling, check-ins, payments, resources, and CPD for independent therapy practices."
     />
     <meta property="og:url" content="https://withclarity.uk/" />
-    <meta property="og:image" content="https://withclarity.uk/hero.webp" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:image" content="https://withclarity.uk/og.webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Clarity — practice management software for therapists" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Clarity — practice management software for therapists" />
     <meta
       name="twitter:description"
       content="Practice management software for independent counsellors and therapists."
     />
-    <meta name="twitter:image" content="https://withclarity.uk/hero.webp" />
+    <meta name="twitter:image" content="https://withclarity.uk/og.webp" />
+    <meta name="twitter:image:alt" content="Clarity — practice management software for therapists" />
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -35,21 +41,144 @@
         "name": "Clarity",
         "url": "https://withclarity.uk/",
         "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Practice management software",
         "operatingSystem": "Web",
+        "inLanguage": "en-GB",
         "description": "Practice management software for independent counsellors and therapists.",
+        "image": "https://withclarity.uk/og.webp",
+        "screenshot": "https://withclarity.uk/screenshots/schedule.webp",
+        "featureList": [
+          "Client directory with codenames",
+          "Appointment scheduling and automated reminders",
+          "Wellbeing check-ins and outcome measures (PHQ-9, GAD-7, WSAS, PSS-10, CORE-10, RCADS-25)",
+          "Session notes with optional end-to-end encryption",
+          "Card payments via Stripe Connect",
+          "Secure client portal with built-in messaging",
+          "CPD and supervision logging with exports",
+          "Resource library",
+          "Activity audit log"
+        ],
         "offers": {
           "@type": "AggregateOffer",
           "priceCurrency": "GBP",
           "lowPrice": "7.99",
           "highPrice": "24.99",
           "offerCount": "3"
+        },
+        "publisher": { "@id": "https://withclarity.uk/#organization" }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://withclarity.uk/#organization",
+        "name": "Clarity",
+        "url": "https://withclarity.uk/",
+        "logo": "https://withclarity.uk/icon-512.png",
+        "email": "hello@withclarity.uk",
+        "areaServed": "GB",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "hello@withclarity.uk",
+          "contactType": "customer support"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is there a free trial?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "You can explore the full demo with sample data. We only ask for an email address so we can send you your own private demo link — there's no account to create and no card. Paid plans are monthly or annual, and you can cancel anytime."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do you have a referral scheme?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. When someone you refer subscribes, two months are credited to your account. They enter your code (or follow your link) at sign-up — you'll find yours in Settings once you're subscribed. No limit on how many people you refer."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need any technical knowledge?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. If you can use email and an online calendar, you can use Clarity. Every page walks you through itself the first time, with info tips beside anything fiddly — and you can replay any walkthrough from Settings."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I bring my existing clients across?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Import your client list and their past session history — dates, fees, and notes — from a spreadsheet, so you're not rebuilding records by hand."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What if a client doesn't join the app?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "That's fine — they don't have to. Offline clients are managed entirely by you: sessions, notes, and payments, with booking confirmations and reminders still emailed to them automatically. Send a portal invite whenever it makes sense, or never. If they do join, it's just an email and a password — nothing to download."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is there a minimum age for clients?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A client needs to be 13 or over to have their own portal login, and under-16s need a parent or guardian's consent. Younger clients can still be worked with as offline clients, managed entirely by their practitioner, with session and payment updates going to a parent or guardian's email address."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is my client data secure?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Role-based access, secure authentication, and per-practice data separation. Session notes can be encrypted on your device so that no one else — Clarity included — can read them. Everything is hosted in the EU (application and database), and you are the data controller under UK GDPR. Clarity is registered with the UK Information Commissioner's Office (ICO)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I pause my account?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, yourself, any time from Settings → Billing. While paused your billing stops, the app goes read-only, and your clients can't sign in — but nothing is deleted and you can still sign in to read or export. Resume whenever you're ready and pick up exactly where you left off. Pausing is the way to keep your records long-term without an active subscription."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What happens to my data if I cancel or delete?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "If your subscription lapses, your account just goes read-only — we don't auto-delete anything. If you actually delete your account (Settings → Billing), that's permanent and immediate: your practice and every client record go straight away, for good, and we can't get them back. You're offered a full export — clients, sessions, notes and payments as spreadsheets and PDFs — right before it happens. We never sell your data or use it for anything but running your practice."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I cancel anytime?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, from Settings → Manage subscription. Access continues to the end of the period you've already paid for."
+            }
+          }
+        ]
       }
     </script>
 
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#f5f5ee" />
+
+    <link rel="preload" as="image" href="/hero.webp" type="image/webp" fetchpriority="high" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -247,7 +376,8 @@
               <p class="feature__body">
                 Role-based access, per-practice data separation, and EU hosting — with optional
                 client-side encryption for session notes. Every change to a client record is kept in an
-                activity audit log.
+                activity audit log, and Clarity is registered with the UK Information Commissioner&rsquo;s
+                Office (ICO).
               </p>
             </li>
 
@@ -280,6 +410,21 @@
                 Clients get their own private space — upcoming sessions, a wellbeing trend across every
                 check-in, the resources you&rsquo;ve shared, and one-tap booking or rescheduling. No
                 app to install.
+              </p>
+            </li>
+
+            <li class="feature">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4.5 5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-4 3.5V17H4.5A1.5 1.5 0 0 1 3 15.5v-9A1.5 1.5 0 0 1 4.5 5Z" />
+                  <path d="M7.5 9.5h9M7.5 12.5h6" />
+                </svg>
+              </span>
+              <h3 class="feature__title">Secure messaging built in</h3>
+              <p class="feature__body">
+                Message clients directly inside Clarity — no texts, no personal number, no third-party
+                app. Threaded conversations, unread badges, and an automatic out-of-hours reply so
+                clients always know when to expect you.
               </p>
             </li>
           </ul>
@@ -632,7 +777,8 @@
                 Role-based access, secure authentication, and per-practice data separation. Session
                 notes can be encrypted on your device so that no one else — Clarity included — can
                 read them. Everything is hosted in the EU (application and database), and you are the
-                data controller under UK GDPR.
+                data controller under UK GDPR. Clarity is registered with the UK Information
+                Commissioner&rsquo;s Office (ICO).
               </p>
             </details>
             <details class="faq__item">
