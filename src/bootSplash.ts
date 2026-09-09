@@ -44,11 +44,17 @@ const ONE_CYCLE_MS = 3600;
 // 5s loop boundary where behaviour at the exact wrap point is unreliable.
 const HELD_FRAME_S = 4.5;
 
-// app.html's #boot-splash-mark SVG, verbatim, for the showSplash() re-paint
-// (by then the original node has been removed). Self-animating SMIL — no
-// JS/fetch/library. Regenerate both from "src/LOGO Asset/sapling animated.svg"
-// if it changes.
-const SAPLING_SVG = `<svg fill="none" height="100%" width="100%" viewBox="0 0 96 96" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(4,0,0,4,0,0)" display="none" id="u0"><animate repeatCount="indefinite" begin="0s" calcMode="discrete" dur="5s" values="none; inline; inline" keyTimes="0; 0.105682; 1" attributeName="display" /><g id="u1"><path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="#184030" fill="#184030" fill-opacity="0" d="M12,12C12,7,17,3,22,3C22,8,18,12,12,12C12,12,12,12,12,12Z"><animate repeatCount="indefinite" attributeName="fill-opacity" dur="5s" begin="0s" fill="freeze" values="0; 0; 0; 0.88; 0.88" keyTimes="0; 0.242424; 0.280303; 0.318182; 1" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1; 0 0 1 1" calcMode="spline" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1" keyTimes="0; 0.022727; 0.303031; 1" values="0 100; 0 100; 100 0; 100 0" attributeName="stroke-dasharray" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1" keyTimes="0; 0.022727; 0.303031; 1" values="0; 0; 0; 0" attributeName="stroke-dashoffset" /></path></g></g><g transform="matrix(4,0,0,4,0,0)" id="u2"><g id="u3"><path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="#2c4f41" d="M12,22C12,22,12,12,12,12"><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0.37 0 0 1; 0.37 0 0 1; 0 0 1 1" keyTimes="0; 0; 0.015151; 1" values="0 100; 98.719 1.281; 98.99 1.01; 98.99 1.01" attributeName="stroke-dasharray" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0.37 0 0 1; 0.37 0 0 1; 0 0 1 1" keyTimes="0; 0; 0.015151; 1" values="0; 0; 0; 0" attributeName="stroke-dashoffset" /></path></g></g><g transform="matrix(4,0,0,4,0,0)" display="none" id="u4"><animate repeatCount="indefinite" begin="0s" calcMode="discrete" dur="5s" values="none; inline; inline" keyTimes="0; 0; 1" attributeName="display" /><g id="u5"><path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="#2c4f41" d="M12,12C12,7,7,3,2,3C2,8,6,12,12,12C12,12,12,12,12,12Z"><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0.76 0 0.24 1; 0 0 1 1" keyTimes="0; 0; 0.113636; 1" values="0 100; 0 100; 100 0; 100 0" attributeName="stroke-dasharray" /><animate repeatCount="indefinite" fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0.76 0 0.24 1; 0 0 1 1" keyTimes="0; 0; 0.113636; 1" values="0; 0; 0; 0" attributeName="stroke-dashoffset" /></path></g></g></svg>`;
+// The hero mark markup is authored once, inline in app.html's
+// #boot-splash-mark (it has to be literal HTML there so it paints with zero
+// JS on a cold load). showSplash() re-uses that exact same markup rather than
+// keeping a second copy — captured here at module load, while app.html's
+// original node is still in the DOM and before boot()'s finish() removes it.
+// This module's own <script> in app.html runs before the app bundle, so the
+// node is always present at this point on a real load.
+let markHTML = "";
+if (typeof document !== "undefined") {
+  markHTML = document.getElementById("boot-splash-mark")?.innerHTML ?? "";
+}
 
 function prefersReducedMotion(): boolean {
   let appToggle = false;
@@ -118,7 +124,11 @@ export function showSplash(text?: string): void {
 
   const mark = document.createElement("div");
   mark.style.cssText = "width:96px;height:96px;";
-  mark.innerHTML = SAPLING_SVG;
+  // Same markup as the cold-load splash — one copy, defined in app.html. If
+  // this module somehow loaded after that node was already gone (e.g. a unit
+  // test that never loads app.html), fall back to whatever #boot-splash-mark
+  // is in the DOM right now.
+  mark.innerHTML = markHTML || document.getElementById("boot-splash-mark")?.innerHTML || "";
   root.appendChild(mark);
 
   if (text) setCaption(root, text);
