@@ -47,9 +47,9 @@ export type CoverageEntry = {
 
 export const SUITE_SUMMARY = {
   unit: {
-    filesPassed: 72,
+    filesPassed: 73,
     filesSkipped: 9,
-    testsPassed: 713,
+    testsPassed: 720,
     testsTodo: 43,
     command: "npx vitest run",
     ranAt: "2026-09-07",
