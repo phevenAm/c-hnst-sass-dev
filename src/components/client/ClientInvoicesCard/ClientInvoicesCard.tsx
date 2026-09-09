@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
+import { ChevronDownSmIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
@@ -72,6 +73,7 @@ export default function ClientInvoicesCard() {
   const [loaded, setLoaded] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [flash, setFlash] = useState(false);
 
   const fetchInvoices = useCallback(async () => {
     if (!userProfile?.id || !invoicesEnabled) {
@@ -117,17 +119,27 @@ export default function ClientInvoicesCard() {
     [invoices],
   );
 
-  // Arriving from the "new invoice" notification (url: /dashboard#invoices):
-  // bring the card into view and open the first invoice that still needs paying
-  // so the pay-by-card button / bank details are right there.
-  const landedRef = useRef(false);
+  // Open the newest still-unpaid invoice by default so its "Pay by card" /
+  // bank-transfer details are visible without a click.
+  const autoOpenedRef = useRef(false);
   useEffect(() => {
-    if (!loaded || invoices.length === 0 || landedRef.current) return;
-    if (location.hash !== "#invoices") return;
-    landedRef.current = true;
-    document.getElementById("invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!loaded || autoOpenedRef.current || invoices.length === 0) return;
+    autoOpenedRef.current = true;
     const firstDue = invoices.find((i) => i.status === "sent");
     if (firstDue) setOpenId(firstDue.id);
+  }, [loaded, invoices]);
+
+  // Arriving from the "new invoice" notification (url: /dashboard#invoices):
+  // pull the card into view and pulse it, so it's obvious what needs action
+  // even when the card is already on screen.
+  const landedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || invoices.length === 0 || landedRef.current || location.hash !== "#invoices") return;
+    landedRef.current = true;
+    document.getElementById("invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setFlash(true);
+    const t = window.setTimeout(() => setFlash(false), 1400);
+    return () => window.clearTimeout(t);
   }, [loaded, invoices, location.hash]);
 
   const handlePay = async (inv: Invoice) => {
@@ -151,7 +163,10 @@ export default function ClientInvoicesCard() {
   if (!loaded || !invoicesEnabled || invoices.length === 0) return null;
 
   return (
-    <Card id="invoices" className={`${styles.card} ${outstanding > 0 ? styles.attention : ""}`}>
+    <Card
+      id="invoices"
+      className={`${styles.card} ${outstanding > 0 ? styles.attention : ""} ${flash ? styles.flash : ""}`}
+    >
       <div className={styles.head}>
         <div>
           <h3 className={styles.title}>Invoices from your counsellor</h3>
@@ -176,6 +191,9 @@ export default function ClientInvoicesCard() {
                 onClick={() => setOpenId(isOpen ? null : inv.id)}
                 aria-expanded={isOpen}
               >
+                <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`} aria-hidden="true">
+                  <ChevronDownSmIcon />
+                </span>
                 <span className={styles.ref}>{inv.reference}</span>
                 <span className={styles.date}>{dayjs(inv.issue_date).format("D MMM YYYY")}</span>
                 <span className={styles.amount}>{money(inv.total_pence)}</span>
@@ -207,14 +225,15 @@ export default function ClientInvoicesCard() {
 
                   {inv.status === "sent" && (
                     <div className={styles.payRow}>
+                      <span className={styles.payLabel}>How to pay</span>
                       {cardPaymentsAvailable && (
                         <Button size="sm" onClick={() => void handlePay(inv)} disabled={payingId === inv.id}>
                           {payingId === inv.id ? "Starting…" : `Pay ${money(inv.total_pence)} by card`}
                         </Button>
                       )}
                       <span className={styles.payHint}>
-                        Or pay by bank transfer using the details on your emailed invoice — quote the reference{" "}
-                        {inv.reference}.
+                        {cardPaymentsAvailable ? "Or by bank" : "Bank"} transfer — use the account details on your
+                        emailed invoice and quote reference <strong>{inv.reference}</strong>.
                       </span>
                     </div>
                   )}
