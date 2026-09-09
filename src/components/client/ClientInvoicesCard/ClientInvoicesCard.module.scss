@@ -52,6 +52,41 @@
   border-bottom: 1px solid var(--border);
 }
 
+.headMain {
+  flex: 1;
+  min-width: 0;
+}
+
+// Top-left dismiss — negative margins pull it into the padding corner.
+.close {
+  flex: none;
+  align-self: flex-start;
+  margin: -4px var(--sp-1) -4px -4px;
+  padding: 4px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 0;
+
+  svg {
+    display: block;
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
+  }
+}
+
 .title {
   margin: 0;
   font-size: var(--fs-md);
