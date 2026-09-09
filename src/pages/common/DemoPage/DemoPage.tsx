@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import AuthShell from "@components/shared/AuthShell/AuthShell";
+import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
@@ -108,15 +109,17 @@ export default function DemoPage() {
               <span className={styles.demoRole}>Client view</span>
               <span className={styles.demoDesc}>Complete check-ins &amp; view resources</span>
             </button>
-            <button
-              type="button"
-              className={styles.demoCard}
-              onClick={() => handleDemoSignIn("agency")}
-              disabled={submitting}
-            >
-              <span className={styles.demoRole}>Agency view</span>
-              <span className={styles.demoDesc}>Manage staff, waiting list &amp; agency invoices</span>
-            </button>
+            <WIP>
+              <button
+                type="button"
+                className={styles.demoCard}
+                onClick={() => handleDemoSignIn("agency")}
+                disabled={submitting}
+              >
+                <span className={styles.demoRole}>Agency view</span>
+                <span className={styles.demoDesc}>Manage staff, waiting list &amp; agency invoices</span>
+              </button>
+            </WIP>
           </div>
 
           <hr className={styles.divider} />

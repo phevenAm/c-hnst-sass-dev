@@ -6,6 +6,7 @@ import Button from "@components/shared/Button/Button";
 import { MailIcon } from "@components/shared/Icons/Icons";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import PdfViewer from "@components/shared/PdfViewer/PdfViewer";
+import WIP from "@components/shared/WIP/WIP";
 import { useAuth } from "@context/AuthContext";
 
 import { captureReferralCode } from "@/Helpers/referral";
@@ -453,12 +454,14 @@ export default function CounsellorSignupPage() {
       </p>
 
       {!invite && (
-        <p className={styles.footer}>
-          Running an agency with several counsellors?{" "}
-          <Link to="/register/agency" className="link">
-            Create an agency
-          </Link>
-        </p>
+        <WIP>
+          <p className={styles.footer}>
+            Running an agency with several counsellors?{" "}
+            <Link to="/register/agency" className="link">
+              Create an agency
+            </Link>
+          </p>
+        </WIP>
       )}
     </AuthShell>
   );

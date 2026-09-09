@@ -19,6 +19,7 @@ import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
 import UpdateBanner from "../components/shared/UpdateBanner/UpdateBanner";
 import ViewportWarningBanner from "../components/shared/ViewportWarningBanner/ViewportWarningBanner";
 import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
+import { useWipVisible } from "../components/shared/WIP/WIP";
 import { useAuth } from "../context/AuthContext";
 import { WalkthroughProvider } from "../context/WalkthroughContext";
 import { useAgencyBootstrap } from "../Hooks/useAgencyBootstrap";
@@ -361,6 +362,11 @@ function AgencyGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppRoutes() {
+  // `/register/agency` (self-serve agency creation) is still WIP — dev server
+  // and superadmin only, never a live counsellor. Manage mode (/agency/*)
+  // stays account-gated instead.
+  const wipVisible = useWipVisible();
+
   return (
     <ThemeWrapper>
       <BrowserRouter>
@@ -500,38 +506,40 @@ export default function AppRoutes() {
                 }
               />
 
-              {/* Agency "manage mode" — standalone shell, gated to agency members.
-                  Behind the `agency` feature flag: off in production until the
-                  agency flows are finished, so /agency/* 404s there. */}
+              {/* Self-serve agency creation — still WIP, so dev server /
+                  superadmin only (useWipVisible). Not for a live counsellor. */}
+              {isFeatureEnabled("agency") && wipVisible && (
+                <Route
+                  path="/register/agency"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <CreateAgencyPage />
+                    </ProtectedRoute>
+                  }
+                />
+              )}
+
+              {/* Agency "manage mode" — standalone shell, gated to agency members
+                  (AgencyLayout bounces non-members). Behind the `agency` flag. */}
               {isFeatureEnabled("agency") && (
-                <>
-                  <Route
-                    path="/register/agency"
-                    element={
-                      <ProtectedRoute requiredRole="admin">
-                        <CreateAgencyPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    element={
-                      <ProtectedRoute requiredRole="admin">
-                        <AgencyLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="/agency" element={<AgencyOverviewPage />} />
-                    <Route path="/agency/members" element={<AgencyMembersPage />} />
-                    <Route path="/agency/clients" element={<AgencyClientsPage />} />
-                    <Route path="/agency/sessions" element={<AgencySessionsPage />} />
-                    <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
-                    <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
-                    <Route path="/agency/finance" element={<AgencyFinancePage />} />
-                    <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
-                    <Route path="/agency/activity" element={<AgencyActivityPage />} />
-                    <Route path="/agency/settings" element={<AgencySettingsPage />} />
-                  </Route>
-                </>
+                <Route
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AgencyLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/agency" element={<AgencyOverviewPage />} />
+                  <Route path="/agency/members" element={<AgencyMembersPage />} />
+                  <Route path="/agency/clients" element={<AgencyClientsPage />} />
+                  <Route path="/agency/sessions" element={<AgencySessionsPage />} />
+                  <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
+                  <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
+                  <Route path="/agency/finance" element={<AgencyFinancePage />} />
+                  <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
+                  <Route path="/agency/activity" element={<AgencyActivityPage />} />
+                  <Route path="/agency/settings" element={<AgencySettingsPage />} />
+                </Route>
               )}
 
               <Route path="/" element={<RootRedirect />} />
