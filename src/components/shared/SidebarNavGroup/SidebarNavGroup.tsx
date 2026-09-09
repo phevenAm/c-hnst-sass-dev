@@ -1,5 +1,5 @@
 import { type ComponentType, type CSSProperties, useEffect, useRef, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { ChevronDownSmIcon } from "@components/shared/Icons/Icons";
 import itemStyles from "@components/shared/SidebarNavItem/SidebarNavItem.module.scss";
@@ -15,17 +15,12 @@ export type SidebarNavLeaf = { to: string; label: string; Icon: ComponentType };
 export type SidebarNavGroupClasses = {
   /** wrapper — MUST be `position: relative` so the collapsed flyout anchors. */
   group: string;
-  /** parent row container (holds the link + chevron, or just the button). */
+  /** the parent row — pass the SAME class a plain item uses, so the row's
+   *  hover / selected fill is one box, identical to every other nav row. */
   row: string;
-  /** optional extra class on the active parent row — the selected colour is
-   *  owned by the shared component, this is only for host-specific tweaks. */
+  /** optional host-specific tweak on the selected parent row. The selected
+   *  colour itself is owned by the shared component. */
   rowActive?: string;
-  /** single toggle button — used when the group has no `to` of its own. */
-  button?: string;
-  /** parent link — used when the group has a `to` (a separate chevron toggles). */
-  link?: string;
-  /** the chevron toggle button (only when `link` is used). */
-  toggle?: string;
   icon: string;
   label: string;
   chevron: string;
@@ -40,9 +35,11 @@ export type SidebarNavGroupClasses = {
 type Props = {
   label: string;
   Icon: ComponentType;
+  /** Leaves shown under the group. A group with a landing page of its own
+   *  passes it as the first leaf (e.g. "All clients") — the parent row is a
+   *  pure disclosure toggle, never a link. */
   items: SidebarNavLeaf[];
-  /** When set the parent row navigates here and a separate chevron toggles. */
-  to?: string;
+  /** The parent row itself is the current page (rare — usually a child is). */
   parentActive: boolean;
   isItemActive: (to: string) => boolean;
   /** Children float as a fixed popover anchored to the row — collapsed desktop
@@ -51,7 +48,7 @@ type Props = {
   /** Open the flyout on hover / focus (real pointer on a collapsed desktop
    *  rail). Off for touch, where a synthesised mouseenter fights the tap. */
   hoverIntent: boolean;
-  /** Keep the inline accordion open (e.g. a child route is active). */
+  /** Force the inline accordion open regardless of the active child. */
   forceOpen?: boolean;
   /** Native tooltip on the collapsed rows. */
   showTitle?: boolean;
@@ -65,7 +62,6 @@ export default function SidebarNavGroup({
   label,
   Icon,
   items,
-  to,
   parentActive,
   isItemActive,
   flyoutMode,
@@ -79,19 +75,24 @@ export default function SidebarNavGroup({
   const accentStyle = accent
     ? ({ "--nav-selected-bg": accent[0], "--nav-selected-fg": accent[1] } as CSSProperties)
     : undefined;
-  const [open, setOpen] = useState(forceOpen);
+
+  const hasActiveChild = items.some((child) => isItemActive(child.to));
+
+  const [open, setOpen] = useState(() => !flyoutMode && (forceOpen || hasActiveChild));
   const [flyoutTop, setFlyoutTop] = useState(0);
-  const rowRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number | undefined>(undefined);
 
-  const shown = flyoutMode ? open : forceOpen || open;
-
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
-  // Collapsing the rail / leaving mobile-open drops a stale flyout.
+
+  // Expanded rail → the accordion follows the route: it springs open onto the
+  // active child (or when the host forces it) and the user can still toggle it
+  // shut. Collapsing to a rail drops whatever popover was left open.
   useEffect(() => {
-    if (!flyoutMode) setOpen(false);
-  }, [flyoutMode]);
+    if (flyoutMode) setOpen(false);
+    else if (forceOpen || hasActiveChild) setOpen(true);
+  }, [flyoutMode, forceOpen, hasActiveChild]);
 
   const measure = () => {
     if (rowRef.current) setFlyoutTop(rowRef.current.getBoundingClientRect().top);
@@ -106,6 +107,8 @@ export default function SidebarNavGroup({
     window.clearTimeout(closeTimer.current);
     closeTimer.current = window.setTimeout(() => setOpen(false), 180);
   };
+  // The whole parent row: expanded → toggle the accordion; collapsed → open /
+  // close the flyout popover.
   const toggle = () => {
     if (!open && flyoutMode) measure();
     setOpen((v) => !v);
@@ -113,7 +116,7 @@ export default function SidebarNavGroup({
 
   // Outside-tap closes the floating popover.
   useEffect(() => {
-    if (!shown || !flyoutMode) return;
+    if (!open || !flyoutMode) return;
     const onDown = (e: MouseEvent | TouchEvent) => {
       const t = e.target as Node;
       if (!listRef.current?.contains(t) && !rowRef.current?.contains(t)) setOpen(false);
@@ -124,7 +127,7 @@ export default function SidebarNavGroup({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
     };
-  }, [shown, flyoutMode]);
+  }, [open, flyoutMode]);
 
   const hoverProps = hoverIntent
     ? {
@@ -137,56 +140,36 @@ export default function SidebarNavGroup({
       }
     : {};
 
-  const chevron = (
-    <span className={`${cx.chevron} ${shown ? cx.chevronOpen : ""}`}>
-      <ChevronDownSmIcon />
-    </span>
-  );
+  // Full selected fill on the parent row only when it can't defer to a visible
+  // child: it's the page itself, or a child is active but the accordion is a
+  // collapsed rail so that child is out of sight.
+  const rowSelected = parentActive || (hasActiveChild && flyoutMode);
 
   // Flyout mode is a popover owned entirely by this component's SCSS — the
   // host's accordion classes (max-height:0 etc.) would fight it. Inline mode
   // uses the host classes so it looks native.
   const childrenCx = flyoutMode
-    ? `${styles.flyout} ${shown ? styles.flyoutOpen : ""}`
-    : `${cx.children} ${shown ? cx.childrenOpen : ""}`;
+    ? `${styles.flyout} ${open ? styles.flyoutOpen : ""}`
+    : `${cx.children} ${open ? cx.childrenOpen : ""}`;
 
   return (
     <div className={cx.group} style={accentStyle} {...hoverProps}>
-      <div ref={rowRef} className={`${cx.row} ${parentActive ? `${cx.rowActive ?? ""} ${itemStyles.selected}` : ""}`}>
-        {to ? (
-          <>
-            <NavLink to={to} className={cx.link} title={showTitle ? label : undefined} onClick={onNavigate}>
-              <span className={cx.icon}>
-                <Icon />
-              </span>
-              <span className={cx.label}>{label}</span>
-            </NavLink>
-            <button
-              type="button"
-              className={cx.toggle}
-              aria-expanded={shown}
-              aria-label={shown ? `Collapse ${label}` : `Expand ${label}`}
-              onClick={toggle}
-            >
-              {chevron}
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            className={cx.button}
-            onClick={toggle}
-            title={showTitle ? label : undefined}
-            aria-expanded={shown}
-          >
-            <span className={cx.icon}>
-              <Icon />
-            </span>
-            <span className={cx.label}>{label}</span>
-            {chevron}
-          </button>
-        )}
-      </div>
+      <button
+        ref={rowRef}
+        type="button"
+        className={`${cx.row} ${rowSelected ? `${cx.rowActive ?? ""} ${itemStyles.selected}` : ""}`}
+        onClick={toggle}
+        title={showTitle ? label : undefined}
+        aria-expanded={open}
+      >
+        <span className={cx.icon}>
+          <Icon />
+        </span>
+        <span className={cx.label}>{label}</span>
+        <span className={`${cx.chevron} ${open ? cx.chevronOpen : ""}`}>
+          <ChevronDownSmIcon />
+        </span>
+      </button>
 
       {/* biome-ignore lint/a11y/noStaticElementInteractions: keeps the flyout open while the pointer is over it; keyboard uses focus/blur on the group */}
       <div
@@ -202,7 +185,7 @@ export default function SidebarNavGroup({
             <Link
               key={child.to}
               to={child.to}
-              tabIndex={shown ? undefined : -1}
+              tabIndex={open ? undefined : -1}
               title={showTitle ? child.label : undefined}
               aria-current={active ? "page" : undefined}
               className={`${cx.childLink} ${flyoutMode ? styles.flyoutItem : ""} ${

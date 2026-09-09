@@ -67,9 +67,8 @@ const agencyItemCx: SidebarNavItemClasses = {
 
 const agencyGroupCx: SidebarNavGroupClasses = {
   group: styles.navGroup,
-  row: `${styles.link} ${styles.groupRow}`,
-  link: styles.groupLink,
-  toggle: styles.groupToggle,
+  // Same class as a plain row — one hover / selected box, no nested chrome.
+  row: styles.link,
   icon: styles.linkIcon,
   label: styles.linkLabel,
   chevron: styles.groupChevron,
@@ -97,10 +96,10 @@ export default function AgencyLayout() {
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   const [expanded, setExpanded] = useState(false);
-  // "Clients" holds Waiting list — the shared SidebarNavGroup keeps it open
-  // whenever a clients view is showing (via forceOpen below).
+  // "Clients" is a nav group: an "All clients" leaf + Waiting list (same page,
+  // ?view=waiting). The group auto-opens onto whichever leaf is active.
   const onClientsPage = pathname === CLIENTS_PATH || pathname.startsWith(`${CLIENTS_PATH}/`);
-  const clientsView = searchParams.get("view");
+  const onWaitingList = onClientsPage && searchParams.get("view") === "waiting";
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_Q);
@@ -179,18 +178,22 @@ export default function AgencyLayout() {
         <nav className={styles.nav}>
           {links.map((item) => {
             if (item.children?.length) {
+              // The group's own landing page becomes its first leaf, so the
+              // parent row is a pure open/close toggle.
+              const groupItems = [
+                { to: item.to, label: `All ${item.label.toLowerCase()}`, Icon: item.Icon },
+                ...item.children,
+              ];
               return (
                 <SidebarNavGroup
                   key={item.to}
-                  to={item.to}
                   label={item.label}
                   Icon={item.Icon}
-                  items={item.children}
-                  parentActive={onClientsPage && clientsView !== "waiting"}
-                  isItemActive={() => onClientsPage && clientsView === "waiting"}
+                  items={groupItems}
+                  parentActive={false}
+                  isItemActive={(to) => (to.includes("view=waiting") ? onWaitingList : onClientsPage && !onWaitingList)}
                   flyoutMode={!railOpen}
                   hoverIntent={false}
-                  forceOpen={railOpen && onClientsPage}
                   showTitle={!railOpen}
                   onNavigate={() => isMobile && setExpanded(false)}
                   cx={agencyGroupCx}

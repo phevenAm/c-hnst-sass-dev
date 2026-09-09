@@ -4,8 +4,8 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--sp-3);
-  padding: var(--sp-4) var(--sp-6);
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) var(--sp-6);
   border-top: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text-muted);
@@ -32,7 +32,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-4);
+  padding: var(--sp-1) var(--sp-3);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: var(--r-full);
   background: var(--accent-subtle);
