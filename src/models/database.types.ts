@@ -112,6 +112,7 @@ export type Database = {
           id: string
           is_cpd: boolean
           is_supervision: boolean
+          mirrored_at: string | null
           notes: string | null
           starts_at: string
           title: string
@@ -125,6 +126,7 @@ export type Database = {
           id?: string
           is_cpd?: boolean
           is_supervision?: boolean
+          mirrored_at?: string | null
           notes?: string | null
           starts_at: string
           title: string
@@ -138,6 +140,7 @@ export type Database = {
           id?: string
           is_cpd?: boolean
           is_supervision?: boolean
+          mirrored_at?: string | null
           notes?: string | null
           starts_at?: string
           title?: string
@@ -1411,6 +1414,8 @@ export type Database = {
           created_at: string
           id: string
           is_auto: boolean
+          kind: string
+          private_event_id: string | null
           read_at: string | null
           recipient_id: string
           sender_id: string
@@ -1421,6 +1426,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_auto?: boolean
+          kind?: string
+          private_event_id?: string | null
           read_at?: string | null
           recipient_id: string
           sender_id: string
@@ -1431,6 +1438,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_auto?: boolean
+          kind?: string
+          private_event_id?: string | null
           read_at?: string | null
           recipient_id?: string
           sender_id?: string
@@ -1441,6 +1450,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_private_event_id_fkey"
+            columns: ["private_event_id"]
+            isOneToOne: false
+            referencedRelation: "admin_private_events"
             referencedColumns: ["id"]
           },
           {
@@ -3078,6 +3094,13 @@ export type Database = {
       merge_stub_into_client: {
         Args: { p_real_user_id: string; p_stub_id: string }
         Returns: undefined
+      }
+      mirror_private_event_to_clients: {
+        Args: { p_body: string; p_client_ids: string[]; p_event_id: string }
+        Returns: {
+          conversation_id: string
+          message_id: string
+        }[]
       }
       merge_stub_to_user: {
         Args: { p_stub_id: string; p_user_id: string }

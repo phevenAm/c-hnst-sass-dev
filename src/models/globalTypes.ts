@@ -262,6 +262,8 @@ export type AdminPrivateEvent = {
   cost_pence: number | null;
   currency: string;
   created_at: string;
+  /** Last time this event was mirrored into client message threads, else null. */
+  mirrored_at: string | null;
 };
 
 export type Todo = Tables<"admin_todos">;
@@ -315,6 +317,10 @@ export type Message = {
   read_at: string | null;
   /** True when posted by the practitioner's away / out-of-hours auto-reply. */
   is_auto: boolean;
+  /** "chat" = ordinary message; "availability" = a mirrored private-event notice. */
+  kind: "chat" | "availability";
+  /** The admin_private_events row this notice came from, if any. */
+  private_event_id: string | null;
 };
 
 // A conversation row joined with the other party's public profile fields and a

@@ -85,3 +85,66 @@
         flex-shrink: 0;
     }
 }
+
+.notifyBlock {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    padding-top: $sp-3;
+    border-top: 1px solid var(--border);
+}
+
+.notifyPanel {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    padding-left: $sp-5;
+}
+
+.clientPicker {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-2;
+
+    legend {
+        padding: 0;
+        margin-bottom: $sp-1;
+    }
+}
+
+.clientList {
+    list-style: none;
+    margin: 0;
+    padding: $sp-2;
+    display: flex;
+    flex-direction: column;
+    gap: $sp-2;
+    max-height: 9rem;
+    overflow-y: auto;
+    background: var(--bg-muted);
+    border-radius: var(--r-md);
+}
+
+.messageHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $sp-2;
+}
+
+.resetBtn {
+    padding: 0;
+    background: none;
+    border: 0;
+    font: inherit;
+    font-size: 0.78rem;
+    color: var(--accent);
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

@@ -127,6 +127,33 @@ export const openConversation = createAsyncThunk(
   },
 );
 
+// Mirror an admin private-calendar event into the message threads of the
+// chosen clients. One SECURITY DEFINER RPC fans out to N clients (creating any
+// missing thread), returning the rows it wrote; we then poke notify-new-message
+// per row, fire-and-forget, exactly as sendMessage does. No local reducer —
+// fetchConversations reconciles the admin's own list.
+export const mirrorPrivateEvent = createAsyncThunk(
+  "messages/mirrorPrivateEvent",
+  async (
+    { eventId, clientIds, body }: { eventId: string; clientIds: string[]; body: string },
+    { rejectWithValue, dispatch },
+  ) => {
+    const { data, error } = await supabase.rpc("mirror_private_event_to_clients", {
+      p_event_id: eventId,
+      p_client_ids: clientIds,
+      p_body: body.trim(),
+    });
+    if (error) return rejectWithValue(error.message);
+
+    const rows = (data ?? []) as { message_id: string; conversation_id: string }[];
+    for (const r of rows) {
+      void supabase.functions.invoke("notify-new-message", { body: { message_id: r.message_id } }).catch(() => {});
+    }
+    void dispatch(fetchConversations());
+    return { count: rows.length };
+  },
+);
+
 const messagesSlice = createSlice({
   name: "messages",
   initialState,

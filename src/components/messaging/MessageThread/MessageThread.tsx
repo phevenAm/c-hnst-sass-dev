@@ -8,6 +8,7 @@ type ThreadMessage = {
   body: string;
   created_at: string;
   is_auto?: boolean;
+  kind?: "chat" | "availability";
 };
 
 type Props = {
@@ -34,9 +35,15 @@ export default function MessageThread({ messages, myId, loading = false, emptyTe
     <div className={styles.thread}>
       {messages.map((m) => {
         const mine = m.sender_id === myId;
+        const isNotice = m.kind === "availability";
         return (
           <div key={m.id} className={`${styles.row} ${mine ? styles.rowMine : ""}`}>
-            <div className={`${styles.bubble} ${m.is_auto ? styles.bubbleAuto : ""}`}>
+            <div
+              className={`${styles.bubble} ${m.is_auto ? styles.bubbleAuto : ""} ${
+                isNotice ? styles.bubbleNotice : ""
+              }`}
+            >
+              {isNotice && <span className={styles.noticeTag}>Availability update</span>}
               {m.is_auto && <span className={styles.autoTag}>Automatic reply</span>}
               <p className={styles.bubbleBody}>{m.body}</p>
               <span className={styles.bubbleTime}>
