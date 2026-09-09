@@ -252,6 +252,10 @@ export default function ClientDashboard() {
           </div>
         )}
 
+        {/* Near the top — a sent invoice needs the client to act.
+            Self-hides unless the practice has invoicing on AND this client has invoices. */}
+        <ClientInvoicesCard />
+
         <div className={styles.statsRow} id="client-stats">
           {stats.map((s) => (
             <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
@@ -276,9 +280,6 @@ export default function ClientDashboard() {
               every question that shares a tag; it falls back to per-question lines
               only when no tags are set. Tag questions in the form builder. */}
         </div>
-
-        {/* Self-hides unless the practice has invoicing on AND this client has invoices. */}
-        <ClientInvoicesCard />
 
         <div className={styles.bottomGrid} id="client-checkins">
           <Card>

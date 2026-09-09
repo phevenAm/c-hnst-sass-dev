@@ -4,17 +4,41 @@
   scroll-margin-top: var(--sp-4);
 }
 
-/* Something needs paying — lift the card so it reads as an action item. */
+/* Something needs paying — tint the whole card + an accent outline so it
+   stands out from the plain dashboard panels around it. */
 .attention {
+  background: var(--accent-subtle);
   border: 1px solid var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-subtle, rgba(31, 115, 100, 0.15));
 }
 
 .actionLine {
   margin: 2px 0 0;
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
-  color: var(--accent-dark, var(--accent));
+  color: var(--accent);
+}
+
+/* Pulse once when the client lands here from the invoice notification. */
+@keyframes cardFlash {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-subtle, rgba(31, 115, 100, 0.25));
+  }
+  20% {
+    box-shadow: 0 0 0 4px var(--accent-subtle, rgba(31, 115, 100, 0.25));
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+.flash {
+  animation: cardFlash 1.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+  }
 }
 
 .head {
@@ -23,7 +47,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--sp-2);
-  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  padding: var(--sp-4);
   border-bottom: 1px solid var(--border);
 }
 
@@ -53,11 +77,10 @@
 
 .rowBtn {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  display: flex;
   align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
+  gap: var(--sp-3);
+  padding: var(--sp-4);
   background: none;
   border: none;
   cursor: pointer;
@@ -70,9 +93,20 @@
   }
 
   @media (max-width: 560px) {
-    grid-template-columns: 1fr auto;
-    row-gap: var(--sp-2);
+    flex-wrap: wrap;
   }
+}
+
+.chevron {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(0deg);
 }
 
 .ref {
@@ -84,10 +118,17 @@
   color: var(--text-secondary);
   font-size: var(--fs-sm);
   white-space: nowrap;
+
+  @media (max-width: 560px) {
+    order: 5;
+    width: 100%;
+  }
 }
 
 .amount {
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
 
@@ -133,8 +174,10 @@
 }
 
 .detail {
-  padding: 0 var(--sp-4) var(--sp-4);
-  background: var(--bg-muted);
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
+  /* Darken whatever's behind — reads as recessed on a plain card and on the
+     tinted "attention" card alike. */
+  background: rgba(0, 0, 0, 0.16);
 }
 
 .meta {
@@ -160,6 +203,7 @@
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  padding-left: var(--sp-3);
 }
 
 .totalRow td {
@@ -177,7 +221,7 @@
 
 .payRow {
   margin-top: var(--sp-4);
-  padding-top: var(--sp-3);
+  padding-top: var(--sp-4);
   border-top: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
@@ -185,9 +229,20 @@
   gap: var(--sp-3);
 }
 
+.payLabel {
+  width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
 .payHint {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
   flex: 1;
   min-width: 12rem;
+
+  strong {
+    white-space: nowrap;
+  }
 }

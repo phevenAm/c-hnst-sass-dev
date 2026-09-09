@@ -54,15 +54,16 @@ export default defineConfig({
     versionJsonPlugin(),
     promoRoutingPlugin(),
     VitePWA({
-      // "prompt" (not "autoUpdate"): autoUpdate makes a newly-deployed
-      // service worker call skipWaiting()+clientsClaim() the moment it
-      // installs, silently taking over every open tab mid-session — the
-      // already-running app keeps executing but its network requests are
-      // now served by a worker built for a different bundle. "prompt"
-      // installs the new worker but leaves it waiting until updateSW() is
-      // called (wired in index.tsx via UpdateBanner's "Update now"), so the
-      // swap only happens deliberately, together with a reload.
-      registerType: "prompt",
+      // "autoUpdate": a newly-deployed service worker calls skipWaiting()+
+      // clientsClaim() as soon as it installs and vite-plugin-pwa reloads the
+      // page, so every open tab moves to the new build on its own — no prompt,
+      // no banner. A lazy route chunk that was already imported before the
+      // swap can 404 in the gap; lazyWithReload catches that and shows the
+      // sapling splash + "Loading…" while it reloads. (Previously "prompt"
+      // plus an UpdateBanner "Update now" button — removed 2026-09-09; its
+      // service-worker handshake often silently no-op'd in a long-lived PWA
+      // tab, so the button read as doing nothing.)
+      registerType: "autoUpdate",
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],

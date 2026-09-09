@@ -1,6 +1,6 @@
 import { type ComponentType, type LazyExoticComponent, lazy } from "react";
 
-import { showUpdatingSplash } from "./updatingSplash";
+import { showSplash } from "@/bootSplash";
 
 // Vite fingerprints every code-split chunk's filename. After a deploy the
 // browser can still be holding the previous index.html, so an `import()` of a
@@ -63,9 +63,9 @@ export function lazyWithReload<T extends ComponentType<Record<string, never>>>(
     } catch (err) {
       if (classifyImportError(err) === "reload") {
         writeFlag(true);
-        // Same "Updating…" sapling the UpdateBanner shows on a manual update,
-        // so the deploy-triggered auto-reload isn't a silent white flash.
-        showUpdatingSplash();
+        // Cover the app with the sapling splash + "Loading…" so the
+        // deploy-triggered reload isn't a silent white flash.
+        showSplash("Loading…");
         window.location.reload();
         // Never resolve — React shouldn't flash the error boundary in the
         // moment before the reload takes hold.
