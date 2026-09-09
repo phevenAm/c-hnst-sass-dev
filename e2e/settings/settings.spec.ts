@@ -83,15 +83,14 @@ test.describe("Admin settings", () => {
   // time, so it kept clicking "Practice" and asserting headings that had
   // actually moved to Schedule & bookings / Billing. Split to match reality.
   test("Practice tab renders business info and client consent", async () => {
-    // exact: the Profile tab's "Pause practice" lifecycle button also contains "Practice"
-    await page.getByRole("button", { name: "Practice", exact: true }).click();
+    await page.getByRole("tab", { name: "Practice", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "Business information" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Client consent" })).toBeVisible();
   });
 
   test("Schedule & bookings tab renders calendar sync and session automation", async () => {
-    await page.getByRole("button", { name: "Schedule & bookings" }).click();
+    await page.getByRole("tab", { name: "Schedule & bookings" }).click();
 
     await expect(page.getByRole("heading", { name: "Calendar sync" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Session automation" })).toBeVisible();
@@ -99,14 +98,14 @@ test.describe("Admin settings", () => {
   });
 
   test("Billing tab renders bank details and card payments", async () => {
-    await page.getByRole("button", { name: "Billing" }).click();
+    await page.getByRole("tab", { name: "Billing" }).click();
 
     await expect(page.getByRole("heading", { name: "Bank details" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Card payments" })).toBeVisible();
   });
 
   test("Emails tab lists the transactional email templates", async () => {
-    await page.getByRole("button", { name: "Emails" }).click();
+    await page.getByRole("tab", { name: "Emails" }).click();
 
     await expect(page.getByText("Manage emails")).toBeVisible();
     await expect(page.getByText("Session reminder")).toBeVisible();
@@ -115,7 +114,7 @@ test.describe("Admin settings", () => {
   });
 
   test("Interface tab lists client, dashboard, and accessibility controls", async () => {
-    await page.getByRole("button", { name: "Interface" }).click();
+    await page.getByRole("tab", { name: "Interface" }).click();
 
     await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
@@ -127,7 +126,7 @@ test.describe("Admin settings", () => {
   });
 
   test("Sidebar expand-button position is a local preference, not a server save", async () => {
-    await page.getByRole("button", { name: "Interface" }).click();
+    await page.getByRole("tab", { name: "Interface" }).click();
 
     // localStorage-only setting (see SettingsPage.tsx sidebarBtnPos) — safe
     // to change and revert within the test, no backend write involved.

@@ -1,6 +1,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from "react-router-dom";
 
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
 import {
@@ -14,7 +16,6 @@ import {
   HistoryIcon,
   HomeIcon,
   MoneyIcon,
-  RescheduleIcon,
   Settingsicon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
@@ -231,7 +232,7 @@ export default function AgencyLayout() {
           {membership.counselling_enabled && (
             <Link to="/admin" className={styles.modeSwitch} title={railOpen ? undefined : "Counselling view"}>
               <span className={styles.linkIcon}>
-                <RescheduleIcon />
+                <ExitToAppIcon />
               </span>
               <span className={styles.linkLabel}>Counselling view</span>
             </Link>

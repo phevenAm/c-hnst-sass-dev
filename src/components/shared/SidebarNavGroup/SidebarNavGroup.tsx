@@ -141,9 +141,10 @@ export default function SidebarNavGroup({
     : {};
 
   // Full selected fill on the parent row only when it can't defer to a visible
-  // child: it's the page itself, or a child is active but the accordion is a
-  // collapsed rail so that child is out of sight.
-  const rowSelected = parentActive || (hasActiveChild && flyoutMode);
+  // child: it's the page itself, or a child is active but out of sight — the
+  // accordion is a collapsed rail (flyout), or the user has collapsed the
+  // inline accordion shut while still on one of its pages.
+  const rowSelected = parentActive || (hasActiveChild && (flyoutMode || !open));
 
   // Flyout mode is a popover owned entirely by this component's SCSS — the
   // host's accordion classes (max-height:0 etc.) would fight it. Inline mode

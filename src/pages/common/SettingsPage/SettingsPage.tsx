@@ -15,8 +15,6 @@ import EncryptionUnlockModal from "@components/shared/EncryptionUnlockModal/Encr
 import FeedbackModal from "@components/shared/FeedbackModal/FeedbackModal";
 import {
   ChevronDown,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CopyIcon,
   LockIcon,
   LockOpenIcon,
@@ -27,6 +25,7 @@ import {
 import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
+import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
@@ -294,47 +293,8 @@ const SettingsPage = () => {
   const [exportedDataName, setExportedDataName] = useState<string | null>(null);
   const [exportDataError, setExportDataError] = useState<string | null>(null);
 
-  // Deep-link to a tab via ?tab=practice (used by FirstClientTipsModal, etc.).
-  // Only consume `tab` here — `section` is left in place for the matching
-  // SettingsCard to act on (open + scroll) and clear itself.
-  const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    const t = searchParams.get("tab");
-    if (t && ADMIN_TABS.some((tab) => tab.id === t)) {
-      setActiveTab(t as AdminTab);
-      const next = new URLSearchParams(searchParams);
-      next.delete("tab");
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Tab bar scroll arrows — the tab list scrolls horizontally on a narrow
-  // screen but gives no visual hint that it does (native scrollbar is
-  // hidden). Track whether there's more to see on either side so the arrow
-  // buttons only render where they're actually useful.
-  const tabsScrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
-  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
-
-  const updateTabsScrollState = () => {
-    const el = tabsScrollRef.current;
-    if (!el) return;
-    setCanScrollTabsLeft(el.scrollLeft > 1);
-    setCanScrollTabsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
-
-  // Re-checked on isAdmin flipping true too — the tab bar (and its ref) only
-  // exists in the DOM once that's the case, which can land after this
-  // component's first mount.
-  useEffect(() => {
-    updateTabsScrollState();
-    window.addEventListener("resize", updateTabsScrollState);
-    return () => window.removeEventListener("resize", updateTabsScrollState);
-  }, [isAdmin]);
-
-  const scrollTabsBy = (direction: 1 | -1) => {
-    tabsScrollRef.current?.scrollBy({ left: direction * 120, behavior: "smooth" });
-  };
+  // The tab bar (deep-link `?tab=` sync, overflow scrolling) is owned by
+  // <SettingsTabs>; the page just owns `activeTab` and panel switching.
 
   const [practiceDetails, setPracticeDetails] = useState<Record<BusinessField, string>>({
     business_name: "",
@@ -1572,40 +1532,13 @@ const SettingsPage = () => {
         {/* ── Tab bar (admin only) ── */}
         {isAdmin && (
           <Card className={styles.tabsCard}>
-            <div className={styles.tabsWrap}>
-              {canScrollTabsLeft && (
-                <button
-                  type="button"
-                  className={styles.tabsArrow}
-                  onClick={() => scrollTabsBy(-1)}
-                  aria-label="Scroll tabs left"
-                >
-                  <ChevronLeftIcon />
-                </button>
-              )}
-              <div className={styles.tabs} id="settings-tabs" ref={tabsScrollRef} onScroll={updateTabsScrollState}>
-                {ADMIN_TABS.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              {canScrollTabsRight && (
-                <button
-                  type="button"
-                  className={styles.tabsArrow}
-                  onClick={() => scrollTabsBy(1)}
-                  aria-label="Scroll tabs right"
-                >
-                  <ChevronRightIcon />
-                </button>
-              )}
-            </div>
+            <SettingsTabs
+              tabs={ADMIN_TABS}
+              value={activeTab}
+              onChange={setActiveTab}
+              ariaLabel="Settings sections"
+              idBase="settings"
+            />
           </Card>
         )}
 
