@@ -12,9 +12,6 @@ const cx: SidebarNavGroupClasses = {
   group: "group",
   row: "row",
   rowActive: "rowActive",
-  button: "button",
-  link: "link",
-  toggle: "toggle",
   icon: "icon",
   label: "label",
   chevron: "chevron",
@@ -25,7 +22,10 @@ const cx: SidebarNavGroupClasses = {
   childActive: "childActive",
 };
 
-const items = [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: Dot }];
+const items = [
+  { to: "/agency/clients?view=active", label: "All clients", Icon: Dot },
+  { to: "/agency/clients?view=waiting", label: "Waiting list", Icon: Dot },
+];
 
 function renderGroup(props: Partial<React.ComponentProps<typeof SidebarNavGroup>> = {}) {
   return render(
@@ -34,7 +34,6 @@ function renderGroup(props: Partial<React.ComponentProps<typeof SidebarNavGroup>
         label="Clients"
         Icon={Dot}
         items={items}
-        to="/agency/clients?view=active"
         parentActive={false}
         isItemActive={() => false}
         flyoutMode={false}
@@ -47,53 +46,79 @@ function renderGroup(props: Partial<React.ComponentProps<typeof SidebarNavGroup>
 }
 
 describe("SidebarNavGroup", () => {
-  it("renders the parent link and its children, and toggles the accordion via the chevron", () => {
+  it("is a single toggle button (no parent link, no separate chevron button)", () => {
     renderGroup();
-    expect(screen.getByRole("link", { name: "Clients" })).toHaveAttribute("href", "/agency/clients?view=active");
+    expect(screen.queryByRole("link", { name: "Clients" })).toBeNull();
+    const buttons = screen.getAllByRole("button");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].className).toContain("row");
+  });
 
-    const toggle = screen.getByRole("button", { name: "Expand Clients" });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    // collapsed → child not tabbable
+  it("toggles the accordion when the row is clicked", () => {
+    renderGroup();
+    const row = screen.getByRole("button", { name: /Clients/ });
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    // collapsed → children not tabbable
     expect(screen.getByRole("link", { name: "Waiting list" })).toHaveAttribute("tabindex", "-1");
 
-    fireEvent.click(toggle);
-    expect(screen.getByRole("button", { name: "Collapse Clients" })).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link", { name: "Waiting list" })).not.toHaveAttribute("tabindex", "-1");
+
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("stays open when forceOpen is set (a child route is active)", () => {
-    renderGroup({ forceOpen: true, parentActive: false });
-    expect(screen.getByRole("button", { name: "Collapse Clients" })).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("marks the active child current, which drives the shared selected style", () => {
-    renderGroup({ forceOpen: true, isItemActive: (to) => to === "/agency/clients?view=waiting" });
+  it("defaults to open when a child route is active, and the user can still close it", () => {
+    renderGroup({ isItemActive: (to) => to === "/agency/clients?view=waiting" });
+    const row = screen.getByRole("button", { name: /Clients/ });
+    expect(row).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("link", { name: "Waiting list" })).toHaveAttribute("aria-current", "page");
+
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("hover opens the collapsed flyout (hoverIntent + flyoutMode) and an outside click closes it", () => {
-    const { container } = renderGroup({ flyoutMode: true, hoverIntent: true });
-    const group = container.querySelector(".group") as HTMLElement;
-    const child = screen.getByRole("link", { name: "Waiting list" });
-
-    // closed → child not tabbable, chevron collapsed
-    expect(child).toHaveAttribute("tabindex", "-1");
-    expect(screen.getByRole("button", { name: "Expand Clients" })).toBeInTheDocument();
-
-    fireEvent.mouseEnter(group);
-    expect(child).not.toHaveAttribute("tabindex", "-1");
-    expect(screen.getByRole("button", { name: "Collapse Clients" })).toBeInTheDocument();
-
-    fireEvent.mouseDown(document.body);
-    expect(child).toHaveAttribute("tabindex", "-1");
+  it("stays open when forceOpen is set even with no active child", () => {
+    renderGroup({ forceOpen: true });
+    expect(screen.getByRole("button", { name: /Clients/ })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("renders a single toggle button (no separate chevron) when it has no `to`", () => {
-    renderGroup({ to: undefined });
-    expect(screen.queryByRole("link", { name: "Clients" })).toBeNull();
-    const btn = screen.getByRole("button", { name: /Clients/ });
-    expect(btn.className).toContain("button");
-    fireEvent.click(btn);
-    expect(btn).toHaveAttribute("aria-expanded", "true");
+  it("does not fill the parent row when a child carries the active state (expanded)", () => {
+    renderGroup({ isItemActive: (to) => to === "/agency/clients?view=waiting" });
+    // shared selected style is the SidebarNavItem `selected` class hash — the
+    // row keeps only the host classes when a visible child owns the highlight
+    expect(screen.getByRole("button", { name: /Clients/ }).className).not.toMatch(/selected/i);
+    expect(screen.getByRole("link", { name: "Waiting list" }).className).toMatch(/selected/i);
+  });
+
+  it("fills the parent row on a collapsed rail, where the active child is out of sight", () => {
+    renderGroup({ flyoutMode: true, isItemActive: (to) => to === "/agency/clients?view=waiting" });
+    expect(screen.getByRole("button", { name: /Clients/ }).className).toMatch(/selected/i);
+  });
+
+  describe("collapsed rail flyout", () => {
+    it("opens on click and an outside click closes it", () => {
+      renderGroup({ flyoutMode: true });
+      const row = screen.getByRole("button", { name: /Clients/ });
+      const child = screen.getByRole("link", { name: "Waiting list" });
+
+      expect(child).toHaveAttribute("tabindex", "-1");
+      fireEvent.click(row);
+      expect(child).not.toHaveAttribute("tabindex", "-1");
+
+      fireEvent.mouseDown(document.body);
+      expect(child).toHaveAttribute("tabindex", "-1");
+    });
+
+    it("opens on hover / focus intent when hoverIntent is set", () => {
+      const { container } = renderGroup({ flyoutMode: true, hoverIntent: true });
+      const group = container.querySelector(".group") as HTMLElement;
+      const child = screen.getByRole("link", { name: "Waiting list" });
+
+      expect(child).toHaveAttribute("tabindex", "-1");
+      fireEvent.mouseEnter(group);
+      expect(child).not.toHaveAttribute("tabindex", "-1");
+    });
   });
 });

@@ -41,19 +41,25 @@
 }
 
 // Popover rows: no guide-line indent, comfortable hit area, labels always shown
-// (the rail force-hides them).
+// (the rail force-hides them). The `!important`s undo the host's collapsed-rail
+// `.link` rules (centre-justify, gap:0, hidden label) that still reach in here
+// through DOM ancestry even though the popover is `position: fixed`.
 .flyoutItem {
   padding: 8px 12px !important;
   border-radius: var(--r-md);
   white-space: nowrap;
+  justify-content: flex-start !important;
+  gap: 10px !important;
 
   &::before {
     display: none !important;
   }
 
-  span,
-  [class*="label"],
-  [class*="Label"] {
+  // The rail hides row labels (display:none / opacity:0 / width:0). The popover
+  // sits outside the rail, so every label must come back — case-insensitive
+  // match on whatever class the host used ("linkLabel", "label", …).
+  [class*="label" i] {
+    display: inline !important;
     opacity: 1 !important;
     width: auto !important;
     pointer-events: auto;

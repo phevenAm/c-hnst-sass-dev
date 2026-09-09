@@ -255,6 +255,9 @@ body {
   height: 100%;
   height: 100dvh;
   overflow: auto;
+  // No whole-document rubber-band on top of the real scroller (#main-content).
+  // That bounce hand-off is what reads as the scroll "sticking" on mobile.
+  overscroll-behavior: none;
 }
 
 #root {
@@ -364,6 +367,9 @@ $admin-sidebar-collapsed-w: 3.75rem; // 60px at 100%
   flex-direction: column;
   flex: 1;
   overflow-y: auto;
+  // Don't chain the scroll up to <body> when this area hits its end — that
+  // hand-off is what feels like the scroll jamming on mobile.
+  overscroll-behavior-y: contain;
   padding: 0 $sp-6;
   padding-top: 50px !important;
   background-color: var(--bg-base);
@@ -398,12 +404,14 @@ $admin-sidebar-collapsed-w: 3.75rem; // 60px at 100%
   &::after {
     content: "";
     display: block;
-    height: $sp-8;
+    height: calc(#{$sp-10} + env(safe-area-inset-bottom, 0px));
   }
 
   @include until-md {
     &::after {
-      height: $sp-5;
+      // Phones: the last row of content should clear the footer and the
+      // home-indicator gesture strip, not sit flush against them.
+      height: calc(#{$sp-16} + env(safe-area-inset-bottom, 0px));
     }
   }
 }
