@@ -14,19 +14,11 @@
 
 export type FeatureFlag = "agency" | "messaging";
 
-// Tolerate a trailing inline comment / stray whitespace in a .env value
-// (dotenv keeps everything after `=`, so `VITE_FF_AGENCY=true # on` is the
-// literal string "true # on" — take the first token).
-const isOn = (raw: unknown): boolean => {
-  if (raw === true) return true;
-  const token = String(raw ?? "")
-    .trim()
-    .split(/\s+/)[0];
-  return token === "true" || token === "1";
-};
-
-// Mirror of isOn for a default-ON flag: only an explicit "false" / "0" turns
-// it off, an unset var leaves it enabled.
+// Read a .env flag value that turns a default-ON feature OFF. Only an explicit
+// "false" / "0" disables it; an unset var (or anything else) leaves it enabled.
+// Tolerates a trailing inline comment / stray whitespace (dotenv keeps
+// everything after `=`, so `VITE_FF_AGENCY=false # this deploy` is the literal
+// string "false # this deploy" — take the first token).
 const isOff = (raw: unknown): boolean => {
   if (raw === false) return true;
   const token = String(raw ?? "")
@@ -44,11 +36,12 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
     // VITE_FF_AGENCY=false.
     case "agency":
       return !isOff(import.meta.env.VITE_FF_AGENCY);
-    // Direct messaging (client ↔ their counsellor). New client-facing surface +
-    // a prod migration — kept dark until it's been run in-browser and the copy
-    // signed off. Enable with VITE_FF_MESSAGING=true.
+    // Direct messaging (client ↔ their counsellor). On by default — the code,
+    // routes and migrations are all live on main and it's been verified
+    // in-browser end to end. The /messages routes and nav entries carry their
+    // own auth gating. Force it dark for a deploy with VITE_FF_MESSAGING=false.
     case "messaging":
-      return isOn(import.meta.env.VITE_FF_MESSAGING);
+      return !isOff(import.meta.env.VITE_FF_MESSAGING);
     default:
       return false;
   }

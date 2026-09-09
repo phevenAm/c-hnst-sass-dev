@@ -1,39 +1,33 @@
 @use "../../../styles/spacing" as *;
-@use "../../../styles/mixins" as *;
 
 // Only applied when the calendar view is showing (see ClientSchedule.tsx) —
 // caps this page to exactly the height #main-content has available, so the
 // calendar's own internal scroll is the only scrollbar instead of stacking
 // with the page's. min-height: 0 overrides flex's default min-height: auto,
 // which would otherwise stop this from ever shrinking below its content size.
-//
-// md and up only: on a phone, #main-content rarely has enough room left
-// after the heading + next-session card for a fill-to-exact-height calendar
-// to be usable — it just gets crushed to nothing. Below md the page falls
-// back to normal scrolling and .calendarCardFill gets a fixed min-height
-// instead (see below).
+// Applied at every width — the calendar fills the screen on a phone too;
+// .calendarCardFill keeps a tall min-height as a floor for very short
+// viewports (see below).
 .calendarPage {
-    @include from-md {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+
+    // .inner's margin: 0 auto (from the shared container-inner mixin) is meant
+    // for normal block layout, where width: auto fills the available space up
+    // to max-width before centering. As a flex item here, auto cross-axis
+    // margins mean something different — they override stretch and shrink the
+    // item to its content width instead, which is why this page's content
+    // used to hug a ~580px column with huge empty gutters on a wide screen.
+    // An explicit width: 100% keeps it a definite size so margin: auto goes
+    // back to plain centering once max-width clamps it.
+    :global(.inner) {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        flex: 1;
         min-height: 0;
-
-        // .inner's margin: 0 auto (from the shared container-inner mixin) is meant
-        // for normal block layout, where width: auto fills the available space up
-        // to max-width before centering. As a flex item here, auto cross-axis
-        // margins mean something different — they override stretch and shrink the
-        // item to its content width instead, which is why this page's content
-        // used to hug a ~580px column with huge empty gutters on a wide screen.
-        // An explicit width: 100% keeps it a definite size so margin: auto goes
-        // back to plain centering once max-width clamps it.
-        :global(.inner) {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-        }
+        width: 100%;
     }
 }
 
@@ -70,28 +64,18 @@
     margin-top: $sp-4;
 }
 
-// Below md: a definite, viewport-relative height (not just min-height) —
-// .inner isn't flex-stretched below md (see .calendarPage above), so this
-// card's ancestors have no definite height of their own to hand down. A plain
-// min-height on an auto-height flex container doesn't give the flex:1 child
-// below anything real to grow into — flex-basis: 0% + min-height: 0 on that
-// child just resolves to 0, which is exactly how this collapsed to nothing
-// on mobile before. height + min-height together (min-height wins if height
-// would compute smaller) keeps this both definite and never too short.
-// From md up: claims the remaining vertical space in .calendarPage instead
-// (see the :global(.inner) rule above). The calendar inside it fills this
-// via height: 100% (see the height prop passed to SchedulerCalendar).
+// Claims the remaining vertical space in .calendarPage (see the
+// :global(.inner) rule above). The calendar inside it fills this via
+// height: 100% (the height prop passed to SchedulerCalendar).
+// min-height is a floor for short viewports: where the flex chain has a
+// real height to hand down, flex: 1 wins and this grows past it; where it
+// doesn't (a short phone), flex-basis resolves near 0 and the min-height
+// keeps the calendar usably tall instead of collapsing to nothing.
 .calendarCardFill {
     display: flex;
     flex-direction: column;
-    height: 65vh;
-    min-height: 420px;
-
-    @include from-md {
-        height: auto;
-        flex: 1;
-        min-height: 0;
-    }
+    flex: 1;
+    min-height: 70vh;
 
     // react-big-calendar's own root div, and SchedulerCalendar's wrapper
     // around it, both need to participate in the same fill chain.
@@ -105,10 +89,10 @@
 
 // ── Next session slot ──────────────────────────────────────
 // Card's own base style is height: 100% (fine on grid layouts, where it
-// matches sibling card heights — see Card.module.scss). From md up on this
-// page, .inner has a definite height (see .calendarPage above), so without
-// this override the next-session card stretches to fill nearly all of it,
-// crushing the actual calendar below down to a sliver. Pin it to its
+// matches sibling card heights — see Card.module.scss). On this page .inner
+// is a flex column with a definite height (see .calendarPage above), so
+// without this override the next-session card stretches to fill nearly all
+// of it, crushing the actual calendar below down to a sliver. Pin it to its
 // content height instead; this wraps both NextSessionCard's Card and the
 // empty-state Card below.
 .nextSlot {

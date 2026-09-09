@@ -1,9 +1,19 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import UpdateBanner from "./UpdateBanner";
 
 declare const __APP_VERSION__: string;
+
+// showSplash() re-uses app.html's #boot-splash-mark markup (one copy, no
+// duplicate SVG in the codebase). jsdom never loads app.html, so pull that
+// node's contents straight from the real file and seed it before each test —
+// bootSplash.ts's fallback reads #boot-splash-mark from the live DOM.
+// Vitest runs with the repo root as cwd.
+const APP_HTML = readFileSync(resolve(process.cwd(), "app.html"), "utf-8");
+const BOOT_SPLASH_MARK_INNER = APP_HTML.match(/<div id="boot-splash-mark"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "";
 
 function mockDisplayMode({ standalone, iosStandalone = false }: { standalone: boolean; iosStandalone?: boolean }) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -33,6 +43,11 @@ beforeEach(() => {
     configurable: true,
     value: { ...window.location, reload: reloadSpy, replace: replaceSpy, href: "https://example.com/settings" },
   });
+
+  const mark = document.createElement("div");
+  mark.id = "boot-splash-mark";
+  mark.innerHTML = BOOT_SPLASH_MARK_INNER;
+  document.body.appendChild(mark);
 });
 
 afterEach(() => {
@@ -41,6 +56,7 @@ afterEach(() => {
   // removes it (the real code relies on the reload it triggers). Clear it by
   // hand so its dedupe guard doesn't carry a stale splash into the next test.
   document.getElementById("boot-splash")?.remove();
+  document.getElementById("boot-splash-mark")?.remove();
   reloadSpy.mockClear();
   replaceSpy.mockClear();
   vi.restoreAllMocks();

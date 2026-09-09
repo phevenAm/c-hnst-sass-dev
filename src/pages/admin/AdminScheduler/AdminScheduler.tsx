@@ -719,6 +719,7 @@ const AdminScheduler = () => {
                 onView={setView}
                 onSelectEvent={handleSelectEvent}
                 onEventDrop={handleEventDrop}
+                height="85vh"
                 selectable
                 onSelectSlot={({ start }) => {
                   setSlotChoice(null);
