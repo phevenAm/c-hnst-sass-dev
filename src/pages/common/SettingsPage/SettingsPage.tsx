@@ -6,7 +6,6 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 
 import { isPdfUrl, pickColor } from "@Helpers/Helpers";
 import { useResolvedTheme } from "@Hooks/useResolvedTheme";
-import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
@@ -1689,9 +1688,6 @@ const SettingsPage = () => {
                     Change password
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={hardRefresh}>
-                  Force app update
-                </Button>
               </div>
               {!isAdmin && (
                 <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
