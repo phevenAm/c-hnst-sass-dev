@@ -56,7 +56,7 @@ export default function MessagesView({ basePath, audience }: Props) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { conversationId } = useParams<{ conversationId: string }>();
-  const { authUser, userProfile, isDemo } = useAuth();
+  const { authUser, userProfile, isDemo, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [autoReplyOpen, setAutoReplyOpen] = useState(false);
   const myId = authUser?.id ?? "";
@@ -68,12 +68,15 @@ export default function MessagesView({ basePath, audience }: Props) {
   const threadStatus = useAppSelector(selectThreadStatus(conversationId ?? ""));
 
   useEffect(() => {
-    if (conversationsStatus !== "idle") return;
+    // Wait for auth to settle: isDemo is false until userProfile loads, and if
+    // the real fetch fires first it moves conversationsStatus off "idle" so the
+    // demo seed below never runs (the "No conversations yet" bug).
+    if (authLoading || conversationsStatus !== "idle") return;
     // Demo accounts get a scripted, in-memory conversation — never the real
     // table (which would let them read/write shared demo rows).
     if (isDemo) dispatch(demoDataLoaded(myId));
     else dispatch(fetchConversations());
-  }, [conversationsStatus, isDemo, myId, dispatch]);
+  }, [authLoading, conversationsStatus, isDemo, myId, dispatch]);
 
   useEffect(() => {
     if (!conversationId || isDemo) return;

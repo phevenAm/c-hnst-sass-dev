@@ -56,7 +56,7 @@ const peerName = (p: { first_name: string | null; last_name: string | null; disp
  * which navigates to the full page. Hidden on the full page itself.
  */
 export default function ChatWidget() {
-  const { authUser, isAdmin, userProfile, isDemo } = useAuth();
+  const { authUser, isAdmin, userProfile, isDemo, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -95,11 +95,13 @@ export default function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    if (!open || isMobile || conversationsStatus !== "idle") return;
+    // authLoading gate: isDemo is false until userProfile loads; without this
+    // the real fetch can fire first and block the demo seed (see MessagesView).
+    if (!open || isMobile || authLoading || conversationsStatus !== "idle") return;
     // Demo accounts get a scripted, in-memory conversation — never the real table.
     if (isDemo) dispatch(demoDataLoaded(myId));
     else dispatch(fetchConversations());
-  }, [open, isMobile, conversationsStatus, isDemo, myId, dispatch]);
+  }, [open, isMobile, authLoading, conversationsStatus, isDemo, myId, dispatch]);
 
   useEffect(() => {
     if (!open || isMobile || !activeId || isDemo) return;
