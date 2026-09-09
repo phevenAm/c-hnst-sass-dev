@@ -11,8 +11,11 @@ import Button from "@components/shared/Button/Button";
 import CountBadge from "@components/shared/CountBadge/CountBadge";
 import { ChevronLeftIcon, Settingsicon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
+import { useToast } from "@context/ToastContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
+  demoDataLoaded,
+  demoMessageSent,
   fetchConversations,
   fetchThread,
   markConversationRead,
@@ -53,7 +56,8 @@ export default function MessagesView({ basePath, audience }: Props) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { conversationId } = useParams<{ conversationId: string }>();
-  const { authUser, userProfile } = useAuth();
+  const { authUser, userProfile, isDemo } = useAuth();
+  const { showToast } = useToast();
   const [autoReplyOpen, setAutoReplyOpen] = useState(false);
   const myId = authUser?.id ?? "";
 
@@ -64,21 +68,25 @@ export default function MessagesView({ basePath, audience }: Props) {
   const threadStatus = useAppSelector(selectThreadStatus(conversationId ?? ""));
 
   useEffect(() => {
-    if (conversationsStatus === "idle") dispatch(fetchConversations());
-  }, [conversationsStatus, dispatch]);
+    if (conversationsStatus !== "idle") return;
+    // Demo accounts get a scripted, in-memory conversation — never the real
+    // table (which would let them read/write shared demo rows).
+    if (isDemo) dispatch(demoDataLoaded(myId));
+    else dispatch(fetchConversations());
+  }, [conversationsStatus, isDemo, myId, dispatch]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || isDemo) return;
     dispatch(fetchThread(conversationId));
     dispatch(markConversationRead(conversationId));
-  }, [conversationId, dispatch]);
+  }, [conversationId, isDemo, dispatch]);
 
   // Mark read again once messages land (covers arriving via realtime while open).
   useEffect(() => {
-    if (conversationId && thread.some((m) => m.recipient_id === myId && !m.read_at)) {
+    if (!isDemo && conversationId && thread.some((m) => m.recipient_id === myId && !m.read_at)) {
       dispatch(markConversationRead(conversationId));
     }
-  }, [conversationId, thread, myId, dispatch]);
+  }, [conversationId, thread, myId, isDemo, dispatch]);
 
   return (
     <div className={styles.wrap} id="messages-view">
@@ -170,9 +178,21 @@ export default function MessagesView({ basePath, audience }: Props) {
 
             {activeConvo && (
               <MessageComposer
-                onSend={(body) =>
-                  dispatch(sendMessage({ conversationId: activeConvo.id, recipientId: activeConvo.peer.id, body }))
-                }
+                onSend={(body) => {
+                  if (isDemo) {
+                    dispatch(
+                      demoMessageSent({
+                        conversationId: activeConvo.id,
+                        senderId: myId,
+                        recipientId: activeConvo.peer.id,
+                        body,
+                      }),
+                    );
+                    showToast("Demo mode — messages aren't sent or saved.");
+                    return;
+                  }
+                  dispatch(sendMessage({ conversationId: activeConvo.id, recipientId: activeConvo.peer.id, body }));
+                }}
               />
             )}
           </>

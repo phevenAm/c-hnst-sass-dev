@@ -16,7 +16,7 @@ const UUID_RE = /^[0-9a-f-]{36}$/i;
 // the signed-in user come over the wire — their own sends round-trip through the
 // sendMessage thunk. Mirrors useSessionsRealtime.
 export function useMessagesRealtime() {
-  const { authUser } = useAuth();
+  const { authUser, isDemo } = useAuth();
   const dispatch = useAppDispatch();
   const { pathname } = useLocation();
   const knownIds = useAppSelector((s) => s.messages.conversations.map((c) => c.id).join(","));
@@ -37,6 +37,9 @@ export function useMessagesRealtime() {
 
   useEffect(() => {
     if (!authUser || !isFeatureEnabled("messaging")) return;
+    // Demo accounts never touch the real messages table or realtime — the
+    // scripted conversation is seeded by MessagesView / ChatWidget instead.
+    if (isDemo) return;
 
     // Prime the list once so the nav unread badge is right on load.
     dispatch(fetchConversations());
@@ -62,5 +65,5 @@ export function useMessagesRealtime() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authUser, dispatch]);
+  }, [authUser, isDemo, dispatch]);
 }

@@ -2,7 +2,10 @@ import { configureStore } from "@reduxjs/toolkit";
 import { describe, expect, it, vi } from "vitest";
 
 import { supabase } from "../../lib/supabase.js";
+import { DEMO_ADMIN_ID, DEMO_CLIENT_ID, DEMO_CONVERSATION_ID } from "./demoMessages";
 import messagesReducer, {
+  demoDataLoaded,
+  demoMessageSent,
   markConversationRead,
   messageReceived,
   mirrorPrivateEvent,
@@ -169,6 +172,73 @@ describe("messagesSlice — mirrorPrivateEvent", () => {
     expect(mirrorPrivateEvent.rejected.match(res)).toBe(true);
     expect(res.payload).toBe("not your private event");
     expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("messagesSlice — demoDataLoaded", () => {
+  it("replaces any real conversation list + thread with the scripted demo exchange", () => {
+    const store = makeStore(
+      structuredClone({
+        ...baseState,
+        conversations: [convo({ id: "real-1" }), convo({ id: "real-2" })],
+        threads: { "real-1": [msg()] },
+      }),
+    );
+
+    store.dispatch(demoDataLoaded(DEMO_CLIENT_ID));
+
+    const state = store.getState() as S;
+    expect(state.messages.conversations).toHaveLength(1);
+    expect(state.messages.conversations[0].id).toBe(DEMO_CONVERSATION_ID);
+    expect(state.messages.conversationsStatus).toBe("succeeded");
+    expect(state.messages.threads).toEqual({ [DEMO_CONVERSATION_ID]: expect.any(Array) });
+    expect(state.messages.threadStatus[DEMO_CONVERSATION_ID]).toBe("succeeded");
+    expect(state.messages.threads[DEMO_CONVERSATION_ID].length).toBeGreaterThan(1);
+  });
+
+  it("shows the counsellor (Amanda) as the peer when the demo client is signed in", () => {
+    const store = makeStore(structuredClone(baseState));
+    store.dispatch(demoDataLoaded(DEMO_CLIENT_ID));
+    expect((store.getState() as S).messages.conversations[0].peer.id).toBe(DEMO_ADMIN_ID);
+  });
+
+  it("shows the client (Cassie) as the peer when the demo admin is signed in", () => {
+    const store = makeStore(structuredClone(baseState));
+    store.dispatch(demoDataLoaded(DEMO_ADMIN_ID));
+    expect((store.getState() as S).messages.conversations[0].peer.id).toBe(DEMO_CLIENT_ID);
+  });
+
+  it("leaves nothing unread — a finished exchange", () => {
+    const store = makeStore(structuredClone(baseState));
+    store.dispatch(demoDataLoaded(DEMO_CLIENT_ID));
+    const state = store.getState() as S;
+    expect(state.messages.conversations[0].unread).toBe(0);
+    expect(state.messages.threads[DEMO_CONVERSATION_ID].every((m) => m.read_at)).toBe(true);
+  });
+});
+
+describe("messagesSlice — demoMessageSent", () => {
+  it("echoes the message into the thread locally without inflating unread", () => {
+    const store = makeStore(structuredClone(baseState));
+    store.dispatch(demoDataLoaded(DEMO_CLIENT_ID));
+    const before = (store.getState() as S).messages.threads[DEMO_CONVERSATION_ID].length;
+
+    store.dispatch(
+      demoMessageSent({
+        conversationId: DEMO_CONVERSATION_ID,
+        senderId: DEMO_CLIENT_ID,
+        recipientId: DEMO_ADMIN_ID,
+        body: "  see you then  ",
+      }),
+    );
+
+    const state = store.getState() as S;
+    const thread = state.messages.threads[DEMO_CONVERSATION_ID];
+    expect(thread).toHaveLength(before + 1);
+    expect(thread[thread.length - 1].body).toBe("see you then");
+    expect(thread[thread.length - 1].sender_id).toBe(DEMO_CLIENT_ID);
+    expect(state.messages.conversations[0].last_message).toBe("see you then");
+    expect(state.messages.conversations[0].unread).toBe(0);
   });
 });
 
