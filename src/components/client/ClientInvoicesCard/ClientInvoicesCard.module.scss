@@ -2,16 +2,17 @@
   padding: 0;
   overflow: hidden;
   scroll-margin-top: var(--sp-4);
-  /* Match the vertical rhythm of the other ClientDashboard blocks
-     (.nextSessionCard / .statsRow / .chartWrap all use $sp-7). */
-  margin-bottom: var(--sp-7);
 }
 
-/* Something needs paying — tint the whole card + an accent outline so it
-   stands out from the plain dashboard panels around it. */
+/* Something needs paying — an accent outline + a tinted header strip (not a
+   full tinted fill, which washes out in light mode) so it stands out from
+   the plain dashboard panels without looking sickly. */
 .attention {
-  background: var(--accent-subtle);
   border: 1px solid var(--accent);
+
+  .head {
+    background: var(--accent-subtle);
+  }
 }
 
 .actionLine {
@@ -182,9 +183,7 @@
 
 .detail {
   padding: var(--sp-2) var(--sp-4) var(--sp-4);
-  /* Darken whatever's behind — reads as recessed on a plain card and on the
-     tinted "attention" card alike. */
-  background: rgba(0, 0, 0, 0.16);
+  background: var(--bg-muted);
 }
 
 .meta {
