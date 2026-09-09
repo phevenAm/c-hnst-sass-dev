@@ -112,17 +112,17 @@
       #boot-splash-caption:empty {
         display: none;
       }
-      /* Hold the mark hidden for ~0.9s, then fade it in over 0.5s. The SMIL
-         animation's clock is driven by the main thread, so while the ~1 MB
-         app bundle parses it freezes on its first frame — a lone stem dot —
-         for the better part of a second. Skipping straight past that with a
-         delayed fade means the mark only becomes visible once the sapling is
-         actually drawing (or already grown), never as a frozen dot. The
-         fade itself runs on the compositor so it stays smooth through the
-         jank. Until then #boot-splash's solid brand ground is all you see. */
+      /* Hold the mark hidden briefly, then fade it in. The SMIL animation's
+         clock is driven by the main thread, so while the ~1 MB app bundle
+         parses it freezes on its first frame — a lone stem dot. A short
+         delay skips past that frozen-dot moment; bootSplash.ts also rewinds
+         the SMIL clock to 0 on boot, so what fades in is the sapling from
+         the very start of its grow-in, not a frame already part-drawn. The
+         fade runs on the compositor so it stays smooth through the jank.
+         Until then #boot-splash's solid brand ground is all you see. */
       #boot-splash-mark {
         opacity: 0;
-        animation: boot-splash-fade-in 500ms ease 900ms both;
+        animation: boot-splash-fade-in 400ms ease 200ms both;
       }
       @keyframes boot-splash-fade-in {
         from { opacity: 0; }

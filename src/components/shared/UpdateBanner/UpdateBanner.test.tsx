@@ -127,7 +127,11 @@ describe("UpdateBanner", () => {
     fireEvent.click(await screen.findByRole("button", { name: /update now/i }));
 
     expect(await screen.findByRole("button", { name: /updating/i })).toBeDisabled();
-    await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith(expect.stringContaining("force-update=")));
+    // hardRefresh() holds the "Updating…" splash on screen for a beat before
+    // it reloads, so give the fallback navigation room past that.
+    await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith(expect.stringContaining("force-update=")), {
+      timeout: 3000,
+    });
   });
 
   it("'Update now' covers the whole app with the sapling 'Updating…' splash while the reload is pending (happy path)", async () => {

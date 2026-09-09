@@ -42,15 +42,21 @@
   }
 
   // ─── Availability + blocked "ghost" events ──────────────
-  // Availability windows recede: ~60% tint + a dotted outline so they read as
-  // a background layer, not a booked block. Booked sessions stay fully opaque.
-  // Text colour is set per-theme (below + in the .dark block) because a 60%
-  // tint lands light in light mode and dark in dark mode — one fixed colour
-  // can't stay legible on both.
+  // Availability windows should read as *open space*, not a booked block — a
+  // near-neutral off-white wash with a dashed outline, sitting just behind the
+  // grid. color-mix keeps it theme-aware off one token: a warm off-white in
+  // light mode, a faintly lifted panel in dark (nudged up a little in the
+  // .dark block so it doesn't vanish into the grid). Text is --text-secondary,
+  // which clears contrast on both.
   .cal-window {
-    background-color: color-mix(in srgb, var(--accent) 60%, transparent) !important;
-    border: 2px dotted var(--accent-dark) !important;
-    color: color-mix(in srgb, var(--accent-dark) 92%, var(--text-primary)) !important;
+    background-color: color-mix(in srgb, var(--accent) 8%, var(--bg-card)) !important;
+    border: 2px dashed color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .cal-window .cal-chip {
+    color: var(--text-secondary) !important;
+    text-shadow: none !important;
   }
 
   .cal-blocked {
@@ -358,12 +364,11 @@
     border-top-color: color-mix(in srgb, var(--accent-dark) 18%, transparent) !important;
   }
 
-  // The 60% availability tint reads dark on the dark grid — flip text + the
-  // dotted outline to a pale mint so both stay legible (light-mode values are
-  // on the base rule).
+  // The 8% wash on the base rule is almost invisible against the dark grid —
+  // lift it a touch and warm the dashed outline so the window still reads.
   .cal-window {
-    border-color: color-mix(in srgb, var(--accent) 55%, var(--text-inverse)) !important;
-    color: color-mix(in srgb, var(--text-inverse) 92%, var(--accent)) !important;
+    background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-card)) !important;
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--text-inverse)) !important;
   }
 
   // Hide the half-hour sub-line for a cleaner grid — only show hour marks.

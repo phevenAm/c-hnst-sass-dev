@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/tool
 
 import { supabase } from "../../lib/supabase.js";
 import type { Conversation, ConversationWithPeer, Message } from "../../models/globalTypes";
+import { buildDemoMessaging } from "./demoMessages";
 
 type LoadStatus = "idle" | "loading" | "succeeded" | "failed";
 
@@ -154,6 +155,21 @@ export const mirrorPrivateEvent = createAsyncThunk(
   },
 );
 
+// Shared by sendMessage.fulfilled and the demo-mode local echo: drop a
+// just-sent message into its thread and refresh the conversation preview,
+// never touching unread (you don't unread your own message).
+function appendOwnMessage(state: MessagesState, msg: Message) {
+  if (!state.threads[msg.conversation_id]) state.threads[msg.conversation_id] = [];
+  const thread = state.threads[msg.conversation_id];
+  if (!thread.some((m) => m.id === msg.id)) thread.push(msg);
+  const convo = state.conversations.find((c) => c.id === msg.conversation_id);
+  if (convo) {
+    convo.last_message = msg.body;
+    convo.last_message_at = msg.created_at;
+    state.conversations.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+  }
+}
+
 const messagesSlice = createSlice({
   name: "messages",
   initialState,
@@ -177,6 +193,48 @@ const messagesSlice = createSlice({
         // First message of a brand-new thread — pull the list so the peer shows.
         state.conversationsStatus = "idle";
       }
+    },
+
+    // Demo mode only — replace the whole conversation list + thread with the
+    // scripted Cassie <-> Amanda exchange. Nothing here is persisted; the
+    // views dispatch this instead of fetchConversations/fetchThread while
+    // isDemo is true, so a demo account never reads or writes real rows.
+    demoDataLoaded: {
+      reducer(state, action: PayloadAction<{ conversation: ConversationWithPeer; messages: Message[] }>) {
+        const { conversation, messages } = action.payload;
+        state.conversations = [conversation];
+        state.conversationsStatus = "succeeded";
+        state.threads = { [conversation.id]: messages };
+        state.threadStatus = { [conversation.id]: "succeeded" };
+        state.error = null;
+      },
+      prepare(selfId: string) {
+        return { payload: buildDemoMessaging(selfId) };
+      },
+    },
+
+    // Demo mode only — the composer's local echo of a message the demo user
+    // "sends". Same bookkeeping as sendMessage.fulfilled, no network.
+    demoMessageSent: {
+      reducer(state, action: PayloadAction<Message>) {
+        appendOwnMessage(state, action.payload);
+      },
+      prepare(args: { conversationId: string; senderId: string; recipientId: string; body: string }) {
+        return {
+          payload: {
+            id: crypto.randomUUID(),
+            conversation_id: args.conversationId,
+            sender_id: args.senderId,
+            recipient_id: args.recipientId,
+            body: args.body.trim(),
+            created_at: new Date().toISOString(),
+            read_at: null,
+            is_auto: false,
+            kind: "chat",
+            private_event_id: null,
+          } satisfies Message,
+        };
+      },
     },
   },
   extraReducers: (builder) => {
@@ -204,18 +262,7 @@ const messagesSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
-        const msg = action.payload;
-        if (!state.threads[msg.conversation_id]) state.threads[msg.conversation_id] = [];
-        const thread = state.threads[msg.conversation_id];
-        if (!thread.some((m) => m.id === msg.id)) thread.push(msg);
-        const convo = state.conversations.find((c) => c.id === msg.conversation_id);
-        if (convo) {
-          convo.last_message = msg.body;
-          convo.last_message_at = msg.created_at;
-          state.conversations.sort(
-            (a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime(),
-          );
-        }
+        appendOwnMessage(state, action.payload);
       })
       .addCase(markConversationRead.fulfilled, (state, action) => {
         const convo = state.conversations.find((c) => c.id === action.payload);
@@ -230,7 +277,7 @@ const messagesSlice = createSlice({
   },
 });
 
-export const { messageReceived } = messagesSlice.actions;
+export const { messageReceived, demoDataLoaded, demoMessageSent } = messagesSlice.actions;
 export default messagesSlice.reducer;
 
 type WithMessages = { messages: MessagesState };
