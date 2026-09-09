@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 
 import styles from "./MessageThread.module.scss";
 
-type ThreadMessage = { id: string; sender_id: string; body: string; created_at: string };
+type ThreadMessage = {
+  id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  is_auto?: boolean;
+};
 
 type Props = {
   messages: ThreadMessage[];
@@ -30,7 +36,8 @@ export default function MessageThread({ messages, myId, loading = false, emptyTe
         const mine = m.sender_id === myId;
         return (
           <div key={m.id} className={`${styles.row} ${mine ? styles.rowMine : ""}`}>
-            <div className={styles.bubble}>
+            <div className={`${styles.bubble} ${m.is_auto ? styles.bubbleAuto : ""}`}>
+              {m.is_auto && <span className={styles.autoTag}>Automatic reply</span>}
               <p className={styles.bubbleBody}>{m.body}</p>
               <span className={styles.bubbleTime}>
                 {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

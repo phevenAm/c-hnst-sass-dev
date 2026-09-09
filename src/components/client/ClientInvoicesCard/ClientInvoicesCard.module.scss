@@ -2,14 +2,12 @@
   padding: 0;
   overflow: hidden;
   scroll-margin-top: var(--sp-4);
-  margin-bottom: var(--sp-6);
 }
 
-/* Something needs paying — tint the whole card + an accent outline so it
-   stands out from the plain dashboard panels around it. */
+/* Something needs paying — a tinted fill (same language as the dashboard's
+   other emphasis surfaces) so it stands out from the plain panels. No border. */
 .attention {
   background: var(--accent-subtle);
-  border: 1px solid var(--accent);
 }
 
 .actionLine {
@@ -180,9 +178,7 @@
 
 .detail {
   padding: var(--sp-2) var(--sp-4) var(--sp-4);
-  /* Darken whatever's behind — reads as recessed on a plain card and on the
-     tinted "attention" card alike. */
-  background: rgba(0, 0, 0, 0.16);
+  background: var(--bg-muted);
 }
 
 .meta {
@@ -201,6 +197,14 @@
     padding: var(--sp-2) 0;
     border-bottom: 1px solid var(--border);
     color: var(--text-secondary);
+  }
+
+  /* Drop the per-unit breakdown column on narrow screens — description +
+     line total is enough, and the two number columns collide otherwise. */
+  @media (max-width: 560px) {
+    td:nth-child(2) {
+      display: none;
+    }
   }
 }
 

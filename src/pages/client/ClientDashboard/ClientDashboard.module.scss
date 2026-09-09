@@ -2,9 +2,19 @@
 @use '../../../styles/spacing' as *;
 @use '../../../styles/mixins' as *;
 
-.header {
-  margin-bottom: $sp-8;
+// One vertical rhythm for the whole page: every direct child of .grid gets
+// the same gap, so no per-block margin-bottom can drift out of step.
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-7;
 
+  @include until-sm {
+    gap: $sp-6;
+  }
+}
+
+.header {
   width: auto;
   background: var(--bg-muted);
   // width: fit-content;
@@ -29,7 +39,6 @@
   display: flex;
   gap: $sp-3;
   flex-wrap: wrap;
-  margin-bottom: $sp-4;
 }
 
 .statCard {
@@ -102,11 +111,6 @@
   }
 }
 
-// ── Chart ──────────────────────────────────────────────────
-.chartWrap {
-  margin-bottom: $sp-7;
-}
-
 // ── Bottom grid ────────────────────────────────────────────
 .bottomGrid {
   display: grid;
@@ -120,12 +124,6 @@
 
 .cardPad {
   padding: $sp-6;
-}
-
-// Next-session card needs the same rhythm as the stats row / chart above and
-// below it — without this the card butts straight up against the chart.
-.nextSessionCard {
-  margin-bottom: $sp-7;
 }
 
 .cardTitle {
@@ -199,7 +197,6 @@
   background: var(--accent-secondary);
   border-radius: var(--r-md);
   position: relative;
-  margin-bottom: $sp-5;
 
   &::after {
     content: '"';

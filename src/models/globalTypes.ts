@@ -313,6 +313,8 @@ export type Message = {
   body: string;
   created_at: string;
   read_at: string | null;
+  /** True when posted by the practitioner's away / out-of-hours auto-reply. */
+  is_auto: boolean;
 };
 
 // A conversation row joined with the other party's public profile fields and a

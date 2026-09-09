@@ -167,6 +167,17 @@ export default function TermsPage() {
             form results), you warrant that you have a valid Article 9(2) condition and, where required, a DPA 2018
             Schedule 1 Appropriate Policy Document.
           </p>
+
+          <h3>7.6 Messaging</h3>
+          <p>
+            Clarity provides a direct-messaging feature for practical communication between a Practitioner and their
+            Client (for example, scheduling and administrative questions). Messages are encrypted in transit and stored
+            on encrypted infrastructure, with access limited to the two participants. Unlike session notes, messages are{" "}
+            <strong>not end-to-end encrypted</strong>: the Practitioner and Clarity's systems can access their content,
+            and our database and email subprocessors may process them. Messaging is not for clinical disclosures,
+            emergencies, or crisis contact — clients are shown this reminder in the app. Message content is retained for
+            the life of the account and is included in data exports and deletions.
+          </p>
         </section>
 
         <section>

@@ -238,107 +238,113 @@ export default function ClientDashboard() {
   return (
     <div className="page">
       <div className="inner">
-        <div className={styles.header} id="client-dash-header">
-          <h1>
-            {greeting}, {displayName ?? "friend"}
-          </h1>
-          <p>Here's a look at how you've been doing</p>
-        </div>
-
-        {nextSession && (
-          <div className={styles.nextSessionCard} id="client-next-session">
-            <h3 className={styles.cardTitle}>Next session</h3>
-            <NextSessionCard session={nextSession} compact />
+        <div className={styles.grid}>
+          <div className={styles.header} id="client-dash-header">
+            <h1>
+              {greeting}, {displayName ?? "friend"}
+            </h1>
+            <p>Here's a look at how you've been doing</p>
           </div>
-        )}
 
-        {/* Near the top — a sent invoice needs the client to act.
-            Self-hides unless the practice has invoicing on AND this client has invoices. */}
-        <ClientInvoicesCard />
-
-        <div className={styles.statsRow} id="client-stats">
-          {stats.map((s) => (
-            <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
-              <p className={styles.statLabel}>{s.label}</p>
-              <p className={styles.statValue}>{s.value}</p>
-              <p className={styles.statSub}>{s.sub}</p>
+          {nextSession && (
+            <div className={styles.nextSessionCard} id="client-next-session">
+              <h3 className={styles.cardTitle}>Next session</h3>
+              <NextSessionCard session={nextSession} compact />
             </div>
-          ))}
-        </div>
+          )}
 
-        {randomQuote ? (
-          <section className={`${styles.quotes} ${styles.warm}`}>
-            <h2>{randomQuote?.content}</h2>
-            <small>{randomQuote?.author}</small>
-          </section>
-        ) : null}
+          {/* Near the top — a sent invoice needs the client to act.
+            Self-hides unless the practice has invoicing on AND this client has invoices. */}
+          <ClientInvoicesCard />
 
-        <div className={styles.chartWrap} id="client-chart">
-          <ProgressChart responses={chartResponses} questions={allAssignedQuestions} title="Your Wellbeing Over Time" />
-          {/* ProgressChart plots one line per question *tag* (category — Mood, Sleep,
+          <div className={styles.statsRow} id="client-stats">
+            {stats.map((s) => (
+              <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
+                <p className={styles.statLabel}>{s.label}</p>
+                <p className={styles.statValue}>{s.value}</p>
+                <p className={styles.statSub}>{s.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {randomQuote ? (
+            <section className={`${styles.quotes} ${styles.warm}`}>
+              <h2>{randomQuote?.content}</h2>
+              <small>{randomQuote?.author}</small>
+            </section>
+          ) : null}
+
+          <div className={styles.chartWrap} id="client-chart">
+            <ProgressChart
+              responses={chartResponses}
+              questions={allAssignedQuestions}
+              title="Your Wellbeing Over Time"
+            />
+            {/* ProgressChart plots one line per question *tag* (category — Mood, Sleep,
               Energy …) when the check-in's scale questions are tagged, averaging
               every question that shares a tag; it falls back to per-question lines
               only when no tags are set. Tag questions in the form builder. */}
-        </div>
+          </div>
 
-        <div className={styles.bottomGrid} id="client-checkins">
-          <Card>
-            <div className={styles.cardPad}>
-              <h3 className={styles.cardTitle}>Your Check-ins</h3>
+          <div className={styles.bottomGrid} id="client-checkins">
+            <Card>
+              <div className={styles.cardPad}>
+                <h3 className={styles.cardTitle}>Your Check-ins</h3>
 
-              {(() => {
-                if (assignedQs.length === 0) {
-                  return <p className={styles.emptyText}>No check-ins assigned yet.</p>;
-                }
-                if (availableAssignedQs.length === 0) {
-                  return <p className={styles.emptyText}>You have completed your assigned check-ins for now.</p>;
-                }
-                return (
-                  <div className={styles.checkInList}>
-                    {availableAssignedQs.map((q) => {
-                      // RCADS lives on its own page, not a /check-in tab.
-                      // Every other form type maps 1:1 to a CheckInPage tab —
-                      // send the client straight there instead of dropping
-                      // them on the (unrelated) default Check-ins tab.
-                      const isRcads = (q as { is_rcads?: boolean }).is_rcads;
-                      const formType = (q as { form_type?: string }).form_type ?? "outcome_measure";
-                      const startPath = isRcads ? "/rcads" : `/check-in?tab=${formType}`;
+                {(() => {
+                  if (assignedQs.length === 0) {
+                    return <p className={styles.emptyText}>No check-ins assigned yet.</p>;
+                  }
+                  if (availableAssignedQs.length === 0) {
+                    return <p className={styles.emptyText}>You have completed your assigned check-ins for now.</p>;
+                  }
+                  return (
+                    <div className={styles.checkInList}>
+                      {availableAssignedQs.map((q) => {
+                        // RCADS lives on its own page, not a /check-in tab.
+                        // Every other form type maps 1:1 to a CheckInPage tab —
+                        // send the client straight there instead of dropping
+                        // them on the (unrelated) default Check-ins tab.
+                        const isRcads = (q as { is_rcads?: boolean }).is_rcads;
+                        const formType = (q as { form_type?: string }).form_type ?? "outcome_measure";
+                        const startPath = isRcads ? "/rcads" : `/check-in?tab=${formType}`;
 
-                      return (
-                        <div key={q.id} className={styles.checkInRow}>
-                          <div>
-                            <p className={styles.checkInTitle}>{q.title}</p>
-                            <p className={styles.checkInFreq}>{q.frequency}</p>
+                        return (
+                          <div key={q.id} className={styles.checkInRow}>
+                            <div>
+                              <p className={styles.checkInTitle}>{q.title}</p>
+                              <p className={styles.checkInFreq}>{q.frequency}</p>
+                            </div>
+
+                            <Link to={startPath} style={{ textDecoration: "none" }}>
+                              <Button size="sm" variant="secondary">
+                                Start
+                              </Button>
+                            </Link>
                           </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            </Card>
 
-                          <Link to={startPath} style={{ textDecoration: "none" }}>
-                            <Button size="sm" variant="secondary">
-                              Start
-                            </Button>
-                          </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
-          </Card>
+            <Card>
+              <div className={styles.resourcesCard}>
+                <h3 className={styles.resourcesTitle}>Resources for you</h3>
+                <p className={styles.resourcesDesc}>
+                  Articles, breathing exercises, and tools curated by your practitioner.
+                </p>
 
-          <Card>
-            <div className={styles.resourcesCard}>
-              <h3 className={styles.resourcesTitle}>Resources for you</h3>
-              <p className={styles.resourcesDesc}>
-                Articles, breathing exercises, and tools curated by your practitioner.
-              </p>
-
-              <Link to="/resources" style={{ textDecoration: "none" }}>
-                <Button variant="primary" size="sm">
-                  Browse resources
-                </Button>
-              </Link>
-            </div>
-          </Card>
+                <Link to="/resources" style={{ textDecoration: "none" }}>
+                  <Button variant="primary" size="sm">
+                    Browse resources
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

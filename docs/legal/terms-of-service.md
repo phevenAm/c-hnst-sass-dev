@@ -116,6 +116,12 @@ Session notes are encrypted client-side before being stored. Clarity does not ho
 
 By using Clarity you warrant that you have a valid lawful basis under UK GDPR for each category of personal data you process through the platform. If you process health data (including session notes and wellbeing questionnaire results), you warrant that you have a valid Article 9(2) condition and, where required, a DPA 2018 Schedule 1 Appropriate Policy Document.
 
+### 7.6 Messaging
+
+Clarity provides a direct-messaging feature for practical communication between a Practitioner and their Client (for example, scheduling and administrative questions). Messages are transmitted over an encrypted connection and stored on encrypted infrastructure, and access is restricted to the two participants. Unlike session notes, messages are **not end-to-end encrypted**: the Practitioner and Clarity's systems can access their content, and the subprocessors listed in our Subprocessor List (our database and email providers) may process them.
+
+Messaging is not intended for clinical disclosures, emergencies, or crisis contact, and clients are shown this reminder in the app. Practitioners remain responsible for keeping their clinical record in session notes rather than in messages, and for any lawful basis required for the content of messages they exchange. Message content is retained for the life of the account and is included in data exports and deletions.
+
 ---
 
 ## 8. Client data and deletion

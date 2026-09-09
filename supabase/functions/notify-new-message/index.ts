@@ -3,14 +3,17 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { emailTemplate, logEmail, para, sendEmail } from "../_shared/email.ts";
 
-// Emails a client when their counsellor sends them a direct message — but only
-// if the client has been away, and not more than once per thread per cooldown
-// window (so a burst of messages isn't a burst of emails). No snippet of the
-// message is included: the body never leaves the app / Resend logs. Admin
-// recipients are not emailed in v1 (they have the in-app badge).
+// Runs on every direct message. Two jobs, by direction:
+//   client → practitioner : post an away / out-of-hours auto-reply if the
+//                            practitioner has one configured and is away.
+//   practitioner → client : email the client, but only if they've been away
+//                            and not already emailed for this thread recently.
+// No message body ever leaves the app (not in emails, not in logs).
 const EMAIL_TYPE = "new_message";
 const AWAY_MINUTES = 10; // client counts as "here" if seen within this
 const COOLDOWN_MINUTES = 15; // min gap between emails for one thread
+const AUTOREPLY_COOLDOWN_MINUTES = 240; // one "I'm away" per thread per 4h
+const DEFAULT_TZ = "Europe/London";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +22,41 @@ const corsHeaders = {
 
 const minutesAgo = (iso: string | null | undefined): number =>
   iso ? (Date.now() - new Date(iso).getTime()) / 60000 : Number.POSITIVE_INFINITY;
+
+type OfficeHours = { days?: number[]; from?: string; to?: string; tz?: string };
+
+// { weekday: 1..7 (Mon..Sun), hhmm: "HH:MM", ymd: "YYYY-MM-DD" } in a timezone.
+function nowInTz(tz: string) {
+  const p = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (t: string) => p.find((x) => x.type === t)?.value ?? "";
+  const wd: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  return {
+    weekday: wd[get("weekday")] ?? 1,
+    hhmm: `${get("hour")}:${get("minute")}`,
+    ymd: `${get("year")}-${get("month")}-${get("day")}`,
+  };
+}
+
+function practitionerIsAway(awayUntil: string | null, hours: OfficeHours | null): boolean {
+  const tz = hours?.tz || DEFAULT_TZ;
+  const { weekday, hhmm, ymd } = nowInTz(tz);
+  if (awayUntil && ymd <= awayUntil) return true; // holiday window (inclusive)
+  if (hours?.from && hours?.to) {
+    const days = hours.days?.length ? hours.days : [1, 2, 3, 4, 5];
+    return !days.includes(weekday) || hhmm < hours.from || hhmm >= hours.to;
+  }
+  // Enabled with neither a holiday date nor office hours = always away.
+  return !awayUntil;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -36,7 +74,7 @@ Deno.serve(async (req) => {
 
     const { data: message } = await supabase
       .from("messages")
-      .select("conversation_id, sender_id, recipient_id")
+      .select("conversation_id, sender_id, recipient_id, is_auto")
       .eq("id", message_id)
       .single();
     if (!message) {
@@ -45,14 +83,44 @@ Deno.serve(async (req) => {
 
     const { data: convo } = await supabase
       .from("conversations")
-      .select("id, client_id, admin_id, last_notified_at")
+      .select("id, client_id, admin_id, last_notified_at, autoreply_at")
       .eq("id", message.conversation_id)
       .single();
     if (!convo) {
       return new Response(JSON.stringify({ error: "Conversation not found" }), { status: 404, headers: corsHeaders });
     }
 
-    // v1: only the client gets an email.
+    // ── client → practitioner : away / out-of-hours auto-reply ──────────────
+    if (message.recipient_id === convo.admin_id && !message.is_auto) {
+      const { data: ps } = await supabase
+        .from("practice_settings")
+        .select("msg_autoreply_enabled, msg_autoreply_text, msg_away_until, msg_office_hours")
+        .eq("admin_id", convo.admin_id)
+        .maybeSingle();
+
+      const text = (ps?.msg_autoreply_text ?? "").trim();
+      if (!ps?.msg_autoreply_enabled || !text) {
+        return new Response(JSON.stringify({ ok: true, skipped: "no autoreply configured" }), { headers: corsHeaders });
+      }
+      if (minutesAgo(convo.autoreply_at) < AUTOREPLY_COOLDOWN_MINUTES) {
+        return new Response(JSON.stringify({ ok: true, skipped: "autoreply cooldown" }), { headers: corsHeaders });
+      }
+      if (!practitionerIsAway(ps.msg_away_until ?? null, (ps.msg_office_hours ?? null) as OfficeHours | null)) {
+        return new Response(JSON.stringify({ ok: true, skipped: "practitioner available" }), { headers: corsHeaders });
+      }
+
+      await supabase.from("messages").insert({
+        conversation_id: convo.id,
+        sender_id: convo.admin_id,
+        recipient_id: convo.client_id,
+        body: text,
+        is_auto: true,
+      });
+      await supabase.from("conversations").update({ autoreply_at: new Date().toISOString() }).eq("id", convo.id);
+      return new Response(JSON.stringify({ ok: true, autoReplied: true }), { headers: corsHeaders });
+    }
+
+    // Anything else that isn't a message TO the client — nothing to do.
     if (message.recipient_id !== convo.client_id) {
       return new Response(JSON.stringify({ ok: true, skipped: "recipient is not the client" }), {
         headers: corsHeaders,

@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { pickColor } from "@Helpers/Helpers";
+import AutoReplySettings from "@components/messaging/AutoReplySettings/AutoReplySettings";
 import MessageComposer from "@components/messaging/MessageComposer/MessageComposer";
 import MessageThread from "@components/messaging/MessageThread/MessageThread";
 import MessagingNotice from "@components/messaging/MessagingNotice/MessagingNotice";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
 import CountBadge from "@components/shared/CountBadge/CountBadge";
-import { ChevronLeftIcon } from "@components/shared/Icons/Icons";
+import { ChevronLeftIcon, Settingsicon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -53,6 +54,7 @@ export default function MessagesView({ basePath, audience }: Props) {
   const navigate = useNavigate();
   const { conversationId } = useParams<{ conversationId: string }>();
   const { authUser, userProfile } = useAuth();
+  const [autoReplyOpen, setAutoReplyOpen] = useState(false);
   const myId = authUser?.id ?? "";
 
   const conversations = useAppSelector(selectConversations);
@@ -83,10 +85,24 @@ export default function MessagesView({ basePath, audience }: Props) {
       <aside className={`${styles.list} ${conversationId ? styles.listHiddenMobile : ""}`}>
         <div className={styles.listHead}>
           <h1 className={styles.title}>Messages</h1>
-          {audience === "admin" && <NewMessagePicker basePath={basePath} myId={myId} />}
+          {audience === "admin" && (
+            <div className={styles.listHeadActions}>
+              <NewMessagePicker basePath={basePath} myId={myId} />
+              <button
+                type="button"
+                className={styles.cogBtn}
+                onClick={() => setAutoReplyOpen(true)}
+                aria-label="Auto-reply settings"
+                title="Auto-reply settings"
+              >
+                <Settingsicon />
+              </button>
+            </div>
+          )}
         </div>
 
         <MessagingNotice audience={audience} />
+        {autoReplyOpen && <AutoReplySettings onClose={() => setAutoReplyOpen(false)} />}
 
         {conversationsStatus === "loading" && conversations.length === 0 && <p className={styles.hint}>Loading…</p>}
 

@@ -55,11 +55,11 @@ export const SUITE_SUMMARY = {
     ranAt: "2026-09-07",
   },
   e2e: {
-    files: 21,
-    tests: 84,
+    files: 22,
+    tests: 91,
     command: "npx playwright test",
-    note: "Counted from source (test() calls per spec) — not every suite was re-run this session. Suites actually re-run and confirmed green today: auth-redirects (5), token-signup (3), resources-favourites (3), reschedule-approval (3) — all four new this session, browser-driven where it matters, self-cleaning.",
-    ranAt: "2026-09-07",
+    note: "Counted from source (test() calls per spec) — not every suite was re-run this session. Re-run and confirmed green 2026-09-09: messaging (7) — new this session, API-level against the real project (RLS, the three RPCs, the away auto-reply via the deployed edge function), self-cleaning by TAG.",
+    ranAt: "2026-09-09",
   },
 };
 
@@ -104,6 +104,7 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "unit", file: "src/components/shared/SessionPrepCard/SessionPrepCard.test.tsx", count: 8 },
   { kind: "unit", file: "src/components/shared/StatTile/StatTile.test.tsx", count: 4 },
   { kind: "unit", file: "src/components/shared/ThreeWayToggle/ThreeWayToggle.test.tsx", count: 4 },
+  { kind: "unit", file: "src/components/shared/UpdateBanner/UpdateBanner.test.tsx", count: 7 },
   { kind: "unit", file: "src/components/shared/ViewportWarningBanner/ViewportWarningBanner.test.tsx", count: 8 },
   { kind: "unit", file: "src/context/EncryptionContext.test.tsx", count: 8 },
   { kind: "unit", file: "src/lib/noteEncryption.test.ts", count: 8 },
@@ -139,6 +140,7 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "unit", file: "src/store/slices/__tests__/resourcesSlice.test.ts", count: 3 },
   { kind: "unit", file: "src/store/slices/__tests__/responsesSlice.test.ts", count: 10 },
   { kind: "unit", file: "src/store/slices/__tests__/sessionsSlice.test.ts", count: 11 },
+  { kind: "unit", file: "src/store/slices/messagesSlice.test.ts", count: 7 },
   { kind: "unit", file: "src/store/slices/sessionsSlice.test.ts", count: 11 },
   { kind: "unit", file: "src/store/slices/tagsSlice.test.ts", count: 4 },
   { kind: "unit", file: "src/store/slices/userDirectorySlice.test.ts", count: 11 },
@@ -154,6 +156,7 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "e2e", file: "e2e/checkin-flow/checkin-flow.spec.ts", count: 1 },
   { kind: "e2e", file: "e2e/client-cap/client-cap.spec.ts", count: 5 },
   { kind: "e2e", file: "e2e/client-lifecycle/client-lifecycle.spec.ts", count: 3 },
+  { kind: "e2e", file: "e2e/messaging/messaging.spec.ts", count: 7 },
   { kind: "e2e", file: "e2e/offline-invite-merge/offline-invite-merge.spec.ts", count: 2 },
   { kind: "e2e", file: "e2e/reminder-notification/reminder-notification.spec.ts", count: 1 },
   { kind: "e2e", file: "e2e/reschedule-approval/reschedule-approval.spec.ts", count: 3 },
@@ -173,6 +176,44 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
 // went beyond "the assertions passed" — see the file-level comment above.
 
 export const COVERAGE: CoverageEntry[] = [
+  {
+    id: "messaging-20260909",
+    title: "Direct messaging — RLS boundary, RPCs, away auto-reply",
+    summary:
+      "Client ↔ their own practitioner messaging (behind VITE_FF_MESSAGING): the conversation/message tables and their RLS, the three RPCs (get_or_create_conversation, list_my_conversations, mark_conversation_read), the floating ChatWidget + unread badges (tab title / favicon / PWA), the new-message client email, and the practitioner's away / out-of-hours auto-reply.",
+    backend: [
+      "migration 20260908000100 — conversations + messages, RLS (read-if-party, insert-only-as-self-to-the-other-party), realtime publication",
+      "migration 20260908000110 — list_my_conversations() → SECURITY DEFINER (a client has no RLS route to their admin's users row, so an INVOKER join returned nothing and the composer never rendered)",
+      "migration 20260908000130 — conversations.last_notified_at + 'new_message' email type",
+      "migration 20260908000140 — practice_settings.msg_autoreply_* + msg_office_hours (jsonb), conversations.autoreply_at, messages.is_auto",
+      "notify-new-message edge fn — client→admin: posts an is_auto auto-reply when the practitioner is away, once per 4h; admin→client: emails the client only if away >10min and not emailed for the thread in 15min. No message body in the email.",
+    ],
+    unit: [
+      {
+        file: "src/store/slices/messagesSlice.test.ts",
+        count: 7,
+        note: "realtime + optimistic-send + unread bookkeeping",
+      },
+    ],
+    e2e: [
+      {
+        file: "e2e/messaging/messaging.spec.ts",
+        count: 7,
+        note: "API-level (supabase-js sessions + dbQuery, no browser) — two practices built in the DB so isolation is asserted from a session that legitimately can't see the thread; self-cleaning by TAG",
+      },
+    ],
+    verifiedAt: "2026-09-09",
+    verification: [
+      "e2e/messaging asserts, from real unprivileged sessions: a client can open their own thread and list_my_conversations returns it WITH the admin's name (the SECURITY DEFINER fix); both parties read a message and unread is tracked; a client cannot post as someone else or to the wrong recipient; mark_conversation_read clears only the caller's unread; a client cannot open a thread with an admin who isn't theirs; practice B cannot read practice A's conversation or messages; and the away auto-reply — with msg_away_until set, invoking the deployed notify-new-message posts exactly one is_auto reply across two client messages (4h cooldown) and stamps conversations.autoreply_at.",
+      "Browser runs (seeded throwaway admin+client, purged): client starts a thread and both sides send/receive; the ChatWidget opens/minimises on the dashboard and a send round-trips; the tab title shows (N) and the nav badge clears on read; the AutoReplySettings modal loads + saves and a holiday-mode auto-reply lands in the client's thread via realtime, tagged 'Automatic reply'.",
+      "npm run build — green; biome — clean on the touched files.",
+    ],
+    gaps: [
+      "No browser-driven e2e spec (the messaging spec is API-level only, like e2e/agency).",
+      "Messages are NOT end-to-end encrypted — deliberate (RLS + at-rest is the boundary; the UI + ToS/Privacy say so). pgcrypto/E2E not implemented.",
+      "New-message email de-dup relies on users.last_seen_at freshness; not load-tested.",
+    ],
+  },
   {
     id: "coverage-expansion-20260907",
     title: "Coverage expansion — auth gate, token signup, resources, reschedule",
