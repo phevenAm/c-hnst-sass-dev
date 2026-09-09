@@ -2,8 +2,9 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import { useAuth } from "@context/AuthContext";
-import { fetchConversations, messageReceived } from "@store/slices/messagesSlice";
+import { fetchConversations, messageReceived, selectTotalUnread } from "@store/slices/messagesSlice";
 
+import { setUnreadBadge } from "@/lib/appBadge";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/lib/supabase.js";
 import type { Message } from "@/models/globalTypes";
@@ -19,6 +20,13 @@ export function useMessagesRealtime() {
   const dispatch = useAppDispatch();
   const { pathname } = useLocation();
   const knownIds = useAppSelector((s) => s.messages.conversations.map((c) => c.id).join(","));
+  const totalUnread = useAppSelector(selectTotalUnread);
+  const messagingOn = isFeatureEnabled("messaging");
+
+  // Mirror the unread count onto the tab title / favicon / PWA app icon.
+  useEffect(() => {
+    if (messagingOn) setUnreadBadge(totalUnread);
+  }, [messagingOn, totalUnread]);
 
   // Read the latest route + known-ids from inside the subscription callback
   // without making them subscription dependencies (they change on every nav).

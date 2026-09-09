@@ -6,6 +6,7 @@ import { useAppSelector } from "@store/hooks";
 import { selectTotalUnread } from "@store/slices/messagesSlice";
 
 import { isFeatureEnabled } from "@/lib/featureFlags";
+import CountBadge from "../CountBadge/CountBadge";
 import FeedbackModal from "../FeedbackModal/FeedbackModal";
 import {
   AssignmentClipIcon,
@@ -281,11 +282,7 @@ export default function AdminSidebar({
                       <item.Icon />
                     </span>
                     <span className={styles.label}>{item.label}</span>
-                    {item.to === "/admin/messages" && totalUnread > 0 && (
-                      <span className={styles.navUnread} aria-label={`${totalUnread} unread`}>
-                        {totalUnread}
-                      </span>
-                    )}
+                    {item.to === "/admin/messages" && <CountBadge count={totalUnread} className={styles.navUnread} />}
                   </Link>
                 </li>
               );

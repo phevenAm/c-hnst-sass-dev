@@ -10,6 +10,7 @@ import { useAppSelector, useFetchOnIdle } from "../../../store/hooks";
 import { selectTotalUnread } from "../../../store/slices/messagesSlice";
 import { fetchPracticeSettings } from "../../../store/slices/practiceSettingsSlice";
 import Avatar from "../Avatar/Avatar";
+import CountBadge from "../CountBadge/CountBadge";
 import { EncryptionStatusPill } from "../EncryptionStatusPill/EncryptionStatusPill";
 import { CloseIcon, LeafLogoMark, MenuIcon, Settingsicon } from "../Icons/Icons";
 import { NotificationBell } from "../NotificationBell/NotificationBell";
@@ -140,11 +141,7 @@ export default function Navbar() {
                   data-testid={`navbar-link-${createLinkRoleTestId(link)}`}
                 >
                   {link.label}
-                  {showUnread && (
-                    <span className={styles.navUnread} aria-label={`${totalUnread} unread`}>
-                      {totalUnread}
-                    </span>
-                  )}
+                  {showUnread && <CountBadge count={totalUnread} className={styles.navUnread} />}
                 </Link>
               </li>
             );

@@ -1,0 +1,44 @@
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.text {
+  margin: 0;
+  flex: 1;
+
+  a {
+    color: var(--accent-dark);
+    font-weight: 600;
+  }
+}
+
+.close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--r-sm, 4px);
+
+  svg {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-card);
+  }
+}

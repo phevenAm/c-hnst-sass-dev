@@ -89,6 +89,13 @@ export const sendMessage = createAsyncThunk(
       .select()
       .single();
     if (error) return rejectWithValue(error.message);
+
+    // Fire-and-forget: the function decides whether to actually email (client
+    // away + per-thread cooldown). Never blocks or fails the send.
+    void supabase.functions
+      .invoke("notify-new-message", { body: { message_id: (data as Message).id } })
+      .catch(() => {});
+
     return data as Message;
   },
 );

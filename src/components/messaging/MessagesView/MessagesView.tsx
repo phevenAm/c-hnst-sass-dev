@@ -1,9 +1,13 @@
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { pickColor } from "@Helpers/Helpers";
+import MessageComposer from "@components/messaging/MessageComposer/MessageComposer";
+import MessageThread from "@components/messaging/MessageThread/MessageThread";
+import MessagingNotice from "@components/messaging/MessagingNotice/MessagingNotice";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Button from "@components/shared/Button/Button";
+import CountBadge from "@components/shared/CountBadge/CountBadge";
 import { ChevronLeftIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
@@ -82,6 +86,8 @@ export default function MessagesView({ basePath, audience }: Props) {
           {audience === "admin" && <NewMessagePicker basePath={basePath} myId={myId} />}
         </div>
 
+        <MessagingNotice audience={audience} />
+
         {conversationsStatus === "loading" && conversations.length === 0 && <p className={styles.hint}>Loading…</p>}
 
         {conversationsStatus !== "loading" && conversations.length === 0 && (
@@ -108,7 +114,7 @@ export default function MessagesView({ basePath, audience }: Props) {
                   </div>
                   <div className={styles.convoPreview}>
                     <span>{c.last_message ?? "No messages yet"}</span>
-                    {c.unread > 0 && <span className={styles.badge}>{c.unread}</span>}
+                    <CountBadge count={c.unread} max={99} />
                   </div>
                 </div>
               </Link>
@@ -144,10 +150,10 @@ export default function MessagesView({ basePath, audience }: Props) {
               )}
             </header>
 
-            <Thread messages={thread} myId={myId} loading={threadStatus === "loading" && thread.length === 0} />
+            <MessageThread messages={thread} myId={myId} loading={threadStatus === "loading"} />
 
             {activeConvo && (
-              <Composer
+              <MessageComposer
                 onSend={(body) =>
                   dispatch(sendMessage({ conversationId: activeConvo.id, recipientId: activeConvo.peer.id, body }))
                 }
@@ -156,85 +162,6 @@ export default function MessagesView({ basePath, audience }: Props) {
           </>
         )}
       </section>
-    </div>
-  );
-}
-
-// ── Thread ──────────────────────────────────────────────────────────────────
-
-function Thread({
-  messages,
-  myId,
-  loading,
-}: {
-  messages: { id: string; sender_id: string; body: string; created_at: string }[];
-  myId: string;
-  loading: boolean;
-}) {
-  const endRef = useRef<HTMLDivElement>(null);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to newest whenever the count changes
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
-
-  if (loading) return <div className={styles.thread}>Loading…</div>;
-  if (messages.length === 0) return <div className={styles.thread}>No messages yet — say hello.</div>;
-
-  return (
-    <div className={styles.thread}>
-      {messages.map((m) => {
-        const mine = m.sender_id === myId;
-        return (
-          <div key={m.id} className={`${styles.row} ${mine ? styles.rowMine : ""}`}>
-            <div className={styles.bubble}>
-              <p className={styles.bubbleBody}>{m.body}</p>
-              <span className={styles.bubbleTime}>
-                {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-      <div ref={endRef} />
-    </div>
-  );
-}
-
-// ── Composer ────────────────────────────────────────────────────────────────
-
-function Composer({ onSend }: { onSend: (body: string) => void }) {
-  const [value, setValue] = useState("");
-  const trimmed = value.trim();
-
-  const submit = () => {
-    if (!trimmed) return;
-    onSend(trimmed);
-    setValue("");
-  };
-
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      submit();
-    }
-  };
-
-  return (
-    <div className={styles.composer}>
-      <textarea
-        className={styles.composerInput}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder="Write a message…"
-        rows={1}
-        maxLength={4000}
-        aria-label="Message"
-      />
-      <Button size="sm" onClick={submit} disabled={!trimmed}>
-        Send
-      </Button>
     </div>
   );
 }

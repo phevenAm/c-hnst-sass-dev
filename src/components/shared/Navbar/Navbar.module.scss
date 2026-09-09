@@ -131,18 +131,9 @@
   }
 }
 
+// CountBadge carries its own look — this just seats it after the label.
 .navUnread {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.05rem;
-  height: 1.05rem;
   margin-left: 0.35rem;
-  padding: 0 0.28rem;
-  border-radius: var(--r-full);
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
   vertical-align: middle;
 }
 
