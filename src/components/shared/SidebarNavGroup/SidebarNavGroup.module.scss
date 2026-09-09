@@ -1,0 +1,65 @@
+// Behavioural styling shared by every sidebar nav-group. The host sidebar
+// supplies colours/spacing via the `cx` classes; this file owns only what makes
+// the collapsed-rail *flyout* work (fixed positioning, popover chrome), so both
+// sidebars get identical behaviour without copying the CSS.
+
+.flyout {
+  position: fixed;
+  left: var(--flyout-left, 56px);
+  top: var(--flyout-top, 0px);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 176px;
+  max-height: none;
+  overflow: visible;
+  padding: 6px 6px 6px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+
+  // hidden until opened — kept mounted so focus/hover intent can bring it back
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-4px);
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+
+  // no guide line in a popover
+  &::before {
+    display: none !important;
+  }
+}
+
+.flyoutOpen {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+// Popover rows: no guide-line indent, comfortable hit area, labels always shown
+// (the rail force-hides them).
+.flyoutItem {
+  padding: 8px 12px !important;
+  border-radius: var(--r-md);
+  white-space: nowrap;
+
+  &::before {
+    display: none !important;
+  }
+
+  span,
+  [class*="label"],
+  [class*="Label"] {
+    opacity: 1 !important;
+    width: auto !important;
+    pointer-events: auto;
+  }
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+}

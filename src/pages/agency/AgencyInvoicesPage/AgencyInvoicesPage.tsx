@@ -96,7 +96,7 @@ export default function AgencyInvoicesPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-invoices-header">
         <div>
           <h1 className={styles.title}>Invoices</h1>
           <p className={styles.subtitle}>

@@ -59,7 +59,7 @@ export default function AgencyMembersPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-members-header">
         <div>
           <h1 className={styles.title}>Members</h1>
           <p className={styles.subtitle}>Counsellors and managers in {agency?.name}.</p>

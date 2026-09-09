@@ -20,23 +20,27 @@ function versionJsonPlugin() {
 //   /            → index.html  (static marketing page, no React)
 //   everything   → app.html    (the React SPA shell)
 // Vercel/Netlify handle that split in production via rewrites; this
-// plugin reproduces it for `vite` dev so deep links like /login work.
+// plugin reproduces it for both `vite` dev and `vite preview` so deep
+// links like /login and Lighthouse's hard navigations work locally.
 function promoRoutingPlugin() {
+  const rewrite = (req, _res, next) => {
+    const url = (req.url || "").split("?")[0];
+    const accept = req.headers.accept || "";
+    // Only rewrite top-level page navigations; let assets/modules/HMR through.
+    if (req.method !== "GET" || !accept.includes("text/html")) return next();
+    if (url === "/" || url === "/index.html" || url === "/app.html" || url.startsWith("/promo")) {
+      return next();
+    }
+    req.url = "/app.html";
+    next();
+  };
   return {
     name: "promo-dev-routing",
-    apply: "serve",
     configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
-        const url = (req.url || "").split("?")[0];
-        const accept = req.headers.accept || "";
-        // Only rewrite top-level page navigations; let assets/modules/HMR through.
-        if (req.method !== "GET" || !accept.includes("text/html")) return next();
-        if (url === "/" || url === "/index.html" || url === "/app.html" || url.startsWith("/promo")) {
-          return next();
-        }
-        req.url = "/app.html";
-        next();
-      });
+      server.middlewares.use(rewrite);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(rewrite);
     },
   };
 }

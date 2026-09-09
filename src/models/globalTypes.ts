@@ -294,3 +294,37 @@ export type StubSession = {
   created_at: string;
   metadata: Record<string, unknown> | null;
 };
+
+// ─── Direct messaging (client ↔ their counsellor) ──────────
+// Hand-typed until `npm run update-types`. See migration 20260908000100.
+export type Conversation = {
+  id: string;
+  admin_id: string;
+  client_id: string;
+  created_at: string;
+  last_message_at: string;
+};
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  recipient_id: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+};
+
+// A conversation row joined with the other party's public profile fields and a
+// convenience unread count — what the conversation list renders.
+export type ConversationWithPeer = Conversation & {
+  peer: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  unread: number;
+  last_message: string | null;
+};

@@ -106,14 +106,14 @@ export default function AgencyOverviewPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-overview-header">
         <div>
           <h1 className={styles.title}>{agency?.name}</h1>
           <p className={styles.subtitle}>Everything across your agency at a glance.</p>
         </div>
       </div>
 
-      <div className={styles.tiles}>
+      <div className={styles.tiles} id="agency-overview-tiles">
         <Tile label="Active members" value={stats.activeMembers.length} to="/agency/members" />
         <Tile label="Total clients" value={totalClients} to="/agency/clients" />
         <Tile label="Awaiting review" value={stats.pending} hint="assigned, not accepted" to="/agency/clients" />
@@ -146,7 +146,7 @@ export default function AgencyOverviewPage() {
           </div>
         )}
 
-        <div className={styles.panel}>
+        <div className={styles.panel} id="agency-overview-workload">
           <h3 className={styles.panelTitle}>Counsellor workload</h3>
           {stats.workload.length === 0 ? (
             <p className={styles.empty}>No counsellors taking clients yet.</p>
@@ -164,7 +164,7 @@ export default function AgencyOverviewPage() {
         </div>
       </div>
 
-      <div className={styles.panel}>
+      <div className={styles.panel} id="agency-overview-attention">
         <h3 className={styles.panelTitle}>Needs attention</h3>
         {attention.length === 0 ? (
           <p className={styles.empty}>Nothing outstanding — nice.</p>

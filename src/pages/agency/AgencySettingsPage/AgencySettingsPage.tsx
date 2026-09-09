@@ -1,13 +1,17 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import { MoonIcon, SunIcon, ThemeAutoIcon } from "@components/shared/Icons/Icons";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
+import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
+import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/InterfacePrefsContext";
 import { useToast } from "@context/ToastContext";
+import { useWalkthrough } from "@context/WalkthroughContext";
 import type { Agency, AgencyPlanKey, AgencySettlementDefault, AgencySettlementDirection } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -20,6 +24,7 @@ import {
   selectIsAgencyManager,
   updateAgencyPolicies,
 } from "@store/slices/agencySlice";
+import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
@@ -32,6 +37,26 @@ const PLAN_LABEL: Record<AgencyPlanKey, string> = {
   scale: "Scale",
   unlimited: "Unlimited",
 };
+
+const APPEARANCE_OPTIONS = [
+  { value: "light", label: "Light", icon: <SunIcon /> },
+  { value: "system", label: "Match device", icon: <ThemeAutoIcon /> },
+  { value: "dark", label: "Dark", icon: <MoonIcon /> },
+] as const;
+
+type TabId = "identity" | "policies" | "billing" | "payments" | "integrations" | "interface";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "identity", label: "Identity" },
+  { id: "policies", label: "Policies" },
+  { id: "billing", label: "Billing & seats" },
+  { id: "payments", label: "Payments" },
+  { id: "integrations", label: "Integrations" },
+  { id: "interface", label: "Interface & accessibility" },
+];
+
+// Tabs whose fields are persisted by the single "Save changes" button.
+const FORM_TABS: TabId[] = ["identity", "policies", "payments"];
 
 type TeamsChannel = {
   webhook_url: string;
@@ -84,6 +109,27 @@ export default function AgencySettingsPage() {
   const agency = useAppSelector(selectAgency);
   const members = useAppSelector(selectAgencyMembers);
   const planLimits = useAppSelector(selectAgencyPlanLimits);
+
+  const themeMode = useAppSelector(selectThemeMode);
+  const { reduceMotion, setReduceMotion, appZoom, setAppZoom } = useInterfacePrefs();
+  const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(
+    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "identity",
+  );
+  const selectTab = (id: TabId) => {
+    setActiveTab(id);
+    setSearchParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        next.set("tab", id);
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const [draft, setDraft] = useState<Agency | null>(agency);
   const [busy, setBusy] = useState(false);
@@ -269,426 +315,554 @@ export default function AgencySettingsPage() {
     }
   };
 
+  const panelProps = (id: TabId) => ({
+    role: "tabpanel" as const,
+    id: `agency-settings-panel-${id}`,
+    "aria-labelledby": `agency-settings-tab-${id}`,
+    hidden: activeTab !== id,
+  });
+
   return (
     <>
       <form onSubmit={save}>
-        <div className={styles.header}>
+        <div className={styles.header} id="agency-settings-header">
           <div>
             <h1 className={styles.title}>Settings</h1>
             <p className={styles.subtitle}>Your agency's identity and the rules that apply to every member.</p>
           </div>
-          <Button type="submit" disabled={busy}>
-            {busy ? "Saving…" : "Save changes"}
-          </Button>
+          {FORM_TABS.includes(activeTab) && (
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving…" : "Save changes"}
+            </Button>
+          )}
+        </div>
+
+        <div
+          className={styles.settingsTabs}
+          role="tablist"
+          aria-label="Agency settings sections"
+          id="agency-settings-tabs"
+        >
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              id={`agency-settings-tab-${t.id}`}
+              aria-selected={activeTab === t.id}
+              aria-controls={`agency-settings-panel-${t.id}`}
+              className={`${styles.settingsTab} ${activeTab === t.id ? styles.settingsTabActive : ""}`}
+              onClick={() => selectTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {error && <div className={styles.error}>{error}</div>}
 
         {/* ── Identity ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Identity</h2>
-          <p className={styles.cardBlurb}>Shown next to the Clarity mark in manage mode.</p>
+        <div {...panelProps("identity")}>
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Identity</h2>
+            <p className={styles.cardBlurb}>Shown next to the Clarity mark in manage mode.</p>
 
-          <div className={styles.logoLockup}>
-            {draft.logo_url ? (
-              <img src={draft.logo_url} alt="Agency logo" className={styles.logoImg} />
-            ) : (
-              <div className={styles.logoImg} aria-hidden="true" />
+            <div className={styles.logoLockup}>
+              {draft.logo_url ? (
+                <img src={draft.logo_url} alt="Agency logo" className={styles.logoImg} />
+              ) : (
+                <div className={styles.logoImg} aria-hidden="true" />
+              )}
+              <div>
+                <UploadAndDisplayImage userId={authUser.id} bucket="logos" onUpload={(url) => set({ logo_url: url })} />
+                {draft.logo_url && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => set({ logo_url: null })}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.field} style={{ maxWidth: 400 }}>
+              <label className={styles.label} htmlFor="ag-name">
+                Agency name
+              </label>
+              <input
+                id="ag-name"
+                className={styles.input}
+                value={draft.name}
+                onChange={(e) => set({ name: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Policies ── */}
+        <div {...panelProps("policies")}>
+          {/* Client consent */}
+          <div className={styles.card}>
+            <div className={styles.toggleRow} style={{ borderBottom: "none", paddingTop: 0 }}>
+              <div className={styles.toggleText}>
+                <strong>Agency client consent</strong>
+                <span>Members use the agency's consent below instead of setting their own.</span>
+              </div>
+              <Switch
+                checked={draft.locked_consent}
+                onChange={(v) => set({ locked_consent: v })}
+                label="Agency client consent"
+              />
+            </div>
+
+            {draft.locked_consent && (
+              <div style={{ marginTop: "var(--sp-3)" }}>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="ag-consent">
+                    Consent text
+                  </label>
+                  <textarea
+                    id="ag-consent"
+                    className={styles.textarea}
+                    style={{ minHeight: 140 }}
+                    value={draft.consent_text ?? ""}
+                    onChange={(e) => set({ consent_text: e.target.value })}
+                    placeholder="The consent wording your clients must agree to."
+                  />
+                </div>
+                <div className={styles.field} style={{ marginTop: "var(--sp-3)" }}>
+                  <span className={styles.label}>Or attach a consent PDF</span>
+                  <PdfUpload
+                    adminId={authUser.id}
+                    pathKey="agency-consent"
+                    value={draft.consent_pdf_url ?? ""}
+                    onChange={(url) => set({ consent_pdf_url: url })}
+                  />
+                </div>
+              </div>
             )}
-            <div>
-              <UploadAndDisplayImage userId={authUser.id} bucket="logos" onUpload={(url) => set({ logo_url: url })} />
-              {draft.logo_url && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => set({ logo_url: null })}>
-                  Remove
+          </div>
+
+          {/* Client identity */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Client identity</h2>
+            <p className={styles.cardBlurb}>
+              Enforced immediately for every member, not just shown as a locked switch — turning this on forces
+              codenames on for the whole agency and members can't switch it back off from their own settings.
+            </p>
+            <div className={styles.toggleRow}>
+              <div className={styles.toggleText}>
+                <strong>Require staff to use client codenames</strong>
+                <span>Members see and use codenames instead of clients' real names everywhere in their admin UI.</span>
+              </div>
+              <Switch
+                checked={draft.require_client_codenames}
+                onChange={(v) => set({ require_client_codenames: v })}
+                label="Require staff to use client codenames"
+              />
+            </div>
+          </div>
+
+          {/* Staff working agreements */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Staff working agreements</h2>
+            <p className={styles.cardBlurb}>
+              Shown to every new staff member during onboarding, right after they accept their invitation.
+            </p>
+
+            <div className={styles.field} role="radiogroup" aria-label="Staff working agreements">
+              <label className={styles.radioRow}>
+                <input
+                  type="radio"
+                  name="agreementPolicy"
+                  checked={draft.staff_agreement_required}
+                  onChange={() => set({ staff_agreement_required: true })}
+                />
+                <span>
+                  <strong>Agency agreement required</strong>
+                  <br />
+                  Staff must read and accept the agreement below before they can finish onboarding.
+                </span>
+              </label>
+              <label className={styles.radioRow}>
+                <input
+                  type="radio"
+                  name="agreementPolicy"
+                  checked={!draft.staff_agreement_required}
+                  onChange={() => set({ staff_agreement_required: false })}
+                />
+                <span>
+                  <strong>Staff may use their own agreement</strong>
+                  <br />
+                  No agency-wide agreement is enforced at onboarding.
+                </span>
+              </label>
+            </div>
+
+            {draft.staff_agreement_required && (
+              <div style={{ marginTop: "var(--sp-3)" }}>
+                <p className={styles.cardBlurb}>
+                  Current version: <strong>v{draft.agreement_version}</strong> — bumps automatically whenever you change
+                  the text or PDF below, so you can tell who signed an older version.
+                </p>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="ag-agreement-text">
+                    Agreement text
+                  </label>
+                  <textarea
+                    id="ag-agreement-text"
+                    className={styles.textarea}
+                    style={{ minHeight: 140 }}
+                    value={draft.agreement_text ?? ""}
+                    onChange={(e) => set({ agreement_text: e.target.value })}
+                    placeholder="The working agreement your staff must accept before joining."
+                  />
+                </div>
+                <div className={styles.field} style={{ marginTop: "var(--sp-3)" }}>
+                  <span className={styles.label}>Or attach an agreement PDF</span>
+                  <PdfUpload
+                    adminId={authUser.id}
+                    pathKey="agency-agreement"
+                    value={draft.agreement_pdf_url ?? ""}
+                    onChange={(url) => set({ agreement_pdf_url: url })}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Other member policies */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Other member policies</h2>
+            <p className={styles.cardBlurb}>Rules the agency enforces across every member's practice.</p>
+            {POLICIES.map((p) => (
+              <div key={p.key} className={styles.toggleRow}>
+                <div className={styles.toggleText}>
+                  <strong>{p.title}</strong>
+                  <span>{p.blurb}</span>
+                </div>
+                <Switch
+                  checked={draft[p.key]}
+                  onChange={(v) => set({ [p.key]: v } as Partial<Agency>)}
+                  label={p.title}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Billing & seats ── */}
+        <div {...panelProps("billing")}>
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Billing & seats</h2>
+            <p className={styles.cardBlurb}>
+              Your plan is based on active staff, not total headcount — paused or removed staff free up a seat.
+            </p>
+
+            {(() => {
+              const currentPlan = (agency?.subscription_plan ?? "starter") as AgencyPlanKey;
+              const currentLimit = planLimits.find((l) => l.plan === currentPlan);
+              const usage = currentLimit ? staffSeatUsage(activeStaffCount, currentLimit.max_staff) : null;
+              return (
+                <>
+                  {currentLimit && usage && (
+                    <div className={styles.usageBar}>
+                      <div className={styles.usageBarHead}>
+                        <span>Staff places used</span>
+                        <span className={usage.over ? styles.usageOver : undefined}>
+                          {usage.unlimited
+                            ? `${activeStaffCount} · unlimited`
+                            : `${activeStaffCount} of ${currentLimit.max_staff}`}
+                        </span>
+                      </div>
+                      <div className={styles.usageTrack}>
+                        <div className={styles.usageFill} style={{ width: `${usage.pct}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.tierGrid} style={{ marginTop: "var(--sp-3)" }}>
+                    {planLimits.map((l) => {
+                      const isCurrent = l.plan === currentPlan;
+                      const price = agency?.billing_interval === "year" ? l.price_year_pence : l.price_month_pence;
+                      return (
+                        <div key={l.plan} className={`${styles.card}`} style={{ padding: "var(--sp-3)" }}>
+                          <div style={{ fontWeight: 600 }}>{PLAN_LABEL[l.plan]}</div>
+                          <div style={{ fontSize: "1.4rem", margin: "var(--sp-1) 0" }}>
+                            £{(price / 100).toFixed(2)}
+                            <span style={{ fontSize: "0.8rem" }}>
+                              {agency?.billing_interval === "year" ? "/yr" : "/mo"}
+                            </span>
+                          </div>
+                          <div className={styles.cardBlurb}>
+                            {l.max_staff == null ? "Unlimited staff" : `Up to ${l.max_staff} staff`}
+                          </div>
+                          {isCurrent ? (
+                            <Badge variant="success">Current plan</Badge>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handlePickPlan(l.plan)}
+                              disabled={!!switchingPlan}
+                            >
+                              {switchingPlan === l.plan ? "Checking…" : "Switch"}
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {planSwitchError && <p className={styles.error}>{planSwitchError}</p>}
+                  {usage?.atLimit && (
+                    <p className={styles.error} style={{ marginTop: "var(--sp-2)" }}>
+                      You're at your staff limit — invite one more and you'll need to upgrade first.
+                    </p>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* ── Payments between the agency and staff ── */}
+        <div {...panelProps("payments")}>
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Payments between the agency and staff</h2>
+            <p className={styles.cardBlurb}>
+              Sets the direction agency invoices run in. “Staff pays the agency” is the usual freelancer seat /
+              commission fee; “Agency pays the staff member” is payroll for delivered work.
+            </p>
+
+            <div className={styles.field} style={{ maxWidth: 520 }}>
+              <label className={styles.label} htmlFor="ag-settlement-default">
+                Default for new staff
+              </label>
+              <select
+                id="ag-settlement-default"
+                className={styles.select}
+                value={draft.default_settlement_direction}
+                onChange={(e) => set({ default_settlement_direction: e.target.value as AgencySettlementDefault })}
+              >
+                {(Object.keys(SETTLEMENT_DEFAULT_LABEL) as AgencySettlementDefault[]).map((k) => (
+                  <option key={k} value={k}>
+                    {SETTLEMENT_DEFAULT_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+              <span className={styles.cardBlurb} style={{ marginTop: "var(--sp-1)" }}>
+                Saved with the rest of this form.
+              </span>
+            </div>
+
+            {members.filter((m) => m.status === "active").length > 0 && (
+              <div style={{ marginTop: "var(--sp-3)" }}>
+                <span className={styles.label}>Per-staff overrides</span>
+                <div className={styles.list} style={{ marginTop: "var(--sp-2)" }}>
+                  {members
+                    .filter((m) => m.status === "active")
+                    .map((m) => {
+                      const name =
+                        m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Staff";
+                      const effective = effectiveSettlement(
+                        m.settlement_direction,
+                        draft.default_settlement_direction,
+                        m.employment_type,
+                      );
+                      return (
+                        <div key={m.user_id} className={styles.row}>
+                          <div className={styles.rowMain}>
+                            <span className={styles.rowName}>{name}</span>
+                            <span className={styles.rowMeta}>
+                              {m.employment_type === "employee" ? "Employee" : "Freelance"} ·{" "}
+                              {SETTLEMENT_LABEL[effective]}
+                            </span>
+                          </div>
+                          <select
+                            className={styles.select}
+                            style={{ maxWidth: 220 }}
+                            value={m.settlement_direction ?? ""}
+                            disabled={savingSettlementFor === m.user_id}
+                            onChange={(e) =>
+                              setMemberSettlement(m.user_id, e.target.value as AgencySettlementDirection | "")
+                            }
+                            aria-label={`Payment direction for ${name}`}
+                          >
+                            <option value="">Follow agency default</option>
+                            {(Object.keys(SETTLEMENT_LABEL) as AgencySettlementDirection[]).map((k) => (
+                              <option key={k} value={k}>
+                                {SETTLEMENT_LABEL[k]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Integrations ── */}
+        <div {...panelProps("integrations")}>
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Microsoft Teams channel</h2>
+            <p className={styles.cardBlurb}>
+              Post a card to a Teams channel whenever a member books, cancels or gets paid for a session. In Teams, add
+              a <strong>Workflows</strong> → “Post to a channel when a webhook request is received” trigger to your
+              channel and paste its URL here. One-way only.
+            </p>
+
+            <div className={styles.field} style={{ maxWidth: 560 }}>
+              <label className={styles.label} htmlFor="ag-teams-url">
+                Incoming webhook URL
+              </label>
+              <input
+                id="ag-teams-url"
+                className={styles.input}
+                type="url"
+                value={teams.webhook_url}
+                onChange={(e) => setTeamsField({ webhook_url: e.target.value })}
+                placeholder="https://…logic.azure.com/… or https://…webhook.office.com/…"
+              />
+              <span className={styles.cardBlurb} style={{ marginTop: "var(--sp-1)" }}>
+                Leave blank and save to disconnect.
+              </span>
+            </div>
+
+            {teams.webhook_url.trim() && (
+              <>
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleText}>
+                    <strong>Session booked</strong>
+                    <span>Post when a member books a session.</span>
+                  </div>
+                  <Switch
+                    checked={teams.notify_booked}
+                    onChange={(v) => setTeamsField({ notify_booked: v })}
+                    label="Notify on session booked"
+                  />
+                </div>
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleText}>
+                    <strong>Session cancelled</strong>
+                    <span>Post when a session is cancelled.</span>
+                  </div>
+                  <Switch
+                    checked={teams.notify_cancelled}
+                    onChange={(v) => setTeamsField({ notify_cancelled: v })}
+                    label="Notify on session cancelled"
+                  />
+                </div>
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleText}>
+                    <strong>Payment received</strong>
+                    <span>Post when a client pays for a session.</span>
+                  </div>
+                  <Switch
+                    checked={teams.notify_paid}
+                    onChange={(v) => setTeamsField({ notify_paid: v })}
+                    label="Notify on payment received"
+                  />
+                </div>
+              </>
+            )}
+
+            <div style={{ display: "flex", gap: "var(--sp-2)", marginTop: "var(--sp-3)" }}>
+              <Button type="button" onClick={saveTeams} disabled={teamsBusy}>
+                {teamsBusy ? "Saving…" : "Save Teams settings"}
+              </Button>
+              {teams.webhook_url.trim() && (
+                <Button type="button" variant="ghost" onClick={testTeams} disabled={teamsTesting}>
+                  {teamsTesting ? "Sending…" : "Send test message"}
                 </Button>
               )}
             </div>
           </div>
-
-          <div className={styles.field} style={{ maxWidth: 400 }}>
-            <label className={styles.label} htmlFor="ag-name">
-              Agency name
-            </label>
-            <input
-              id="ag-name"
-              className={styles.input}
-              value={draft.name}
-              onChange={(e) => set({ name: e.target.value })}
-            />
-          </div>
         </div>
 
-        {/* ── Client consent ── */}
-        <div className={styles.card}>
-          <div className={styles.toggleRow} style={{ borderBottom: "none", paddingTop: 0 }}>
-            <div className={styles.toggleText}>
-              <strong>Agency client consent</strong>
-              <span>Members use the agency's consent below instead of setting their own.</span>
-            </div>
-            <Switch
-              checked={draft.locked_consent}
-              onChange={(v) => set({ locked_consent: v })}
-              label="Agency client consent"
-            />
-          </div>
+        {/* ── Interface & accessibility ── */}
+        <div {...panelProps("interface")}>
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Appearance & motion</h2>
+            <p className={styles.cardBlurb}>
+              These settings only affect your own browser on this device — they don't change anything for your staff or
+              clients.
+            </p>
 
-          {draft.locked_consent && (
-            <div style={{ marginTop: "var(--sp-3)" }}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="ag-consent">
-                  Consent text
-                </label>
-                <textarea
-                  id="ag-consent"
-                  className={styles.textarea}
-                  style={{ minHeight: 140 }}
-                  value={draft.consent_text ?? ""}
-                  onChange={(e) => set({ consent_text: e.target.value })}
-                  placeholder="The consent wording your clients must agree to."
-                />
-              </div>
-              <div className={styles.field} style={{ marginTop: "var(--sp-3)" }}>
-                <span className={styles.label}>Or attach a consent PDF</span>
-                <PdfUpload
-                  adminId={authUser.id}
-                  pathKey="agency-consent"
-                  value={draft.consent_pdf_url ?? ""}
-                  onChange={(url) => set({ consent_pdf_url: url })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Client identity ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Client identity</h2>
-          <p className={styles.cardBlurb}>
-            Enforced immediately for every member, not just shown as a locked switch — turning this on forces codenames
-            on for the whole agency and members can't switch it back off from their own settings.
-          </p>
-          <div className={styles.toggleRow}>
-            <div className={styles.toggleText}>
-              <strong>Require staff to use client codenames</strong>
-              <span>Members see and use codenames instead of clients' real names everywhere in their admin UI.</span>
-            </div>
-            <Switch
-              checked={draft.require_client_codenames}
-              onChange={(v) => set({ require_client_codenames: v })}
-              label="Require staff to use client codenames"
-            />
-          </div>
-        </div>
-
-        {/* ── Staff working agreements ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Staff working agreements</h2>
-          <p className={styles.cardBlurb}>
-            Shown to every new staff member during onboarding, right after they accept their invitation.
-          </p>
-
-          <div className={styles.field} role="radiogroup" aria-label="Staff working agreements">
-            <label className={styles.radioRow}>
-              <input
-                type="radio"
-                name="agreementPolicy"
-                checked={draft.staff_agreement_required}
-                onChange={() => set({ staff_agreement_required: true })}
-              />
-              <span>
-                <strong>Agency agreement required</strong>
-                <br />
-                Staff must read and accept the agreement below before they can finish onboarding.
-              </span>
-            </label>
-            <label className={styles.radioRow}>
-              <input
-                type="radio"
-                name="agreementPolicy"
-                checked={!draft.staff_agreement_required}
-                onChange={() => set({ staff_agreement_required: false })}
-              />
-              <span>
-                <strong>Staff may use their own agreement</strong>
-                <br />
-                No agency-wide agreement is enforced at onboarding.
-              </span>
-            </label>
-          </div>
-
-          {draft.staff_agreement_required && (
-            <div style={{ marginTop: "var(--sp-3)" }}>
-              <p className={styles.cardBlurb}>
-                Current version: <strong>v{draft.agreement_version}</strong> — bumps automatically whenever you change
-                the text or PDF below, so you can tell who signed an older version.
-              </p>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="ag-agreement-text">
-                  Agreement text
-                </label>
-                <textarea
-                  id="ag-agreement-text"
-                  className={styles.textarea}
-                  style={{ minHeight: 140 }}
-                  value={draft.agreement_text ?? ""}
-                  onChange={(e) => set({ agreement_text: e.target.value })}
-                  placeholder="The working agreement your staff must accept before joining."
-                />
-              </div>
-              <div className={styles.field} style={{ marginTop: "var(--sp-3)" }}>
-                <span className={styles.label}>Or attach an agreement PDF</span>
-                <PdfUpload
-                  adminId={authUser.id}
-                  pathKey="agency-agreement"
-                  value={draft.agreement_pdf_url ?? ""}
-                  onChange={(url) => set({ agreement_pdf_url: url })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Other member policies ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Other member policies</h2>
-          <p className={styles.cardBlurb}>Rules the agency enforces across every member's practice.</p>
-          {POLICIES.map((p) => (
-            <div key={p.key} className={styles.toggleRow}>
+            <div className={styles.settingRow}>
               <div className={styles.toggleText}>
-                <strong>{p.title}</strong>
-                <span>{p.blurb}</span>
+                <strong>Appearance</strong>
+                <span>Light, dark, or follow this device's setting.</span>
               </div>
-              <Switch checked={draft[p.key]} onChange={(v) => set({ [p.key]: v } as Partial<Agency>)} label={p.title} />
+              <ThreeWayToggle
+                ariaLabel="Appearance"
+                options={APPEARANCE_OPTIONS}
+                value={themeMode}
+                onChange={(v) => dispatch(setTheme(v))}
+              />
             </div>
-          ))}
-        </div>
 
-        {/* ── Billing & seats ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Billing & seats</h2>
-          <p className={styles.cardBlurb}>
-            Your plan is based on active staff, not total headcount — paused or removed staff free up a seat.
-          </p>
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>Stop animations</strong>
+                <span>Turns off transitions and animations across the app.</span>
+              </div>
+              <Switch checked={reduceMotion} onChange={(v) => setReduceMotion(v)} label="Stop animations" />
+            </div>
 
-          {(() => {
-            const currentPlan = (agency?.subscription_plan ?? "starter") as AgencyPlanKey;
-            const currentLimit = planLimits.find((l) => l.plan === currentPlan);
-            const usage = currentLimit ? staffSeatUsage(activeStaffCount, currentLimit.max_staff) : null;
-            return (
-              <>
-                {currentLimit && usage && (
-                  <div className={styles.usageBar}>
-                    <div className={styles.usageBarHead}>
-                      <span>Staff places used</span>
-                      <span className={usage.over ? styles.usageOver : undefined}>
-                        {usage.unlimited
-                          ? `${activeStaffCount} · unlimited`
-                          : `${activeStaffCount} of ${currentLimit.max_staff}`}
-                      </span>
-                    </div>
-                    <div className={styles.usageTrack}>
-                      <div className={styles.usageFill} style={{ width: `${usage.pct}%` }} />
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.tierGrid} style={{ marginTop: "var(--sp-3)" }}>
-                  {planLimits.map((l) => {
-                    const isCurrent = l.plan === currentPlan;
-                    const price = agency?.billing_interval === "year" ? l.price_year_pence : l.price_month_pence;
-                    return (
-                      <div key={l.plan} className={`${styles.card}`} style={{ padding: "var(--sp-3)" }}>
-                        <div style={{ fontWeight: 600 }}>{PLAN_LABEL[l.plan]}</div>
-                        <div style={{ fontSize: "1.4rem", margin: "var(--sp-1) 0" }}>
-                          £{(price / 100).toFixed(2)}
-                          <span style={{ fontSize: "0.8rem" }}>
-                            {agency?.billing_interval === "year" ? "/yr" : "/mo"}
-                          </span>
-                        </div>
-                        <div className={styles.cardBlurb}>
-                          {l.max_staff == null ? "Unlimited staff" : `Up to ${l.max_staff} staff`}
-                        </div>
-                        {isCurrent ? (
-                          <Badge variant="success">Current plan</Badge>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handlePickPlan(l.plan)}
-                            disabled={!!switchingPlan}
-                          >
-                            {switchingPlan === l.plan ? "Checking…" : "Switch"}
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {planSwitchError && <p className={styles.error}>{planSwitchError}</p>}
-                {usage?.atLimit && (
-                  <p className={styles.error} style={{ marginTop: "var(--sp-2)" }}>
-                    You're at your staff limit — invite one more and you'll need to upgrade first.
-                  </p>
-                )}
-              </>
-            );
-          })()}
-        </div>
-
-        {/* ── Payments between the agency and staff ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Payments between the agency and staff</h2>
-          <p className={styles.cardBlurb}>
-            Sets the direction agency invoices run in. “Staff pays the agency” is the usual freelancer seat / commission
-            fee; “Agency pays the staff member” is payroll for delivered work.
-          </p>
-
-          <div className={styles.field} style={{ maxWidth: 520 }}>
-            <label className={styles.label} htmlFor="ag-settlement-default">
-              Default for new staff
-            </label>
-            <select
-              id="ag-settlement-default"
-              className={styles.select}
-              value={draft.default_settlement_direction}
-              onChange={(e) => set({ default_settlement_direction: e.target.value as AgencySettlementDefault })}
-            >
-              {(Object.keys(SETTLEMENT_DEFAULT_LABEL) as AgencySettlementDefault[]).map((k) => (
-                <option key={k} value={k}>
-                  {SETTLEMENT_DEFAULT_LABEL[k]}
-                </option>
-              ))}
-            </select>
-            <span className={styles.cardBlurb} style={{ marginTop: "var(--sp-1)" }}>
-              Saved with the rest of this form.
-            </span>
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>App zoom</strong>
+                <span>Scales the whole app on this device — useful on smaller screens.</span>
+              </div>
+              <select
+                id="ag-app-zoom"
+                aria-label="App zoom"
+                className={styles.select}
+                style={{ maxWidth: 140 }}
+                value={appZoom}
+                onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
+              >
+                {APP_ZOOM_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {Math.round(level * 100)}%
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {members.filter((m) => m.status === "active").length > 0 && (
-            <div style={{ marginTop: "var(--sp-3)" }}>
-              <span className={styles.label}>Per-staff overrides</span>
-              <div className={styles.list} style={{ marginTop: "var(--sp-2)" }}>
-                {members
-                  .filter((m) => m.status === "active")
-                  .map((m) => {
-                    const name =
-                      m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Staff";
-                    const effective = effectiveSettlement(
-                      m.settlement_direction,
-                      draft.default_settlement_direction,
-                      m.employment_type,
-                    );
-                    return (
-                      <div key={m.user_id} className={styles.row}>
-                        <div className={styles.rowMain}>
-                          <span className={styles.rowName}>{name}</span>
-                          <span className={styles.rowMeta}>
-                            {m.employment_type === "employee" ? "Employee" : "Freelance"} ·{" "}
-                            {SETTLEMENT_LABEL[effective]}
-                          </span>
-                        </div>
-                        <select
-                          className={styles.select}
-                          style={{ maxWidth: 220 }}
-                          value={m.settlement_direction ?? ""}
-                          disabled={savingSettlementFor === m.user_id}
-                          onChange={(e) =>
-                            setMemberSettlement(m.user_id, e.target.value as AgencySettlementDirection | "")
-                          }
-                          aria-label={`Payment direction for ${name}`}
-                        >
-                          <option value="">Follow agency default</option>
-                          {(Object.keys(SETTLEMENT_LABEL) as AgencySettlementDirection[]).map((k) => (
-                            <option key={k} value={k}>
-                              {SETTLEMENT_LABEL[k]}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Guided tours</h2>
+            <p className={styles.cardBlurb}>
+              Page walkthroughs play the first time you open each section. Reset them to replay every tour.
+            </p>
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>Walkthrough status</strong>
+                <span>
+                  {walkthroughOff
+                    ? "All walkthroughs are turned off."
+                    : "Walkthroughs play automatically on first visit to each page."}
+                </span>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Microsoft Teams channel ── */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Microsoft Teams channel</h2>
-          <p className={styles.cardBlurb}>
-            Post a card to a Teams channel whenever a member books, cancels or gets paid for a session. In Teams, add a{" "}
-            <strong>Workflows</strong> → “Post to a channel when a webhook request is received” trigger to your channel
-            and paste its URL here. One-way only.
-          </p>
-
-          <div className={styles.field} style={{ maxWidth: 560 }}>
-            <label className={styles.label} htmlFor="ag-teams-url">
-              Incoming webhook URL
-            </label>
-            <input
-              id="ag-teams-url"
-              className={styles.input}
-              type="url"
-              value={teams.webhook_url}
-              onChange={(e) => setTeamsField({ webhook_url: e.target.value })}
-              placeholder="https://…logic.azure.com/… or https://…webhook.office.com/…"
-            />
-            <span className={styles.cardBlurb} style={{ marginTop: "var(--sp-1)" }}>
-              Leave blank and save to disconnect.
-            </span>
-          </div>
-
-          {teams.webhook_url.trim() && (
-            <>
-              <div className={styles.toggleRow}>
-                <div className={styles.toggleText}>
-                  <strong>Session booked</strong>
-                  <span>Post when a member books a session.</span>
-                </div>
-                <Switch
-                  checked={teams.notify_booked}
-                  onChange={(v) => setTeamsField({ notify_booked: v })}
-                  label="Notify on session booked"
-                />
-              </div>
-              <div className={styles.toggleRow}>
-                <div className={styles.toggleText}>
-                  <strong>Session cancelled</strong>
-                  <span>Post when a session is cancelled.</span>
-                </div>
-                <Switch
-                  checked={teams.notify_cancelled}
-                  onChange={(v) => setTeamsField({ notify_cancelled: v })}
-                  label="Notify on session cancelled"
-                />
-              </div>
-              <div className={styles.toggleRow}>
-                <div className={styles.toggleText}>
-                  <strong>Payment received</strong>
-                  <span>Post when a client pays for a session.</span>
-                </div>
-                <Switch
-                  checked={teams.notify_paid}
-                  onChange={(v) => setTeamsField({ notify_paid: v })}
-                  label="Notify on payment received"
-                />
-              </div>
-            </>
-          )}
-
-          <div style={{ display: "flex", gap: "var(--sp-2)", marginTop: "var(--sp-3)" }}>
-            <Button type="button" onClick={saveTeams} disabled={teamsBusy}>
-              {teamsBusy ? "Saving…" : "Save Teams settings"}
-            </Button>
-            {teams.webhook_url.trim() && (
-              <Button type="button" variant="ghost" onClick={testTeams} disabled={teamsTesting}>
-                {teamsTesting ? "Sending…" : "Send test message"}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  resetWalkthrough();
+                  showToast("Walkthroughs reset — they'll play again on each page.", "success");
+                }}
+              >
+                Reset walkthroughs
               </Button>
-            )}
+            </div>
           </div>
         </div>
       </form>
+
       {confirmSwitch && (
         <ConfirmModal
           title={`Switch to ${PLAN_LABEL[confirmSwitch.plan]}?`}

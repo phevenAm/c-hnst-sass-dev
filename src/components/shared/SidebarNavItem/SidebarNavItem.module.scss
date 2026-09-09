@@ -1,0 +1,9 @@
+// The selected/active treatment shared by every sidebar row (plain items and
+// nav-group rows/children alike) so admin + agency can't drift apart. Colours
+// come from custom properties with the admin default; a host overrides them by
+// passing `accent` (see SidebarNavItem / SidebarNavGroup).
+.selected {
+  background: var(--nav-selected-bg, var(--accent-secondary)) !important;
+  color: var(--nav-selected-fg, var(--text-primary)) !important;
+  font-weight: 600;
+}

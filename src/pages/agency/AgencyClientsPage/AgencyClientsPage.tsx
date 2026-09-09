@@ -85,7 +85,7 @@ export default function AgencyClientsPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-clients-header">
         <div>
           <h1 className={styles.title}>Clients</h1>
           <p className={styles.subtitle}>Everyone your agency has taken on, and who's working with them.</p>

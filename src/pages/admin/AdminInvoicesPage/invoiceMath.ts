@@ -15,6 +15,16 @@ export const formatReference = (prefix: string, n: number): string => `${prefix}
 /** £ display from pence. */
 export const money = (pence: number): string => `£${(pence / 100).toFixed(2)}`;
 
+/** ISO date ("2026-09-08", or a full timestamp) → "8 September 2026" for
+ *  display on the invoice. Returns the input unchanged if it isn't a
+ *  parseable date, and "" for nullish. */
+export const fmtDate = (iso: string | null | undefined): string => {
+  if (!iso) return "";
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+};
+
 /** The due date to seed a fresh invoice with: an existing invoice keeps its
  *  stored value; a new one inherits the practice's default payment-terms window
  *  (Settings → Invoicing), added to the issue date — or none if unset. */

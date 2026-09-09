@@ -74,6 +74,23 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
   // Deep-link presets from "Raise invoice" on a client page / session card.
   const [presetClientId, setPresetClientId] = useState<string | null>(null);
   const [presetSessionId, setPresetSessionId] = useState<string | null>(null);
+  // Bank details (encrypted at rest, not in the practice_settings slice) +
+  // invoice_footer_text — fetched straight from source so they reach the PDF.
+  const [payDetails, setPayDetails] = useState<{
+    bankName: string | null;
+    bankAccountName: string | null;
+    bankSortCode: string | null;
+    bankAccountNumber: string | null;
+    bankReference: string | null;
+    footerText: string | null;
+  }>({
+    bankName: null,
+    bankAccountName: null,
+    bankSortCode: null,
+    bankAccountNumber: null,
+    bankReference: null,
+    footerText: null,
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -131,6 +148,33 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
     void fetchInvoices();
   }, [fetchInvoices]);
 
+  // The email path already decrypts bank details via this RPC; the client-side
+  // PDF was still reading the (trimmed, encrypted) settings slice and getting
+  // nothing, so "How to pay" came out blank. Pull the real values here.
+  useEffect(() => {
+    if (!userProfile?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const [bankRes, footerRes] = await Promise.all([
+        supabase.rpc("get_practice_bank_details", { p_admin_id: userProfile.id }),
+        supabase.from("practice_settings").select("invoice_footer_text").eq("admin_id", userProfile.id).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      const b = bankRes.data?.[0];
+      setPayDetails({
+        bankName: b?.bank_name ?? null,
+        bankAccountName: b?.bank_account_name ?? null,
+        bankSortCode: b?.bank_sort_code ?? null,
+        bankAccountNumber: b?.bank_account_number ?? null,
+        bankReference: b?.bank_payment_reference ?? null,
+        footerText: footerRes.data?.invoice_footer_text ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userProfile?.id]);
+
   const clientName = useCallback(
     (inv: Invoice) => {
       if (inv.client_id) {
@@ -171,12 +215,13 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
 
   const practiceDetails = () => ({
     businessName: settings?.business_name ?? null,
-    bankName: settings?.bank_name ?? null,
-    bankAccountName: settings?.bank_account_name ?? null,
-    bankSortCode: settings?.bank_sort_code ?? null,
-    bankAccountNumber: settings?.bank_account_number ?? null,
-    bankReference: settings?.bank_payment_reference ?? null,
+    bankName: payDetails.bankName,
+    bankAccountName: payDetails.bankAccountName,
+    bankSortCode: payDetails.bankSortCode,
+    bankAccountNumber: payDetails.bankAccountNumber,
+    bankReference: payDetails.bankReference,
     accentHex: settings?.invoice_accent_hex ?? null,
+    footerText: payDetails.footerText,
   });
 
   const sendEmail = async (inv: Invoice) => {

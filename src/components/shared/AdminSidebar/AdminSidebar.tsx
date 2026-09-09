@@ -2,12 +2,16 @@ import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from
 import { Link, useLocation } from "react-router-dom";
 
 import { useAuth } from "@context/AuthContext";
+import { useAppSelector } from "@store/hooks";
+import { selectTotalUnread } from "@store/slices/messagesSlice";
 
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import FeedbackModal from "../FeedbackModal/FeedbackModal";
 import {
   AssignmentClipIcon,
   BookIcon,
   CalendarIcon,
+  ChatIcon,
   ChevronDownSmIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -34,6 +38,9 @@ const NAV: NavItem[] = [
   { to: "/admin", label: "Dashboard", Icon: HomeIcon, exact: true },
   { to: "/admin/scheduler", label: "Schedule", Icon: CalendarIcon, exact: false },
   { to: "/admin/clients", label: "Clients", Icon: UsersIcon, exact: false },
+  ...(isFeatureEnabled("messaging")
+    ? [{ to: "/admin/messages", label: "Messages", Icon: ChatIcon, exact: false } as NavLeaf]
+    : []),
   { to: "/admin/forms", label: "Forms", Icon: AssignmentClipIcon, exact: false },
   { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
@@ -62,6 +69,7 @@ export default function AdminSidebar({
 }) {
   const location = useLocation();
   const { isDemo } = useAuth();
+  const totalUnread = useAppSelector(selectTotalUnread);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
@@ -273,6 +281,11 @@ export default function AdminSidebar({
                       <item.Icon />
                     </span>
                     <span className={styles.label}>{item.label}</span>
+                    {item.to === "/admin/messages" && totalUnread > 0 && (
+                      <span className={styles.navUnread} aria-label={`${totalUnread} unread`}>
+                        {totalUnread}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );

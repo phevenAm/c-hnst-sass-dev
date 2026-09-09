@@ -12,7 +12,7 @@
 //   // in a component
 //   const agencyOn = useFeatureFlag("agency");
 
-export type FeatureFlag = "agency";
+export type FeatureFlag = "agency" | "messaging";
 
 // Tolerate a trailing inline comment / stray whitespace in a .env value
 // (dotenv keeps everything after `=`, so `VITE_FF_AGENCY=true # on` is the
@@ -33,6 +33,11 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
     // preview / staging deploy with VITE_FF_AGENCY=true.
     case "agency":
       return isOn(import.meta.env.VITE_FF_AGENCY);
+    // Direct messaging (client ↔ their counsellor). New client-facing surface +
+    // a prod migration — kept dark until it's been run in-browser and the copy
+    // signed off. Enable with VITE_FF_MESSAGING=true.
+    case "messaging":
+      return isOn(import.meta.env.VITE_FF_MESSAGING);
     default:
       return false;
   }
