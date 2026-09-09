@@ -2,8 +2,8 @@
 @use '../../../styles/spacing' as *;
 @use '../../../styles/mixins' as *;
 
-// One vertical rhythm for the whole page: every direct child of .grid gets the
-// same gap, so there are no ad-hoc per-block margins to drift out of step.
+// One vertical rhythm for the whole page: every direct child of .grid gets
+// the same gap, so no per-block margin-bottom can drift out of step.
 .grid {
   display: flex;
   flex-direction: column;
@@ -14,49 +14,37 @@
   }
 }
 
-// ── Greeting ───────────────────────────────────────────────
 .header {
-  h1 {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 $sp-1;
+  width: auto;
+  background: var(--bg-muted);
+  // width: fit-content;
+  padding: $sp-4;
+  border-radius: var(--r-lg);
 
-    @include until-sm {
-      font-size: 1.35rem;
-    }
+  h1 {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 $sp-2;
   }
 
   p {
-    color: var(--text-secondary);
+    color: var(--text-muted);
     font-size: 0.95rem;
     margin: 0;
   }
 }
 
-// Section headings (Next session / Your Check-ins / Resources for you).
-.cardTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 $sp-4;
-}
-
-// ── Stat tiles ─────────────────────────────────────────────
+// ── Stats row ──────────────────────────────────────────────
 .statsRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: flex;
   gap: $sp-3;
+  flex-wrap: wrap;
 }
 
 .statCard {
-  padding: $sp-4;
   border-radius: var(--r-lg);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  // Emphasis lives on the top edge, not a full tinted fill, so a row of
-  // tiles stays calm.
-  border-top-width: 3px;
+  padding: $sp-4;
+  flex: 1 1 120px;
 }
 
 .statLabel {
@@ -64,66 +52,62 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-secondary);
-  margin: 0 0 $sp-2;
+  margin: 0 0 $sp-1;
 }
 
 .statValue {
   font-family: var(--font-serif);
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 500;
   color: var(--text-primary);
-  line-height: 1;
   margin: 0 0 $sp-1;
+  line-height: 1;
 }
 
 .statSub {
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin: 0;
 }
 
+// colour variants — use tokens so dark mode works
 .teal {
-  border-top-color: var(--accent);
-}
+  background: var(--accent-light);
 
-.warm {
-  border-top-color: var(--accent);
-}
+  .statLabel {
+    color: var(--accent-dark);
+  }
 
-.danger {
-  border-top-color: var(--danger);
+  .statSub {
+    color: var(--accent-dark);
+  }
 }
 
 .stone {
-  border-top-color: var(--border-strong);
+  background: var(--bg-muted);
+
+  .statLabel {
+    color: var(--text-secondary);
+  }
 }
 
-// ── Quote ──────────────────────────────────────────────────
-.quote {
-  margin: 0;
-  padding: $sp-6;
-  border-radius: var(--r-md);
-  background: var(--bg-muted);
-  border-left: 3px solid var(--accent);
+.warm {
+  background: var(--warning-light);
 
-  p {
+  .statLabel {
     color: var(--text-primary);
-    font-size: 1.15rem;
-    font-weight: 400;
-    font-style: italic;
-    line-height: 1.55;
-    margin: 0 0 $sp-3;
-
-    @include until-sm {
-      font-size: 1.05rem;
-    }
   }
 
-  footer {
+  .statSub {
     color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-weight: 600;
+  }
+}
+
+.danger {
+  background: var(--danger-light);
+
+  .statLabel {
+    color: var(--danger);
   }
 }
 
@@ -131,19 +115,22 @@
 .bottomGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: $sp-6;
+  gap: $sp-5;
 
-  @include until-md {
+  @include until-sm {
     grid-template-columns: 1fr;
   }
 }
 
 .cardPad {
   padding: $sp-6;
+}
 
-  @include until-sm {
-    padding: $sp-4;
-  }
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 $sp-4;
 }
 
 // ── Check-in list ──────────────────────────────────────────
@@ -157,7 +144,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: $sp-3;
   padding: $sp-3 $sp-4;
   background: var(--bg-muted);
   border-radius: var(--r-md);
@@ -165,20 +151,20 @@
 
 .checkInTitle {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
   margin: 0 0 2px;
 }
 
 .checkInFreq {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin: 0;
   text-transform: capitalize;
 }
 
 .emptyText {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -188,11 +174,7 @@
   height: 100%;
   padding: $sp-6;
   border-radius: var(--r-md);
-  background: var(--accent-subtle);
-
-  @include until-sm {
-    padding: $sp-4;
-  }
+  background: linear-gradient(135deg, var(--accent-subtle), var(--accent-light));
 }
 
 .resourcesTitle {
@@ -207,4 +189,38 @@
   color: var(--text-secondary);
   margin: 0 0 $sp-5;
   line-height: 1.6;
+}
+
+// ── Quotes section ─────────────────────────────────────────
+.quotes {
+  padding: $sp-6;
+  background: var(--accent-secondary);
+  border-radius: var(--r-md);
+  position: relative;
+
+  &::after {
+    content: '"';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translate(40%, -10%);
+    transform-origin: center;
+    font-size: 6rem;
+    font-family: "Revalia", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    color: var(--danger-border);
+  }
+
+  h3 {
+    color: var(--text-primary);
+    font-size: 1.35rem;
+    font-weight: 100;
+  }
+
+  small {
+    color: var(--danger);
+    font-size: .8rem;
+    font-weight: bold;
+  }
 }

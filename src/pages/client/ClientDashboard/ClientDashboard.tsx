@@ -239,27 +239,25 @@ export default function ClientDashboard() {
     <div className="page">
       <div className="inner">
         <div className={styles.grid}>
-          <header className={styles.header} id="client-dash-header">
+          <div className={styles.header} id="client-dash-header">
             <h1>
               {greeting}, {displayName ?? "friend"}
             </h1>
             <p>Here's a look at how you've been doing</p>
-          </header>
+          </div>
 
           {nextSession && (
-            <section className={styles.nextSessionCard} id="client-next-session" aria-labelledby="client-next-title">
-              <h2 className={styles.cardTitle} id="client-next-title">
-                Next session
-              </h2>
+            <div className={styles.nextSessionCard} id="client-next-session">
+              <h3 className={styles.cardTitle}>Next session</h3>
               <NextSessionCard session={nextSession} compact />
-            </section>
+            </div>
           )}
 
           {/* Near the top — a sent invoice needs the client to act.
-              Self-hides unless the practice has invoicing on AND this client has invoices. */}
+            Self-hides unless the practice has invoicing on AND this client has invoices. */}
           <ClientInvoicesCard />
 
-          <section className={styles.statsRow} id="client-stats" aria-label="Your progress at a glance">
+          <div className={styles.statsRow} id="client-stats">
             {stats.map((s) => (
               <div key={s.label} className={`${styles.statCard} ${styles[s.color as keyof typeof styles]}`}>
                 <p className={styles.statLabel}>{s.label}</p>
@@ -267,35 +265,31 @@ export default function ClientDashboard() {
                 <p className={styles.statSub}>{s.sub}</p>
               </div>
             ))}
-          </section>
+          </div>
 
           {randomQuote ? (
-            <blockquote className={styles.quote}>
-              <p>{randomQuote.content}</p>
-              <footer>{randomQuote.author}</footer>
-            </blockquote>
+            <section className={`${styles.quotes} ${styles.warm}`}>
+              <h2>{randomQuote?.content}</h2>
+              <small>{randomQuote?.author}</small>
+            </section>
           ) : null}
 
-          {/* ProgressChart plots one line per question *tag* (category — Mood, Sleep,
+          <div className={styles.chartWrap} id="client-chart">
+            <ProgressChart
+              responses={chartResponses}
+              questions={allAssignedQuestions}
+              title="Your Wellbeing Over Time"
+            />
+            {/* ProgressChart plots one line per question *tag* (category — Mood, Sleep,
               Energy …) when the check-in's scale questions are tagged, averaging
               every question that shares a tag; it falls back to per-question lines
               only when no tags are set. Tag questions in the form builder. */}
-          <section id="client-chart" aria-label="Your wellbeing over time">
-            <Card>
-              <div className={styles.cardPad}>
-                <ProgressChart
-                  responses={chartResponses}
-                  questions={allAssignedQuestions}
-                  title="Your Wellbeing Over Time"
-                />
-              </div>
-            </Card>
-          </section>
+          </div>
 
           <div className={styles.bottomGrid} id="client-checkins">
             <Card>
               <div className={styles.cardPad}>
-                <h2 className={styles.cardTitle}>Your Check-ins</h2>
+                <h3 className={styles.cardTitle}>Your Check-ins</h3>
 
                 {(() => {
                   if (assignedQs.length === 0) {
@@ -338,7 +332,7 @@ export default function ClientDashboard() {
 
             <Card>
               <div className={styles.resourcesCard}>
-                <h2 className={styles.resourcesTitle}>Resources for you</h2>
+                <h3 className={styles.resourcesTitle}>Resources for you</h3>
                 <p className={styles.resourcesDesc}>
                   Articles, breathing exercises, and tools curated by your practitioner.
                 </p>
