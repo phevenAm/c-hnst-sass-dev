@@ -12,7 +12,7 @@
 //   // in a component
 //   const agencyOn = useFeatureFlag("agency");
 
-export type FeatureFlag = "agency" | "messaging";
+export type FeatureFlag = "agency" | "messaging" | "fileManager";
 
 // Read a .env flag value that turns a default-ON feature OFF. Only an explicit
 // "false" / "0" disables it; an unset var (or anything else) leaves it enabled.
@@ -42,6 +42,12 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
     // own auth gating. Force it dark for a deploy with VITE_FF_MESSAGING=false.
     case "messaging":
       return !isOff(import.meta.env.VITE_FF_MESSAGING);
+    // File manager (/admin/files) for admins + agencies. On by default — the
+    // route and nav entry are admin-gated and the storage RLS / quota triggers
+    // scope every row to the caller's practice or agency. Force it dark for a
+    // deploy with VITE_FF_FILE_MANAGER=false.
+    case "fileManager":
+      return !isOff(import.meta.env.VITE_FF_FILE_MANAGER);
     default:
       return false;
   }

@@ -17,6 +17,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CpdIcon,
+  FolderIcon,
   HistoryIcon,
   HomeIcon,
   IdeasIcon,
@@ -45,6 +46,9 @@ const NAV: NavItem[] = [
   { to: "/admin/forms", label: "Forms", Icon: AssignmentClipIcon, exact: false },
   { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
+  ...(isFeatureEnabled("fileManager")
+    ? [{ to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false } as NavLeaf]
+    : []),
   {
     label: "Logs",
     Icon: LayersIcon,

@@ -49,6 +49,7 @@ const AdminClientsPageDetailed = lazyWithReload(
 );
 const AdminCpdPage = lazyWithReload(() => import("../pages/admin/AdminCpdPage/AdminCpdPage"));
 const AdminDashboard = lazyWithReload(() => import("../pages/admin/AdminDashboard/AdminDashboard"));
+const AdminFilesPage = lazyWithReload(() => import("../pages/admin/AdminFilesPage/AdminFilesPage"));
 const AdminFinancesPage = lazyWithReload(() => import("../pages/admin/AdminFinancesPage/AdminFinancesPage"));
 const AdminQuestionnairesPage = lazyWithReload(
   () => import("../pages/admin/AdminQuestionnairesPage/AdminQuestionnairesPage"),
@@ -475,6 +476,7 @@ export default function AppRoutes() {
                 <Route path="/admin/expenses" element={<Navigate to="/admin/finances?view=expenses" replace />} />
                 <Route path="/admin/cpd" element={<AdminCpdPage />} />
                 <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
+                {isFeatureEnabled("fileManager") && <Route path="/admin/files" element={<AdminFilesPage />} />}
                 {isFeatureEnabled("messaging") && (
                   <>
                     <Route path="/admin/messages" element={<AdminMessagesPage />} />

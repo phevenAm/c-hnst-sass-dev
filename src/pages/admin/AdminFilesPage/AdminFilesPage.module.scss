@@ -1,0 +1,300 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6, 24px) var(--space-4, 16px) var(--space-10, 48px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl, 1.5rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  align-items: center;
+}
+
+/* ── Storage meter ─────────────────────────────────────────── */
+.meter {
+  background: var(--surface-raised, var(--surface));
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meterRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.meterTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.35s ease;
+}
+
+.meterFillWarn {
+  background: var(--warning, #d98324);
+}
+
+.meterFillFull {
+  background: var(--danger, #c0392b);
+}
+
+/* ── Layout: tree + browser ────────────────────────────────── */
+.body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--space-4, 16px);
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tree {
+  background: var(--surface-raised, var(--surface));
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-3, 12px);
+  max-height: 70vh;
+  overflow: auto;
+
+  @media (max-width: 720px) {
+    max-height: 220px;
+  }
+}
+
+.treeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 8px);
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+  }
+}
+
+.treeRowActive {
+  background: var(--accent-subtle, rgba(45, 114, 100, 0.14));
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.treeTwisty {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  opacity: 0.65;
+}
+
+.treeIcon {
+  display: inline-flex;
+  font-size: 1.05rem;
+  flex: none;
+  opacity: 0.8;
+}
+
+.treeLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Browser ──────────────────────────────────────────────── */
+.browser {
+  background: var(--surface-raised, var(--surface));
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-4, 16px);
+  min-height: 320px;
+  position: relative;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.crumb {
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+
+  &:hover {
+    background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+  }
+
+  &:disabled {
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: default;
+  }
+}
+
+.crumbSep {
+  opacity: 0.4;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: 10px 8px;
+  border-radius: var(--radius-sm, 8px);
+
+  &:hover {
+    background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+  }
+}
+
+.itemMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemIcon {
+  display: inline-flex;
+  font-size: 1.25rem;
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.itemName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  flex: none;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--space-8, 40px) var(--space-4, 16px);
+  font-size: 0.9rem;
+}
+
+/* ── Dropzone overlay ─────────────────────────────────────── */
+.dropActive::after {
+  content: "Drop to upload here";
+  position: absolute;
+  inset: 6px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--accent-subtle, rgba(45, 114, 100, 0.16));
+  outline: 2px dashed var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Move dialog ──────────────────────────────────────────── */
+.moveTree {
+  max-height: 45vh;
+  overflow: auto;
+  margin-top: 8px;
+}
+
+.rejectList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.previewImg {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 0 auto;
+  border-radius: var(--radius-sm, 8px);
+}
+
+.previewFallback {
+  text-align: center;
+  padding: var(--space-8, 40px) var(--space-4, 16px);
+  color: var(--text-secondary);
+}
