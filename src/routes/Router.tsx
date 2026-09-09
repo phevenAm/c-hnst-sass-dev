@@ -16,6 +16,7 @@ import PastDueBanner from "../components/shared/PastDueBanner/PastDueBanner";
 import PausedBanner from "../components/shared/PausedBanner/PausedBanner";
 import ProtectedRoute from "../components/shared/ProtectedRoute/ProtectedRoute";
 import SkipToMain from "../components/shared/SkipToMain/SkipToMain";
+import UpdateBanner from "../components/shared/UpdateBanner/UpdateBanner";
 import ViewportWarningBanner from "../components/shared/ViewportWarningBanner/ViewportWarningBanner";
 import WalkthroughOverlay from "../components/shared/Walkthrough/WalkthroughOverlay";
 import { useAuth } from "../context/AuthContext";
@@ -365,6 +366,7 @@ export default function AppRoutes() {
       <BrowserRouter>
         <HeroSplashBridge />
         <WalkthroughProvider>
+          <UpdateBanner />
           <ViewportWarningBanner />
           <ConsentGate />
           <OnboardingGate />
