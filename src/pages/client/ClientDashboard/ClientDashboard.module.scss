@@ -7,7 +7,7 @@
 
   width: auto;
   background: var(--bg-muted);
-  width: fit-content;
+  // width: fit-content;
   padding: $sp-4;
   border-radius: var(--r-lg);
 
@@ -29,7 +29,7 @@
   display: flex;
   gap: $sp-3;
   flex-wrap: wrap;
-  margin-bottom: $sp-7;
+  margin-bottom: $sp-4;
 }
 
 .statCard {

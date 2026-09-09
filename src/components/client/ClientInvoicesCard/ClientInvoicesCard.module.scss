@@ -2,6 +2,7 @@
   padding: 0;
   overflow: hidden;
   scroll-margin-top: var(--sp-4);
+  margin-bottom: var(--sp-6);
 }
 
 /* Something needs paying — tint the whole card + an accent outline so it
@@ -23,9 +24,11 @@
   0% {
     box-shadow: 0 0 0 0 var(--accent-subtle, rgba(31, 115, 100, 0.25));
   }
+
   20% {
     box-shadow: 0 0 0 4px var(--accent-subtle, rgba(31, 115, 100, 0.25));
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   }
@@ -163,10 +166,12 @@
     background: #1e3a5f;
     color: #93c5fd;
   }
+
   .pill_paid {
     background: #133a29;
     color: #6ee7a8;
   }
+
   .pill_void {
     background: #3d1a1a;
     color: #fca5a5;
