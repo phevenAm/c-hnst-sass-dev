@@ -31,6 +31,20 @@
   }
 }
 
+.bubbleAuto {
+  border-style: dashed;
+}
+
+.autoTag {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
 .bubbleBody {
   margin: 0;
   font-size: 0.9rem;

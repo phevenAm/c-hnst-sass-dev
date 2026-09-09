@@ -976,6 +976,51 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          admin_id: string
+          autoreply_at: string | null
+          client_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          last_notified_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          autoreply_at?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          last_notified_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          autoreply_at?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          last_notified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cpd_logs: {
         Row: {
           activity_type: Database["public"]["Enums"]["cpd_activity_type"]
@@ -1359,6 +1404,61 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_auto: boolean
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_auto?: boolean
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_auto?: boolean
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1545,6 +1645,10 @@ export type Database = {
           invoices_enabled: boolean
           is_paused: boolean
           logo_url: string | null
+          msg_autoreply_enabled: boolean
+          msg_autoreply_text: string | null
+          msg_away_until: string | null
+          msg_office_hours: Json | null
           next_invoice_number: number
           onboarding_required: boolean
           paused_at: string | null
@@ -1619,6 +1723,10 @@ export type Database = {
           invoices_enabled?: boolean
           is_paused?: boolean
           logo_url?: string | null
+          msg_autoreply_enabled?: boolean
+          msg_autoreply_text?: string | null
+          msg_away_until?: string | null
+          msg_office_hours?: Json | null
           next_invoice_number?: number
           onboarding_required?: boolean
           paused_at?: string | null
@@ -1693,6 +1801,10 @@ export type Database = {
           invoices_enabled?: boolean
           is_paused?: boolean
           logo_url?: string | null
+          msg_autoreply_enabled?: boolean
+          msg_autoreply_text?: string | null
+          msg_away_until?: string | null
+          msg_office_hours?: Json | null
           next_invoice_number?: number
           onboarding_required?: boolean
           paused_at?: string | null
@@ -2743,6 +2855,14 @@ export type Database = {
       _bank_decrypt: { Args: { p: string }; Returns: string }
       _bank_enc_key: { Args: never; Returns: string }
       _bank_encrypt: { Args: { p: string }; Returns: string }
+      _mark_invoice_paid_impl: {
+        Args: {
+          p_invoice_id: string
+          p_paid_at: string
+          p_payment_intent?: string
+        }
+        Returns: undefined
+      }
       _person_name: { Args: { p_uid: string }; Returns: string }
       _practice_slot_has_conflict_all: {
         Args: {
@@ -2873,6 +2993,10 @@ export type Database = {
       get_my_is_paused: { Args: never; Returns: boolean }
       get_my_reschedule_cutoff_hours: { Args: never; Returns: number }
       get_my_role: { Args: never; Returns: string }
+      get_or_create_conversation: {
+        Args: { p_admin_id: string; p_client_id: string }
+        Returns: string
+      }
       get_practice_bank_details: {
         Args: { p_admin_id: string }
         Returns: {
@@ -2902,6 +3026,23 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_my_conversations: {
+        Args: never
+        Returns: {
+          admin_id: string
+          client_id: string
+          created_at: string
+          id: string
+          last_message: string
+          last_message_at: string
+          peer_avatar_url: string
+          peer_display_name: string
+          peer_first_name: string
+          peer_id: string
+          peer_last_name: string
+          unread: number
+        }[]
+      }
       log_agency_event: {
         Args: {
           p_actor: string
@@ -2918,8 +3059,20 @@ export type Database = {
         Args: { p_invoice_id: string; p_method?: string; p_paid_at?: string }
         Returns: undefined
       }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
       mark_invoice_paid: {
         Args: { p_invoice_id: string; p_paid_at?: string }
+        Returns: undefined
+      }
+      mark_invoice_paid_system: {
+        Args: {
+          p_invoice_id: string
+          p_paid_at?: string
+          p_payment_intent?: string
+        }
         Returns: undefined
       }
       merge_stub_into_client: {
