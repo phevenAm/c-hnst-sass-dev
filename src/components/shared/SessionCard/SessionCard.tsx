@@ -33,9 +33,20 @@ interface SessionCardProps {
   isAdmin?: boolean;
   clientLabel?: string;
   onNotesClick?: (sessionId: string) => void;
+  /** When provided (invoicing enabled + a real client), shows an "Invoice
+   *  session" action that hands the session up to the parent to deep-link into
+   *  the invoice modal. Kept as a callback so SessionCard needs no router. */
+  onInvoiceSession?: (session: Session) => void;
 }
 
-export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClick }: SessionCardProps) {
+export function SessionCard({
+  session,
+  isDemo,
+  isAdmin,
+  clientLabel,
+  onNotesClick,
+  onInvoiceSession,
+}: SessionCardProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -379,6 +390,11 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                 <Button size="sm" variant="secondary" onClick={handleAddToCalendar}>
                   Add to calendar
                 </Button>
+                {onInvoiceSession && session.client_id && (
+                  <Button size="sm" variant="secondary" onClick={() => onInvoiceSession(session)}>
+                    Invoice session
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost-danger" disabled={isDemo} onClick={() => setIsCancelModalOpen(true)}>
                   Cancel
                 </Button>
@@ -403,6 +419,9 @@ export function SessionCard({ session, isDemo, isAdmin, clientLabel, onNotesClic
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     { label: "Edit", onClick: () => setOpenEditSession(true) },
                     { label: "Add to calendar", onClick: handleAddToCalendar },
+                    ...(onInvoiceSession && session.client_id
+                      ? [{ label: "Invoice session", onClick: () => onInvoiceSession(session) }]
+                      : []),
                     {
                       label: "Cancel",
                       onClick: () => {

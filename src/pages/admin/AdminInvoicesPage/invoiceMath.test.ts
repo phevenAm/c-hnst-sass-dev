@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { formatReference, invoiceTotalPence, lineTotalPence, money } from "./invoiceMath";
+import {
+  fmtDate,
+  formatReference,
+  hexToRgb,
+  initialDueDate,
+  invoiceBandBrand,
+  invoiceTotalPence,
+  lineTotalPence,
+  money,
+} from "./invoiceMath";
 
 describe("invoiceMath", () => {
   it("lineTotalPence multiplies quantity by unit and rounds to whole pence", () => {
@@ -36,5 +45,54 @@ describe("invoiceMath", () => {
     expect(money(8500)).toBe("£85.00");
     expect(money(0)).toBe("£0.00");
     expect(money(2498)).toBe("£24.98");
+  });
+
+  it("initialDueDate adds the payment-terms window to a new invoice's issue date", () => {
+    expect(initialDueDate(null, "2026-09-08", 14)).toBe("2026-09-22");
+    expect(initialDueDate(null, "2026-09-08", 0)).toBe("2026-09-08");
+    expect(initialDueDate(null, "2026-01-31", 30)).toBe("2026-03-02");
+  });
+
+  it("initialDueDate leaves a new invoice open-ended when there are no default terms", () => {
+    expect(initialDueDate(null, "2026-09-08", null)).toBe("");
+  });
+
+  it("initialDueDate preserves an existing invoice's stored due date", () => {
+    expect(initialDueDate({ due_date: "2026-10-01" }, "2026-09-08", 14)).toBe("2026-10-01");
+    expect(initialDueDate({ due_date: null }, "2026-09-08", 14)).toBe("");
+  });
+
+  it("invoiceBandBrand uses the (trimmed) business name for the PDF's top band", () => {
+    expect(invoiceBandBrand("Bright Path Counselling")).toBe("Bright Path Counselling");
+    expect(invoiceBandBrand("  Bright Path  ")).toBe("Bright Path");
+  });
+
+  it("invoiceBandBrand falls back to 'Clarity' when there's no business name", () => {
+    for (const empty of [null, undefined, "", "   "]) {
+      expect(invoiceBandBrand(empty)).toBe("Clarity");
+    }
+  });
+
+  it("fmtDate renders an ISO date (or timestamp) as a UK long date", () => {
+    expect(fmtDate("2026-09-08")).toBe("8 September 2026");
+    expect(fmtDate("2026-09-08T22:00:00.000Z")).toBe("8 September 2026");
+    expect(fmtDate("2026-01-01")).toBe("1 January 2026");
+  });
+
+  it("fmtDate returns '' for nullish and passes through an unparseable string", () => {
+    expect(fmtDate(null)).toBe("");
+    expect(fmtDate(undefined)).toBe("");
+    expect(fmtDate("")).toBe("");
+    expect(fmtDate("not-a-date")).toBe("not-a-date");
+  });
+
+  it("hexToRgb parses a 6-digit hex and rejects everything else", () => {
+    expect(hexToRgb("#1f4940")).toEqual([31, 73, 64]);
+    expect(hexToRgb("#FFFFFF")).toEqual([255, 255, 255]);
+    expect(hexToRgb("#abc")).toBeNull();
+    expect(hexToRgb("1f4940")).toBeNull();
+    expect(hexToRgb("")).toBeNull();
+    expect(hexToRgb(null)).toBeNull();
+    expect(hexToRgb(undefined)).toBeNull();
   });
 });

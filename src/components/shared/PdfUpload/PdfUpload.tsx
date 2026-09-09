@@ -9,6 +9,17 @@ interface Props {
   value: string;
   onChange: (url: string) => void;
   bucket?: string;
+  /**
+   * When set, the PDF lives at a fixed path (`<adminId>/<pathKey>.pdf`) and
+   * every upload overwrites it in place — use this for a PDF that belongs to
+   * one specific thing (a practice's consent document, an agency's working
+   * agreement) so replaced versions don't pile up in the bucket.
+   *
+   * Without it, each upload gets a unique name (fine for per-row files like an
+   * expense receipt), but the previously-referenced file is still deleted on
+   * replace / remove so nothing is orphaned.
+   */
+  pathKey?: string;
 }
 
 // Storage costs for PDFs are negligible at this scale — the cap here is
@@ -20,10 +31,29 @@ function sanitizeFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(-80);
 }
 
-export default function PdfUpload({ adminId, value, onChange, bucket = "documents" }: Props) {
+/** The storage object path inside `bucket` for a public URL it produced, or
+ *  null if the URL doesn't point at this bucket (e.g. an externally-hosted PDF
+ *  someone pasted in before uploads existed). */
+function storagePathForBucket(url: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const i = url.indexOf(marker);
+  if (i === -1) return null;
+  return decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
+}
+
+export default function PdfUpload({ adminId, value, onChange, bucket = "documents", pathKey }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const removeFromStorage = async (url: string) => {
+    const path = storagePathForBucket(url, bucket);
+    if (path)
+      await supabase.storage
+        .from(bucket)
+        .remove([path])
+        .then(undefined, () => {});
+  };
 
   const handleFile = async (file: File) => {
     setError(null);
@@ -37,18 +67,35 @@ export default function PdfUpload({ adminId, value, onChange, bucket = "document
     }
     setUploading(true);
     try {
-      const path = `${adminId}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
+      const prevUrl = value;
+      const path = pathKey
+        ? `${adminId}/${sanitizeFilename(pathKey)}.pdf`
+        : `${adminId}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
+
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(path, file, { contentType: "application/pdf" });
+        .upload(path, file, { contentType: "application/pdf", upsert: !!pathKey });
       if (uploadError) throw uploadError;
+
+      // Drop the file this one replaces, unless we just overwrote it in place.
+      const prevPath = prevUrl ? storagePathForBucket(prevUrl, bucket) : null;
+      if (prevPath && prevPath !== path) await removeFromStorage(prevUrl);
+
       const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      onChange(data.publicUrl);
+      // A fixed pathKey means getPublicUrl returns the identical string every
+      // time — callers' <a href>/PdfViewer would keep showing the old file
+      // until the CDN/browser cache expired. Bust it.
+      onChange(pathKey ? `${data.publicUrl}?v=${Date.now()}` : data.publicUrl);
     } catch {
       setError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleRemove = async () => {
+    if (value) await removeFromStorage(value);
+    onChange("");
   };
 
   let buttonLabel = "Upload a PDF";
@@ -66,7 +113,7 @@ export default function PdfUpload({ adminId, value, onChange, bucket = "document
             <a href={value} target="_blank" rel="noreferrer" className={styles.viewLink}>
               View current file
             </a>
-            <button type="button" className={styles.removeBtn} onClick={() => onChange("")}>
+            <button type="button" className={styles.removeBtn} onClick={() => void handleRemove()}>
               Remove
             </button>
           </>
@@ -88,3 +135,5 @@ export default function PdfUpload({ adminId, value, onChange, bucket = "document
     </div>
   );
 }
+
+export { storagePathForBucket };

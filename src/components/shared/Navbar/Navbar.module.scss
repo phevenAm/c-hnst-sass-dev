@@ -131,6 +131,12 @@
   }
 }
 
+// CountBadge carries its own look — this just seats it after the label.
+.navUnread {
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
 // ── Actions ────────────────────────────────────────────────
 .actions {
   display: flex;

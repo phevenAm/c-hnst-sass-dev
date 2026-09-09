@@ -69,10 +69,14 @@ export type PracticeSettingsCache = Pick<
   | "hide_client_profile_pii"
   | "invoice_prefix"
   | "next_invoice_number"
+  | "invoices_enabled"
+  | "invoice_payment_terms_days"
+  | "invoice_default_notes"
+  | "invoice_accent_hex"
 >;
 
 const SELECT_COLUMNS =
-  "admin_id, business_name, onboarding_required, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, allow_block_session_cancellation, session_buffer_minutes, hidden_sections, reduce_motion, logo_url, counsellor_name, cpd_annual_target_hours, saved_locations, is_paused, paused_reason, referral_code, first_client_milestone_shown, consent_enabled, hide_client_profile_pii, invoice_prefix, next_invoice_number";
+  "admin_id, business_name, onboarding_required, subscription_status, subscription_plan, stripe_connect_onboarded, card_payments_enabled, use_client_codenames, reschedule_cutoff_hours, allow_block_session_cancellation, session_buffer_minutes, hidden_sections, reduce_motion, logo_url, counsellor_name, cpd_annual_target_hours, saved_locations, is_paused, paused_reason, referral_code, first_client_milestone_shown, consent_enabled, hide_client_profile_pii, invoice_prefix, next_invoice_number, invoices_enabled, invoice_payment_terms_days, invoice_default_notes, invoice_accent_hex";
 
 type PracticeSettingsState = {
   data: PracticeSettingsCache | null;

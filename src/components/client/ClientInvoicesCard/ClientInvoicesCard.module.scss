@@ -1,0 +1,253 @@
+.card {
+  padding: 0;
+  overflow: hidden;
+  scroll-margin-top: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+/* Something needs paying — tint the whole card + an accent outline so it
+   stands out from the plain dashboard panels around it. */
+.attention {
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent);
+}
+
+.actionLine {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+}
+
+/* Pulse once when the client lands here from the invoice notification. */
+@keyframes cardFlash {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-subtle, rgba(31, 115, 100, 0.25));
+  }
+
+  20% {
+    box-shadow: 0 0 0 4px var(--accent-subtle, rgba(31, 115, 100, 0.25));
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+.flash {
+  animation: cardFlash 1.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+  }
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.outstanding {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.rowBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+
+  @media (max-width: 560px) {
+    flex-wrap: wrap;
+  }
+}
+
+.chevron {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(0deg);
+}
+
+.ref {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-semibold);
+}
+
+.date {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+
+  @media (max-width: 560px) {
+    order: 5;
+    width: 100%;
+  }
+}
+
+.amount {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px var(--sp-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.pill_sent {
+  background: #e8f0fe;
+  color: #1a56a0;
+}
+
+.pill_paid {
+  background: #e3f5ec;
+  color: #1c7a4a;
+}
+
+.pill_void {
+  background: #f6e5e5;
+  color: #9a3030;
+}
+
+:global(.dark) {
+  .pill_sent {
+    background: #1e3a5f;
+    color: #93c5fd;
+  }
+
+  .pill_paid {
+    background: #133a29;
+    color: #6ee7a8;
+  }
+
+  .pill_void {
+    background: #3d1a1a;
+    color: #fca5a5;
+  }
+}
+
+.detail {
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
+  /* Darken whatever's behind — reads as recessed on a plain card and on the
+     tinted "attention" card alike. */
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.meta {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.lineTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+
+  td {
+    padding: var(--sp-2) 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  padding-left: var(--sp-3);
+}
+
+.totalRow td {
+  border-bottom: none;
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+.notes {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+.payRow {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.payLabel {
+  width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+.payHint {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 12rem;
+
+  strong {
+    white-space: nowrap;
+  }
+}

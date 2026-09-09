@@ -1,0 +1,71 @@
+// Behavioural styling shared by every sidebar nav-group. The host sidebar
+// supplies colours/spacing via the `cx` classes; this file owns only what makes
+// the collapsed-rail *flyout* work (fixed positioning, popover chrome), so both
+// sidebars get identical behaviour without copying the CSS.
+
+.flyout {
+  position: fixed;
+  left: var(--flyout-left, 56px);
+  top: var(--flyout-top, 0px);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 176px;
+  max-height: none;
+  overflow: visible;
+  padding: 6px 6px 6px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+
+  // hidden until opened — kept mounted so focus/hover intent can bring it back
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-4px);
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+
+  // no guide line in a popover
+  &::before {
+    display: none !important;
+  }
+}
+
+.flyoutOpen {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+// Popover rows: no guide-line indent, comfortable hit area, labels always shown
+// (the rail force-hides them). The `!important`s undo the host's collapsed-rail
+// `.link` rules (centre-justify, gap:0, hidden label) that still reach in here
+// through DOM ancestry even though the popover is `position: fixed`.
+.flyoutItem {
+  padding: 8px 12px !important;
+  border-radius: var(--r-md);
+  white-space: nowrap;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+
+  &::before {
+    display: none !important;
+  }
+
+  // The rail hides row labels (display:none / opacity:0 / width:0). The popover
+  // sits outside the rail, so every label must come back — case-insensitive
+  // match on whatever class the host used ("linkLabel", "label", …).
+  [class*="label" i] {
+    display: inline !important;
+    opacity: 1 !important;
+    width: auto !important;
+    pointer-events: auto;
+  }
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+}

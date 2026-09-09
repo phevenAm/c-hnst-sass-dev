@@ -563,4 +563,271 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
       },
     ],
   },
+
+  // ── Messaging ────────────────────────────────────────────────
+
+  "/messages": {
+    pageTitle: "Messages",
+    steps: [
+      {
+        id: "messages-client-intro",
+        order: 1,
+        title: "Messaging your counsellor",
+        body: "A direct line to your counsellor for quick, practical things — running late, moving a session, a question between appointments.",
+        target: "#messages-view",
+      },
+      {
+        id: "messages-client-scope",
+        order: 2,
+        title: "Keep it light",
+        body: "This is for logistics, not for anything you'd want kept as part of your clinical record — bring those to your sessions.",
+      },
+    ],
+  },
+
+  "/admin/messages": {
+    pageTitle: "Messages",
+    steps: [
+      {
+        id: "messages-admin-intro",
+        order: 1,
+        title: "Direct messages with clients",
+        body: "A lightweight channel for practical back-and-forth with a client. Threads appear on the left; open one to read and reply.",
+        target: "#messages-view",
+      },
+      {
+        id: "messages-admin-new",
+        order: 2,
+        title: "Starting a conversation",
+        body: "Use New message to pick a client and open a thread. They see it in their portal and get notified like any other update.",
+      },
+    ],
+  },
+
+  // ── Agency "manage mode" ──────────────────────────────────────
+
+  "/agency": {
+    pageTitle: "Agency Overview",
+    steps: [
+      {
+        id: "agency-overview-intro",
+        order: 1,
+        title: "Manage mode",
+        body: "This is your agency's home, separate from your own counselling practice. The sidebar here runs the agency; 'Counselling view' at the bottom takes you back to your own clients.",
+        target: "#agency-overview-header",
+      },
+      {
+        id: "agency-overview-tiles",
+        order: 2,
+        title: "The numbers that matter",
+        body: "Active staff, clients, sessions and outstanding agency invoices. Each tile links straight to the page behind it.",
+        target: "#agency-overview-tiles",
+      },
+      {
+        id: "agency-overview-workload",
+        order: 3,
+        title: "Who's carrying what",
+        body: "Counsellor workload shows how clients are spread across your staff, so you can see who has room before you assign the next intake.",
+        target: "#agency-overview-workload",
+      },
+      {
+        id: "agency-overview-attention",
+        order: 4,
+        title: "Needs attention",
+        body: "Unassigned clients, declined assignments, overdue invoices and unsigned agreements surface here.",
+        target: "#agency-overview-attention",
+        actions: [{ label: "Go to clients", to: "/agency/clients?view=waiting" }],
+      },
+    ],
+  },
+
+  "/agency/clients": {
+    pageTitle: "Agency Clients",
+    steps: [
+      {
+        id: "agency-clients-intro",
+        order: 1,
+        title: "The intake pool",
+        body: "Every client the agency has taken on lives here, before and after they're placed with a counsellor. Add one with the button top-right.",
+        target: "#agency-clients-header",
+      },
+      {
+        id: "agency-clients-views",
+        order: 2,
+        title: "Waiting list vs. active caseload",
+        body: "The waiting list holds people you haven't placed yet — unassigned, awaiting a counsellor's response, or declined. 'Active caseload' is everyone currently with a counsellor.",
+      },
+      {
+        id: "agency-clients-assign",
+        order: 3,
+        title: "Assigning a client",
+        body: "Assign sends the client to a counsellor with a rate and an intake note. They accept or decline from their 'Clients to review' inbox, and the status updates here.",
+      },
+    ],
+  },
+
+  "/agency/sessions": {
+    pageTitle: "Agency Sessions",
+    steps: [
+      {
+        id: "agency-sessions-intro",
+        order: 1,
+        title: "Every session, every counsellor",
+        body: "A read-only roll-up of sessions booked across the agency for the next 30 days, grouped by day. Counsellors still manage their own calendars in Counselling view.",
+        target: "#agency-sessions-header",
+      },
+      {
+        id: "agency-sessions-rows",
+        order: 2,
+        title: "What each row tells you",
+        body: "Time, client (or 'Offline client'), which staff member it's with, and the session's status.",
+      },
+    ],
+  },
+
+  "/agency/members": {
+    pageTitle: "Agency Staff",
+    steps: [
+      {
+        id: "agency-members-intro",
+        order: 1,
+        title: "Your staff",
+        body: "Invite counsellors, choose who's a manager, and control whether each person also has their own counselling side.",
+        target: "#agency-members-header",
+      },
+      {
+        id: "agency-members-roles",
+        order: 2,
+        title: "Roles and access",
+        body: "Managers see this whole area. 'Make counsellor' / 'Make manager' changes that; 'Turn off counselling' leaves someone manage-only. The owner can't be changed or removed.",
+      },
+      {
+        id: "agency-members-employment",
+        order: 3,
+        title: "Employee or freelance",
+        body: "Employment type drives the settlement direction — whether a person pays the agency a cut, the agency pays them, or neither. Fine-tune it per person in Settings.",
+      },
+    ],
+  },
+
+  "/agency/invoices": {
+    pageTitle: "Agency Invoices",
+    steps: [
+      {
+        id: "agency-invoices-intro",
+        order: 1,
+        title: "Invoices between you and your staff",
+        body: "Internal invoices only — seat fees, referral cuts, anything the agency bills a staff member for. Client invoices live in each counsellor's own practice.",
+        target: "#agency-invoices-header",
+      },
+      {
+        id: "agency-invoices-status",
+        order: 2,
+        title: "Moving an invoice along",
+        body: "Use the split button to mark an invoice sent, due, overdue or paid. The tiles up top total what's outstanding, overdue, and paid this year.",
+      },
+    ],
+  },
+
+  "/agency/finance": {
+    pageTitle: "Agency Finance",
+    steps: [
+      {
+        id: "agency-finance-intro",
+        order: 1,
+        title: "The agency's bottom line",
+        body: "Client payments taken across the agency, against what you record as outgoings — income, outgoings and net for the range you pick top-right.",
+        target: "#agency-finance-header",
+      },
+      {
+        id: "agency-finance-expenses",
+        order: 2,
+        title: "Recording outgoings",
+        body: "Add agency-level costs with the form below — rent, software, anything — so the net figure reflects real spend. They're broken down by category in the chart.",
+      },
+    ],
+  },
+
+  "/agency/onboarding": {
+    pageTitle: "Agency Onboarding",
+    steps: [
+      {
+        id: "agency-onboarding-intro",
+        order: 1,
+        title: "Shared onboarding material",
+        body: "Notes and links shown to new people when they join — one set for clients, one for counsellors. Switch between the two with the buttons below.",
+        target: "#agency-onboarding-header",
+      },
+      {
+        id: "agency-onboarding-items",
+        order: 2,
+        title: "Building a list",
+        body: "Add a title, optional detail and an optional link. Everyone in that audience sees the same list in the order you add them.",
+      },
+    ],
+  },
+
+  "/agency/settings": {
+    pageTitle: "Agency Settings",
+    steps: [
+      {
+        id: "agency-settings-intro",
+        order: 1,
+        title: "Agency-wide rules",
+        body: "Settings here apply to every member. Locking consent text, requiring note encryption or client codenames overrides each person's own practice settings.",
+        target: "#agency-settings-header",
+      },
+      {
+        id: "agency-settings-agreement",
+        order: 2,
+        title: "Staff working agreement",
+        body: "Require staff to accept an agreement during onboarding. Editing the text or PDF bumps the version, so you can see who signed an older one.",
+      },
+      {
+        id: "agency-settings-billing",
+        order: 3,
+        title: "Seats and settlement",
+        body: "Your plan is based on active staff — paused or removed staff free a seat. The default settlement direction is the fallback for anyone left on 'Follow agency default'.",
+      },
+    ],
+  },
+
+  "/agency/activity": {
+    pageTitle: "Agency Activity",
+    steps: [
+      {
+        id: "agency-activity-intro",
+        order: 1,
+        title: "Agency activity log",
+        body: "Every staff member's actions plus agency events — invites, agreements, client assignments, invoices — newest first, grouped by day.",
+        target: "#agency-activity-header",
+      },
+      {
+        id: "agency-activity-filters",
+        order: 2,
+        title: "Filter and export",
+        body: "Narrow to one staff member or a date range, then export the filtered feed to CSV or PDF.",
+        target: "#agency-activity-filters",
+      },
+    ],
+  },
+
+  "/agency/incoming": {
+    pageTitle: "Clients to Review",
+    steps: [
+      {
+        id: "agency-incoming-intro",
+        order: 1,
+        title: "Clients sent to you",
+        body: "When a manager assigns you a client, they land here with the rate and an intake note. Nothing reaches your caseload until you accept.",
+        target: "#agency-incoming-header",
+      },
+      {
+        id: "agency-incoming-actions",
+        order: 2,
+        title: "Accept or decline",
+        body: "Review opens the details. Accept and the client becomes a normal client in your Counselling view; decline and it goes back to the manager with your reason.",
+      },
+    ],
+  },
 };

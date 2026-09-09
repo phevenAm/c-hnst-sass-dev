@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { getResponseDate, isPageStatusLoading, isQuestionnaireCheckInDue } from "@Helpers/Helpers";
 import { useRealtimeTable } from "@Hooks/useRealtimeTable";
+import ClientInvoicesCard from "@components/client/ClientInvoicesCard/ClientInvoicesCard";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import NextSessionCard from "@components/shared/NextSessionCard/NextSessionCard";
@@ -250,6 +251,10 @@ export default function ClientDashboard() {
             <NextSessionCard session={nextSession} compact />
           </div>
         )}
+
+        {/* Near the top — a sent invoice needs the client to act.
+            Self-hides unless the practice has invoicing on AND this client has invoices. */}
+        <ClientInvoicesCard />
 
         <div className={styles.statsRow} id="client-stats">
           {stats.map((s) => (

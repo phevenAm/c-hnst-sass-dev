@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
 import { CheckIcon, ClipboardIcon, LeafLogoMark, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
+import { selectAgencyBootstrapStatus, selectIsAgencyManager, selectIsAgencyMember } from "@store/slices/agencySlice";
 
 import { captureReferralCode, getReferralCode } from "@/Helpers/referral";
 import { supabase } from "@/lib/supabase";
+import { useAppSelector } from "@/store/hooks";
 
 import styles from "./SubscribePage.module.scss";
 
@@ -88,6 +90,15 @@ export default function SubscribePage() {
   const { showToast } = useToast();
   const { signOut } = useAuth();
 
+  // Agency-managed counsellors are billed at the agency level (staff-count
+  // tiers) — there is nothing for them to buy here. SubscriptionGate already
+  // stops them being *forced* to /subscribe; this stops them landing on the
+  // pay page (and starting a redundant create-subscription-checkout) if they
+  // navigate here directly.
+  const agencyStatus = useAppSelector(selectAgencyBootstrapStatus);
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const isAgencyManager = useAppSelector(selectIsAgencyManager);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [current, setCurrent] = useState(0);
@@ -155,8 +166,6 @@ export default function SubscribePage() {
         body: { plan, billing, ...(referralCode ? { referral_code: referralCode } : {}) },
       });
 
-      console.log(data);
-
       if (fnError) throw new Error(fnError.message);
       if (!data?.url) throw new Error("No checkout URL returned");
 
@@ -172,6 +181,12 @@ export default function SubscribePage() {
   const annualSaving = selectedPlan.monthly * 12 - selectedPlan.annual;
 
   const { Icon, title, description, points } = SLIDES[current];
+
+  // Wait for the agency bootstrap so a member isn't briefly shown the pay page
+  // before their membership loads, then send them back to their workspace.
+  if (agencyStatus !== "loading" && agencyStatus !== "idle" && isAgencyMember) {
+    return <Navigate to={isAgencyManager ? "/agency" : "/admin"} replace />;
+  }
 
   return (
     <main className={styles.page}>

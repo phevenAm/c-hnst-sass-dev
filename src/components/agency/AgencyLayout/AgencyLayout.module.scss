@@ -88,6 +88,14 @@ $rail: 56px;
   padding: 2px 8px;
 }
 
+// Non-managers (employees / freelance associates) get the same pill in a
+// muted, non-accent treatment — it marks their role, it isn't a mode they act in.
+.modePillStaff {
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  border-color: var(--border);
+}
+
 .nav {
   display: flex;
   flex-direction: column;
@@ -147,6 +155,62 @@ $rail: 56px;
   background: var(--accent-subtle);
   color: var(--accent-dark);
   font-weight: 600;
+}
+
+/* ── "Clients" submenu (holds Waiting list) ─────────────────────────────── */
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative; // anchors the collapsed-rail flyout (SidebarNavGroup)
+}
+
+/* The parent row is a single <button> carrying the shared `.link` class, so its
+ * hover / selected fill is one box exactly like every other row. The chevron is
+ * just an adornment pushed to the far end — no background of its own. */
+.groupChevron {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-tertiary);
+  transition: transform var(--transition-base);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.groupChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* nested items — collapsed by default, guide line on the left */
+.groupChildren {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height var(--transition-base), opacity var(--transition-base);
+  margin-left: calc(var(--sp-3) + 9px);
+  border-left: 1px solid var(--border);
+  padding-left: var(--sp-2);
+}
+
+.groupChildrenOpen {
+  max-height: 160px;
+  opacity: 1;
+}
+
+.childLink {
+  font-size: 0.86rem;
+}
+
+/* On the collapsed mobile icon rail the chevron is just noise — the children
+ * become a fixed-position flyout (owned by SidebarNavGroup) on tap. */
+@media (max-width: 860px) {
+  .sidebar:not(.open) .groupChevron {
+    display: none;
+  }
 }
 
 .sidebarFoot {
@@ -271,6 +335,16 @@ $rail: 56px;
     .sidebarFoot {
       padding: var(--sp-2);
       align-items: center;
+    }
+
+    /* the slim icon rail is short enough to fit — a scrollbar gutter here is
+       just noise in a 56px column. Keep it scrollable, hide the chrome. */
+    .nav {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
 
     .link,

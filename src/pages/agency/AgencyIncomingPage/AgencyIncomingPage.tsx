@@ -23,7 +23,7 @@ export default function AgencyIncomingPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-incoming-header">
         <div>
           <h1 className={styles.title}>Clients to review</h1>
           <p className={styles.subtitle}>

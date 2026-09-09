@@ -79,9 +79,16 @@ Deno.serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("practice_settings")
-      .select("business_name, counsellor_name")
+      .select("business_name, counsellor_name, invoices_enabled, invoice_footer_text")
       .eq("admin_id", user.id)
       .maybeSingle();
+
+    if (settings && settings.invoices_enabled === false) {
+      return new Response(JSON.stringify({ error: "Invoicing is turned off for this practice" }), {
+        status: 403,
+        headers: corsHeaders,
+      });
+    }
 
     // bank_* columns are encrypted at rest (20260907000050) — decrypt through
     // the SECURITY DEFINER RPC, which needs a real auth.uid(), so call it with
@@ -109,15 +116,13 @@ Deno.serve(async (req) => {
       )
       .join("");
 
+    const paymentReference = bank?.bank_payment_reference || invoice.reference;
     const bankBits: { label: string; value: string }[] = [];
     if (bank?.bank_account_name) bankBits.push({ label: "Account name", value: bank.bank_account_name });
     if (bank?.bank_name) bankBits.push({ label: "Bank", value: bank.bank_name });
     if (bank?.bank_sort_code) bankBits.push({ label: "Sort code", value: bank.bank_sort_code });
     if (bank?.bank_account_number) bankBits.push({ label: "Account number", value: bank.bank_account_number });
-    bankBits.push({
-      label: "Reference",
-      value: bank?.bank_payment_reference || invoice.reference,
-    });
+    bankBits.push({ label: "Reference", value: paymentReference });
 
     const html = emailTemplate({
       label: "Invoice",
@@ -134,9 +139,16 @@ Deno.serve(async (req) => {
           ...(invoice.due_date ? [{ label: "Due date", value: invoice.due_date, bold: true }] : []),
           ...bankBits,
         ]) +
+        para(
+          `When you pay, please quote the reference <strong>${escapeHtml(paymentReference)}</strong> so your payment can be matched to this invoice.`,
+        ) +
         (invoice.notes ? para(escapeHtml(invoice.notes).replace(/\n/g, "<br/>")) : ""),
-      cta: appUrl ? { label: "Open Clarity", url: `${appUrl}/dashboard` } : undefined,
-      footerNote: `This invoice was sent to you by ${escapeHtml(practiceName)} via Clarity.`,
+      // The client sees their invoices as a card on the dashboard; the #invoices
+      // hash scrolls it into view and opens the one that needs paying.
+      cta: appUrl ? { label: "View invoice", url: `${appUrl}/dashboard#invoices` } : undefined,
+      footerNote:
+        (settings?.invoice_footer_text ? `${escapeHtml(settings.invoice_footer_text)}<br/><br/>` : "") +
+        `This invoice was sent to you by ${escapeHtml(practiceName)} via Clarity.`,
       counsellorName: settings?.counsellor_name ?? undefined,
     });
 
@@ -181,6 +193,17 @@ Deno.serve(async (req) => {
         .from("invoices")
         .update({ status: "sent", sent_at: invoice.sent_at ?? new Date().toISOString() })
         .eq("id", invoice.id);
+    }
+
+    // Drop an in-app notification on the FIRST send so the client sees the
+    // invoice without digging through their inbox — a resend doesn't re-notify.
+    if (invoice.status === "draft") {
+      await supabase.from("notifications").insert({
+        user_id: invoice.client_id,
+        type: "invoice",
+        message: `New invoice ${invoice.reference} from ${practiceName} — ${money(invoice.total_pence)}`,
+        url: "/dashboard#invoices",
+      });
     }
 
     return new Response(JSON.stringify({ ok: true }), {

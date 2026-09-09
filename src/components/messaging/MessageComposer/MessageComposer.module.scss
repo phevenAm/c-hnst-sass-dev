@@ -1,0 +1,30 @@
+.composer {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-end;
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.input {
+  flex: 1;
+  resize: none;
+  max-height: 8rem;
+  min-height: 2.25rem;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: 0.9rem;
+  background: var(--bg-base);
+  color: var(--text-primary);
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -1px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}

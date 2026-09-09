@@ -18,13 +18,15 @@ import { byMonth, ledgerRowKind, ledgerRowName, money, type Period, periodStart 
 import styles from "./AdminFinancesPage.module.scss";
 
 const AdminPaymentsPage = lazy(() => import("../AdminPaymentsPage/AdminPaymentsPage"));
+const AdminInvoicesPage = lazy(() => import("../AdminInvoicesPage/AdminInvoicesPage"));
 const AdminExpensesPage = lazy(() => import("../AdminExpensesPage/AdminExpensesPage"));
 
-type View = "overview" | "income" | "expenses";
+type View = "overview" | "income" | "invoices" | "expenses";
 
-const VIEWS: { key: View; label: string }[] = [
+const ALL_VIEWS: { key: View; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "income", label: "Income" },
+  { key: "invoices", label: "Invoices" },
   { key: "expenses", label: "Expenses" },
 ];
 
@@ -217,9 +219,14 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
 }
 
 export default function AdminFinancesPage() {
+  const { practiceSettings } = useAuth();
+  const invoicesEnabled = practiceSettings?.invoices_enabled !== false;
+  const VIEWS = invoicesEnabled ? ALL_VIEWS : ALL_VIEWS.filter((v) => v.key !== "invoices");
+
   const [searchParams, setSearchParams] = useSearchParams();
   const rawView = searchParams.get("view");
-  const view: View = rawView === "income" || rawView === "expenses" ? rawView : "overview";
+  let view: View = rawView === "income" || rawView === "invoices" || rawView === "expenses" ? rawView : "overview";
+  if (view === "invoices" && !invoicesEnabled) view = "overview";
   const [openNewFor, setOpenNewFor] = useState<View | null>(null);
 
   const setView = (v: View) => {
@@ -267,6 +274,7 @@ export default function AdminFinancesPage() {
         <Suspense fallback={<Spinner />}>
           {view === "overview" && <Overview onJump={jump} />}
           {view === "income" && <AdminPaymentsPage embedded openNew={openNewFor === "income"} />}
+          {view === "invoices" && <AdminInvoicesPage embedded openNew={openNewFor === "invoices"} />}
           {view === "expenses" && <AdminExpensesPage embedded openNew={openNewFor === "expenses"} />}
         </Suspense>
       </div>

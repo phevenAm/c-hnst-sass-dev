@@ -69,7 +69,9 @@ async function pollUntil<T>(fn: () => Promise<T>, predicate: (v: T) => boolean, 
 // a real user session can't do, done directly rather than mocked.
 function stripeCli(args: string[]): any {
   const out = execFileSync("stripe", args, { encoding: "utf8", shell: true });
-  return JSON.parse(out.slice(out.indexOf("{")));
+  const jsonStart = out.indexOf("{");
+  if (jsonStart === -1) throw new Error(`stripe ${args.join(" ")} produced no JSON:\n${out || "(empty)"}`);
+  return JSON.parse(out.slice(jsonStart));
 }
 
 // ── Platform subscription (admin subscribes to Clarity itself) ────────────

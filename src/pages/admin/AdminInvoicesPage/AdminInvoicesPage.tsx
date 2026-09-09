@@ -71,15 +71,39 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
   const [editing, setEditing] = useState<Invoice | null>(null);
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Deep-link presets from "Raise invoice" on a client page / session card.
+  const [presetClientId, setPresetClientId] = useState<string | null>(null);
+  const [presetSessionId, setPresetSessionId] = useState<string | null>(null);
+  // Bank details (encrypted at rest, not in the practice_settings slice) +
+  // invoice_footer_text — fetched straight from source so they reach the PDF.
+  const [payDetails, setPayDetails] = useState<{
+    bankName: string | null;
+    bankAccountName: string | null;
+    bankSortCode: string | null;
+    bankAccountNumber: string | null;
+    bankReference: string | null;
+    footerText: string | null;
+  }>({
+    bankName: null,
+    bankAccountName: null,
+    bankSortCode: null,
+    bankAccountNumber: null,
+    bankReference: null,
+    footerText: null,
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (searchParams.get("new") === "true") {
       setEditing(null);
+      setPresetClientId(searchParams.get("client"));
+      setPresetSessionId(searchParams.get("session"));
       setModalOpen(true);
       setSearchParams(
         (p) => {
           p.delete("new");
+          p.delete("client");
+          p.delete("session");
           return p;
         },
         { replace: true },
@@ -124,6 +148,33 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
     void fetchInvoices();
   }, [fetchInvoices]);
 
+  // The email path already decrypts bank details via this RPC; the client-side
+  // PDF was still reading the (trimmed, encrypted) settings slice and getting
+  // nothing, so "How to pay" came out blank. Pull the real values here.
+  useEffect(() => {
+    if (!userProfile?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const [bankRes, footerRes] = await Promise.all([
+        supabase.rpc("get_practice_bank_details", { p_admin_id: userProfile.id }),
+        supabase.from("practice_settings").select("invoice_footer_text").eq("admin_id", userProfile.id).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      const b = bankRes.data?.[0];
+      setPayDetails({
+        bankName: b?.bank_name ?? null,
+        bankAccountName: b?.bank_account_name ?? null,
+        bankSortCode: b?.bank_sort_code ?? null,
+        bankAccountNumber: b?.bank_account_number ?? null,
+        bankReference: b?.bank_payment_reference ?? null,
+        footerText: footerRes.data?.invoice_footer_text ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userProfile?.id]);
+
   const clientName = useCallback(
     (inv: Invoice) => {
       if (inv.client_id) {
@@ -164,11 +215,13 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
 
   const practiceDetails = () => ({
     businessName: settings?.business_name ?? null,
-    bankName: settings?.bank_name ?? null,
-    bankAccountName: settings?.bank_account_name ?? null,
-    bankSortCode: settings?.bank_sort_code ?? null,
-    bankAccountNumber: settings?.bank_account_number ?? null,
-    bankReference: settings?.bank_payment_reference ?? null,
+    bankName: payDetails.bankName,
+    bankAccountName: payDetails.bankAccountName,
+    bankSortCode: payDetails.bankSortCode,
+    bankAccountNumber: payDetails.bankAccountNumber,
+    bankReference: payDetails.bankReference,
+    accentHex: settings?.invoice_accent_hex ?? null,
+    footerText: payDetails.footerText,
   });
 
   const sendEmail = async (inv: Invoice) => {
@@ -229,15 +282,17 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
               <p className={styles.sub}>Raise invoices, send them, and mark them paid</p>
             </div>
           )}
-          <SplitButton
+          <Button
             variant="primary"
-            primaryLabel="New invoice"
-            primaryAction={() => {
+            onClick={() => {
               setEditing(null);
+              setPresetClientId(null);
+              setPresetSessionId(null);
               setModalOpen(true);
             }}
-            options={[]}
-          />
+          >
+            New invoice
+          </Button>
         </div>
 
         <div className={styles.tiles}>
@@ -306,19 +361,18 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
                           <SplitButton
                             size="sm"
                             variant="secondary"
-                            primaryLabel="Mark paid"
-                            primaryAction={() => void markPaid(inv)}
+                            primaryLabel={inv.status === "sent" ? "Resend email" : "Send email"}
+                            primaryAction={() => void sendEmail(inv)}
                             options={[
+                              { label: "Mark paid", onClick: () => void markPaid(inv) },
                               {
                                 label: "Edit",
                                 onClick: () => {
                                   setEditing(inv);
+                                  setPresetClientId(null);
+                                  setPresetSessionId(null);
                                   setModalOpen(true);
                                 },
-                              },
-                              {
-                                label: inv.status === "sent" ? "Resend email" : "Send email",
-                                onClick: () => void sendEmail(inv),
                               },
                               { label: "Download PDF", onClick: () => void downloadPdf(inv) },
                               { label: "Void", onClick: () => void setStatus(inv, "void") },
@@ -342,6 +396,8 @@ export default function AdminInvoicesPage({ embedded = false, openNew = false }:
           clients={clients}
           stubs={activeStubs}
           useCodenames={useCodenames}
+          presetClientId={presetClientId}
+          presetSessionId={presetSessionId}
           onClose={() => setModalOpen(false)}
           onSaved={() => {
             setModalOpen(false);

@@ -104,7 +104,6 @@ export const ALL_TEST_FILES: TestFileEntry[] = [
   { kind: "unit", file: "src/components/shared/SessionPrepCard/SessionPrepCard.test.tsx", count: 8 },
   { kind: "unit", file: "src/components/shared/StatTile/StatTile.test.tsx", count: 4 },
   { kind: "unit", file: "src/components/shared/ThreeWayToggle/ThreeWayToggle.test.tsx", count: 4 },
-  { kind: "unit", file: "src/components/shared/UpdateBanner/UpdateBanner.test.tsx", count: 7 },
   { kind: "unit", file: "src/components/shared/ViewportWarningBanner/ViewportWarningBanner.test.tsx", count: 8 },
   { kind: "unit", file: "src/context/EncryptionContext.test.tsx", count: 8 },
   { kind: "unit", file: "src/lib/noteEncryption.test.ts", count: 8 },

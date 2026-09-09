@@ -315,14 +315,32 @@ Deno.serve(async (req) => {
     const checkoutSession = event.data.object as Stripe.Checkout.Session;
     const paymentIntentId = checkoutSession.payment_intent as string;
     const amountPounds = ((checkoutSession.amount_total ?? 0) / 100).toFixed(2);
-    const { session_id, block_id } = checkoutSession.metadata ?? {};
+    const { session_id, block_id, invoice_id } = checkoutSession.metadata ?? {};
 
     let clientId: string | null = null;
     let adminId: string | null = null;
     let sessionDescription = "a counselling session";
     let sessionDate: string | null = null;
 
-    if (block_id) {
+    if (invoice_id) {
+      // Whole-invoice payment (create-invoice-checkout). mark_invoice_paid_system
+      // flips the invoice, writes the payments-ledger row, and settles any
+      // sessions billed on it.
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("client_id, reference")
+        .eq("id", invoice_id)
+        .single();
+      if (inv) {
+        clientId = inv.client_id;
+        sessionDescription = `invoice ${inv.reference}`;
+        await supabase.rpc("mark_invoice_paid_system", {
+          p_invoice_id: invoice_id,
+          p_paid_at: new Date().toISOString(),
+          p_payment_intent: paymentIntentId,
+        });
+      }
+    } else if (block_id) {
       const { data: blockSessions } = await supabase
         .from("sessions")
         .select("id, client_id, scheduled_at")

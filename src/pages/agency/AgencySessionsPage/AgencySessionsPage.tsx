@@ -96,7 +96,7 @@ export default function AgencySessionsPage() {
 
   return (
     <div>
-      <div className={styles.header}>
+      <div className={styles.header} id="agency-sessions-header">
         <div>
           <h1 className={styles.title}>Sessions</h1>
           <p className={styles.subtitle}>Upcoming sessions across every staff member, next 30 days.</p>

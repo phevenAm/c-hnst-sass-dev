@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
-import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from "react-router-dom";
 
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
@@ -10,7 +10,6 @@ import {
   CancelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ClipboardIcon,
   DocumentIcon,
   HistoryIcon,
   HomeIcon,
@@ -19,6 +18,8 @@ import {
   Settingsicon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
+import SidebarNavGroup, { type SidebarNavGroupClasses } from "@components/shared/SidebarNavGroup/SidebarNavGroup";
+import SidebarNavItem, { type SidebarNavItemClasses } from "@components/shared/SidebarNavItem/SidebarNavItem";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 import { useAppSelector } from "@store/hooks";
@@ -31,10 +32,19 @@ import {
 
 import styles from "./AgencyLayout.module.scss";
 
-const MANAGER_LINKS = [
+type NavLeaf = { to: string; label: string; end?: boolean; Icon: React.ComponentType };
+type NavItem = NavLeaf & { children?: NavLeaf[] };
+
+const MANAGER_LINKS: NavItem[] = [
   { to: "/agency", label: "Overview", end: true, Icon: HomeIcon },
-  { to: "/agency/clients?view=active", label: "Clients", Icon: AssignmentClipIcon },
-  { to: "/agency/clients?view=waiting", label: "Waiting list", Icon: ClipboardIcon },
+  {
+    to: "/agency/clients?view=active",
+    label: "Clients",
+    Icon: UsersIcon,
+    // Waiting list is the same page (AgencyClientsPage) on ?view=waiting —
+    // nest it under Clients rather than as a sibling row.
+    children: [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: AssignmentClipIcon }],
+  },
   { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
   { to: "/agency/members", label: "Staff", Icon: UsersIcon },
   { to: "/agency/invoices", label: "Invoices", Icon: DocumentIcon },
@@ -43,7 +53,30 @@ const MANAGER_LINKS = [
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },
 ];
 
-const COUNSELLOR_LINKS = [{ to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon }];
+const COUNSELLOR_LINKS: NavItem[] = [
+  { to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon },
+];
+
+const CLIENTS_PATH = "/agency/clients";
+
+const agencyItemCx: SidebarNavItemClasses = {
+  link: styles.link,
+  icon: styles.linkIcon,
+  label: styles.linkLabel,
+};
+
+const agencyGroupCx: SidebarNavGroupClasses = {
+  group: styles.navGroup,
+  // Same class as a plain row — one hover / selected box, no nested chrome.
+  row: styles.link,
+  icon: styles.linkIcon,
+  label: styles.linkLabel,
+  chevron: styles.groupChevron,
+  chevronOpen: styles.groupChevronOpen,
+  children: styles.groupChildren,
+  childrenOpen: styles.groupChildrenOpen,
+  childLink: `${styles.link} ${styles.childLink}`,
+};
 
 const MOBILE_Q = "(max-width: 860px)";
 
@@ -55,6 +88,7 @@ export default function AgencyLayout() {
   const { loading, signOut } = useAuth();
   const { showToast } = useToast();
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
   const status = useAppSelector(selectAgencyBootstrapStatus);
   const membership = useAppSelector(selectAgencyMembership);
   const agency = useAppSelector(selectAgency);
@@ -62,6 +96,10 @@ export default function AgencyLayout() {
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   const [expanded, setExpanded] = useState(false);
+  // "Clients" is a nav group: an "All clients" leaf + Waiting list (same page,
+  // ?view=waiting). The group auto-opens onto whichever leaf is active.
+  const onClientsPage = pathname === CLIENTS_PATH || pathname.startsWith(`${CLIENTS_PATH}/`);
+  const onWaitingList = onClientsPage && searchParams.get("view") === "waiting";
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_Q);
@@ -102,6 +140,12 @@ export default function AgencyLayout() {
   const agencyName = agency?.name ?? "Agency";
   const railOpen = !isMobile || expanded;
 
+  // The pill under the agency name doubles as a role marker. Managers are
+  // "managing" the agency; everyone else is here as staff — an employee, or a
+  // freelance associate — so say which rather than mislabel them "Manage mode".
+  let rolePill = "Manage mode";
+  if (!isManager) rolePill = membership.employment_type === "freelance" ? "Associate" : "Staff";
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -128,24 +172,47 @@ export default function AgencyLayout() {
             )}
             <span className={styles.agencyName}>{agencyName}</span>
           </Link>
-          <span className={styles.modePill}>Manage mode</span>
+          <span className={`${styles.modePill} ${isManager ? "" : styles.modePillStaff}`}>{rolePill}</span>
         </div>
 
         <nav className={styles.nav}>
-          {links.map(({ to, label, end, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              title={railOpen ? undefined : label}
-              className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ""}`}
-            >
-              <span className={styles.linkIcon}>
-                <Icon />
-              </span>
-              <span className={styles.linkLabel}>{label}</span>
-            </NavLink>
-          ))}
+          {links.map((item) => {
+            if (item.children?.length) {
+              // The group's own landing page becomes its first leaf, so the
+              // parent row is a pure open/close toggle.
+              const groupItems = [
+                { to: item.to, label: `All ${item.label.toLowerCase()}`, Icon: item.Icon },
+                ...item.children,
+              ];
+              return (
+                <SidebarNavGroup
+                  key={item.to}
+                  label={item.label}
+                  Icon={item.Icon}
+                  items={groupItems}
+                  parentActive={false}
+                  isItemActive={(to) => (to.includes("view=waiting") ? onWaitingList : onClientsPage && !onWaitingList)}
+                  flyoutMode={!railOpen}
+                  hoverIntent={false}
+                  showTitle={!railOpen}
+                  onNavigate={() => isMobile && setExpanded(false)}
+                  cx={agencyGroupCx}
+                />
+              );
+            }
+            return (
+              <SidebarNavItem
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                label={item.label}
+                Icon={item.Icon}
+                showTitle={!railOpen}
+                onNavigate={() => isMobile && setExpanded(false)}
+                cx={agencyItemCx}
+              />
+            );
+          })}
         </nav>
 
         <div className={styles.sidebarFoot}>

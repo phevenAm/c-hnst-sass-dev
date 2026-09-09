@@ -3,11 +3,13 @@
 
 .header {
   margin-bottom: $sp-8;
+
   h1 {
     font-weight: 500;
     color: var(--text-primary);
     margin: 0 0 $sp-2;
   }
+
   p {
     color: var(--text-muted);
     font-size: 0.9rem;
@@ -209,9 +211,11 @@
   outline: none;
   transition: border-color var(--transition-base);
   box-sizing: border-box;
+
   &:focus {
     border-color: var(--border-focus);
   }
+
   &::placeholder {
     color: var(--text-muted);
   }
@@ -239,8 +243,11 @@
 
 // ── Completion screen ──────────────────────────────────────
 .completePage {
-  min-height: 100vh;
+  // min-height: 100vh;
   background: var(--bg-base);
+  background-image: url('https://images.pexels.com/photos/36026444/pexels-photo-36026444.jpeg');
+  background-size: cover;
+  background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;

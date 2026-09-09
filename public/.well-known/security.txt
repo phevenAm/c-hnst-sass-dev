@@ -1,0 +1,7 @@
+# Vulnerability disclosure contact for withclarity.uk — RFC 9116
+# https://www.rfc-editor.org/rfc/rfc9116
+
+Contact: mailto:hello@withclarity.uk
+Expires: 2027-09-07T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://withclarity.uk/.well-known/security.txt
