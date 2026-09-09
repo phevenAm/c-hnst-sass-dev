@@ -3,15 +3,18 @@ import { useLocation, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import { useRealtimeTable } from "@Hooks/useRealtimeTable";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
-import { ChevronDownSmIcon } from "@components/shared/Icons/Icons";
+import { ChevronDownSmIcon, CloseIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
 import { money } from "@/pages/admin/AdminInvoicesPage/invoiceMath";
 import { useAppSelector } from "@/store/hooks";
+
+const DISMISS_KEY = "clientInvoicesCard:dismissed";
 
 import styles from "./ClientInvoicesCard.module.scss";
 
@@ -95,6 +98,11 @@ export default function ClientInvoicesCard() {
     void fetchInvoices();
   }, [fetchInvoices]);
 
+  // Live: the admin marking an invoice paid (or a new invoice being sent)
+  // updates the card with no reload. RLS scopes the stream to this client's
+  // own non-draft rows.
+  useRealtimeTable("invoices", userProfile?.id ? `client_id=eq.${userProfile.id}` : undefined, fetchInvoices);
+
   // Coming back from Stripe Checkout.
   useEffect(() => {
     const outcome = searchParams.get("payment");
@@ -118,6 +126,28 @@ export default function ClientInvoicesCard() {
     () => invoices.filter((i) => i.status === "sent").reduce((s, i) => s + i.total_pence, 0),
     [invoices],
   );
+
+  // Dismiss: remember which invoices were on screen when the client closed the
+  // card. It stays hidden until that set changes (a new invoice arrives), so a
+  // client who's all settled isn't nagged but never misses a fresh one.
+  const invoiceSig = useMemo(() => [...invoices.map((i) => i.id)].sort().join(","), [invoices]);
+  const [dismissedSig, setDismissedSig] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(DISMISS_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const dismissed = dismissedSig !== null && dismissedSig === invoiceSig;
+  const dismiss = () => {
+    try {
+      localStorage.setItem(DISMISS_KEY, invoiceSig);
+    } catch {
+      /* private mode — hide for this session only */
+    }
+    setDismissedSig(invoiceSig);
+    showToast("Hidden. It'll come back if your counsellor sends a new invoice.");
+  };
 
   // Open the newest still-unpaid invoice by default so its "Pay by card" /
   // bank-transfer details are visible without a click.
@@ -160,7 +190,7 @@ export default function ClientInvoicesCard() {
   };
 
   // Nothing to show → render nothing (no empty card on the dashboard).
-  if (!loaded || !invoicesEnabled || invoices.length === 0) return null;
+  if (!loaded || !invoicesEnabled || invoices.length === 0 || dismissed) return null;
 
   return (
     <Card
@@ -168,7 +198,10 @@ export default function ClientInvoicesCard() {
       className={`${styles.card} ${outstanding > 0 ? styles.attention : ""} ${flash ? styles.flash : ""}`}
     >
       <div className={styles.head}>
-        <div>
+        <button type="button" className={styles.close} onClick={dismiss} aria-label="Hide invoices from the dashboard">
+          <CloseIcon />
+        </button>
+        <div className={styles.headMain}>
           <h3 className={styles.title}>Invoices from your counsellor</h3>
           {outstanding > 0 && <p className={styles.actionLine}>You have a payment to make</p>}
         </div>
