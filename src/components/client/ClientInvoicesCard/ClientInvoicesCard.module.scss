@@ -1,6 +1,20 @@
 .card {
   padding: 0;
   overflow: hidden;
+  scroll-margin-top: var(--sp-4);
+}
+
+/* Something needs paying — lift the card so it reads as an action item. */
+.attention {
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle, rgba(31, 115, 100, 0.15));
+}
+
+.actionLine {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--accent-dark, var(--accent));
 }
 
 .head {

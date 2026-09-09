@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -62,6 +62,7 @@ async function invokeErrorMessage(error: unknown, fallback: string): Promise<str
 export default function ClientInvoicesCard() {
   const { userProfile, isDemo } = useAuth();
   const { showToast } = useToast();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const invoicesEnabled = useAppSelector((s) => s.practiceSettings.data?.invoices_enabled !== false);
   const cardPaymentsAvailable = useAppSelector(
@@ -116,6 +117,19 @@ export default function ClientInvoicesCard() {
     [invoices],
   );
 
+  // Arriving from the "new invoice" notification (url: /dashboard#invoices):
+  // bring the card into view and open the first invoice that still needs paying
+  // so the pay-by-card button / bank details are right there.
+  const landedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || invoices.length === 0 || landedRef.current) return;
+    if (location.hash !== "#invoices") return;
+    landedRef.current = true;
+    document.getElementById("invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const firstDue = invoices.find((i) => i.status === "sent");
+    if (firstDue) setOpenId(firstDue.id);
+  }, [loaded, invoices, location.hash]);
+
   const handlePay = async (inv: Invoice) => {
     if (isDemo) {
       showToast("Demo mode — no real payment is taken.");
@@ -137,9 +151,12 @@ export default function ClientInvoicesCard() {
   if (!loaded || !invoicesEnabled || invoices.length === 0) return null;
 
   return (
-    <Card className={styles.card}>
+    <Card id="invoices" className={`${styles.card} ${outstanding > 0 ? styles.attention : ""}`}>
       <div className={styles.head}>
-        <h3 className={styles.title}>Invoices from your counsellor</h3>
+        <div>
+          <h3 className={styles.title}>Invoices from your counsellor</h3>
+          {outstanding > 0 && <p className={styles.actionLine}>You have a payment to make</p>}
+        </div>
         {outstanding > 0 && (
           <span className={styles.outstanding}>
             Outstanding <strong>{money(outstanding)}</strong>
