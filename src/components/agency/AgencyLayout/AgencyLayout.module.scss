@@ -165,58 +165,14 @@ $rail: 56px;
   position: relative; // anchors the collapsed-rail flyout (SidebarNavGroup)
 }
 
-/* the parent row: link fills it, a chevron button sits on the right */
-.groupRow {
-  padding: 0;
-  gap: 0;
-
-  &:hover {
-    background: none;
-  }
-}
-
-.groupLink {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  flex: 1;
-  min-width: 0;
-  padding: var(--sp-2) var(--sp-3);
-  color: inherit;
-  text-decoration: none;
-  border-radius: var(--r-md);
-
-  &:hover {
-    background: var(--bg-muted);
-  }
-}
-
-.groupToggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 30px;
-  align-self: stretch;
-  border: 0;
-  background: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-radius: var(--r-md);
-
-  &:hover {
-    background: var(--bg-muted);
-    color: var(--text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: -2px;
-  }
-}
-
+/* The parent row is a single <button> carrying the shared `.link` class, so its
+ * hover / selected fill is one box exactly like every other row. The chevron is
+ * just an adornment pushed to the far end — no background of its own. */
 .groupChevron {
   display: inline-flex;
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-tertiary);
   transition: transform var(--transition-base);
 
   svg {
@@ -249,18 +205,11 @@ $rail: 56px;
   font-size: 0.86rem;
 }
 
-/* on the collapsed mobile icon rail the guide line + chevron just add noise */
+/* On the collapsed mobile icon rail the chevron is just noise — the children
+ * become a fixed-position flyout (owned by SidebarNavGroup) on tap. */
 @media (max-width: 860px) {
-  .sidebar:not(.open) {
-    .groupChildren {
-      margin-left: 0;
-      border-left: 0;
-      padding-left: 0;
-    }
-
-    .groupToggle {
-      display: none;
-    }
+  .sidebar:not(.open) .groupChevron {
+    display: none;
   }
 }
 
