@@ -52,6 +52,7 @@ This policy explains how Clarity collects and uses personal data when you use th
 | Session notes written by your practitioner | `session_notes` (encrypted) | Clinical record-keeping by your practitioner | Art. 9(2)(h) — health care (your practitioner relies on this basis) |
 | Questionnaire and wellbeing survey responses | `responses` | Outcome tracking by your practitioner | Art. 9(2)(h) — health care |
 | Private journal entries | `journal_entries` | Personal journalling — only you can read these | Your consent |
+| Direct messages with your practitioner | `conversations`, `messages` | Practical communication (e.g. scheduling) | Contract performance |
 | Consent record | `users.has_consented`, `users.consented_at` | Recording that you agreed to the terms of access | Legal obligation / legitimate interests |
 | Unsubscribe preferences | `users.email_prefs_disabled`, `users.unsubscribe_token` | Honouring your email opt-outs | Legal obligation (PECR) |
 | Notifications | `notifications` | In-app alerts about your sessions | Contract performance |
@@ -78,6 +79,8 @@ Session notes are **encrypted client-side** before being stored. Clarity cannot 
 
 Private journal entries are also encrypted client-side. Neither Clarity nor your practitioner can read your journal.
 
+**Direct messages are not end-to-end encrypted.** They are encrypted in transit and at rest but your practitioner and Clarity's systems can access their content. Messaging is for practical communication and you are asked, in the app, not to share sensitive information there — but if you do, that content is processed on the same Article 9(2)(h) basis as the rest of your clinical record.
+
 ---
 
 ## 5. How long we keep your data
@@ -85,6 +88,7 @@ Private journal entries are also encrypted client-side. Neither Clarity nor your
 | Data | Retention |
 |---|---|
 | Active account data | Held for the duration of the account |
+| Direct messages | Held for the life of the account; included in data exports and erased with the account |
 | Paused practitioner accounts | Retained in full while paused (read-only); nothing is deleted until the account is deleted |
 | Deleted practitioner accounts | Erased immediately on deletion — the practitioner profile, practice settings, and **all client records in that practice** (sessions, attendance, payments, session notes). No retention period. A full export is offered to the practitioner immediately before deletion. Backups containing the data are overwritten within 30 days. |
 | Deleted client accounts | Login and personal details (name, date of birth, contact details, photo) removed immediately. Session history, attendance, payments and encrypted notes are kept by the practitioner as an **anonymised** record (client name replaced with a codename) in line with their clinical record-keeping obligations (typically 8 years for adult records under NHS / professional body guidance). This anonymised record is erased if the practitioner deletes their account. |

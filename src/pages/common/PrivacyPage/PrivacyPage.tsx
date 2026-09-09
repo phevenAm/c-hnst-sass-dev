@@ -14,8 +14,7 @@ export default function PrivacyPage() {
           <p>
             Clarity is currently operated by its founder as a sole-trader business ("we", "us", "our"). The operator's
             legal name and service address will be displayed here before paid customer contracts begin. For privacy
-            questions, contact us at{" "}
-            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>.
+            questions, contact us at <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>.
           </p>
         </section>
 
@@ -141,6 +140,11 @@ export default function PrivacyPage() {
                 <td>Your consent</td>
               </tr>
               <tr>
+                <td>Direct messages with your practitioner</td>
+                <td>Practical communication, e.g. scheduling</td>
+                <td>Contract performance</td>
+              </tr>
+              <tr>
                 <td>Consent record</td>
                 <td>Recording that you agreed to the terms of access</td>
                 <td>Legal obligation / legitimate interests</td>
@@ -218,6 +222,12 @@ export default function PrivacyPage() {
             relevant feature being enabled. Do not treat this policy as a guarantee that every note or journal entry is
             encrypted. Check the in-app setting and the Security page before entering sensitive information.
           </p>
+          <p>
+            <strong>Direct messages are not end-to-end encrypted.</strong> They are encrypted in transit and at rest,
+            but your practitioner and Clarity's systems can access their content. Messaging is for practical
+            communication and you are asked, in the app, not to share sensitive information there. If you do, that
+            content is processed on the same Article 9(2)(h) basis as the rest of your clinical record.
+          </p>
         </section>
 
         <section>
@@ -233,6 +243,10 @@ export default function PrivacyPage() {
               <tr>
                 <td>Active account data</td>
                 <td>Held for the duration of the account</td>
+              </tr>
+              <tr>
+                <td>Direct messages</td>
+                <td>Held for the life of the account; included in data exports and erased with the account</td>
               </tr>
               <tr>
                 <td>Paused practitioner accounts</td>
@@ -258,7 +272,10 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td>Billing records</td>
-                <td>Retained by Clarity and Stripe for as long as needed for accounting, fraud prevention, disputes, and legal obligations.</td>
+                <td>
+                  Retained by Clarity and Stripe for as long as needed for accounting, fraud prevention, disputes, and
+                  legal obligations.
+                </td>
               </tr>
               <tr>
                 <td>Email delivery logs</td>
@@ -313,8 +330,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, contact us at{" "}
-            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. We will respond within one calendar
-            month.
+            <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. We will respond within one calendar month.
           </p>
           <p>
             <strong>Note for clients:</strong> rights relating to your clinical records (session notes, form responses)
@@ -357,8 +373,8 @@ export default function PrivacyPage() {
         <section>
           <h2>11. Contact</h2>
           <p>
-            For any privacy-related questions: <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. Please
-            do not include clinical notes or unnecessary health information in an ordinary email.
+            For any privacy-related questions: <a href="mailto:hello@withclarity.uk">hello@withclarity.uk</a>. Please do
+            not include clinical notes or unnecessary health information in an ordinary email.
           </p>
           <p>
             For complaints, you may also contact the ICO:{" "}
