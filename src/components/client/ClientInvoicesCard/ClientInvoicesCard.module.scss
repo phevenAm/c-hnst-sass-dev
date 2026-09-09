@@ -2,7 +2,9 @@
   padding: 0;
   overflow: hidden;
   scroll-margin-top: var(--sp-4);
-  margin-bottom: var(--sp-6);
+  /* Match the vertical rhythm of the other ClientDashboard blocks
+     (.nextSessionCard / .statsRow / .chartWrap all use $sp-7). */
+  margin-bottom: var(--sp-7);
 }
 
 /* Something needs paying — tint the whole card + an accent outline so it
@@ -201,6 +203,14 @@
     padding: var(--sp-2) 0;
     border-bottom: 1px solid var(--border);
     color: var(--text-secondary);
+  }
+
+  /* Drop the per-unit breakdown column on narrow screens — description +
+     line total is enough, and the two number columns collide otherwise. */
+  @media (max-width: 560px) {
+    td:nth-child(2) {
+      display: none;
+    }
   }
 }
 
