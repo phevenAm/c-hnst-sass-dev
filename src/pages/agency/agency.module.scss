@@ -341,47 +341,9 @@
   margin-bottom: var(--sp-4);
 }
 
-/* ── Settings tab bar (mirrors the admin Settings underline tabs) ─────────── */
-.settingsTabs {
-  display: flex;
-  gap: 0;
+/* Spacing below the shared <SettingsTabs> bar before the first panel. */
+.settingsTabsSlot {
   margin-bottom: var(--sp-5);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.settingsTab {
-  padding: var(--sp-3) var(--sp-4);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
-
-  &:hover {
-    color: var(--text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: -2px;
-  }
-}
-
-.settingsTabActive {
-  color: var(--accent-dark);
-  border-bottom-color: var(--accent);
 }
 
 /* A stacked label + control row inside a settings card (accessibility options). */

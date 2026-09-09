@@ -358,7 +358,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: supabaseMock }));
 
 async function openPracticeTab() {
   render(<SettingsPage />);
-  fireEvent.click(screen.getByRole("button", { name: "Practice" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Practice" }));
   // wait for the initial practice_settings fetch to populate the form
   await waitFor(() => expect(getFieldInput("Business name")).toHaveValue(initialRow.business_name));
 }
@@ -374,13 +374,13 @@ async function openPracticeTabAndFlushReminders() {
 
 async function openEmailsTab() {
   render(<SettingsPage />);
-  fireEvent.click(screen.getByRole("button", { name: "Emails" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Emails" }));
   await screen.findByText("Manage emails");
 }
 
 async function openInterfaceTab() {
   render(<SettingsPage />);
-  fireEvent.click(screen.getByRole("button", { name: /^interface/i }));
+  fireEvent.click(screen.getByRole("tab", { name: /^interface/i }));
   await screen.findByText("Hide search bar");
 }
 
@@ -389,7 +389,7 @@ async function openInterfaceTab() {
 // wait — the Bank details card is on this tab now.
 async function openBillingTab() {
   render(<SettingsPage />);
-  fireEvent.click(screen.getByRole("button", { name: "Billing" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Billing" }));
   await waitFor(() => expect(getFieldInput("Bank name")).toHaveValue(initialRow.bank_name));
 }
 
@@ -405,7 +405,7 @@ async function openProfileTab() {
 // loads checked.
 async function openScheduleTab() {
   render(<SettingsPage />);
-  fireEvent.click(screen.getByRole("button", { name: /^schedule & bookings/i }));
+  fireEvent.click(screen.getByRole("tab", { name: /^schedule & bookings/i }));
   await waitFor(() => expect(screen.getByRole("checkbox", { name: /enforce a cutoff/i })).toBeChecked());
 }
 
@@ -452,7 +452,7 @@ describe("SettingsPage — loading", () => {
       practiceSettings: null,
     }));
     render(<SettingsPage />);
-    expect(screen.queryByRole("button", { name: "Practice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Practice" })).not.toBeInTheDocument();
   });
 });
 

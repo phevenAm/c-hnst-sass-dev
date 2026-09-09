@@ -6,6 +6,7 @@ import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { MoonIcon, SunIcon, ThemeAutoIcon } from "@components/shared/Icons/Icons";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
+import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
@@ -114,22 +115,13 @@ export default function AgencySettingsPage() {
   const { reduceMotion, setReduceMotion, appZoom, setAppZoom } = useInterfacePrefs();
   const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  // First paint honours a `?tab=` deep link; from then on <SettingsTabs> owns
+  // the param (consumes + strips it) and the page just tracks `activeTab`.
+  const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") as TabId | null;
   const [activeTab, setActiveTab] = useState<TabId>(
     tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "identity",
   );
-  const selectTab = (id: TabId) => {
-    setActiveTab(id);
-    setSearchParams(
-      (p) => {
-        const next = new URLSearchParams(p);
-        next.set("tab", id);
-        return next;
-      },
-      { replace: true },
-    );
-  };
 
   const [draft, setDraft] = useState<Agency | null>(agency);
   const [busy, setBusy] = useState(false);
@@ -337,26 +329,14 @@ export default function AgencySettingsPage() {
           )}
         </div>
 
-        <div
-          className={styles.settingsTabs}
-          role="tablist"
-          aria-label="Agency settings sections"
-          id="agency-settings-tabs"
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={`agency-settings-tab-${t.id}`}
-              aria-selected={activeTab === t.id}
-              aria-controls={`agency-settings-panel-${t.id}`}
-              className={`${styles.settingsTab} ${activeTab === t.id ? styles.settingsTabActive : ""}`}
-              onClick={() => selectTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className={styles.settingsTabsSlot}>
+          <SettingsTabs
+            tabs={TABS}
+            value={activeTab}
+            onChange={setActiveTab}
+            ariaLabel="Agency settings sections"
+            idBase="agency-settings"
+          />
         </div>
 
         {error && <div className={styles.error}>{error}</div>}

@@ -1,0 +1,83 @@
+// Shared underline tab bar for the admin + agency settings pages.
+// Component-level styling references CSS custom properties, not SCSS tokens.
+
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+}
+
+// A tinted, bordered circle rather than a bare icon — the flat version was too
+// close in contrast to the card behind it to read as a button, especially in
+// dark mode. Not tab-stops: keyboard users arrow between the tabs themselves.
+.arrow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: var(--sp-1) 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  color: var(--accent-dark);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.list {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tab {
+  flex: 0 0 auto;
+  padding: var(--sp-3) var(--sp-5);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; // overlap the wrapper's border so the active underline sits on it
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
+}
+
+.tabActive {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent);
+}
