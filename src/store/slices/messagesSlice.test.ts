@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { describe, expect, it, vi } from "vitest";
 
+import { supabase } from "../../lib/supabase.js";
 import messagesReducer, {
   markConversationRead,
   messageReceived,
+  mirrorPrivateEvent,
   selectTotalUnread,
   sendMessage,
 } from "./messagesSlice";
@@ -13,7 +15,14 @@ import messagesReducer, {
 // when its thread isn't the one on screen; a sent message never inflates the
 // unread count; marking read zeroes it and back-fills read_at locally.
 
-vi.mock("../../lib/supabase.js", () => ({ supabase: { rpc: vi.fn(), from: vi.fn(), auth: { getUser: vi.fn() } } }));
+vi.mock("../../lib/supabase.js", () => ({
+  supabase: {
+    rpc: vi.fn(),
+    from: vi.fn(),
+    auth: { getUser: vi.fn() },
+    functions: { invoke: vi.fn(() => Promise.resolve({ data: null, error: null })) },
+  },
+}));
 
 type S = ReturnType<typeof makeStore>["getState"];
 
@@ -112,6 +121,54 @@ describe("messagesSlice — markConversationRead.fulfilled", () => {
     const state = store.getState() as S;
     expect(state.messages.conversations[0].unread).toBe(0);
     expect(state.messages.threads["conv-1"].every((m) => m.read_at)).toBe(true);
+  });
+});
+
+describe("messagesSlice — mirrorPrivateEvent", () => {
+  const rpc = vi.mocked(supabase.rpc);
+  const invoke = vi.mocked(supabase.functions.invoke);
+
+  it("calls the fan-out RPC with trimmed body and pokes notify-new-message per written row", async () => {
+    rpc.mockImplementation((name: string) => {
+      if (name === "mirror_private_event_to_clients") {
+        return Promise.resolve({
+          data: [
+            { message_id: "m-a", conversation_id: "c-a" },
+            { message_id: "m-b", conversation_id: "c-b" },
+          ],
+          error: null,
+        }) as never;
+      }
+      return Promise.resolve({ data: [], error: null }) as never; // list_my_conversations
+    });
+
+    const store = makeStore(structuredClone(baseState));
+    const res = await store.dispatch(
+      mirrorPrivateEvent({ eventId: "evt-1", clientIds: ["client-1", "client-2"], body: "  heads up  " }),
+    );
+
+    expect(mirrorPrivateEvent.fulfilled.match(res)).toBe(true);
+    expect(res.payload).toEqual({ count: 2 });
+    expect(rpc).toHaveBeenCalledWith("mirror_private_event_to_clients", {
+      p_event_id: "evt-1",
+      p_client_ids: ["client-1", "client-2"],
+      p_body: "heads up",
+    });
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke).toHaveBeenCalledWith("notify-new-message", { body: { message_id: "m-a" } });
+    expect(invoke).toHaveBeenCalledWith("notify-new-message", { body: { message_id: "m-b" } });
+  });
+
+  it("rejects with the RPC error and sends no notifications", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "not your private event" } } as never);
+    invoke.mockClear();
+
+    const store = makeStore(structuredClone(baseState));
+    const res = await store.dispatch(mirrorPrivateEvent({ eventId: "evt-x", clientIds: ["client-1"], body: "hi" }));
+
+    expect(mirrorPrivateEvent.rejected.match(res)).toBe(true);
+    expect(res.payload).toBe("not your private event");
+    expect(invoke).not.toHaveBeenCalled();
   });
 });
 

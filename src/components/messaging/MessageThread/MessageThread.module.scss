@@ -35,6 +35,27 @@
   border-style: dashed;
 }
 
+// A mirrored private-event notice — sits apart from ordinary chat, keeps its
+// sender-based alignment. Filled surface, no stroke restyle of the chat bubble.
+.bubbleNotice {
+  background: var(--accent-subtle);
+  border-color: var(--accent-light, var(--accent-subtle));
+
+  .rowMine & {
+    background: var(--accent-subtle);
+  }
+}
+
+.noticeTag {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
 .autoTag {
   display: block;
   font-size: 0.62rem;

@@ -34,7 +34,7 @@ export const fetchPrivateEvents = createAsyncThunk<AdminPrivateEvent[], void, { 
   },
 );
 
-type CreatePrivateEventPayload = Omit<AdminPrivateEvent, "id" | "created_at">;
+type CreatePrivateEventPayload = Omit<AdminPrivateEvent, "id" | "created_at" | "mirrored_at">;
 
 export const createPrivateEvent = createAsyncThunk<
   AdminPrivateEvent,
