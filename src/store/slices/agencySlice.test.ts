@@ -13,8 +13,10 @@ afterEach(() => {
 });
 
 describe("agencySlice initial bootstrapStatus", () => {
-  it("starts 'succeeded' (no membership) when the agency flag is off", async () => {
-    vi.stubEnv("VITE_FF_AGENCY", "");
+  it("starts 'succeeded' (no membership) when the agency flag is explicitly disabled", async () => {
+    // The agency flag is default-ON now — only an explicit "false" / "0" turns
+    // it off, so an empty value would leave it enabled.
+    vi.stubEnv("VITE_FF_AGENCY", "false");
     const reducer = await loadReducer();
 
     const state = reducer(undefined, { type: "@@INIT" });
