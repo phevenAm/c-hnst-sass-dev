@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchP
 
 import AgencyReviewBanner from "../components/agency/AgencyReviewBanner/AgencyReviewBanner";
 import ConsentModal from "../components/Consent/ConsentModal";
+import ChatWidget from "../components/messaging/ChatWidget/ChatWidget";
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
 import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
@@ -134,7 +135,6 @@ function AppLayout() {
   useSessionsRealtime();
   useAssignmentsRealtime();
   usePracticeSettingsRealtime();
-  useMessagesRealtime();
 
   return (
     <>
@@ -159,7 +159,6 @@ function AdminLayout() {
   const { pathname } = useLocation();
   useSessionsRealtime();
   usePracticeSettingsRealtime();
-  useMessagesRealtime();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("adminSidebarCollapsed") === "true",
   );
@@ -340,6 +339,14 @@ function AgencyBootstrapper() {
   return null;
 }
 
+// Messaging realtime + unread badge — one mount, app-wide, so the floating
+// ChatWidget has live data on every authenticated page (not just the two
+// role layouts).
+function MessagingRuntime() {
+  useMessagesRealtime();
+  return null;
+}
+
 // A counsellor whose agency has switched off their counselling side has no
 // business on the /admin tree — send them to manage mode. Waits for the
 // membership fetch so it doesn't bounce during the initial load.
@@ -364,6 +371,8 @@ export default function AppRoutes() {
           <ConsentGate />
           <OnboardingGate />
           <AgencyBootstrapper />
+          <MessagingRuntime />
+          <ChatWidget />
           <WalkthroughOverlay />
           {/* <Suspense fallback={<AuthLoadingState variant="splash" />}> */}
           <Suspense fallback={<HeroSplashBridge />}>

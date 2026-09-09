@@ -222,19 +222,10 @@ $transition: 0.22s ease;
 
 // Unread count on the Messages row. Sits at the end of the row when expanded;
 // on the collapsed rail it rides the top-right of the icon as a dot-ish badge.
+// CountBadge carries its own look — this just pushes it to the row's end.
 .navUnread {
   margin-left: auto;
   flex-shrink: 0;
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.1rem;
-  height: 1.1rem;
-  padding: 0 0.3rem;
-  border-radius: var(--r-full);
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
 }
 
 // ── Nav group (Logs dropdown) ───────────────────────────────
