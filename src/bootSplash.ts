@@ -29,17 +29,18 @@ declare global {
   }
 }
 
-// Short cross-fade out into the app underneath, rather than a hard cut — by
-// the time this runs the app has rendered (auth is ready), so it's fading to
-// real content, not a blank frame.
-const FADE_MS = 300;
-// The mark starts fading in at ~1.4s (900ms delay + 500ms fade, app.html)
-// and the SMIL grow-in settles ~2s in — later still if bundle-parse jank
-// held its clock. Hold past that so the finished sapling is clearly visible
-// before the splash goes, with headroom for a slow first paint — still well
-// short of the 5s loop wrap where it snaps back to the start. finish() also
-// waits on "clarity:auth-ready", so real loads are usually longer than this.
-const ONE_CYCLE_MS = 3600;
+// Cross-fade out into the app underneath, rather than a hard cut — by the
+// time this runs the app has rendered (auth is ready), so it's fading to
+// real content, not a blank frame. Long enough to read as a fade, not a
+// blink.
+const FADE_MS = 450;
+// The mark fades in at ~0.2–0.6s (200ms delay + 400ms fade, app.html) with
+// its SMIL clock rewound to 0 (see boot()), so the grow-in plays from the
+// start and settles ~1.5s in. Hold a touch past that so the finished sapling
+// is clearly visible before the splash goes — still well short of the 5s
+// loop wrap where it snaps back to the start. finish() also waits on
+// "clarity:auth-ready", so real loads are usually longer than this anyway.
+const ONE_CYCLE_MS = 2400;
 // Frozen frame for reduced motion: past all growth (~1.6s in), short of the
 // 5s loop boundary where behaviour at the exact wrap point is unreliable.
 const HELD_FRAME_S = 4.5;
@@ -76,6 +77,19 @@ function freezeSapling(svg: SVGSVGElement | null): void {
   } catch {
     // SMIL control unsupported — the SVG just keeps looping, which is a
     // motion-preference miss but not a broken splash.
+  }
+}
+
+// Rewind the SMIL timeline to 0 so the grow-in plays from the start. A fresh
+// showSplash() copy inherits the document clock, so without this its sapling
+// comes up mid-loop ("already half-drawn"); on cold boot it re-syncs the
+// animation with the moment the mark fades in.
+function restartSapling(svg: SVGSVGElement | null): void {
+  const el = svg as unknown as (SVGSVGElement & { setCurrentTime?: (t: number) => void }) | null;
+  try {
+    el?.setCurrentTime?.(0);
+  } catch {
+    // SMIL control unsupported — the SVG keeps its own clock; not broken.
   }
 }
 
@@ -135,7 +149,9 @@ export function showSplash(text?: string): void {
 
   document.body.appendChild(root);
 
-  if (prefersReducedMotion()) freezeSapling(root.querySelector("svg"));
+  const svg = root.querySelector<SVGSVGElement>("svg");
+  if (prefersReducedMotion()) freezeSapling(svg);
+  else restartSapling(svg); // play from the start, not wherever the doc clock is
 }
 
 function boot() {
@@ -181,6 +197,11 @@ function boot() {
     maybeFinish();
     return;
   }
+
+  // Rewind the SMIL clock so the grow-in is synced to the mark fading in
+  // (app.html holds it hidden for a beat first) — otherwise bundle-parse jank
+  // can leave the sapling part-drawn the moment it becomes visible.
+  restartSapling(svg as unknown as SVGSVGElement);
 
   window.setTimeout(() => {
     animDone = true;

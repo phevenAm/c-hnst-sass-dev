@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 
+import { showSplash } from "@/bootSplash";
+
 import { applyServiceWorkerUpdate, checkForServiceWorkerUpdate } from "@/lib/swUpdate";
 
 declare const __APP_VERSION__: string;
 
 export async function hardRefresh() {
+  // Cover the app with the sapling + "Updating…" for every caller — the
+  // UpdateBanner "Update now" button and the Settings "Force app update"
+  // button alike — not just whichever one remembered to call showSplash.
+  showSplash("Updating…");
+  // When a service worker is already waiting, applyServiceWorkerUpdate()
+  // reloads almost immediately; hold the splash on screen long enough to
+  // actually read before the navigation yanks it.
+  await new Promise((resolve) => setTimeout(resolve, 450));
   await applyServiceWorkerUpdate();
 }
 

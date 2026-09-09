@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { hardRefresh, useVersionCheck } from "@Hooks/useVersionCheck";
-import { showSplash } from "@/bootSplash";
 
 import styles from "./UpdateBanner.module.scss";
 
@@ -55,9 +54,8 @@ export default function UpdateBanner() {
             // no-op'd. hardRefresh() now always ends in a reload one way or
             // another, so there's nothing to reset this to afterward.
             setUpdating(true);
-            // Cover the app with the animated sapling + "Updating…" until the
-            // reload lands (app.html's #boot-splash then takes over).
-            showSplash("Updating…");
+            // hardRefresh() puts up the sapling + "Updating…" splash itself
+            // and holds it on screen before the reload lands.
             void hardRefresh();
           }}
         >
