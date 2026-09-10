@@ -18,12 +18,9 @@ import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
 import type { Session, StubSession } from "@/models/globalTypes";
 import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
-import {
-  mergeTrendPoints,
-  revenueByMonth,
-  revenueByMonthFromPayments,
-  revenueByMonthFromStubSessions,
-} from "@/pages/admin/AdminDashboard/dashboardUtils";
+import { bucketTrend } from "@/pages/admin/AdminFinancesPage/financeOverview";
+import TrendControls from "@/pages/admin/AdminFinancesPage/TrendControls";
+import { useTrendControls } from "@/pages/admin/AdminFinancesPage/useTrendControls";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@/store/hooks";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import { fetchAllSessions, updateSession, upsertSession } from "@/store/slices/sessionsSlice";
@@ -177,6 +174,8 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
   // Ledger table — server-paginated (see payment_ledger_rows), separate from
   // the unpaginated `sessions`/`stubSessions` used below for Summary stats,
   // which genuinely need the full set to aggregate correctly.
+  const trend = useTrendControls("month");
+
   const [ledgerRows, setLedgerRows] = useState<PaymentRow[]>([]);
   const [ledgerTotal, setLedgerTotal] = useState(0);
   const [ledgerPage, setLedgerPage] = useState(1);
@@ -391,15 +390,27 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
     return { ...withStubs, collectedPence: withStubs.collectedPence + manualPence };
   }, [scopedSessions, scopedStubSessions, scopedManualPayments]);
 
-  const revenueData = useMemo(
-    () =>
-      mergeTrendPoints(
-        revenueByMonth(scopedSessions, 6),
-        revenueByMonthFromStubSessions(scopedStubSessions, 6),
-        revenueByMonthFromPayments(scopedManualPayments, 6),
-      ),
-    [scopedSessions, scopedStubSessions, scopedManualPayments],
-  );
+  // Flatten the three paid-money sources into { date, pence } rows so the
+  // revenue chart can be re-bucketed by week/month/year over any range. The
+  // paid/amount tests mirror revenueByMonth* in dashboardUtils.
+  const revenueRows = useMemo(() => {
+    const rows: { date: string; pence: number }[] = [];
+    for (const s of scopedSessions) {
+      if (s.paid) rows.push({ date: s.scheduled_at, pence: s.price_pence ?? 0 });
+    }
+    for (const s of scopedStubSessions) {
+      const hasAmountPaid = s.amount_paid != null && s.amount_paid > 0;
+      if (!s.paid && !hasAmountPaid) continue;
+      rows.push({
+        date: s.scheduled_at,
+        pence: hasAmountPaid ? Math.round((s.amount_paid as number) * 100) : (s.price_pence ?? 0),
+      });
+    }
+    for (const p of scopedManualPayments) rows.push({ date: p.paid_at, pence: p.amount_pence });
+    return rows;
+  }, [scopedSessions, scopedStubSessions, scopedManualPayments]);
+
+  const revenueData = useMemo(() => bucketTrend(revenueRows, trend), [revenueRows, trend]);
 
   // Not scoped to selectedClientId — this is an actionable inbox, so a client
   // filter shouldn't hide something the admin still needs to respond to.
@@ -766,11 +777,12 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
                 </Card>
               ))}
             </div>
+            <TrendControls state={trend} />
             <div className={styles.chartsGrid}>
               <TrendChart
-                title="Revenue (last 6 months)"
+                title="Revenue"
                 data={revenueData}
-                type="bar"
+                type={trend.chartType}
                 color="#2d7264"
                 valueFormatter={(v) => `£${v.toFixed(2)}`}
               />

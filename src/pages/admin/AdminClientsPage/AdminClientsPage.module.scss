@@ -85,7 +85,7 @@
   // and shoving the stat blocks onto a new line
   max-width: 100%;
 
-  > * {
+  >* {
     min-width: 0;
   }
 }
@@ -297,7 +297,7 @@
   color: var(--text-muted);
   font-size: 0.9rem;
   line-height: 1.6;
-  margin: -0.5rem 0 1.25rem;
+  margin: 0.1rem 0 1.25rem;
 }
 
 .generatedTokenBox {

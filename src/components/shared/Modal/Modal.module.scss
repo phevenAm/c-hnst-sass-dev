@@ -51,7 +51,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--sp-6);
+    margin-bottom: var(--sp-2);
 
     .modal-title {
       font-family: var(--font-serif);
@@ -80,7 +80,7 @@
     color: var(--text);
     font-size: 0.9rem;
     line-height: 1.6;
-    margin: -0.5rem 0 1.25rem;
+    margin: 0.1rem 0 1.25rem;
 
     .children {
       flex: 1;
@@ -96,6 +96,12 @@
       flex-direction: row-reverse;
       gap: var(--sp-3);
       padding-top: var(--sp-3);
+    }
+
+    textarea {
+      width: 100%;
+      border-radius: var(--r-sm);
+      padding: var(--sp-2);
     }
   }
 }
