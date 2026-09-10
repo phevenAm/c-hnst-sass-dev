@@ -309,6 +309,7 @@ const SettingsPage = () => {
   const [imageUrl, setImageUrl] = useState(userProfile?.avatar_url ?? "");
   const [keywords, setKeywords] = useState<string[]>(userProfile?.focus_keywords ?? []);
   const [saving, setSaving] = useState(false);
+  const [forcingUpdate, setForcingUpdate] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("profile");
@@ -1655,8 +1656,20 @@ const SettingsPage = () => {
                       Change password
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" onClick={hardRefresh}>
-                    Force app update
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={forcingUpdate}
+                    onClick={() => {
+                      // hardRefresh() guards against re-entry itself, but a
+                      // local flag gives the button immediate feedback (label
+                      // + disabled) so a slow service-worker check doesn't
+                      // read as "nothing happened".
+                      setForcingUpdate(true);
+                      void hardRefresh();
+                    }}
+                  >
+                    {forcingUpdate ? "Updating…" : "Force app update"}
                   </Button>
                 </div>
                 {!isAdmin && (

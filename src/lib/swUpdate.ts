@@ -104,6 +104,11 @@ export async function applyServiceWorkerUpdate() {
     const ready = registration.waiting ? true : await waitForWaitingWorker();
     if (ready) {
       await updateSW(true);
+      // updateSW(true) reloads via the 'controllerchange' event once the new
+      // worker takes control. If that event never lands (seen on some
+      // browsers when the page isn't yet controlled), the "Updating…" splash
+      // would sit there forever — force the reload after a short grace period.
+      setTimeout(() => window.location.reload(), 2500);
       return;
     }
     // Timed out without a worker ever reaching "waiting" — nothing to

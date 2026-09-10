@@ -4,6 +4,29 @@ import { hardRefresh, useVersionCheck } from "@Hooks/useVersionCheck";
 
 import styles from "./UpdateBanner.module.scss";
 
+// Once the banner is closed — by either button — it stays closed for the life
+// of this tab / PWA window. sessionStorage is wiped when the app is closed, so
+// a genuinely newer version still greets the user on the next launch; it just
+// stops re-nagging within one session (the version check keeps reporting the
+// same mismatch until the reload actually happens).
+const DISMISS_KEY = "clarity:updateBannerDismissed";
+
+const readDismissed = (): boolean => {
+  try {
+    return sessionStorage.getItem(DISMISS_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const rememberDismissed = (): void => {
+  try {
+    sessionStorage.setItem(DISMISS_KEY, "1");
+  } catch {
+    // private mode / storage disabled — the in-memory state below still holds
+  }
+};
+
 function isPWA(): boolean {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -14,20 +37,19 @@ function isPWA(): boolean {
 
 export default function UpdateBanner() {
   const isOutdated = useVersionCheck();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(readDismissed);
   const [inPWA, setInPWA] = useState(false);
-  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     setInPWA(isPWA());
   }, []);
 
-  // Un-dismiss whenever a new update is detected
-  useEffect(() => {
-    if (isOutdated) setDismissed(false);
-  }, [isOutdated]);
-
   if (!inPWA || !isOutdated || dismissed) return null;
+
+  const close = () => {
+    rememberDismissed();
+    setDismissed(true);
+  };
 
   return (
     <div className={styles.banner} role="status" aria-live="polite">
@@ -40,26 +62,22 @@ export default function UpdateBanner() {
         A new version is available.
       </span>
       <div className={styles.actions}>
-        <button type="button" className={styles.btnLater} onClick={() => setDismissed(true)} disabled={updating}>
+        <button type="button" className={styles.btnLater} onClick={close}>
           Later
         </button>
         <button
           type="button"
           className={styles.btnUpdate}
-          disabled={updating}
           onClick={() => {
-            // Left showing (not dismissed) while this runs — dismissing
-            // immediately used to make the click look handled even when the
-            // new service worker wasn't ready yet and the update silently
-            // no-op'd. hardRefresh() now always ends in a reload one way or
-            // another, so there's nothing to reset this to afterward.
-            setUpdating(true);
-            // hardRefresh() puts up the sapling + "Updating…" splash itself
-            // and holds it on screen before the reload lands.
+            // hardRefresh() puts up the full-screen sapling + "Updating…"
+            // splash straight away and holds it until the reload lands, so the
+            // banner can close immediately — the splash is the feedback now,
+            // and if the update somehow no-ops the banner won't keep nagging.
             void hardRefresh();
+            close();
           }}
         >
-          {updating ? "Updating…" : "Update now"}
+          Update now
         </button>
       </div>
     </div>
