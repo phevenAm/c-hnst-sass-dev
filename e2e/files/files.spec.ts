@@ -38,9 +38,10 @@ const PNG_1PX_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP
 
 async function uploadDeployed(): Promise<boolean> {
   const { error } = await sb.functions.invoke("file-upload", { body: { mode: "files", folderId: null, items: [] } });
-  // a deployed function returns 400 "No files in the upload"; a missing one
-  // returns a network/404-style FunctionsError.
-  return !error || /No files|items\[\]/.test(String((error as { message?: string }).message ?? ""));
+  // A deployed fn answers with an HTTP error (FunctionsHttpError, which carries
+  // a Response `context`); a missing one throws FunctionsFetchError with none.
+  if (!error) return true;
+  return (error as { name?: string }).name === "FunctionsHttpError" || "context" in (error as object);
 }
 
 test.beforeAll(async () => {

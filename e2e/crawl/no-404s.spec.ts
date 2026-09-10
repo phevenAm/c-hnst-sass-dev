@@ -24,21 +24,28 @@ const MAX_ROUTES = 200;
 const ADMIN = { email: "demo-admin@honest.com", password: "DemoAdmin2026", start: "/admin" };
 const CLIENT = { email: "demo-client@honest.com", password: "DemoClient2026", start: "/dashboard" };
 
-// Console noise that is not a real defect on any given route.
+// Console noise that is not a real defect on any given route. @axe-core/react
+// runs in the dev build and logs a11y findings to console.error on every page
+// (there's a dedicated e2e/axe-scan.spec.ts for those) — the crawl also skips
+// anything logged inside axe's console group, see `axeDepth` below.
 const IGNORED_CONSOLE = [
   /Download the React DevTools/i,
   /\[vite\]/i,
   /Failed to load resource: the server responded with a status of 401/i, // opportunistic pre-auth fetches
   /ResizeObserver loop/i,
   /quotable\.io/i, // 3rd-party inspirational-quotes API, flaky, not ours
+  /New axe issues/i,
+  /Fix (any|all) of the following/i,
+  /contained by landmarks/i,
+  /must have sufficient color contrast/i,
 ];
 
 // Routes we never enqueue (external, auth-destroying, or non-navigations).
 function isCrawlable(href: string | null): href is string {
   if (!href) return false;
-  if (href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("blob:")) return false;
-  if (/^https?:\/\//i.test(href) && !href.startsWith(BASE)) return false;
   if (href.startsWith("#")) return false;
+  if (/^(mailto|tel|blob|data|javascript):/i.test(href)) return false;
+  if (/^https?:\/\//i.test(href) && !href.startsWith(BASE)) return false;
   return true;
 }
 
@@ -69,11 +76,14 @@ async function login(page: Page, email: string, password: string) {
   await page.click('button[type="submit"]');
   await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 15000 });
   // The demo onboarding modal can't be dismissed reliably in Playwright — strip
-  // any dialog node so it never blocks link collection.
+  // any dialog node so it never covers the page. Observe `document` (always a
+  // Node; documentElement can still be null when this runs at document-start).
   await page.addInitScript(() => {
-    const kill = () => document.querySelectorAll('[role="dialog"]').forEach((n) => n.remove());
-    kill();
-    new MutationObserver(kill).observe(document.documentElement, { childList: true, subtree: true });
+    const strip = () => {
+      for (const n of document.querySelectorAll('[role="dialog"], [aria-modal="true"]')) n.remove();
+    };
+    document.addEventListener("DOMContentLoaded", strip);
+    new MutationObserver(strip).observe(document, { childList: true, subtree: true });
   });
 }
 
@@ -93,9 +103,19 @@ async function crawl(page: Page, start: string, label: string) {
     visited++;
 
     const consoleErrors: string[] = [];
+    let axeDepth = 0; // console-group nesting inside @axe-core/react's report
     const onConsole = (msg: { type: () => string; text: () => string }) => {
-      if (msg.type() !== "error") return;
+      const type = msg.type();
       const text = msg.text();
+      if (type === "startGroup" || type === "startGroupCollapsed") {
+        if (axeDepth > 0 || /axe issues/i.test(text)) axeDepth++;
+        return;
+      }
+      if (type === "endGroup") {
+        if (axeDepth > 0) axeDepth--;
+        return;
+      }
+      if (type !== "error" || axeDepth > 0) return;
       if (!IGNORED_CONSOLE.some((re) => re.test(text))) consoleErrors.push(text);
     };
     const pageErrors: string[] = [];
@@ -142,6 +162,7 @@ async function crawl(page: Page, start: string, label: string) {
         } catch {
           continue;
         }
+        if (!pathname.startsWith("/")) continue; // non-hierarchical URL slipped through
         const c = canonical(pathname);
         if (!seen.has(c)) {
           seen.add(c);
