@@ -24,6 +24,55 @@ $rail: 56px;
   display: flex;
   flex-direction: column;
   z-index: 60;
+  transition: width 0.22s ease, box-shadow 0.22s ease;
+}
+
+/* Icon-only rail. `.open` is absent when the manager has collapsed it
+ * (tablet & up) or on the mobile resting strip — the visual is the same,
+ * only what pushes the content differs (see .main / the media query). */
+.sidebar:not(.open) {
+  width: $rail;
+
+  .agencyName,
+  .modePill,
+  .linkLabel,
+  .poweredBy {
+    display: none;
+  }
+
+  .brand {
+    padding: var(--sp-3) 0;
+    align-items: center;
+  }
+
+  .nav,
+  .sidebarFoot {
+    padding: var(--sp-2);
+    align-items: center;
+  }
+
+  /* a scrollbar gutter is just noise in a 56px column */
+  .nav {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .link,
+  .modeSwitch,
+  .signOut {
+    justify-content: center;
+    gap: 0;
+    padding: var(--sp-2);
+  }
+
+  /* the disclosure chevron is meaningless once the labels are gone —
+   * the group opens as a fixed popover instead (SidebarNavGroup) */
+  .groupChevron {
+    display: none;
+  }
 }
 
 .brand {
@@ -205,14 +254,6 @@ $rail: 56px;
   font-size: 0.86rem;
 }
 
-/* On the collapsed mobile icon rail the chevron is just noise — the children
- * become a fixed-position flyout (owned by SidebarNavGroup) on tap. */
-@media (max-width: 860px) {
-  .sidebar:not(.open) .groupChevron {
-    display: none;
-  }
-}
-
 .sidebarFoot {
   padding: var(--sp-3);
   border-top: 1px solid var(--border);
@@ -248,13 +289,14 @@ $rail: 56px;
   }
 }
 
-/* Edge chevron — only rendered on mobile */
+/* Collapse / expand chevron. Vertical placement (top / middle / bottom) is set
+ * inline by <SidebarCollapseButton> from the shared preference — same button,
+ * same behaviour as AdminSidebar's. */
 .edgeToggle {
   position: absolute;
   right: -0.8125rem;
-  top: 4.4rem;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.5rem;
+  height: 1.5rem;
   padding: 0;
   display: flex;
   align-items: center;
@@ -265,6 +307,8 @@ $rail: 56px;
   color: var(--text-secondary);
   cursor: pointer;
   z-index: 62;
+  transition: background var(--transition-base), color var(--transition-base),
+    border-color var(--transition-base), top 450ms ease-in-out;
 
   svg {
     width: 15px;
@@ -284,10 +328,17 @@ $rail: 56px;
 }
 
 /* ── Content ─────────────────────────────────────────────── */
+/* Same padding as the admin shell's #main-content (src/index.scss) so content
+ * lines up identically in both views. Margin tracks the rail width, exactly
+ * like .adminBody / .adminBodyCollapsed. */
 .main {
   margin-left: $w;
-  max-width: 1040px;
-  padding: var(--sp-8) var(--sp-6) var(--sp-12);
+  padding: 50px var(--sp-6) var(--sp-10);
+  transition: margin-left 0.22s ease;
+}
+
+.mainCollapsed {
+  margin-left: $rail;
 }
 
 .notice {
@@ -311,58 +362,16 @@ $rail: 56px;
   }
 }
 
-/* ── Mobile: slim icon rail, chevron expands to an overlay ── */
+/* ── Mobile: the expanded rail floats over the page instead of pushing it ── */
 @media (max-width: 860px) {
-  .sidebar {
-    width: $rail;
-    transition: width 0.22s ease, box-shadow 0.22s ease;
-  }
-
-  .sidebar:not(.open) {
-    .agencyName,
-    .modePill,
-    .linkLabel,
-    .poweredBy {
-      display: none;
-    }
-
-    .brand {
-      padding: var(--sp-3) 0;
-      align-items: center;
-    }
-
-    .nav,
-    .sidebarFoot {
-      padding: var(--sp-2);
-      align-items: center;
-    }
-
-    /* the slim icon rail is short enough to fit — a scrollbar gutter here is
-       just noise in a 56px column. Keep it scrollable, hide the chrome. */
-    .nav {
-      scrollbar-width: none;
-
-      &::-webkit-scrollbar {
-        display: none;
-      }
-    }
-
-    .link,
-    .modeSwitch,
-    .signOut {
-      justify-content: center;
-      gap: 0;
-      padding: var(--sp-2);
-    }
-  }
-
   .sidebar.open {
-    width: $w;
     box-shadow: 6px 0 28px rgba(0, 0, 0, 0.18);
   }
 
-  .main {
+  /* content never shifts on mobile — the rail is a strip or an overlay */
+  .main,
+  .mainCollapsed {
     margin-left: $rail;
-    padding: var(--sp-5) var(--sp-4) var(--sp-10);
+    padding: 30px var(--sp-3) var(--sp-16);
   }
 }

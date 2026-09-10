@@ -257,16 +257,16 @@ export const SupervisionLogoMark = () => (
 );
 
 /**
- * The Clarity sprout. Geometry matches the boot splash mark
- * (app.html #boot-splash-mark) exactly — same stem + two-leaf curves, same
- * filled right leaf — just held static instead of self-animating. Keeps the
- * `size` / `color` API so every call site (Navbar, AdminSidebar, auth pages,
- * PDF header, …) is unchanged; `color` drives `currentColor`, so it still
- * adapts to a dark rail, an accent header, etc. rather than the splash's
- * fixed greens.
+ * The Clarity sprout — a stem and two leaves, outline only (no fill). Geometry
+ * matches the promo site's `.wordmark__mark` (index.html / src/promo/promo.scss)
+ * and the favicon (public/icon.svg). Keeps the `size` / `color` API so every
+ * call site (Navbar, AdminSidebar, auth pages, PDF header, …) is unchanged.
+ * Never black: an explicit `color` prop wins, otherwise brand green in light,
+ * white on dark.
  */
 export const LeafLogoMark = ({ size = 28, color }: { size?: number; color?: string }) => {
-  const colorValue = color ?? "var(--text-primary)";
+  const isDark = useResolvedTheme() === "dark";
+  const plant = color ?? (isDark ? "#ffffff" : "var(--accent)");
 
   return (
     <svg
@@ -280,14 +280,11 @@ export const LeafLogoMark = ({ size = 28, color }: { size?: number; color?: stri
       strokeLinejoin="round"
       role="img"
       aria-label="Clarity"
-      style={{ color: colorValue }}
+      style={{ color: plant }}
     >
-      {/* stem */}
-      <path d="M12 22C12 22 12 12 12 12" />
-      {/* left leaf — outline only */}
-      <path d="M12 12C12 7 7 3 2 3C2 8 6 12 12 12Z" />
-      {/* right leaf — filled, like the splash */}
-      <path d="M12 12C12 7 17 3 22 3C22 8 18 12 12 12Z" fill="currentColor" fillOpacity={0.88} />
+      <path d="M12 22V12" />
+      <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
+      <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
     </svg>
   );
 };

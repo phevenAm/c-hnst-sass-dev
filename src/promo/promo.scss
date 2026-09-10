@@ -208,6 +208,40 @@ a:hover {
   color: #fff;
 }
 
+// ── Intro cascade: header wordmark → nav → the rest of the page ─────
+// The sprout mark itself is the boot-splash SMIL, verbatim (see the markup in
+// index.html and app.html #boot-splash-mark) — it self-animates on load, no CSS
+// needed. This just sequences everything around it: "Clarity" fades in with the
+// mark, then the nav, then #main. Start-states are only armed when motion is
+// welcome — reduced-motion visitors get everything painted immediately.
+@media (prefers-reduced-motion: no-preference) {
+  // "Clarity" and every nav link fade in together, starting ~1s before the
+  // sprout finishes drawing (it completes ~1.5s) and landing on the same beat —
+  // so the whole topbar settles at once. Then the rest of the page follows.
+  .wordmark--animate .wordmark__text,
+  .site-header .site-nav {
+    opacity: 0;
+    animation: introFade 1s ease 0.5s forwards;
+  }
+
+  .wordmark--animate .wordmark__text {
+    display: inline-block;
+    transform: translateY(0.2em);
+  }
+
+  #main {
+    opacity: 0;
+    animation: introFade 0.6s ease 1.7s forwards;
+  }
+}
+
+@keyframes introFade {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .site-nav {
   display: contents;
   align-items: center;
@@ -240,10 +274,15 @@ a:hover {
 }
 
 .site-nav__link--login {
-  padding: $sp-2 $sp-3;
+  padding: 0.25rem 0.75rem;
+
+  font-size: 12.8px;
+
+  // padding: $sp-2 $sp-3;
   border: 1px solid var(--line-strong);
   border-radius: $r-full;
   color: var(--ink);
+
 
   &:hover {
     background: var(--surface);
@@ -493,7 +532,7 @@ a:hover {
   // 7 cards in a 3-col grid leaves a lone card on the last row — centre it
   // rather than letting it sit hard-left under an empty gap. Only applies
   // when the count actually is 3n+1; harmless otherwise.
-  > .feature:last-child:nth-child(3n + 1) {
+  >.feature:last-child:nth-child(3n + 1) {
     grid-column: 2;
   }
 }
@@ -1201,6 +1240,27 @@ a:hover {
     border-left: 2px solid var(--accent);
     border-bottom: 2px solid var(--accent);
     transform: rotate(-45deg);
+  }
+
+  // A feature this tier doesn't include — struck through, no tick.
+  li.is-off {
+    color: var(--ink-mut);
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-mut);
+  }
+
+  li.is-off::before {
+    background: var(--line-strong);
+  }
+
+  li.is-off::after {
+    left: 0.24rem;
+    top: 0.5em;
+    width: 0.5rem;
+    height: 0;
+    border-left: none;
+    border-bottom: 2px solid var(--ink-mut);
+    transform: none;
   }
 }
 

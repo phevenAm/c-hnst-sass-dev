@@ -25,6 +25,7 @@ import { useAgencyBootstrap } from "../Hooks/useAgencyBootstrap";
 import { useAssignmentsRealtime } from "../Hooks/useAssignmentsRealtime";
 import { useConsentPending } from "../Hooks/useConsentPending";
 import { useFocusOnNavigate } from "../Hooks/useFocusOnNavigate";
+import { useHasFileManager } from "../Hooks/useHasFileManager";
 import { useMessagesRealtime } from "../Hooks/useMessagesRealtime";
 import { usePracticeSettingsRealtime } from "../Hooks/usePracticeSettingsRealtime";
 import { useResolvedTheme } from "../Hooks/useResolvedTheme";
@@ -366,6 +367,7 @@ export default function AppRoutes() {
   // and superadmin only, never a live counsellor. Manage mode (/agency/*)
   // stays account-gated instead.
   const wipVisible = useWipVisible();
+  const hasFileManager = useHasFileManager();
 
   return (
     <ThemeWrapper>
@@ -477,7 +479,7 @@ export default function AppRoutes() {
                 <Route path="/admin/expenses" element={<Navigate to="/admin/finances?view=expenses" replace />} />
                 <Route path="/admin/cpd" element={<AdminCpdPage />} />
                 <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
-                {isFeatureEnabled("fileManager") && <Route path="/admin/files" element={<AdminFilesPage />} />}
+                {hasFileManager && <Route path="/admin/files" element={<AdminFilesPage />} />}
                 {isFeatureEnabled("messaging") && (
                   <>
                     <Route path="/admin/messages" element={<AdminMessagesPage />} />

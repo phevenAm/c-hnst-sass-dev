@@ -26,6 +26,11 @@ import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
 import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
+import {
+  readSidebarBtnPos,
+  type SidebarBtnPos,
+  writeSidebarBtnPos,
+} from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
@@ -80,10 +85,25 @@ const CLIENT_TABS: { id: AdminTab; label: string }[] = [
 // the plan_limits table (source of truth, shared with enforcement); the £ figures
 // live here and in the marketing page's TIERS array — keep the two in step.
 type TierKey = "starter" | "growth" | "unlimited";
-const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
-  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
-  growth: { label: "Growth", monthly: 16.99, annual: 169, blurb: "For a growing practice" },
-  unlimited: { label: "Unlimited", monthly: 24.99, annual: 249, blurb: "No client limit" },
+const TIER_DISPLAY: Record<
+  TierKey,
+  { label: string; monthly: number; annual: number; blurb: string; storage: string }
+> = {
+  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload", storage: "No file storage" },
+  growth: {
+    label: "Growth",
+    monthly: 16.99,
+    annual: 169,
+    blurb: "For a growing practice",
+    storage: "2.5 GB file storage",
+  },
+  unlimited: {
+    label: "Unlimited",
+    monthly: 24.99,
+    annual: 249,
+    blurb: "No client limit",
+    storage: "10 GB file storage",
+  },
 };
 const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
 
@@ -434,9 +454,7 @@ const SettingsPage = () => {
     "If you have any questions, speak to your counsellor.",
   );
   const [savingConsent, setSavingConsent] = useState(false);
-  const [sidebarBtnPos, setSidebarBtnPos] = useState<"top" | "middle" | "bottom">(
-    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
-  );
+  const [sidebarBtnPos, setSidebarBtnPos] = useState<SidebarBtnPos>(readSidebarBtnPos);
 
   const [reminderHours, setReminderHours] = useState(120);
   const [reminderSubject, setReminderSubject] = useState("");
@@ -1481,6 +1499,7 @@ const SettingsPage = () => {
                           ? "Unlimited clients"
                           : `${limit.max_active} active + ${limit.max_archived} archived`}
                       </div>
+                      <div className={styles.tierCap}>{d.storage}</div>
                       <div className={styles.tierBlurb}>{d.blurb}</div>
                       {isCurrent ? (
                         <span className={styles.tierCurrentBadge}>Current plan</span>
@@ -3064,8 +3083,7 @@ const SettingsPage = () => {
                         className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
                         onClick={() => {
                           setSidebarBtnPos(pos);
-                          localStorage.setItem("adminSidebarBtnPos", pos);
-                          window.dispatchEvent(new CustomEvent("adminBtnPosChange", { detail: pos }));
+                          writeSidebarBtnPos(pos);
                         }}
                       >
                         {pos.charAt(0).toUpperCase() + pos.slice(1)}

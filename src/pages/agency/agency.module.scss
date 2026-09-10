@@ -360,6 +360,43 @@
   }
 }
 
+/* Top / middle / bottom picker — mirrors the admin Settings control. */
+.segmented {
+  display: inline-flex;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.segmentedOption {
+  background: none;
+  border: none;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+  white-space: nowrap;
+
+  &:not(:last-child) {
+    border-right: 1.5px solid var(--border);
+  }
+
+  &:hover:not(.segmentedActive) {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+  }
+}
+
+.segmentedActive {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
 .cardTitle {
   font-size: 0.95rem;
   font-weight: 700;

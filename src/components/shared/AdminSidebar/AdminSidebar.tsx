@@ -1,6 +1,7 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import { useHasFileManager } from "@Hooks/useHasFileManager";
 import { useAuth } from "@context/AuthContext";
 import { useAppSelector } from "@store/hooks";
 import { selectTotalUnread } from "@store/slices/messagesSlice";
@@ -14,8 +15,6 @@ import {
   CalendarIcon,
   ChatIcon,
   ChevronDownSmIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CpdIcon,
   FolderIcon,
   HistoryIcon,
@@ -27,6 +26,7 @@ import {
   SupervisionLogoMark,
   UsersIcon,
 } from "../Icons/Icons";
+import SidebarCollapseButton from "../SidebarCollapseButton/SidebarCollapseButton";
 
 import styles from "./AdminSidebar.module.scss";
 
@@ -46,9 +46,8 @@ const NAV: NavItem[] = [
   { to: "/admin/forms", label: "Forms", Icon: AssignmentClipIcon, exact: false },
   { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
-  ...(isFeatureEnabled("fileManager")
-    ? [{ to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false } as NavLeaf]
-    : []),
+  // "Files" (/admin/files) is spliced in here at render time for tiers that have
+  // storage — see the useHasFileManager() branch in the component below.
   {
     label: "Logs",
     Icon: LayersIcon,
@@ -75,11 +74,18 @@ export default function AdminSidebar({
   const location = useLocation();
   const { isDemo } = useAuth();
   const totalUnread = useAppSelector(selectTotalUnread);
+  const hasFileManager = useHasFileManager();
+
+  // Splice "Files" in after "Resources" only for tiers with storage (Growth+ /
+  // agency). Starter has a 0-byte quota, so the page is hidden for it.
+  const nav = useMemo<NavItem[]>(() => {
+    if (!hasFileManager) return NAV;
+    const at = NAV.findIndex((item) => !isGroup(item) && item.to === "/admin/resources");
+    const files: NavLeaf = { to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false };
+    return at === -1 ? [...NAV, files] : [...NAV.slice(0, at + 1), files, ...NAV.slice(at + 1)];
+  }, [hasFileManager]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
-    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
-  );
   const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
   const [flyoutTop, setFlyoutTop] = useState(0);
 
@@ -89,38 +95,11 @@ export default function AdminSidebar({
   const flyoutListRef = useRef<HTMLUListElement>(null);
   const closeTimer = useRef<number | undefined>(undefined);
   const firstChildRef = useRef<HTMLAnchorElement>(null);
-  const [measured, setMeasured] = useState({ top: 55, bottom: 120 });
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      setMeasured({
-        top: topRef.current?.offsetHeight ?? 55,
-        bottom: bottomRef.current?.offsetHeight ?? 120,
-      });
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  const halfBtn = isMobile ? 18 : 12;
-  const collapseBtnStyle: CSSProperties = (() => {
-    if (btnPos === "top") return { top: measured.top - halfBtn, bottom: "auto", transform: "none" };
-    if (btnPos === "bottom")
-      return { top: window.innerHeight - measured.bottom - halfBtn, bottom: "auto", transform: "none" };
-    return { top: "50%", bottom: "auto", transform: "translateY(-50%)" };
-  })();
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: Event) => setBtnPos((e as CustomEvent<"top" | "middle" | "bottom">).detail);
-    window.addEventListener("adminBtnPosChange", handler);
-    return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
   const isFlyoutMode = collapsed || (isMobile && !isOpen);
@@ -216,7 +195,7 @@ export default function AdminSidebar({
 
         <nav aria-label="Admin pages" className={styles.nav}>
           <ul className={styles.navList}>
-            {NAV.map((item) => {
+            {nav.map((item) => {
               if (isGroup(item)) {
                 const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
                 return (
@@ -338,16 +317,15 @@ export default function AdminSidebar({
           </div>
         </div>
 
-        <button
-          type="button"
+        <SidebarCollapseButton
+          collapsed={collapsed}
+          isOpen={isOpen}
+          isMobile={isMobile}
+          onToggle={onToggle}
+          topRef={topRef}
+          bottomRef={bottomRef}
           className={styles.collapseBtn}
-          style={collapseBtnStyle}
-          onClick={onToggle}
-          aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
-          aria-expanded={isOpen || !collapsed}
-        >
-          {(isMobile ? !isOpen : collapsed) ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </button>
+        />
       </aside>
 
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}

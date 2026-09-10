@@ -214,10 +214,28 @@
     <header class="site-header">
       <div class="container site-header__inner">
         <a class="wordmark wordmark--animate" href="/">
-          <svg class="wordmark__mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22V12" pathLength="1" />
-            <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" pathLength="1" />
-            <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" pathLength="1" />
+          <!-- The boot-splash mark, verbatim (app.html #boot-splash-mark): same
+               SMIL choreography — stem snaps in, left leaf draws from the stem,
+               right leaf draws from its tip. Adapted only: plays once (no
+               repeatCount), stroke is currentColor, no fill. -->
+          <svg class="wordmark__mark" width="100%" height="100%" viewBox="0 0 96 96" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <g transform="matrix(4,0,0,4,0,0)" display="none">
+              <animate begin="0s" calcMode="discrete" dur="5s" fill="freeze" values="none; inline; inline" keyTimes="0; 0.105682; 1" attributeName="display" />
+              <path stroke-dasharray="100 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="currentColor" fill="none" d="M12,12C12,7,17,3,22,3C22,8,18,12,12,12C12,12,12,12,12,12Z">
+                <animate fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0 0 1 1; 0 0 1 1" keyTimes="0; 0.022727; 0.303031; 1" values="-100; -100; 0; 0" attributeName="stroke-dashoffset" />
+              </path>
+            </g>
+            <g transform="matrix(4,0,0,4,0,0)">
+              <path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="currentColor" d="M12,22C12,22,12,12,12,12">
+                <animate fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0.37 0 0 1; 0.37 0 0 1; 0 0 1 1" keyTimes="0; 0; 0.015151; 1" values="0 100; 98.719 1.281; 98.99 1.01; 98.99 1.01" attributeName="stroke-dasharray" />
+              </path>
+            </g>
+            <g transform="matrix(4,0,0,4,0,0)" display="none">
+              <animate begin="0s" calcMode="discrete" dur="5s" fill="freeze" values="none; inline; inline" keyTimes="0; 0; 1" attributeName="display" />
+              <path stroke-dasharray="0 100" pathLength="100" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" stroke="currentColor" d="M12,12C12,7,7,3,2,3C2,8,6,12,12,12C12,12,12,12,12,12Z">
+                <animate fill="freeze" begin="0s" dur="5s" calcMode="spline" keySplines="0 0 1 1; 0.76 0 0.24 1; 0 0 1 1" keyTimes="0; 0; 0.113636; 1" values="0 100; 0 100; 100 0; 100 0" attributeName="stroke-dasharray" />
+              </path>
+            </g>
           </svg>
           <span class="wordmark__text">Clarity</span>
         </a>
@@ -701,8 +719,8 @@
                 <li>Admin dashboard &amp; analytics</li>
                 <li>CPD &amp; supervision logs with exports</li>
                 <li>Resource library with client invites</li>
+                <li id="planStorage" class="is-off">File management</li>
                 <li>Automated client emails you control</li>
-                <li>Secure client login portal</li>
                 <li>Support built in — help is always a message away</li>
               </ul>
               <a class="btn btn--primary plan__cta" id="planCta" href="/register?plan=starter">Get started</a>
@@ -716,6 +734,7 @@
                 <li>One dashboard across every counsellor's caseload</li>
                 <li>A shared waiting list &mdash; assign or reassign clients to staff</li>
                 <li>Agency-wide policies, from client codenames to working agreements</li>
+                <li>10&nbsp;GB shared file storage across the team</li>
                 <li>Simple billing by staff headcount, not client count</li>
               </ul>
               <span class="btn btn--ghost plan__cta plan__cta--disabled" aria-disabled="true">Coming soon</span>
@@ -1040,9 +1059,9 @@
       (function () {
         // Mirror of the `plan_limits` table. Annual = ~10 months.
         var TIERS = [
-          { name: "Starter", clients: "5", monthly: "7.99", annual: "79" },
-          { name: "Growth", clients: "15", monthly: "16.99", annual: "169" },
-          { name: "Unlimited", clients: null, monthly: "24.99", annual: "249" },
+          { name: "Starter", clients: "5", monthly: "7.99", annual: "79", storage: null },
+          { name: "Growth", clients: "15", monthly: "16.99", annual: "169", storage: "2.5 GB" },
+          { name: "Unlimited", clients: null, monthly: "24.99", annual: "249", storage: "10 GB" },
         ];
 
         var range = document.getElementById("planRange");
@@ -1050,6 +1069,7 @@
         var perEl = document.getElementById("planPer");
         var altEl = document.getElementById("planAlt");
         var capEl = document.getElementById("planCapacity");
+        var storageEl = document.getElementById("planStorage");
         var ctaEl = document.getElementById("planCta");
         var notches = document.querySelectorAll(".plan__notches span");
         if (!range) return;
@@ -1076,6 +1096,16 @@
             : t.name + " · unlimited active and archived clients";
           if (capEl) capEl.textContent = capText;
           range.setAttribute("aria-valuetext", capText);
+
+          if (storageEl) {
+            if (t.storage) {
+              storageEl.textContent = t.storage + " file management & storage";
+              storageEl.classList.remove("is-off");
+            } else {
+              storageEl.textContent = "File management";
+              storageEl.classList.add("is-off");
+            }
+          }
 
           if (altEl) {
             if (annual) {

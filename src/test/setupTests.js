@@ -18,6 +18,21 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
+// JSDOM doesn't implement matchMedia — useResolvedTheme (via <LeafLogoMark>,
+// ThreeWayToggle, …) calls it to resolve the "system" appearance.
+if (!window.matchMedia) {
+  window.matchMedia = (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  });
+}
+
 // lottie-web probes canvas 2D context at import time; JSDOM's getContext()
 // returns null without the optional "canvas" package, which crashes the
 // import outright. Stub the component so anything importing it (even

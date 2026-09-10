@@ -49,7 +49,7 @@ const SLIDES = [
 ];
 
 const PRICING_FEATURES = [
-  { text: "Every feature on every plan", slide: 0 },
+  { text: "Every core feature on every plan", slide: 0 },
   { text: "Card payments via Stripe Connect", slide: 2 },
   { text: "Client check-ins and surveys", slide: 1 },
   { text: "Practice analytics and PDF export", slide: 3 },
@@ -60,13 +60,17 @@ type Billing = "monthly" | "annual";
 
 // £ figures mirror the marketing page (index.html TIERS) and the Stripe
 // products. Client caps are enforced server-side from the plan_limits table.
-const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string; capacity: string }> = {
+const PLANS: Record<
+  Plan,
+  { label: string; monthly: number; annual: number; desc: string; capacity: string; storage: string }
+> = {
   starter: {
     label: "Starter",
     monthly: 7.99,
     annual: 79,
     desc: "For a small caseload",
     capacity: "5 active · 5 archived",
+    storage: "No file storage",
   },
   growth: {
     label: "Growth",
@@ -74,6 +78,7 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
     annual: 169,
     desc: "For a growing practice",
     capacity: "15 active · 15 archived",
+    storage: "2.5 GB file storage",
   },
   unlimited: {
     label: "Unlimited",
@@ -81,6 +86,7 @@ const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc
     annual: 249,
     desc: "No limit",
     capacity: "Unlimited clients",
+    storage: "10 GB file storage",
   },
 };
 const PLAN_ORDER: Plan[] = ["starter", "growth", "unlimited"];
@@ -287,6 +293,7 @@ export default function SubscribePage() {
                       <span className={styles.planCardMain}>
                         <span className={styles.planCardName}>{p.label}</span>
                         <span className={styles.planCardSub}>{p.capacity}</span>
+                        <span className={styles.planCardSub}>{p.storage}</span>
                       </span>
                       <span className={styles.planCardPrice}>
                         £{billing === "annual" ? p.annual : p.monthly}
