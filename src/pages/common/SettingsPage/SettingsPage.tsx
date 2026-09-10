@@ -67,6 +67,15 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
   { id: "interface", label: "Interface & accessibility" },
 ];
 
+// A client's settings are just their own profile + this-device preferences.
+// Two tabs, but the same accessible <SettingsTabs> bar (roving tabindex,
+// arrow-key nav, ?tab= deep link) the admin and agency pages use — both ids
+// are a subset of AdminTab, so no separate tab-state type is needed.
+const CLIENT_TABS: { id: AdminTab; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "interface", label: "Interface & accessibility" },
+];
+
 // Display-only pricing for the subscription tier switcher. Capacity comes from
 // the plan_limits table (source of truth, shared with enforcement); the £ figures
 // live here and in the marketing page's TIERS array — keep the two in step.
@@ -1300,7 +1309,7 @@ const SettingsPage = () => {
             Nothing is deleted. This is the right choice if you've stopped practising for now but might come back.
           </p>
         )}
-        <div className={[styles.actions, styles.managePractice]}>
+        <div className={styles.actions}>
           <Button
             variant={isPaused ? "primary" : "secondary"}
             className={styles.saveButton}
@@ -1529,207 +1538,225 @@ const SettingsPage = () => {
           <p>{isAdmin ? "Manage your profile, practice, and account" : "Update or remove your profile"}</p>
         </div>
 
-        {/* ── Tab bar (admin only) ── */}
-        {isAdmin && (
-          <Card className={styles.tabsCard}>
-            <SettingsTabs
-              tabs={ADMIN_TABS}
-              value={activeTab}
-              onChange={setActiveTab}
-              ariaLabel="Settings sections"
-              idBase="settings"
-            />
-          </Card>
-        )}
+        {/* ── Tab bar ── every role gets the same accessible bar; clients just
+            get a shorter list (Profile · Interface). ── */}
+        <Card className={styles.tabsCard}>
+          <SettingsTabs
+            tabs={isAdmin ? ADMIN_TABS : CLIENT_TABS}
+            value={activeTab}
+            onChange={setActiveTab}
+            ariaLabel="Settings sections"
+            idBase="settings"
+          />
+        </Card>
 
         {/* ── Profile tab ── */}
-        {(!isAdmin || activeTab === "profile") && (
-          <Card className={styles.card}>
-            <div className={styles.topRow}>
-              <section className={styles.left}>
-                <form className={styles.form}>
-                  <h2 className={styles.sectionTitle}>Edit profile</h2>
-                  <div className={styles.field}>
-                    <label htmlFor="displayName">
-                      Display name <small>(shown on your dashboard — use a nickname or short name)</small>
-                    </label>
-                    <input
-                      id="displayName"
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={40}
-                      value={name}
-                      placeholder="e.g. Alex"
-                      name="display name"
-                    />
+        {activeTab === "profile" && (
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-profile"
+            aria-labelledby="settings-tab-profile"
+          >
+            <Card className={styles.card}>
+              <div className={styles.topRow}>
+                <section className={styles.left}>
+                  <form className={styles.form}>
+                    <h2 className={styles.sectionTitle}>Edit profile</h2>
+                    <div className={styles.field}>
+                      <label htmlFor="displayName">
+                        Display name <small>(shown on your dashboard — use a nickname or short name)</small>
+                      </label>
+                      <input
+                        id="displayName"
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={40}
+                        value={name}
+                        placeholder="e.g. Alex"
+                        name="display name"
+                      />
+                    </div>
+                    <div className={styles.field}>
+                      <label>Profile picture</label>
+                      <UploadAndDisplayImage
+                        userId={userProfile?.id ?? ""}
+                        onUpload={async (url) => {
+                          setImageUrl(url);
+                          await updateProfile({ avatar_url: url });
+                          showToast("Profile photo updated.");
+                        }}
+                      />
+                    </div>
+                  </form>
+                </section>
+
+                <section className={styles.right}>
+                  <div className={styles.avatarCard}>
+                    <Avatar name={name} imageSrc={imageUrl} color={avatarColor} size={210} />
+                    <h2>{name}</h2>
                   </div>
-                  <div className={styles.field}>
-                    <label>Profile picture</label>
-                    <UploadAndDisplayImage
-                      userId={userProfile?.id ?? ""}
-                      onUpload={async (url) => {
-                        setImageUrl(url);
-                        await updateProfile({ avatar_url: url });
-                        showToast("Profile photo updated.");
-                      }}
-                    />
-                  </div>
-                </form>
-              </section>
-
-              <section className={styles.right}>
-                <div className={styles.avatarCard}>
-                  <Avatar name={name} imageSrc={imageUrl} color={avatarColor} size={210} />
-                  <h2>{name}</h2>
-                </div>
-              </section>
-            </div>
-
-            {!isAdmin && (
-              <section className={styles.keywords}>
-                <h2>Focus keywords</h2>
-                <p>Pick topics that shape the quotes you see on your dashboard.</p>
-                <div className={styles.chipList}>
-                  {KEYWORDS.map((kw) => (
-                    <button
-                      key={kw}
-                      type="button"
-                      className={`${styles.chip} ${keywords.includes(kw) ? styles.chipSelected : ""}`}
-                      onClick={() => toggleKeyword(kw)}
-                    >
-                      {kw}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <div className={styles.actions}>
-              <div className={styles.primaryAction}>
-                <Button
-                  variant="primary"
-                  className={styles.saveButton}
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    await handleUpdateProfile();
-                  }}
-                >
-                  {saving ? "Updating profile..." : "Update profile"}
-                </Button>
+                </section>
               </div>
-              <div className={styles.utilityActions}>
-                {!isDemo && (
-                  <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
-                    Change password
+
+              {!isAdmin && (
+                <section className={styles.keywords}>
+                  <h2>Focus keywords</h2>
+                  <p>Pick topics that shape the quotes you see on your dashboard.</p>
+                  <div className={styles.chipList}>
+                    {KEYWORDS.map((kw) => (
+                      <button
+                        key={kw}
+                        type="button"
+                        className={`${styles.chip} ${keywords.includes(kw) ? styles.chipSelected : ""}`}
+                        onClick={() => toggleKeyword(kw)}
+                      >
+                        {kw}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <div className={styles.profileActions}>
+                <div className={styles.primaryAction}>
+                  <Button
+                    variant="primary"
+                    className={styles.saveButton}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      await handleUpdateProfile();
+                    }}
+                  >
+                    {saving ? "Updating profile..." : "Update profile"}
+                  </Button>
+                </div>
+                <div className={styles.utilityActions}>
+                  {!isDemo && (
+                    <Button variant="secondary" size="sm" onClick={() => setShowChangePasswordModal(true)}>
+                      Change password
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={hardRefresh}>
+                    Force app update
+                  </Button>
+                </div>
+                {!isAdmin && (
+                  <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
+                    Report a problem
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={hardRefresh}>
-                  Force app update
-                </Button>
+                {!isAdmin && !isDemo && (
+                  <div className={styles.deleteAccountBlock}>
+                    <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
+                      Delete account
+                    </Button>
+                  </div>
+                )}
               </div>
-              {!isAdmin && (
-                <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
-                  Report a problem
-                </Button>
-              )}
-              {!isAdmin && !isDemo && (
-                <div className={styles.deleteAccountBlock}>
-                  <Button variant="ghost-danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
-                    Delete account
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
+            </Card>
+
+            {subscriptionCard}
+            {agencyManagedCard}
+            {practiceLifecycleCard}
+            {referralCard}
+          </div>
         )}
 
-        {activeTab === "profile" && subscriptionCard}
-        {activeTab === "profile" && agencyManagedCard}
-        {activeTab === "profile" && practiceLifecycleCard}
-        {activeTab === "profile" && referralCard}
+        {/* ── Interface tab (clients — admins have their own below) ── */}
+        {!isAdmin && activeTab === "interface" && (
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-interface"
+            aria-labelledby="settings-tab-interface"
+          >
+            <Card className={styles.card}>
+              <section className={styles.clientPrefs}>
+                <h2>Interface &amp; accessibility</h2>
+                <p>These settings only affect this device.</p>
 
-        {/* ── Interface (clients only — admins have their own tab below) ── */}
-        {!isAdmin && (
-          <Card className={styles.card}>
-            <section className={styles.clientPrefs}>
-              <h2>Interface</h2>
-              <p>These settings only affect this device.</p>
-
-              <div className={styles.settingRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Appearance</strong>
-                  <span>{appearanceHint}</span>
-                </span>
-                <ThreeWayToggle
-                  ariaLabel="Appearance"
-                  options={APPEARANCE_OPTIONS}
-                  value={themeMode}
-                  onChange={(v) => dispatch(setTheme(v))}
-                />
-              </div>
-
-              <label className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Stop animations</strong>
-                  <span>Disables all transitions and animations across the app</span>
-                </span>
-                <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
-                  <input
-                    type="checkbox"
-                    className={styles.toggleInput}
-                    checked={reduceMotion}
-                    onChange={(e) => setReduceMotion(e.target.checked)}
-                  />
-                  <span className={styles.toggleThumb} />
-                </span>
-              </label>
-
-              <div className={styles.settingRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>App zoom</strong>
-                  <span>Scales the whole app — useful on smaller screens</span>
-                </span>
-                <select
-                  id="appZoomClient"
-                  aria-label="App zoom"
-                  value={appZoom}
-                  onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
-                  className={styles.select}
-                >
-                  {APP_ZOOM_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {Math.round(level * 100)}%
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.settingRow}>
-                <span className={styles.toggleLabel}>
-                  <strong>Guided tours</strong>
-                  <span>
-                    {walkthroughOff
-                      ? "Walkthroughs are turned off."
-                      : "Walkthroughs play the first time you open each page."}
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Appearance</strong>
+                    <span>{appearanceHint}</span>
                   </span>
-                </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    resetWalkthrough();
-                    showToast("Walkthroughs reset — they'll play again on each page.", "success");
-                  }}
-                >
-                  Reset walkthroughs
-                </Button>
-              </div>
-            </section>
-          </Card>
+                  <ThreeWayToggle
+                    ariaLabel="Appearance"
+                    options={APPEARANCE_OPTIONS}
+                    value={themeMode}
+                    onChange={(v) => dispatch(setTheme(v))}
+                  />
+                </div>
+
+                <label className={styles.toggleRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Stop animations</strong>
+                    <span>Disables all transitions and animations across the app</span>
+                  </span>
+                  <span className={`${styles.toggleSwitch} ${reduceMotion ? styles.toggleSwitchOn : ""}`}>
+                    <input
+                      type="checkbox"
+                      className={styles.toggleInput}
+                      checked={reduceMotion}
+                      onChange={(e) => setReduceMotion(e.target.checked)}
+                    />
+                    <span className={styles.toggleThumb} />
+                  </span>
+                </label>
+
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>App zoom</strong>
+                    <span>Scales the whole app — useful on smaller screens</span>
+                  </span>
+                  <select
+                    id="appZoomClient"
+                    aria-label="App zoom"
+                    value={appZoom}
+                    onChange={(e) => setAppZoom(Number(e.target.value) as AppZoom)}
+                    className={styles.select}
+                  >
+                    {APP_ZOOM_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {Math.round(level * 100)}%
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.settingRow}>
+                  <span className={styles.toggleLabel}>
+                    <strong>Guided tours</strong>
+                    <span>
+                      {walkthroughOff
+                        ? "Walkthroughs are turned off."
+                        : "Walkthroughs play the first time you open each page."}
+                    </span>
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      resetWalkthrough();
+                      showToast("Walkthroughs reset — they'll play again on each page.", "success");
+                    }}
+                  >
+                    Reset walkthroughs
+                  </Button>
+                </div>
+              </section>
+            </Card>
+          </div>
         )}
 
         {/* ── Practice tab (admin only) ── */}
         {isAdmin && activeTab === "practice" && (
-          <>
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-practice"
+            aria-labelledby="settings-tab-practice"
+          >
             <input
               type="search"
               className={styles.sectionSearch}
@@ -1811,7 +1838,7 @@ const SettingsPage = () => {
                   general practice news. Clients who have opted out of practice emails are skipped automatically.
                 </p>
                 <div className={styles.actions}>
-                  <Button variant="primary" onClick={() => setAnnounceOpen(true)}>
+                  <Button variant="primary" className={styles.saveButton} onClick={() => setAnnounceOpen(true)}>
                     Compose announcement
                   </Button>
                 </div>
@@ -1874,7 +1901,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveCodenames}
                   disabled={savingCodenames}
@@ -1991,7 +2017,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveConsent}
                   disabled={savingConsent}
@@ -2000,12 +2025,17 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </SettingsCard>
-          </>
+          </div>
         )}
 
         {/* ── Schedule tab (admin only) ── */}
         {isAdmin && activeTab === "schedule" && (
-          <>
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-schedule"
+            aria-labelledby="settings-tab-schedule"
+          >
             <input
               type="search"
               className={styles.sectionSearch}
@@ -2206,7 +2236,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveAutoCancel}
                   disabled={savingAutoCancel}
@@ -2270,7 +2299,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveRescheduleCutoff}
                   disabled={savingRescheduleCutoff}
@@ -2307,7 +2335,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveSessionBuffer}
                   disabled={savingSessionBuffer}
@@ -2433,7 +2460,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveAdminReminders}
                   disabled={savingAdminReminders}
@@ -2480,7 +2506,6 @@ const SettingsPage = () => {
               <div className={styles.actions}>
                 <Button
                   variant="primary"
-                  size="sm"
                   className={styles.saveButton}
                   onClick={handleSaveBlockCancellation}
                   disabled={savingBlockCancellation}
@@ -2489,12 +2514,17 @@ const SettingsPage = () => {
                 </Button>
               </div>
             </SettingsCard>
-          </>
+          </div>
         )}
 
         {/* ── Billing tab (admin only) ── */}
         {isAdmin && activeTab === "billing" && (
-          <>
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-billing"
+            aria-labelledby="settings-tab-billing"
+          >
             <input
               type="search"
               className={styles.sectionSearch}
@@ -2752,16 +2782,19 @@ const SettingsPage = () => {
                 )}
               </section>
               <div className={styles.actions}>
-                <div className={styles.utilityActions}>
-                  <Button variant="primary" onClick={handleSaveInvoiceSettings} disabled={savingInvoiceSettings}>
-                    {savingInvoiceSettings ? "Saving…" : "Save invoice settings"}
+                <Button
+                  variant="primary"
+                  className={styles.saveButton}
+                  onClick={handleSaveInvoiceSettings}
+                  disabled={savingInvoiceSettings}
+                >
+                  {savingInvoiceSettings ? "Saving…" : "Save invoice settings"}
+                </Button>
+                {invoicesEnabled && (
+                  <Button variant="secondary" onClick={handlePreviewInvoice}>
+                    Preview invoice
                   </Button>
-                  {invoicesEnabled && (
-                    <Button variant="secondary" onClick={handlePreviewInvoice}>
-                      Preview invoice
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             </SettingsCard>
 
@@ -2872,12 +2905,17 @@ const SettingsPage = () => {
                 )}
               </section>
             </SettingsCard>
-          </>
+          </div>
         )}
 
         {/* ── Interface tab (admin only) ── */}
         {isAdmin && activeTab === "interface" && (
-          <>
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-interface"
+            aria-labelledby="settings-tab-interface"
+          >
             <input
               type="search"
               className={styles.sectionSearch}
@@ -3066,211 +3104,222 @@ const SettingsPage = () => {
                 </div>
               </section>
             </SettingsCard>
-          </>
+          </div>
         )}
 
         {/* ── Emails tab (admin only) ── */}
         {isAdmin && activeTab === "emails" && (
-          <Card className={styles.card}>
-            <section className={styles.businessSection}>
-              <h2>Manage emails</h2>
-              <p>Control which emails go out, customise their content, and send tests to your inbox.</p>
-            </section>
+          <div
+            className={styles.tabPanel}
+            role="tabpanel"
+            id="settings-panel-emails"
+            aria-labelledby="settings-tab-emails"
+          >
+            <Card className={styles.card}>
+              <section className={styles.businessSection}>
+                <h2>Manage emails</h2>
+                <p>Control which emails go out, customise their content, and send tests to your inbox.</p>
+              </section>
 
-            {[
-              {
-                id: "reminder",
-                label: "Session reminder",
-                desc: "Sent to clients before their session",
-                preview: previewSessionReminder(reminderBody || undefined, reminderHours, reminderHeading || undefined),
-              },
-              {
-                id: "session_booked",
-                label: "Session confirmed",
-                desc: "Sent to clients when a session is booked",
-                preview: previewSessionBooked(),
-              },
-              {
-                id: "session_cancelled",
-                label: "Session cancelled",
-                desc: "Sent to clients when a session is cancelled",
-                preview: previewSessionCancelled(),
-              },
-              {
-                id: "session_rescheduled",
-                label: "Session rescheduled",
-                desc: "Sent to clients when a session is rescheduled",
-                preview: previewSessionRescheduled(),
-              },
-              {
-                id: "payment_received",
-                label: "Payment confirmation",
-                desc: "Sent to clients when their payment is confirmed",
-                preview: previewPaymentReceived(),
-              },
-            ].map((tpl) => (
-              <div key={tpl.id} className={styles.emailRow}>
-                <div className={styles.emailRowHeader}>
-                  <button
-                    type="button"
-                    className={styles.emailRowExpandBtn}
-                    onClick={() => setExpandedTemplate(expandedTemplate === tpl.id ? null : tpl.id)}
-                  >
-                    <div>
-                      <span className={styles.emailRowLabel}>{tpl.label}</span>
-                      <span className={styles.emailRowDesc}>{tpl.desc}</span>
-                    </div>
-                    <span className={styles.emailRowChevron}>{expandedTemplate === tpl.id ? "▲" : "▼"}</span>
-                  </button>
-                  <label
-                    className={`${styles.toggleSwitch} ${!disabledEmailTypes.includes(tpl.id) ? styles.toggleSwitchOn : ""} ${styles.emailRowToggle}`}
-                    title={
-                      disabledEmailTypes.includes(tpl.id) ? "Paused — click to enable" : "Sending — click to pause"
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      className={styles.toggleInput}
-                      checked={!disabledEmailTypes.includes(tpl.id)}
-                      onChange={() =>
-                        setDisabledEmailTypes((prev) =>
-                          prev.includes(tpl.id) ? prev.filter((t) => t !== tpl.id) : [...prev, tpl.id],
-                        )
-                      }
-                    />
-                    <span className={styles.toggleThumb} />
-                  </label>
-                </div>
-
-                {expandedTemplate === tpl.id && (
-                  <div className={styles.emailRowBody}>
-                    {tpl.id === "reminder" && (
-                      <div className={styles.reminderControls}>
-                        <div className={styles.field}>
-                          <label htmlFor="reminderHeading">
-                            Greeting <small>(optional — supports {"{{name}}"})</small>
-                          </label>
-                          <div className={styles.varChips}>
-                            {["{{name}}"].map((v) => (
-                              <button
-                                key={v}
-                                type="button"
-                                className={styles.varChip}
-                                onClick={() => insertVar(reminderHeadingRef, setReminderHeading, v)}
-                              >
-                                {v}
-                              </button>
-                            ))}
-                          </div>
-                          <input
-                            ref={reminderHeadingRef}
-                            id="reminderHeading"
-                            value={reminderHeading}
-                            onChange={(e) => setReminderHeading(e.target.value)}
-                            placeholder="Hi {{name}},"
-                          />
-                        </div>
-                        <div className={styles.field}>
-                          <label htmlFor="reminderTiming">Send reminder</label>
-                          <select
-                            id="reminderTiming"
-                            value={reminderHours}
-                            onChange={(e) => setReminderHours(Number(e.target.value))}
-                            className={styles.select}
-                          >
-                            <option value={24}>1 day before</option>
-                            <option value={48}>2 days before</option>
-                            <option value={72}>3 days before</option>
-                            <option value={120}>5 days before (default)</option>
-                            <option value={168}>1 week before</option>
-                          </select>
-                        </div>
-                        <div className={styles.field}>
-                          <label htmlFor="reminderSubject">
-                            Custom subject <small>(optional)</small>
-                          </label>
-                          <div className={styles.varChips}>
-                            {["{{name}}", "{{date}}"].map((v) => (
-                              <button
-                                key={v}
-                                type="button"
-                                className={styles.varChip}
-                                onClick={() => insertVar(reminderSubjectRef, setReminderSubject, v)}
-                              >
-                                {v}
-                              </button>
-                            ))}
-                          </div>
-                          <input
-                            ref={reminderSubjectRef}
-                            id="reminderSubject"
-                            value={reminderSubject}
-                            onChange={(e) => setReminderSubject(e.target.value)}
-                            placeholder="e.g. Reminder: your session on {{date}}"
-                          />
-                        </div>
-                        <div className={styles.field}>
-                          <label htmlFor="reminderBody">
-                            Custom message body <small>(optional)</small>
-                          </label>
-                          <div className={styles.varChips}>
-                            {["{{name}}", "{{date}}", "{{location}}", "{{duration}}"].map((v) => (
-                              <button
-                                key={v}
-                                type="button"
-                                className={styles.varChip}
-                                onClick={() => insertVar(reminderBodyRef, setReminderBody, v)}
-                              >
-                                {v}
-                              </button>
-                            ))}
-                          </div>
-                          <textarea
-                            ref={reminderBodyRef}
-                            id="reminderBody"
-                            className={styles.textarea}
-                            rows={4}
-                            value={reminderBody}
-                            onChange={(e) => setReminderBody(e.target.value)}
-                            placeholder="Hi {{name}}, just a reminder about your session on {{date}}."
-                          />
-                        </div>
+              {[
+                {
+                  id: "reminder",
+                  label: "Session reminder",
+                  desc: "Sent to clients before their session",
+                  preview: previewSessionReminder(
+                    reminderBody || undefined,
+                    reminderHours,
+                    reminderHeading || undefined,
+                  ),
+                },
+                {
+                  id: "session_booked",
+                  label: "Session confirmed",
+                  desc: "Sent to clients when a session is booked",
+                  preview: previewSessionBooked(),
+                },
+                {
+                  id: "session_cancelled",
+                  label: "Session cancelled",
+                  desc: "Sent to clients when a session is cancelled",
+                  preview: previewSessionCancelled(),
+                },
+                {
+                  id: "session_rescheduled",
+                  label: "Session rescheduled",
+                  desc: "Sent to clients when a session is rescheduled",
+                  preview: previewSessionRescheduled(),
+                },
+                {
+                  id: "payment_received",
+                  label: "Payment confirmation",
+                  desc: "Sent to clients when their payment is confirmed",
+                  preview: previewPaymentReceived(),
+                },
+              ].map((tpl) => (
+                <div key={tpl.id} className={styles.emailRow}>
+                  <div className={styles.emailRowHeader}>
+                    <button
+                      type="button"
+                      className={styles.emailRowExpandBtn}
+                      onClick={() => setExpandedTemplate(expandedTemplate === tpl.id ? null : tpl.id)}
+                    >
+                      <div>
+                        <span className={styles.emailRowLabel}>{tpl.label}</span>
+                        <span className={styles.emailRowDesc}>{tpl.desc}</span>
                       </div>
-                    )}
-
-                    <iframe
-                      title={tpl.label}
-                      srcDoc={tpl.preview}
-                      className={styles.emailIframe}
-                      sandbox="allow-same-origin allow-scripts"
-                    />
-
-                    <div className={styles.emailRowActions}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleSendTest(tpl.id)}
-                        disabled={sendingTest === tpl.id}
-                      >
-                        {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
-                      </Button>
-                    </div>
+                      <span className={styles.emailRowChevron}>{expandedTemplate === tpl.id ? "▲" : "▼"}</span>
+                    </button>
+                    <label
+                      className={`${styles.toggleSwitch} ${!disabledEmailTypes.includes(tpl.id) ? styles.toggleSwitchOn : ""} ${styles.emailRowToggle}`}
+                      title={
+                        disabledEmailTypes.includes(tpl.id) ? "Paused — click to enable" : "Sending — click to pause"
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        className={styles.toggleInput}
+                        checked={!disabledEmailTypes.includes(tpl.id)}
+                        onChange={() =>
+                          setDisabledEmailTypes((prev) =>
+                            prev.includes(tpl.id) ? prev.filter((t) => t !== tpl.id) : [...prev, tpl.id],
+                          )
+                        }
+                      />
+                      <span className={styles.toggleThumb} />
+                    </label>
                   </div>
-                )}
-              </div>
-            ))}
 
-            <div className={styles.actions}>
-              <Button
-                variant="primary"
-                className={styles.saveButton}
-                onClick={handleSaveReminderSettings}
-                disabled={savingReminders}
-              >
-                {savingReminders ? "Saving…" : "Save email settings"}
-              </Button>
-            </div>
-          </Card>
+                  {expandedTemplate === tpl.id && (
+                    <div className={styles.emailRowBody}>
+                      {tpl.id === "reminder" && (
+                        <div className={styles.reminderControls}>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderHeading">
+                              Greeting <small>(optional — supports {"{{name}}"})</small>
+                            </label>
+                            <div className={styles.varChips}>
+                              {["{{name}}"].map((v) => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  className={styles.varChip}
+                                  onClick={() => insertVar(reminderHeadingRef, setReminderHeading, v)}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                            <input
+                              ref={reminderHeadingRef}
+                              id="reminderHeading"
+                              value={reminderHeading}
+                              onChange={(e) => setReminderHeading(e.target.value)}
+                              placeholder="Hi {{name}},"
+                            />
+                          </div>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderTiming">Send reminder</label>
+                            <select
+                              id="reminderTiming"
+                              value={reminderHours}
+                              onChange={(e) => setReminderHours(Number(e.target.value))}
+                              className={styles.select}
+                            >
+                              <option value={24}>1 day before</option>
+                              <option value={48}>2 days before</option>
+                              <option value={72}>3 days before</option>
+                              <option value={120}>5 days before (default)</option>
+                              <option value={168}>1 week before</option>
+                            </select>
+                          </div>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderSubject">
+                              Custom subject <small>(optional)</small>
+                            </label>
+                            <div className={styles.varChips}>
+                              {["{{name}}", "{{date}}"].map((v) => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  className={styles.varChip}
+                                  onClick={() => insertVar(reminderSubjectRef, setReminderSubject, v)}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                            <input
+                              ref={reminderSubjectRef}
+                              id="reminderSubject"
+                              value={reminderSubject}
+                              onChange={(e) => setReminderSubject(e.target.value)}
+                              placeholder="e.g. Reminder: your session on {{date}}"
+                            />
+                          </div>
+                          <div className={styles.field}>
+                            <label htmlFor="reminderBody">
+                              Custom message body <small>(optional)</small>
+                            </label>
+                            <div className={styles.varChips}>
+                              {["{{name}}", "{{date}}", "{{location}}", "{{duration}}"].map((v) => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  className={styles.varChip}
+                                  onClick={() => insertVar(reminderBodyRef, setReminderBody, v)}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                            <textarea
+                              ref={reminderBodyRef}
+                              id="reminderBody"
+                              className={styles.textarea}
+                              rows={4}
+                              value={reminderBody}
+                              onChange={(e) => setReminderBody(e.target.value)}
+                              placeholder="Hi {{name}}, just a reminder about your session on {{date}}."
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <iframe
+                        title={tpl.label}
+                        srcDoc={tpl.preview}
+                        className={styles.emailIframe}
+                        sandbox="allow-same-origin allow-scripts"
+                      />
+
+                      <div className={styles.emailRowActions}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleSendTest(tpl.id)}
+                          disabled={sendingTest === tpl.id}
+                        >
+                          {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <div className={styles.actions}>
+                <Button
+                  variant="primary"
+                  className={styles.saveButton}
+                  onClick={handleSaveReminderSettings}
+                  disabled={savingReminders}
+                >
+                  {savingReminders ? "Saving…" : "Save email settings"}
+                </Button>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
       {isDeleteModalOpen && <DeleteUserModal onClose={() => setIsDeleteModalOpen(false)} />}

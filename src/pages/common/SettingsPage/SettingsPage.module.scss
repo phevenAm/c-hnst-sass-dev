@@ -8,6 +8,15 @@
   gap: $sp-6;
 }
 
+// Each tab's content is wrapped in role="tabpanel" for a11y. The wrapper is
+// otherwise transparent to layout: it stacks its cards with the same gap the
+// cards would get as direct .columns children.
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
 // ── Card ───────────────────────────────────────────────────
 .card {
   display: flex;
@@ -414,7 +423,32 @@ input.copyFieldValue {
 }
 
 // ── Actions ────────────────────────────────────────────────
+// One shape for every card's action row: a single hairline above, the same
+// inset as the content, buttons left-aligned at their natural width, wrapping
+// on a narrow screen. The primary "Save" is always the default Button size —
+// never `size="sm"` — so it reads the same weight card to card.
 .actions {
+  padding: $sp-4 $sp-6;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $sp-3;
+}
+
+.saveButton {
+  // full width only on the smallest screens, where a wrapped row of one looks
+  // stranded; auto width (and left-aligned by the row) everywhere else.
+  @include until-md {
+    width: 100%;
+  }
+}
+
+// The Profile card's footer is its own thing: a primary save stacked above a
+// cluster of utility actions (change password, force update, delete account),
+// not a single row. Kept separate so tidying the card action rows above
+// doesn't flatten this into one long wrapping line.
+.profileActions {
   padding: $sp-6;
   border-top: 1px solid var(--border);
   display: flex;
@@ -422,10 +456,6 @@ input.copyFieldValue {
   align-items: stretch;
   gap: $sp-4;
 }
-
-// .managePractice {
-//   // padding-left: 0;
-// }
 
 .primaryAction,
 .utilityActions {
@@ -440,14 +470,6 @@ input.copyFieldValue {
 .utilityActions {
   align-items: center;
   flex-wrap: wrap;
-}
-
-.saveButton {
-  align-self: flex-start;
-
-  @include until-md {
-    align-self: stretch;
-  }
 }
 
 @include until-md {

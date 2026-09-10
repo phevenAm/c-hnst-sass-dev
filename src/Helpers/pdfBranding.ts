@@ -62,15 +62,16 @@ type WithGState = jsPDF & {
   setGState?: (g: unknown) => void;
 };
 
-/** The Clarity sprout — the same two-leaf-and-stem mark as <LeafLogoMark>,
- *  drawn as vector so it stays crisp at any size. `cx`/`cy` is the stem base. */
+/** The Clarity sprout — the same two-leaf-and-stem mark as <LeafLogoMark> and
+ *  the boot splash: left leaf outline-only, right leaf filled. Drawn as vector
+ *  so it stays crisp at any size. `cx`/`cy` is the stem base. */
 function drawSprout(doc: jsPDF, cx: number, cy: number, s: number, color: RGB = [255, 255, 255]) {
   doc.setDrawColor(...color);
   doc.setFillColor(...color);
   doc.setLineWidth(s * 0.1);
   doc.line(cx, cy, cx, cy - s * 0.68); // stem
-  doc.ellipse(cx - s * 0.28, cy - s * 0.5, s * 0.3, s * 0.2, "F"); // left leaf
-  doc.ellipse(cx + s * 0.28, cy - s * 0.5, s * 0.3, s * 0.2, "F"); // right leaf
+  doc.ellipse(cx - s * 0.28, cy - s * 0.5, s * 0.3, s * 0.2, "S"); // left leaf — outline
+  doc.ellipse(cx + s * 0.28, cy - s * 0.5, s * 0.3, s * 0.2, "F"); // right leaf — filled
 }
 
 export type CoverOptions = {

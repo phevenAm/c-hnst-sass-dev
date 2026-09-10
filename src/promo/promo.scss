@@ -20,6 +20,7 @@
   --ink-soft: #{$warm-700};
   --ink-mut: #{$warm-600};
   --line: #{$warm-200};
+  --line-strong: #{$warm-400}; // visible 1px outline (secondary buttons, e.g. header "Log in")
   --accent: #{$teal-700};
   --accent-hover: #{$teal-800};
   --accent-soft: #{$teal-50};
@@ -239,7 +240,7 @@ a:hover {
 }
 
 .site-nav__link--login {
-  padding: $sp-3 $sp-4;
+  padding: $sp-2 $sp-3;
   border: 1px solid var(--line-strong);
   border-radius: $r-full;
   color: var(--ink);
