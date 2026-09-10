@@ -1,10 +1,10 @@
 .page {
   max-width: 1100px;
   margin: 0 auto;
-  padding: var(--space-6, 24px) var(--space-4, 16px) var(--space-10, 48px);
+  padding: var(--sp-6) var(--sp-4) var(--sp-10);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5, 20px);
+  gap: var(--sp-5);
 }
 
 .header {
@@ -12,12 +12,12 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-4, 16px);
+  gap: var(--sp-4);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-xl, 1.5rem);
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -26,23 +26,27 @@
   margin: 4px 0 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3, 12px);
+  gap: var(--sp-3);
   align-items: center;
 }
 
 /* ── Storage meter ─────────────────────────────────────────── */
 .meter {
-  background: var(--surface-raised, var(--surface));
-  border-radius: var(--radius-md, 12px);
-  padding: var(--space-4, 16px);
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  box-shadow: var(--shadow-xs);
 }
 
 .meterRow {
@@ -54,31 +58,31 @@
 
 .meterTrack {
   height: 8px;
-  border-radius: 999px;
-  background: var(--surface-sunken, rgba(0, 0, 0, 0.08));
+  border-radius: var(--r-full);
+  background: var(--bg-grey);
   overflow: hidden;
 }
 
 .meterFill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-full);
   background: var(--accent);
   transition: width 0.35s ease;
 }
 
 .meterFillWarn {
-  background: var(--warning, #d98324);
+  background: var(--warning);
 }
 
 .meterFillFull {
-  background: var(--danger, #c0392b);
+  background: var(--danger);
 }
 
 /* ── Layout: tree + browser ────────────────────────────────── */
 .body {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: var(--space-4, 16px);
+  grid-template-columns: 248px 1fr;
+  gap: var(--sp-4);
   align-items: start;
 
   @media (max-width: 720px) {
@@ -86,10 +90,11 @@
   }
 }
 
+/* The folder tree — a quieter "aside" surface, distinct from the working area. */
 .tree {
-  background: var(--surface-raised, var(--surface));
-  border-radius: var(--radius-md, 12px);
-  padding: var(--space-3, 12px);
+  background: var(--bg-muted);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3);
   max-height: 70vh;
   overflow: auto;
 
@@ -98,52 +103,120 @@
   }
 }
 
+.treeHeading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 8px 8px;
+}
+
 .treeList {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+/* Nested level: one continuous vertical guide line down the left, matching the
+   AdminSidebar submenu treatment. `--guide-x` is set per level by the component
+   so the line tracks the indent. */
+.treeChildren {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: var(--guide-x, 0.8rem);
+    top: 2px;
+    bottom: 2px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--border);
+  }
 }
 
 .treeRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm, 8px);
-  background: none;
-  border: none;
-  font: inherit;
-  color: var(--text-primary);
-  cursor: pointer;
-  text-align: left;
+  border-radius: var(--r-md);
+  position: relative;
 
   &:hover {
-    background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+    background: var(--bg-card);
   }
 }
 
+.treeRowLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px 7px 2px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
 .treeRowActive {
-  background: var(--accent-subtle, rgba(45, 114, 100, 0.14));
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--bg-card);
+
+  .treeRowLabel {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* accent segment on the guide line, like the sidebar's active child */
+  .treeChildren>li>&::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--guide-x, 0.8rem) - 0.5px);
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+  }
 }
 
 .treeTwisty {
   display: inline-flex;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 26px;
   align-items: center;
   justify-content: center;
   flex: none;
-  opacity: 0.65;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  opacity: 0.75;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+button.treeTwisty:hover {
+  opacity: 1;
 }
 
 .treeIcon {
   display: inline-flex;
   font-size: 1.05rem;
   flex: none;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .treeLabel {
@@ -152,13 +225,14 @@
   white-space: nowrap;
 }
 
-/* ── Browser ──────────────────────────────────────────────── */
+/* ── Browser — the working area, always a bright, clean surface ── */
 .browser {
-  background: var(--surface-raised, var(--surface));
-  border-radius: var(--radius-md, 12px);
-  padding: var(--space-4, 16px);
-  min-height: 320px;
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4) var(--sp-5);
+  min-height: 340px;
   position: relative;
+  box-shadow: var(--shadow-xs);
 }
 
 .crumbs {
@@ -167,7 +241,9 @@
   align-items: center;
   gap: 4px;
   font-size: 0.9rem;
-  margin-bottom: var(--space-4, 16px);
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
 }
 
 .crumb {
@@ -176,11 +252,11 @@
   font: inherit;
   color: var(--accent);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 6px;
 
   &:hover {
-    background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+    background: var(--bg-muted);
   }
 
   &:disabled {
@@ -200,17 +276,18 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: var(--space-3, 12px);
+  gap: var(--sp-3);
   padding: 10px 8px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--r-md);
 
   &:hover {
-    background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+    background: var(--bg-muted);
   }
 }
 
@@ -241,26 +318,87 @@
   white-space: nowrap;
 }
 
+.itemNameCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.itemPath {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .itemMeta {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.8rem;
   flex: none;
+}
+
+/* ── Search ───────────────────────────────────────────────── */
+.searchBar {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: var(--sp-2) var(--sp-3);
+  box-shadow: var(--shadow-xs);
+
+  input {
+    width: 100%;
+    border: none;
+    background: none;
+    font: inherit;
+    padding: 6px 4px;
+    color: var(--text-primary);
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+}
+
+.searchSummary {
+  margin: 0 0 var(--sp-3);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 .empty {
   text-align: center;
   color: var(--text-secondary);
-  padding: var(--space-8, 40px) var(--space-4, 16px);
+  padding: var(--sp-8) var(--sp-4);
   font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+
+  p {
+    margin: 0;
+  }
+}
+
+.emptyHint {
+  max-width: 420px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 /* ── Dropzone overlay ─────────────────────────────────────── */
 .dropActive::after {
-  content: "Drop to upload here";
+  content: "Drop files to upload here";
   position: absolute;
   inset: 6px;
-  border-radius: var(--radius-md, 12px);
-  background: var(--accent-subtle, rgba(45, 114, 100, 0.16));
+  border-radius: var(--r-lg);
+  background: var(--accent-subtle);
   outline: 2px dashed var(--accent);
   display: flex;
   align-items: center;
@@ -271,11 +409,14 @@
   z-index: 2;
 }
 
-/* ── Move dialog ──────────────────────────────────────────── */
+/* ── Dialogs ──────────────────────────────────────────────── */
 .moveTree {
   max-height: 45vh;
   overflow: auto;
   margin-top: 8px;
+  background: var(--bg-muted);
+  border-radius: var(--r-md);
+  padding: 6px;
 }
 
 .rejectList {
@@ -290,11 +431,11 @@
   max-width: 100%;
   max-height: 70vh;
   margin: 0 auto;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--r-md);
 }
 
 .previewFallback {
   text-align: center;
-  padding: var(--space-8, 40px) var(--space-4, 16px);
+  padding: var(--sp-8) var(--sp-4);
   color: var(--text-secondary);
 }

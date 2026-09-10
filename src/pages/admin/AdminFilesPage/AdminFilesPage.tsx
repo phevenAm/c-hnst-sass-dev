@@ -33,6 +33,7 @@ import { isFeatureEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/lib/supabase";
 import FileBrowser from "./FileBrowser";
 import FilePreviewModal from "./FilePreviewModal";
+import FileSearchResults from "./FileSearchResults";
 import FolderTree from "./FolderTree";
 import MoveDialog from "./MoveDialog";
 import NameDialog from "./NameDialog";
@@ -78,6 +79,8 @@ export default function AdminFilesPage() {
   const [del, setDel] = useState<DeleteState>(null);
   const [preview, setPreview] = useState<FileObject | null>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const searching = query.trim().length > 0;
 
   if (!FEATURE_ON) return null;
 
@@ -173,14 +176,14 @@ export default function AdminFilesPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
+      <header className={styles.header} id="files-header">
         <div>
           <h1 className={styles.title}>Files</h1>
           <p className={styles.subtitle}>
-            Documents, images and PDFs for your practice. Folders and zips are unpacked on upload.
+            Documents, images and Word files for your practice. Folders and .zip archives are unpacked on upload.
           </p>
         </div>
-        <div className={styles.toolbar}>
+        <div className={styles.toolbar} id="files-actions">
           <Button variant="secondary" onClick={() => setNameDialog({ mode: "newFolder" })} disabled={uploading}>
             <NewFolderIcon /> New folder
           </Button>
@@ -195,7 +198,21 @@ export default function AdminFilesPage() {
         </div>
       </header>
 
-      <StorageMeter report={report} />
+      <div id="files-storage">
+        <StorageMeter report={report} />
+      </div>
+
+      {status !== "loading" && status !== "failed" && (
+        <div className={styles.searchBar} id="files-search">
+          <input
+            type="search"
+            value={query}
+            placeholder="Search files and folders…"
+            aria-label="Search files and folders"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
 
       {status === "loading" && (
         <div className={styles.empty}>
@@ -213,7 +230,7 @@ export default function AdminFilesPage() {
       )}
 
       {status !== "loading" && status !== "failed" && (
-        <div className={styles.body}>
+        <div className={styles.body} id="files-workspace">
           <FolderTree folders={folders} currentFolderId={currentFolderId} onSelect={navigate} />
           <UploadZone ref={zoneRef} disabled={uploading} onFiles={onFiles}>
             {uploading && (
@@ -221,20 +238,33 @@ export default function AdminFilesPage() {
                 <Spinner size={16} /> Uploading…
               </p>
             )}
-            <FileBrowser
-              folders={folders}
-              objects={objects}
-              currentFolderId={currentFolderId}
-              onNavigate={navigate}
-              onOpenFile={setPreview}
-              onDownloadFile={download}
-              onRenameFolder={(folder) => setNameDialog({ mode: "renameFolder", folder })}
-              onMoveFolder={(folder) => setMove({ kind: "folder", folder })}
-              onDeleteFolder={(folder) => setDel({ kind: "folder", folder })}
-              onRenameFile={(file) => setNameDialog({ mode: "renameFile", file })}
-              onMoveFile={(file) => setMove({ kind: "file", file })}
-              onDeleteFile={(file) => setDel({ kind: "file", file })}
-            />
+            {searching ? (
+              <FileSearchResults
+                query={query}
+                folders={folders}
+                objects={objects}
+                onOpenFolder={(id) => {
+                  navigate(id);
+                  setQuery("");
+                }}
+                onOpenFile={setPreview}
+              />
+            ) : (
+              <FileBrowser
+                folders={folders}
+                objects={objects}
+                currentFolderId={currentFolderId}
+                onNavigate={navigate}
+                onOpenFile={setPreview}
+                onDownloadFile={download}
+                onRenameFolder={(folder) => setNameDialog({ mode: "renameFolder", folder })}
+                onMoveFolder={(folder) => setMove({ kind: "folder", folder })}
+                onDeleteFolder={(folder) => setDel({ kind: "folder", folder })}
+                onRenameFile={(file) => setNameDialog({ mode: "renameFile", file })}
+                onMoveFile={(file) => setMove({ kind: "file", file })}
+                onDeleteFile={(file) => setDel({ kind: "file", file })}
+              />
+            )}
           </UploadZone>
         </div>
       )}

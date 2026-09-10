@@ -74,7 +74,15 @@ export default function FileBrowser({
         ))}
       </nav>
 
-      {empty && <p className={styles.empty}>This folder is empty. Drop files here, or use the buttons above.</p>}
+      {empty && (
+        <div className={styles.empty}>
+          <p>This folder is empty. Drop files or a folder here, or use the buttons above.</p>
+          <p className={styles.emptyHint}>
+            Accepts PDFs, images (PNG, JPEG, WebP, GIF) and Word documents (.doc, .docx), up to 25&nbsp;MB each. A .zip
+            is unpacked into folders automatically. No video or other file types.
+          </p>
+        </div>
+      )}
 
       <ul className={styles.list}>
         {childFolders.map((folder) => (

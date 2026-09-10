@@ -11,73 +11,50 @@ type Props = {
   onSelect: (id: string | null) => void;
 };
 
-// Recursive folder sidebar. "All files" (id null) is the root; every folder
-// with children gets a twisty. Expansion state is local — the tree is small.
+const INDENT = 14; // px per nesting level
+
+// Recursive folder tree. "All files" (id null) is the root; a folder with
+// children gets a twisty. Nested levels draw a continuous guide line down their
+// left edge — the same treatment as the AdminSidebar submenu.
 export default function FolderTree({ folders, currentFolderId, onSelect }: Props) {
   const childrenOf = useMemo(() => {
     const map = new Map<string | null, FileFolder[]>();
     for (const f of folders) {
-      const key = f.parent_id;
-      const list = map.get(key);
+      const list = map.get(f.parent_id);
       if (list) list.push(f);
-      else map.set(key, [f]);
+      else map.set(f.parent_id, [f]);
     }
     for (const list of map.values()) list.sort((a, b) => a.name.localeCompare(b.name));
     return map;
   }, [folders]);
 
+  const roots = childrenOf.get(null) ?? [];
+
   return (
-    <nav className={styles.tree} aria-label="Folders">
+    <nav className={styles.tree} aria-label="Folders" id="files-tree">
+      <p className={styles.treeHeading}>Folders</p>
       <ul className={styles.treeList}>
         <li>
-          <button
-            type="button"
-            className={`${styles.treeRow} ${currentFolderId === null ? styles.treeRowActive : ""}`}
-            onClick={() => onSelect(null)}
-          >
-            <span className={styles.treeTwisty} />
-            <span className={styles.treeIcon}>{currentFolderId === null ? <FolderOpenIcon /> : <FolderIcon />}</span>
-            <span className={styles.treeLabel}>All files</span>
-          </button>
+          <div className={`${styles.treeRow} ${currentFolderId === null ? styles.treeRowActive : ""}`}>
+            <span className={styles.treeTwisty} aria-hidden="true" />
+            <button type="button" className={styles.treeRowLabel} onClick={() => onSelect(null)}>
+              <span className={styles.treeIcon}>{currentFolderId === null ? <FolderOpenIcon /> : <FolderIcon />}</span>
+              <span className={styles.treeLabel}>All files</span>
+            </button>
+          </div>
         </li>
-        <TreeLevel
-          parentId={null}
-          depth={0}
-          childrenOf={childrenOf}
-          currentFolderId={currentFolderId}
-          onSelect={onSelect}
-        />
+        {roots.map((folder) => (
+          <TreeNode
+            key={folder.id}
+            folder={folder}
+            depth={0}
+            childrenOf={childrenOf}
+            currentFolderId={currentFolderId}
+            onSelect={onSelect}
+          />
+        ))}
       </ul>
     </nav>
-  );
-}
-
-function TreeLevel({
-  parentId,
-  depth,
-  childrenOf,
-  currentFolderId,
-  onSelect,
-}: {
-  parentId: string | null;
-  depth: number;
-  childrenOf: Map<string | null, FileFolder[]>;
-  currentFolderId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <>
-      {(childrenOf.get(parentId) ?? []).map((folder) => (
-        <TreeNode
-          key={folder.id}
-          folder={folder}
-          depth={depth}
-          childrenOf={childrenOf}
-          currentFolderId={currentFolderId}
-          onSelect={onSelect}
-        />
-      ))}
-    </>
   );
 }
 
@@ -92,45 +69,50 @@ function TreeNode({
   depth: number;
   childrenOf: Map<string | null, FileFolder[]>;
   currentFolderId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
 }) {
   const kids = childrenOf.get(folder.id) ?? [];
-  const onPath = currentFolderId === folder.id;
-  const [open, setOpen] = useState(onPath);
   const active = currentFolderId === folder.id;
+  const [open, setOpen] = useState(active);
 
   return (
     <li>
-      <div style={{ paddingLeft: depth * 14 }}>
-        <button
-          type="button"
-          className={`${styles.treeRow} ${active ? styles.treeRowActive : ""}`}
-          onClick={() => onSelect(folder.id)}
-        >
-          <span
+      <div
+        className={`${styles.treeRow} ${active ? styles.treeRowActive : ""}`}
+        style={{ paddingLeft: depth * INDENT }}
+      >
+        {kids.length > 0 ? (
+          <button
+            type="button"
             className={styles.treeTwisty}
-            onClick={(e) => {
-              if (!kids.length) return;
-              e.stopPropagation();
-              setOpen((v) => !v);
-            }}
-            style={{ transform: open ? "none" : "rotate(-90deg)", visibility: kids.length ? "visible" : "hidden" }}
+            aria-label={open ? "Collapse" : "Expand"}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            style={{ transform: open ? "none" : "rotate(-90deg)" }}
           >
             <ChevronDownSmIcon />
-          </span>
+          </button>
+        ) : (
+          <span className={styles.treeTwisty} aria-hidden="true" />
+        )}
+        <button type="button" className={styles.treeRowLabel} onClick={() => onSelect(folder.id)}>
           <span className={styles.treeIcon}>{open && kids.length ? <FolderOpenIcon /> : <FolderIcon />}</span>
           <span className={styles.treeLabel}>{folder.name}</span>
         </button>
       </div>
+
       {open && kids.length > 0 && (
-        <ul className={styles.treeList}>
-          <TreeLevel
-            parentId={folder.id}
-            depth={depth + 1}
-            childrenOf={childrenOf}
-            currentFolderId={currentFolderId}
-            onSelect={onSelect}
-          />
+        <ul className={styles.treeChildren} style={{ ["--guide-x" as string]: `${depth * INDENT + 13}px` }}>
+          {kids.map((child) => (
+            <TreeNode
+              key={child.id}
+              folder={child}
+              depth={depth + 1}
+              childrenOf={childrenOf}
+              currentFolderId={currentFolderId}
+              onSelect={onSelect}
+            />
+          ))}
         </ul>
       )}
     </li>

@@ -7,7 +7,9 @@ export default function StorageMeter({ report }: { report: StorageReport | null 
   if (!report) return null;
   const { used_bytes, quota_bytes, pool } = report;
   const pct = quota_bytes > 0 ? Math.min(100, (used_bytes / quota_bytes) * 100) : 0;
-  const fillClass = pct >= 100 ? styles.meterFillFull : pct >= 85 ? styles.meterFillWarn : "";
+  let fillClass = "";
+  if (pct >= 100) fillClass = styles.meterFillFull;
+  else if (pct >= 85) fillClass = styles.meterFillWarn;
 
   return (
     <div className={styles.meter}>
