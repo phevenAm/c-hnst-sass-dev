@@ -7,6 +7,11 @@ import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { MoonIcon, SunIcon, ThemeAutoIcon } from "@components/shared/Icons/Icons";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
+import {
+  readSidebarBtnPos,
+  type SidebarBtnPos,
+  writeSidebarBtnPos,
+} from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
@@ -114,6 +119,7 @@ export default function AgencySettingsPage() {
   const themeMode = useAppSelector(selectThemeMode);
   const { reduceMotion, setReduceMotion, appZoom, setAppZoom } = useInterfacePrefs();
   const { resetAll: resetWalkthrough, isDismissedGlobally: walkthroughOff } = useWalkthrough();
+  const [sidebarBtnPos, setSidebarBtnPos] = useState<SidebarBtnPos>(readSidebarBtnPos);
 
   // First paint honours a `?tab=` deep link; from then on <SettingsTabs> owns
   // the param (consumes + strips it) and the page just tracks `activeTab`.
@@ -810,6 +816,28 @@ export default function AgencySettingsPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>Sidebar expand button</strong>
+                <span>Where the sidebar's open/close toggle sits vertically.</span>
+              </div>
+              <div className={styles.segmented}>
+                {(["top", "middle", "bottom"] as const).map((pos) => (
+                  <button
+                    key={pos}
+                    type="button"
+                    className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
+                    onClick={() => {
+                      setSidebarBtnPos(pos);
+                      writeSidebarBtnPos(pos);
+                    }}
+                  >
+                    {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

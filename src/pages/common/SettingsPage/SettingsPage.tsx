@@ -26,6 +26,11 @@ import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
 import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
+import {
+  readSidebarBtnPos,
+  type SidebarBtnPos,
+  writeSidebarBtnPos,
+} from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import WIP from "@components/shared/WIP/WIP";
@@ -434,9 +439,7 @@ const SettingsPage = () => {
     "If you have any questions, speak to your counsellor.",
   );
   const [savingConsent, setSavingConsent] = useState(false);
-  const [sidebarBtnPos, setSidebarBtnPos] = useState<"top" | "middle" | "bottom">(
-    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
-  );
+  const [sidebarBtnPos, setSidebarBtnPos] = useState<SidebarBtnPos>(readSidebarBtnPos);
 
   const [reminderHours, setReminderHours] = useState(120);
   const [reminderSubject, setReminderSubject] = useState("");
@@ -3064,8 +3067,7 @@ const SettingsPage = () => {
                         className={`${styles.segmentedOption} ${sidebarBtnPos === pos ? styles.segmentedActive : ""}`}
                         onClick={() => {
                           setSidebarBtnPos(pos);
-                          localStorage.setItem("adminSidebarBtnPos", pos);
-                          window.dispatchEvent(new CustomEvent("adminBtnPosChange", { detail: pos }));
+                          writeSidebarBtnPos(pos);
                         }}
                       >
                         {pos.charAt(0).toUpperCase() + pos.slice(1)}

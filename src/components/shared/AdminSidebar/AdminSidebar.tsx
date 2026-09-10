@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { useAuth } from "@context/AuthContext";
@@ -14,8 +14,6 @@ import {
   CalendarIcon,
   ChatIcon,
   ChevronDownSmIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CpdIcon,
   FolderIcon,
   HistoryIcon,
@@ -27,6 +25,7 @@ import {
   SupervisionLogoMark,
   UsersIcon,
 } from "../Icons/Icons";
+import SidebarCollapseButton from "../SidebarCollapseButton/SidebarCollapseButton";
 
 import styles from "./AdminSidebar.module.scss";
 
@@ -77,9 +76,6 @@ export default function AdminSidebar({
   const totalUnread = useAppSelector(selectTotalUnread);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const [btnPos, setBtnPos] = useState<"top" | "middle" | "bottom">(
-    () => (localStorage.getItem("adminSidebarBtnPos") as "top" | "middle" | "bottom") ?? "top",
-  );
   const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
   const [flyoutTop, setFlyoutTop] = useState(0);
 
@@ -89,38 +85,11 @@ export default function AdminSidebar({
   const flyoutListRef = useRef<HTMLUListElement>(null);
   const closeTimer = useRef<number | undefined>(undefined);
   const firstChildRef = useRef<HTMLAnchorElement>(null);
-  const [measured, setMeasured] = useState({ top: 55, bottom: 120 });
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      setMeasured({
-        top: topRef.current?.offsetHeight ?? 55,
-        bottom: bottomRef.current?.offsetHeight ?? 120,
-      });
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  const halfBtn = isMobile ? 18 : 12;
-  const collapseBtnStyle: CSSProperties = (() => {
-    if (btnPos === "top") return { top: measured.top - halfBtn, bottom: "auto", transform: "none" };
-    if (btnPos === "bottom")
-      return { top: window.innerHeight - measured.bottom - halfBtn, bottom: "auto", transform: "none" };
-    return { top: "50%", bottom: "auto", transform: "translateY(-50%)" };
-  })();
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: Event) => setBtnPos((e as CustomEvent<"top" | "middle" | "bottom">).detail);
-    window.addEventListener("adminBtnPosChange", handler);
-    return () => window.removeEventListener("adminBtnPosChange", handler);
   }, []);
 
   const isFlyoutMode = collapsed || (isMobile && !isOpen);
@@ -338,16 +307,15 @@ export default function AdminSidebar({
           </div>
         </div>
 
-        <button
-          type="button"
+        <SidebarCollapseButton
+          collapsed={collapsed}
+          isOpen={isOpen}
+          isMobile={isMobile}
+          onToggle={onToggle}
+          topRef={topRef}
+          bottomRef={bottomRef}
           className={styles.collapseBtn}
-          style={collapseBtnStyle}
-          onClick={onToggle}
-          aria-label={isOpen || !collapsed ? "Collapse sidebar" : "Expand sidebar"}
-          aria-expanded={isOpen || !collapsed}
-        >
-          {(isMobile ? !isOpen : collapsed) ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </button>
+        />
       </aside>
 
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}

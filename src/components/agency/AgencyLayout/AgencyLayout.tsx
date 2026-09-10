@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from "react-router-dom";
 
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
@@ -10,8 +10,6 @@ import {
   BookIcon,
   CalendarIcon,
   CancelIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   DocumentIcon,
   HistoryIcon,
   HomeIcon,
@@ -19,6 +17,7 @@ import {
   Settingsicon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
+import SidebarCollapseButton from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
 import SidebarNavGroup, { type SidebarNavGroupClasses } from "@components/shared/SidebarNavGroup/SidebarNavGroup";
 import SidebarNavItem, { type SidebarNavItemClasses } from "@components/shared/SidebarNavItem/SidebarNavItem";
 import { useAuth } from "@context/AuthContext";
@@ -103,7 +102,36 @@ export default function AgencyLayout() {
   const clientsStatus = useAppSelector(selectAgencyClientsStatus);
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
+  // Mobile: the rail is a slim strip that `expanded` blows up into an overlay.
+  // Tablet & up: the rail is docked and `collapsed` shrinks it to icons —
+  // persisted, exactly like AdminSidebar's `adminSidebarCollapsed`.
   const [expanded, setExpanded] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("agencySidebarCollapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const brandRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setExpanded((v) => !v);
+    } else {
+      setCollapsed((c) => {
+        const next = !c;
+        try {
+          localStorage.setItem("agencySidebarCollapsed", String(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+    }
+  };
   // "Clients" is a nav group: an "All clients" leaf + Waiting list (same page,
   // ?view=waiting). The group auto-opens onto whichever leaf is active.
   const onClientsPage = pathname === CLIENTS_PATH || pathname.startsWith(`${CLIENTS_PATH}/`);
@@ -140,13 +168,21 @@ export default function AgencyLayout() {
   // never sees a page's empty state (0 clients, blank charts) flash before it
   // fills. Only for a manager, and never past a failed fetch (the pages show
   // their own error/empty state then rather than spinning forever here).
-  const coreDataPending =
-    isManager &&
-    !!agency &&
-    (membersStatus === "idle" ||
-      membersStatus === "loading" ||
-      clientsStatus === "idle" ||
-      clientsStatus === "loading");
+  //
+  // Latch on the FIRST resolve, not on "a request is in flight": every manager
+  // page also refetches members + clients on mount, which flips those statuses
+  // back to "loading". Gating the <Outlet/> on the live status meant the page
+  // unmounted mid-refetch, its effect never settled, and it refired forever —
+  // "pages never load, network requests constantly". Once the initial load has
+  // resolved we keep the content mounted and let each page show its own
+  // loading state for its own refetches.
+  const [coreLoadedOnce, setCoreLoadedOnce] = useState(false);
+  useEffect(() => {
+    const settled = (s: string) => s === "succeeded" || s === "failed";
+    if (settled(membersStatus) && settled(clientsStatus)) setCoreLoadedOnce(true);
+  }, [membersStatus, clientsStatus]);
+
+  const coreDataPending = isManager && !!agency && !coreLoadedOnce;
 
   if (loading || status === "idle" || status === "loading") {
     return <AuthLoadingState variant="splash" />;
@@ -170,7 +206,9 @@ export default function AgencyLayout() {
 
   const links = isManager ? MANAGER_LINKS : COUNSELLOR_LINKS;
   const agencyName = agency?.name ?? "Agency";
-  const railOpen = !isMobile || expanded;
+  // Labelled rail vs. icon-only: on mobile that's the overlay state, on
+  // tablet & up it's the persisted collapse.
+  const railOpen = isMobile ? expanded : !collapsed;
 
   // The pill under the agency name doubles as a role marker. Managers are
   // "managing" the agency; everyone else is here as staff — an employee, or a
@@ -193,7 +231,7 @@ export default function AgencyLayout() {
       )}
 
       <aside className={`${styles.sidebar} ${railOpen ? styles.open : ""}`} aria-label="Agency navigation">
-        <div className={styles.brand}>
+        <div className={styles.brand} ref={brandRef}>
           <Link to={isManager ? "/agency" : "/agency/incoming"} className={styles.brandLink}>
             {agency?.logo_url ? (
               <img src={agency.logo_url} alt="" className={styles.agencyLogo} />
@@ -247,7 +285,7 @@ export default function AgencyLayout() {
           })}
         </nav>
 
-        <div className={styles.sidebarFoot}>
+        <div className={styles.sidebarFoot} ref={footRef}>
           {isManager && (
             <NavLink
               to="/agency/activity"
@@ -290,20 +328,18 @@ export default function AgencyLayout() {
           </p>
         </div>
 
-        {isMobile && (
-          <button
-            type="button"
-            className={styles.edgeToggle}
-            onClick={() => setExpanded((v) => !v)}
-            aria-label={expanded ? "Collapse menu" : "Expand menu"}
-            aria-expanded={expanded}
-          >
-            {expanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </button>
-        )}
+        <SidebarCollapseButton
+          collapsed={collapsed}
+          isOpen={expanded}
+          isMobile={isMobile}
+          onToggle={toggleSidebar}
+          topRef={brandRef}
+          bottomRef={footRef}
+          className={styles.edgeToggle}
+        />
       </aside>
 
-      <main id="main-content" className={styles.main}>
+      <main id="main-content" className={`${styles.main} ${!isMobile && collapsed ? styles.mainCollapsed : ""}`}>
         <Suspense fallback={<AuthLoadingState variant="plain" />}>
           {coreDataPending ? <AuthLoadingState variant="plain" /> : <Outlet />}
         </Suspense>
