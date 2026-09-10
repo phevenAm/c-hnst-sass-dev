@@ -33,6 +33,11 @@ const email = `smissah321+${TAG}@gmail.com`;
 let adminId: string;
 let sb: SupabaseClient;
 
+// A second, unrelated practice — used only by the cross-tenant isolation test.
+const emailB = `smissah321+${TAG}-b@gmail.com`;
+let adminIdB: string;
+let sbB: SupabaseClient;
+
 // tiny valid 1x1 PNG — the edge fn checks the extension, not the bytes
 const PNG_1PX_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
@@ -56,20 +61,38 @@ test.beforeAll(async () => {
       values ('${adminId}', 'active', 'starter', false)
       on conflict (admin_id) do update set subscription_status = 'active', subscription_plan = 'starter', onboarding_required = false;
   `);
+  adminIdB = createAuthUser({
+    email: emailB,
+    password: PASSWORD,
+    meta: { role: "admin", first_name: "Files", last_name: "AdminB" },
+  });
+  dbQuery(`
+    update public.users set onboarding_completed = true where id = '${adminIdB}';
+    insert into public.practice_settings (admin_id, subscription_status, subscription_plan, onboarding_required)
+      values ('${adminIdB}', 'active', 'starter', false)
+      on conflict (admin_id) do update set subscription_status = 'active';
+  `);
+
   sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { error } = await sb.auth.signInWithPassword({ email, password: PASSWORD });
-  if (error) throw new Error(`sign-in failed: ${error.message}`);
+  sbB = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const [{ error: eA }, { error: eB }] = await Promise.all([
+    sb.auth.signInWithPassword({ email, password: PASSWORD }),
+    sbB.auth.signInWithPassword({ email: emailB, password: PASSWORD }),
+  ]);
+  if (eA || eB) throw new Error(`sign-in failed: ${eA?.message ?? eB?.message}`);
 });
 
 test.afterAll(() => {
-  dbQuery(`
-    delete from public.file_objects where owner_admin_id = '${adminId}';
-    delete from public.file_folders where owner_admin_id = '${adminId}';
-    delete from public.file_deletion_queue where storage_path like 'u/${adminId}/%';
-    delete from public.practice_settings where admin_id = '${adminId}';
-    delete from public.users where id = '${adminId}';
-    delete from auth.users where id = '${adminId}';
-  `);
+  for (const id of [adminId, adminIdB]) {
+    dbQuery(`
+      delete from public.file_objects where owner_admin_id = '${id}';
+      delete from public.file_folders where owner_admin_id = '${id}';
+      delete from public.file_deletion_queue where storage_path like 'u/${id}/%';
+      delete from public.practice_settings where admin_id = '${id}';
+      delete from public.users where id = '${id}';
+      delete from auth.users where id = '${id}';
+    `);
+  }
 });
 
 test("creates nested folders and blocks a duplicate sibling name", async () => {
@@ -218,4 +241,56 @@ test("upload: a zip is expanded into a nested folder tree", async () => {
   expect(subFolder.path).toBe("/FromZip/sub");
   const { data: nested } = await sb.from("file_objects").select("name").eq("folder_id", subFolder.id);
   expect((nested ?? []).map((r) => r.name)).toEqual(["nested.png"]);
+});
+
+test("cross-tenant isolation: admin B cannot see, touch, or profile admin A's files", async () => {
+  // A owns a folder + a file row + a storage key.
+  const { data: folderA } = await sb
+    .from("file_folders")
+    .insert({ parent_id: null, name: "PrivateA" })
+    .select()
+    .single();
+  const objPath = `u/${adminId}/${TAG}-xtenant`;
+  dbQuery(`
+    insert into public.file_objects (owner_admin_id, folder_id, storage_path, name, mime_type, size_bytes)
+    values ('${adminId}', '${folderA.id}', '${objPath}', 'secret.pdf', 'application/pdf', 900);
+  `);
+  const { data: objA } = await sb.from("file_objects").select("id").eq("storage_path", objPath).single();
+
+  // ── Reads: B sees nothing of A's ──────────────────────────────────────
+  expect((await sbB.from("file_folders").select("id").eq("id", folderA.id)).data).toEqual([]);
+  expect((await sbB.from("file_objects").select("id").eq("id", objA.id)).data).toEqual([]);
+  // and B's whole-tree fetch never includes A
+  const bTree = (await sbB.from("file_folders").select("owner_admin_id")).data ?? [];
+  expect(bTree.every((r) => r.owner_admin_id !== adminId)).toBe(true);
+
+  // ── Writes: RLS lets none of these affect A's rows ────────────────────
+  await sbB.from("file_folders").update({ name: "hijacked" }).eq("id", folderA.id);
+  await sbB.from("file_objects").update({ name: "hijacked" }).eq("id", objA.id);
+  await sbB.from("file_folders").delete().eq("id", folderA.id);
+  await sbB.from("file_objects").delete().eq("id", objA.id);
+  const check = dbQuery<{ folder_name: string; object_name: string }>(`
+    select (select name from public.file_folders where id = '${folderA.id}') as folder_name,
+           (select name from public.file_objects  where id = '${objA.id}')   as object_name;
+  `).rows[0];
+  expect(check.folder_name).toBe("PrivateA"); // untouched
+  expect(check.object_name).toBe("secret.pdf"); // untouched
+
+  // ── Storage: B can't sign a URL for A's blob ──────────────────────────
+  const signed = await sbB.storage.from("practice-files").createSignedUrl(objPath, 60);
+  expect(signed.error).not.toBeNull();
+  expect(signed.data?.signedUrl).toBeFalsy();
+
+  // ── Quota functions: B can't profile A's usage / plan (20260910100000) ─
+  const usedErr = (await sbB.rpc("file_storage_used", { p_admin: adminId })).error;
+  const quotaErr = (await sbB.rpc("file_storage_quota", { p_admin: adminId })).error;
+  expect(usedErr?.message ?? "").toMatch(/NOT_AUTHORIZED/);
+  expect(quotaErr?.message ?? "").toMatch(/NOT_AUTHORIZED/);
+  // ...but each admin can still read their own
+  expect((await sb.rpc("file_storage_report")).error).toBeNull();
+  expect((await sbB.rpc("file_storage_report")).error).toBeNull();
+
+  // ── Folder column guard (20260910100000): A can't repoint ownership ───
+  const guard = await sb.from("file_folders").update({ owner_admin_id: adminIdB }).eq("id", folderA.id);
+  expect(guard.error?.message ?? "").toMatch(/FOLDER_IMMUTABLE_COLUMN/);
 });
