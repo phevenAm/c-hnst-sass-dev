@@ -261,6 +261,29 @@
       border-color: var(--border-focus);
     }
   }
+
+  // The textarea carries a literal id="invite-message" in the JSX; inside a
+  // CSS module a bare `#invite-message` selector gets hashed and never matches,
+  // so it must be reached via :global(). Id specificity also lets these win
+  // over the generic Modal textarea rules without !important.
+  :global(#invite-message) {
+    width: 100%;
+    padding: $sp-3 $sp-4;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    outline: none;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border-color var(--transition-base);
+  }
+
+  :global(#invite-message):focus {
+    border-color: var(--border-focus);
+  }
 }
 
 .modalActions {
