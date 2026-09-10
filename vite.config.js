@@ -146,6 +146,12 @@ export default defineConfig({
     ],
     environment: "jsdom",
     setupFiles: "src/test/setupTests.js",
+    // vitest 4 runs on a nested rolldown build of Vite; its default worker-thread
+    // pool corrupts under the full ~94-file suite on Windows ("Vitest failed to
+    // find the current suite / runner", "Cannot read properties of undefined
+    // (reading 'config')") even though every file passes in isolation. The forks
+    // pool isolates each file in a child process and runs the whole suite clean.
+    pool: "forks",
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co",
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || "placeholder-anon-key",

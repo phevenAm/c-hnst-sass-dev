@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import Card from "@components/shared/Card/Card";
@@ -8,6 +8,10 @@ import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
+import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
+import { bucketTrend } from "@/pages/admin/AdminFinancesPage/financeOverview";
+import TrendControls from "@/pages/admin/AdminFinancesPage/TrendControls";
+import { useTrendControls } from "@/pages/admin/AdminFinancesPage/useTrendControls";
 import ExpenseModal from "./ExpenseModal";
 
 import styles from "./AdminExpensesPage.module.scss";
@@ -40,6 +44,7 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const trend = useTrendControls("month");
 
   const currentYear = new Date().getFullYear();
 
@@ -95,7 +100,14 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
   };
 
   const categories = Array.from(new Set(expenses.map((e) => e.category))).sort();
-  const visible = filter === "all" ? expenses : expenses.filter((e) => e.category === filter);
+  const visible = useMemo(
+    () => (filter === "all" ? expenses : expenses.filter((e) => e.category === filter)),
+    [expenses, filter],
+  );
+
+  // The trend chart follows the active category filter and the range controls.
+  const trendRows = useMemo(() => visible.map((e) => ({ date: e.incurred_on, pence: e.amount_pence })), [visible]);
+  const expenseTrend = useMemo(() => bucketTrend(trendRows, trend), [trendRows, trend]);
 
   const thisYear = expenses.filter((e) => new Date(e.incurred_on).getFullYear() === currentYear);
   const thisYearTotal = thisYear.reduce((sum, e) => sum + e.amount_pence, 0);
@@ -191,6 +203,19 @@ export default function AdminExpensesPage({ embedded = false, openNew = false }:
                 {c === "all" ? "All" : c}
               </button>
             ))}
+          </div>
+        )}
+
+        {visible.length > 0 && (
+          <div className={styles.trendBlock}>
+            <TrendControls state={trend} />
+            <TrendChart
+              title="Outgoings"
+              data={expenseTrend}
+              type={trend.chartType}
+              color="#a8633a"
+              valueFormatter={(v) => `£${v}`}
+            />
           </div>
         )}
 

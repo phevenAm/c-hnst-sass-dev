@@ -1,7 +1,11 @@
+import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 
+import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import themeReducer from "@store/slices/themeSlice";
 
 import SignUpPage from "./SignUpPage";
 
@@ -22,10 +26,13 @@ vi.mock("@context/AuthContext", () => ({ useAuth: () => mockUseAuth() }));
 const baseAuth = { signUp: vi.fn(), loading: false, isAuthenticated: false, isAdmin: false };
 
 function renderPage() {
+  const store = configureStore({ reducer: { theme: themeReducer } });
   const utils = render(
-    <MemoryRouter>
-      <SignUpPage />
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter>
+        <SignUpPage />
+      </MemoryRouter>
+    </Provider>,
   );
   const $ = (id: string) => utils.container.querySelector(`#${id}`) as HTMLInputElement;
   return { ...utils, $ };

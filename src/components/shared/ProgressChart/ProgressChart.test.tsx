@@ -5,7 +5,7 @@ afterEach(cleanup);
 
 import type { Question, Response } from "@models/globalTypes";
 
-import ProgressChart, { buildTagChartData, getResponseDate } from "./ProgressChart";
+import ProgressChart, { aggregatePoints, buildTagChartData, getResponseDate } from "./ProgressChart";
 
 // ─── Fixtures ──────────────────────────────────────────────
 
@@ -98,6 +98,54 @@ describe("buildTagChartData", () => {
     const responses = [makeResponse("r1", scores)];
     const [point] = buildTagChartData(responses, questions);
     expect(point[tag1.id]).toBe(expected);
+  });
+});
+
+// ─── aggregatePoints ────────────────────────────────────────
+
+describe("aggregatePoints", () => {
+  const lines = [
+    { id: "a", name: "A" },
+    { id: "b", name: "B" },
+  ];
+
+  it("returns the same array untouched for the 'all' level", () => {
+    const data = [{ label: "x", index: 1, date: "2026-01-01", a: 5 }];
+    expect(aggregatePoints(data, lines, "all")).toBe(data);
+  });
+
+  it("averages each line within a month bucket and drops lines with no data that bucket", () => {
+    const data = [
+      { label: "", index: 1, date: "2026-01-05", a: 4, b: 8 },
+      { label: "", index: 2, date: "2026-01-20", a: 6, b: 6 },
+      { label: "", index: 3, date: "2026-02-02", a: 10 },
+    ];
+    const out = aggregatePoints(data, lines, "month");
+    expect(out).toHaveLength(2);
+    expect(out[0].a).toBe(5);
+    expect(out[0].b).toBe(7);
+    expect(out[1].a).toBe(10);
+    expect(out[1].b).toBeUndefined();
+  });
+
+  it("sorts buckets chronologically regardless of input order", () => {
+    const data = [
+      { label: "", index: 1, date: "2026-03-01", a: 3 },
+      { label: "", index: 2, date: "2026-01-01", a: 1 },
+    ];
+    const out = aggregatePoints(data, lines, "year");
+    expect(out).toHaveLength(1);
+    expect(out[0].a).toBe(2);
+  });
+
+  it("skips points with no date", () => {
+    const data = [
+      { label: "", index: 1, a: 5 },
+      { label: "", index: 2, date: "2026-01-01", a: 7 },
+    ];
+    const out = aggregatePoints(data, lines, "month");
+    expect(out).toHaveLength(1);
+    expect(out[0].a).toBe(7);
   });
 });
 

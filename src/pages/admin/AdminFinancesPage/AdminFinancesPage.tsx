@@ -12,8 +12,18 @@ import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
-import TrendChart from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
-import { byMonth, ledgerRowKind, ledgerRowName, money, type Period, periodStart } from "./financeOverview";
+import TrendChart, { type TrendSeries } from "@/pages/admin/AdminDashboard/Blocks/TrendChart/TrendChart";
+import {
+  bucketTrend,
+  ledgerRowKind,
+  ledgerRowName,
+  money,
+  type Period,
+  periodStart,
+  zipTrends,
+} from "./financeOverview";
+import TrendControls from "./TrendControls";
+import { useTrendControls } from "./useTrendControls";
 
 import styles from "./AdminFinancesPage.module.scss";
 
@@ -34,6 +44,15 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "30d", label: "Last 30 days" },
   { key: "year", label: "This tax year" },
   { key: "all", label: "All time" },
+];
+
+// The three overlaid measures on the Overview trend card. `Owed` is money
+// invoiced or billed to a past session that hasn't landed yet — always a
+// dashed line, whichever way the bar/line toggle is set.
+const OVERVIEW_SERIES: TrendSeries[] = [
+  { key: "Income", name: "Income", color: "#4a665b" },
+  { key: "Outgoings", name: "Outgoings", color: "#a8633a" },
+  { key: "Owed", name: "Owed / overdue", color: "#8a6a2d", kind: "line", dashed: true },
 ];
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
@@ -58,24 +77,41 @@ type ActivityItem = {
 function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
   const { userProfile, practiceSettings } = useAuth();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
+  const invoicesEnabled = practiceSettings?.invoices_enabled !== false;
   const [period, setPeriod] = useState<Period>("30d");
+  const trend = useTrendControls("month");
+  const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<string>>(new Set());
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
+  const [openInvoices, setOpenInvoices] = useState<{ due: string; pence: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!userProfile?.id) return;
-    const [{ data: l }, { data: exp }] = await Promise.all([
+    const [{ data: l }, { data: exp }, { data: inv }] = await Promise.all([
       supabase.from("payment_ledger_rows").select("*"),
       supabase
         .from("expenses")
         .select("id, incurred_on, category, amount_pence, description")
         .eq("admin_id", userProfile.id),
+      invoicesEnabled
+        ? supabase
+            .from("invoices")
+            .select("due_date, issue_date, total_pence, status")
+            .eq("admin_id", userProfile.id)
+            .in("status", ["draft", "sent"])
+        : Promise.resolve({ data: [] as { due_date: string | null; issue_date: string; total_pence: number }[] }),
     ]);
     setLedger((l as LedgerRow[]) ?? []);
     setExpenses((exp as ExpenseRow[]) ?? []);
+    setOpenInvoices(
+      ((inv as { due_date: string | null; issue_date: string; total_pence: number }[]) ?? []).map((i) => ({
+        due: i.due_date ?? i.issue_date,
+        pence: i.total_pence,
+      })),
+    );
     setLoading(false);
-  }, [userProfile?.id]);
+  }, [userProfile?.id, invoicesEnabled]);
 
   useEffect(() => {
     void load();
@@ -90,22 +126,38 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
   const outgoingsPence = expenses.filter((e) => inPeriod(e.incurred_on)).reduce((s, e) => s + e.amount_pence, 0);
   const netPence = incomePence - outgoingsPence;
 
-  const incomeTrend = useMemo(
-    () =>
-      byMonth(
-        ledger.filter((r) => r.is_paid && r.date).map((r) => ({ date: r.date as string, pence: r.amount_pence ?? 0 })),
-        6,
-      ),
-    [ledger],
-  );
-  const outgoingsTrend = useMemo(
-    () =>
-      byMonth(
-        expenses.map((e) => ({ date: e.incurred_on, pence: e.amount_pence })),
-        6,
-      ),
-    [expenses],
-  );
+  const combined = useMemo(() => {
+    const income = bucketTrend(
+      ledger.filter((r) => r.is_paid && r.date).map((r) => ({ date: r.date as string, pence: r.amount_pence ?? 0 })),
+      trend,
+    );
+    const outgoings = bucketTrend(
+      expenses.map((e) => ({ date: e.incurred_on, pence: e.amount_pence })),
+      trend,
+    );
+    // Owed = unpaid ledger rows (a session/stub session not yet settled) plus
+    // any open invoice, bucketed by when the money is/was due.
+    const owed = bucketTrend(
+      [
+        ...ledger
+          .filter((r) => !r.is_paid && r.date)
+          .map((r) => ({ date: r.date as string, pence: r.amount_pence ?? 0 })),
+        ...openInvoices.map((i) => ({ date: i.due, pence: i.pence })),
+      ],
+      trend,
+    );
+    return zipTrends({ Income: income, Outgoings: outgoings, Owed: owed });
+  }, [ledger, expenses, openInvoices, trend]);
+
+  const visibleSeries = useMemo(() => OVERVIEW_SERIES.filter((s) => !hiddenSeries.has(s.key)), [hiddenSeries]);
+
+  const toggleSeries = (key: string) =>
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   const activity: ActivityItem[] = useMemo(() => {
     const items: ActivityItem[] = [
@@ -162,7 +214,27 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
         />
       </div>
 
-      <div className={styles.charts}>
+      <TrendControls state={trend} />
+
+      <div className={styles.seriesToggle}>
+        {OVERVIEW_SERIES.map((s) => {
+          const on = !hiddenSeries.has(s.key);
+          return (
+            <button
+              key={s.key}
+              type="button"
+              className={`${styles.seriesChip} ${on ? "" : styles.seriesChipOff}`}
+              aria-pressed={on}
+              onClick={() => toggleSeries(s.key)}
+            >
+              <span className={styles.seriesDot} style={{ background: s.color }} />
+              {s.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={styles.chartsRow}>
         <DonutChart
           title="Income vs outgoings"
           slices={[
@@ -172,13 +244,13 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
           centerValue={money(netPence)}
           centerLabel="net"
         />
-        <TrendChart title="Income — last 6 months" data={incomeTrend} type="bar" valueFormatter={(v) => `£${v}`} />
         <TrendChart
-          title="Outgoings — last 6 months"
-          data={outgoingsTrend}
-          type="bar"
-          color="#a8633a"
+          title="Income & outgoings"
+          data={combined}
+          type={trend.chartType}
+          series={visibleSeries}
           valueFormatter={(v) => `£${v}`}
+          height={240}
         />
       </div>
 

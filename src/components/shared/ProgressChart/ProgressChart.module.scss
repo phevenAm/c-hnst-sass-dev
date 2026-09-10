@@ -48,6 +48,15 @@
   box-shadow: var(--shadow-sm);
 }
 
+// ── Scrollable plot ────────────────────────────────────────
+// The chart is drawn at an explicit pixel width (≈46px per point) so a long
+// history overflows and scrolls here rather than cramming every check-in in.
+.scroller {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
 // ── Legend ─────────────────────────────────────────────────
 .legend {
   display: flex;

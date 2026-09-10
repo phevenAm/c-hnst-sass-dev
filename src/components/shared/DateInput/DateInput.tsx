@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { TimeView } from "@mui/x-date-pickers";
+import type { DateView, TimeView } from "@mui/x-date-pickers";
 import { DatePicker, DateTimePicker, TimePicker } from "@mui/x-date-pickers";
 import type { Dayjs } from "dayjs";
 
@@ -18,6 +18,12 @@ type Props = {
   disablePast?: boolean;
   shouldDisableDate?: (date: Dayjs) => boolean;
   shouldDisableTime?: (val: Dayjs, view: TimeView) => boolean;
+  /** Restrict the calendar to certain views, e.g. `["year", "month"]` for a month picker. */
+  views?: DateView[];
+  /** Which view the calendar opens on. */
+  openTo?: DateView;
+  /** Override the displayed value format (defaults per `mode`). */
+  format?: string;
   className?: string;
 };
 
@@ -128,6 +134,9 @@ export default function DateInput({
   disablePast,
   shouldDisableDate,
   shouldDisableTime,
+  views,
+  openTo,
+  format,
   className,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -145,7 +154,7 @@ export default function DateInput({
     onClose: () => setOpen(false),
     disabled,
     disablePast,
-    format: FORMAT[mode],
+    format: format ?? FORMAT[mode],
     slotProps: {
       field: { readOnly: true },
       textField: {
@@ -157,7 +166,7 @@ export default function DateInput({
     },
   };
 
-  const dateProps = { shouldDisableDate };
+  const dateProps = { shouldDisableDate, ...(views ? { views } : {}), ...(openTo ? { openTo } : {}) };
   const timeProps = { shouldDisableTime, ampm: false as const };
 
   return (

@@ -90,6 +90,58 @@
   color: var(--accent);
 }
 
+// ── Overview series toggle ────────────────────────────────
+.seriesToggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.seriesChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: none;
+  border-radius: var(--r-full);
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.seriesChipOff {
+  opacity: 0.45;
+
+  .seriesDot {
+    background: var(--text-muted) !important;
+  }
+}
+
+.seriesDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// Donut + combined trend card: donut keeps its size, the trend card takes the rest.
+.chartsRow {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: 1fr;
+
+  @media (min-width: 860px) {
+    grid-template-columns: minmax(220px, 0.7fr) 2fr;
+    align-items: start;
+  }
+}
+
 .charts {
   display: grid;
   gap: var(--sp-4);
