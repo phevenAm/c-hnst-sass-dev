@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import { useHasFileManager } from "@Hooks/useHasFileManager";
 import { useAuth } from "@context/AuthContext";
 import { useAppSelector } from "@store/hooks";
 import { selectTotalUnread } from "@store/slices/messagesSlice";
@@ -45,9 +46,8 @@ const NAV: NavItem[] = [
   { to: "/admin/forms", label: "Forms", Icon: AssignmentClipIcon, exact: false },
   { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false },
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
-  ...(isFeatureEnabled("fileManager")
-    ? [{ to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false } as NavLeaf]
-    : []),
+  // "Files" (/admin/files) is spliced in here at render time for tiers that have
+  // storage — see the useHasFileManager() branch in the component below.
   {
     label: "Logs",
     Icon: LayersIcon,
@@ -74,6 +74,16 @@ export default function AdminSidebar({
   const location = useLocation();
   const { isDemo } = useAuth();
   const totalUnread = useAppSelector(selectTotalUnread);
+  const hasFileManager = useHasFileManager();
+
+  // Splice "Files" in after "Resources" only for tiers with storage (Growth+ /
+  // agency). Starter has a 0-byte quota, so the page is hidden for it.
+  const nav = useMemo<NavItem[]>(() => {
+    if (!hasFileManager) return NAV;
+    const at = NAV.findIndex((item) => !isGroup(item) && item.to === "/admin/resources");
+    const files: NavLeaf = { to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false };
+    return at === -1 ? [...NAV, files] : [...NAV.slice(0, at + 1), files, ...NAV.slice(at + 1)];
+  }, [hasFileManager]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
@@ -185,7 +195,7 @@ export default function AdminSidebar({
 
         <nav aria-label="Admin pages" className={styles.nav}>
           <ul className={styles.navList}>
-            {NAV.map((item) => {
+            {nav.map((item) => {
               if (isGroup(item)) {
                 const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
                 return (

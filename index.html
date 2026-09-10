@@ -719,8 +719,8 @@
                 <li>Admin dashboard &amp; analytics</li>
                 <li>CPD &amp; supervision logs with exports</li>
                 <li>Resource library with client invites</li>
+                <li id="planStorage" class="is-off">File management</li>
                 <li>Automated client emails you control</li>
-                <li>Secure client login portal</li>
                 <li>Support built in — help is always a message away</li>
               </ul>
               <a class="btn btn--primary plan__cta" id="planCta" href="/register?plan=starter">Get started</a>
@@ -734,6 +734,7 @@
                 <li>One dashboard across every counsellor's caseload</li>
                 <li>A shared waiting list &mdash; assign or reassign clients to staff</li>
                 <li>Agency-wide policies, from client codenames to working agreements</li>
+                <li>10&nbsp;GB shared file storage across the team</li>
                 <li>Simple billing by staff headcount, not client count</li>
               </ul>
               <span class="btn btn--ghost plan__cta plan__cta--disabled" aria-disabled="true">Coming soon</span>
@@ -1058,9 +1059,9 @@
       (function () {
         // Mirror of the `plan_limits` table. Annual = ~10 months.
         var TIERS = [
-          { name: "Starter", clients: "5", monthly: "7.99", annual: "79" },
-          { name: "Growth", clients: "15", monthly: "16.99", annual: "169" },
-          { name: "Unlimited", clients: null, monthly: "24.99", annual: "249" },
+          { name: "Starter", clients: "5", monthly: "7.99", annual: "79", storage: null },
+          { name: "Growth", clients: "15", monthly: "16.99", annual: "169", storage: "2.5 GB" },
+          { name: "Unlimited", clients: null, monthly: "24.99", annual: "249", storage: "10 GB" },
         ];
 
         var range = document.getElementById("planRange");
@@ -1068,6 +1069,7 @@
         var perEl = document.getElementById("planPer");
         var altEl = document.getElementById("planAlt");
         var capEl = document.getElementById("planCapacity");
+        var storageEl = document.getElementById("planStorage");
         var ctaEl = document.getElementById("planCta");
         var notches = document.querySelectorAll(".plan__notches span");
         if (!range) return;
@@ -1094,6 +1096,16 @@
             : t.name + " · unlimited active and archived clients";
           if (capEl) capEl.textContent = capText;
           range.setAttribute("aria-valuetext", capText);
+
+          if (storageEl) {
+            if (t.storage) {
+              storageEl.textContent = t.storage + " file management & storage";
+              storageEl.classList.remove("is-off");
+            } else {
+              storageEl.textContent = "File management";
+              storageEl.classList.add("is-off");
+            }
+          }
 
           if (altEl) {
             if (annual) {

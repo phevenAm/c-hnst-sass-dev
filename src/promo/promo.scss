@@ -1241,6 +1241,27 @@ a:hover {
     border-bottom: 2px solid var(--accent);
     transform: rotate(-45deg);
   }
+
+  // A feature this tier doesn't include — struck through, no tick.
+  li.is-off {
+    color: var(--ink-mut);
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-mut);
+  }
+
+  li.is-off::before {
+    background: var(--line-strong);
+  }
+
+  li.is-off::after {
+    left: 0.24rem;
+    top: 0.5em;
+    width: 0.5rem;
+    height: 0;
+    border-left: none;
+    border-bottom: 2px solid var(--ink-mut);
+    transform: none;
+  }
 }
 
 .plan__cta {

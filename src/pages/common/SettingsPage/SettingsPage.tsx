@@ -85,10 +85,25 @@ const CLIENT_TABS: { id: AdminTab; label: string }[] = [
 // the plan_limits table (source of truth, shared with enforcement); the £ figures
 // live here and in the marketing page's TIERS array — keep the two in step.
 type TierKey = "starter" | "growth" | "unlimited";
-const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
-  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
-  growth: { label: "Growth", monthly: 16.99, annual: 169, blurb: "For a growing practice" },
-  unlimited: { label: "Unlimited", monthly: 24.99, annual: 249, blurb: "No client limit" },
+const TIER_DISPLAY: Record<
+  TierKey,
+  { label: string; monthly: number; annual: number; blurb: string; storage: string }
+> = {
+  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload", storage: "No file storage" },
+  growth: {
+    label: "Growth",
+    monthly: 16.99,
+    annual: 169,
+    blurb: "For a growing practice",
+    storage: "2.5 GB file storage",
+  },
+  unlimited: {
+    label: "Unlimited",
+    monthly: 24.99,
+    annual: 249,
+    blurb: "No client limit",
+    storage: "10 GB file storage",
+  },
 };
 const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
 
@@ -1484,6 +1499,7 @@ const SettingsPage = () => {
                           ? "Unlimited clients"
                           : `${limit.max_active} active + ${limit.max_archived} archived`}
                       </div>
+                      <div className={styles.tierCap}>{d.storage}</div>
                       <div className={styles.tierBlurb}>{d.blurb}</div>
                       {isCurrent ? (
                         <span className={styles.tierCurrentBadge}>Current plan</span>
