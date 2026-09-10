@@ -1,0 +1,23 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+
+  // The two month pickers only need room for "MMM YYYY".
+  :global(.MuiFormControl-root),
+  :global(.MuiTextField-root) {
+    width: 9.5rem;
+  }
+}
+
+.dash {
+  color: var(--text-muted);
+}

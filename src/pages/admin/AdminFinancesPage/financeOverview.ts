@@ -1,8 +1,14 @@
 import dayjs, { type Dayjs } from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
 
 import type { TrendPoint } from "@/pages/admin/AdminDashboard/dashboardUtils";
 
+dayjs.extend(isoWeek);
+
 export type Period = "30d" | "year" | "all";
+
+/** Granularity a trend chart can be bucketed at. */
+export type TrendUnit = "week" | "month" | "year";
 
 export type NamePart = {
   first_name?: string | null;
@@ -50,6 +56,75 @@ export const byMonth = (rows: { date: string; pence: number }[], months: number)
     if (b) b.value += r.pence / 100;
   }
   return buckets.map(({ label, value }) => ({ label, value: Math.round(value) }));
+};
+
+/** dayjs `startOf` unit for a `TrendUnit` (weeks anchor to Monday). */
+const startOfUnit = (d: Dayjs, unit: TrendUnit): Dayjs => d.startOf(unit === "week" ? "isoWeek" : unit);
+
+const bucketKey = (d: Dayjs, unit: TrendUnit): string => {
+  if (unit === "week") return d.startOf("isoWeek").format("YYYY-MM-DD");
+  if (unit === "year") return d.format("YYYY");
+  return d.format("YYYY-MM");
+};
+
+const bucketLabel = (d: Dayjs, unit: TrendUnit, multiYear: boolean): string => {
+  if (unit === "week") return d.startOf("isoWeek").format("D MMM");
+  if (unit === "year") return d.format("YYYY");
+  return multiYear ? d.format("MMM YY") : d.format("MMM");
+};
+
+/** A sensible default `[from, to]` span for a unit — `to` is now. */
+export const rangeForUnit = (unit: TrendUnit): { from: Dayjs; to: Dayjs } => {
+  const to = dayjs();
+  if (unit === "week") return { from: to.subtract(11, "week"), to };
+  if (unit === "year") return { from: to.subtract(4, "year"), to };
+  return { from: to.subtract(5, "month"), to };
+};
+
+/**
+ * Bucket dated + priced (pence) rows into week / month / year buckets spanning
+ * `[from, to]` inclusive. Empty buckets are kept so the axis stays continuous;
+ * rows outside the range are ignored. Values are whole pounds.
+ */
+export const bucketTrend = (
+  rows: { date: string; pence: number }[],
+  { unit, from, to }: { unit: TrendUnit; from: Dayjs; to: Dayjs },
+): TrendPoint[] => {
+  let start = startOfUnit(from, unit);
+  const end = startOfUnit(to, unit);
+  if (start.isAfter(end)) start = end;
+
+  const multiYear = start.year() !== end.year();
+  const buckets: { key: string; label: string; value: number }[] = [];
+  for (let d = start; !d.isAfter(end); d = d.add(1, unit)) {
+    buckets.push({ key: bucketKey(d, unit), label: bucketLabel(d, unit, multiYear), value: 0 });
+  }
+
+  const index = new Map(buckets.map((b) => [b.key, b]));
+  for (const r of rows) {
+    const b = index.get(bucketKey(dayjs(r.date), unit));
+    if (b) b.value += r.pence / 100;
+  }
+  return buckets.map(({ label, value }) => ({ label, value: Math.round(value) }));
+};
+
+/**
+ * Merge several same-range `bucketTrend` outputs into one multi-series row set:
+ * `[{ label, <name>: value, ... }]`. Every input must have been bucketed with
+ * the same `{ unit, from, to }` so their labels line up 1:1 by index.
+ */
+export const zipTrends = (named: Record<string, TrendPoint[]>): Array<Record<string, string | number>> => {
+  const names = Object.keys(named);
+  const length = names.reduce((n, k) => Math.max(n, named[k].length), 0);
+  const rows: Array<Record<string, string | number>> = [];
+  for (let i = 0; i < length; i++) {
+    const row: Record<string, string | number> = {
+      label: names.map((k) => named[k][i]?.label).find((l) => l != null) ?? "",
+    };
+    for (const k of names) row[k] = named[k][i]?.value ?? 0;
+    rows.push(row);
+  }
+  return rows;
 };
 
 /**
