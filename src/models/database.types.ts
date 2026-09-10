@@ -234,6 +234,7 @@ export type Database = {
           locked_consent: boolean
           locked_email_templates: boolean
           logo_url: string | null
+          max_storage_bytes: number
           name: string
           next_invoice_number: number
           owner_id: string
@@ -258,6 +259,7 @@ export type Database = {
           locked_consent?: boolean
           locked_email_templates?: boolean
           logo_url?: string | null
+          max_storage_bytes?: number
           name: string
           next_invoice_number?: number
           owner_id: string
@@ -282,6 +284,7 @@ export type Database = {
           locked_consent?: boolean
           locked_email_templates?: boolean
           logo_url?: string | null
+          max_storage_bytes?: number
           name?: string
           next_invoice_number?: number
           owner_id?: string
@@ -1265,6 +1268,169 @@ export type Database = {
           },
         ]
       }
+      file_deletion_queue: {
+        Row: {
+          queued_at: string
+          storage_path: string
+        }
+        Insert: {
+          queued_at?: string
+          storage_path: string
+        }
+        Update: {
+          queued_at?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
+      file_folders: {
+        Row: {
+          agency_id: string | null
+          created_at: string
+          created_by: string | null
+          depth: number
+          id: string
+          name: string
+          owner_admin_id: string
+          parent_id: string | null
+          path: string
+          shared: boolean
+          updated_at: string
+        }
+        Insert: {
+          agency_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          depth?: number
+          id?: string
+          name: string
+          owner_admin_id: string
+          parent_id?: string | null
+          path?: string
+          shared?: boolean
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          depth?: number
+          id?: string
+          name?: string
+          owner_admin_id?: string
+          parent_id?: string | null
+          path?: string
+          shared?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_folders_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_folders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_folders_owner_admin_id_fkey"
+            columns: ["owner_admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "file_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_objects: {
+        Row: {
+          agency_id: string | null
+          checksum: string | null
+          created_at: string
+          created_by: string | null
+          folder_id: string | null
+          id: string
+          mime_type: string
+          name: string
+          owner_admin_id: string
+          shared: boolean
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id?: string | null
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string | null
+          id?: string
+          mime_type: string
+          name: string
+          owner_admin_id: string
+          shared?: boolean
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string | null
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string | null
+          id?: string
+          mime_type?: string
+          name?: string
+          owner_admin_id?: string
+          shared?: boolean
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_objects_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_objects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_objects_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "file_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_objects_owner_admin_id_fkey"
+            columns: ["owner_admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_line_items: {
         Row: {
           created_at: string
@@ -1557,18 +1723,21 @@ export type Database = {
         Row: {
           max_active: number | null
           max_archived: number | null
+          max_storage_bytes: number | null
           plan: string
           sort_order: number
         }
         Insert: {
           max_active?: number | null
           max_archived?: number | null
+          max_storage_bytes?: number | null
           plan: string
           sort_order?: number
         }
         Update: {
           max_active?: number | null
           max_archived?: number | null
+          max_storage_bytes?: number | null
           plan?: string
           sort_order?: number
         }
@@ -2969,6 +3138,10 @@ export type Database = {
         Returns: undefined
       }
       expire_promo_trials: { Args: never; Returns: number }
+      file_storage_pool: { Args: { p_admin: string }; Returns: string }
+      file_storage_quota: { Args: { p_admin: string }; Returns: number }
+      file_storage_report: { Args: never; Returns: Json }
+      file_storage_used: { Args: { p_admin: string }; Returns: number }
       generate_client_codename: { Args: never; Returns: string }
       get_availability_for_date: {
         Args: { p_admin_id: string; p_date: string }
@@ -3095,16 +3268,16 @@ export type Database = {
         Args: { p_real_user_id: string; p_stub_id: string }
         Returns: undefined
       }
+      merge_stub_to_user: {
+        Args: { p_stub_id: string; p_user_id: string }
+        Returns: undefined
+      }
       mirror_private_event_to_clients: {
         Args: { p_body: string; p_client_ids: string[]; p_event_id: string }
         Returns: {
           conversation_id: string
           message_id: string
         }[]
-      }
-      merge_stub_to_user: {
-        Args: { p_stub_id: string; p_user_id: string }
-        Returns: undefined
       }
       notify_client_lifecycle: {
         Args: { p_email: string; p_event: string; p_user_id: string }

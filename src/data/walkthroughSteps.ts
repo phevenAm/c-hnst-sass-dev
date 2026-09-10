@@ -454,6 +454,49 @@ export const walkthroughSteps: Record<string, WalkthroughPage> = {
     ],
   },
 
+  // ── Files ──────────────────────────────────────────────────────
+
+  "/admin/files": {
+    pageTitle: "Files",
+    steps: [
+      {
+        id: "admin-files-intro",
+        order: 1,
+        title: "Your practice's file store",
+        body: "Keep policies, templates, worksheets and scans in one place. It's private to your practice — agencies share one pool across the team.",
+        target: "#files-header",
+      },
+      {
+        id: "admin-files-upload",
+        order: 2,
+        title: "Add folders, files or a .zip",
+        body: "Drag files or a whole folder straight onto the page, or use these buttons. A .zip is unpacked into folders for you. PDFs, images and Word docs only — no video.",
+        target: "#files-actions",
+      },
+      {
+        id: "admin-files-storage",
+        order: 3,
+        title: "Storage allowance",
+        body: "Your plan sets how much you can store. Deleting files frees the space straight away.",
+        target: "#files-storage",
+      },
+      {
+        id: "admin-files-search",
+        order: 4,
+        title: "Find anything by name",
+        body: "Search across every folder at once — each result shows where it lives.",
+        target: "#files-search",
+      },
+      {
+        id: "admin-files-tree",
+        order: 5,
+        title: "Browse, rename and move",
+        body: "Use the folder tree to move around. Renaming or moving a folder never breaks a link to a file inside it.",
+        target: "#files-tree",
+      },
+    ],
+  },
+
   // ── CPD log ────────────────────────────────────────────────────
 
   "/admin/cpd": {
