@@ -57,6 +57,13 @@ afterEach(() => {
   // hand so its dedupe guard doesn't carry a stale splash into the next test.
   document.getElementById("boot-splash")?.remove();
   document.getElementById("boot-splash-mark")?.remove();
+  // The banner now persists a per-session dismissal — wipe it so a test that
+  // closes the banner doesn't hide it for every test after.
+  try {
+    sessionStorage.clear();
+  } catch {
+    /* jsdom always has sessionStorage; guard anyway */
+  }
   reloadSpy.mockClear();
   replaceSpy.mockClear();
   vi.restoreAllMocks();
@@ -119,14 +126,31 @@ describe("UpdateBanner", () => {
     expect(screen.queryByText(/a new version is available/i)).not.toBeInTheDocument();
   });
 
-  it("'Update now' shows an updating state and falls back to a cache-busting navigation with no service worker registered (happy path)", async () => {
+  it("a dismissal sticks for the rest of the session (sad path)", async () => {
+    mockDisplayMode({ standalone: true });
+    mockVersionResponse("99.0.0-newer");
+    const { unmount } = render(<UpdateBanner />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /later/i }));
+    expect(screen.queryByText(/a new version is available/i)).not.toBeInTheDocument();
+
+    // Re-mounting (e.g. a route change) must not bring it back — the version
+    // is still "newer", but the user already said no this session.
+    unmount();
+    render(<UpdateBanner />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(screen.queryByText(/a new version is available/i)).not.toBeInTheDocument();
+  });
+
+  it("'Update now' closes the banner and falls back to a cache-busting navigation with no service worker registered (happy path)", async () => {
     mockDisplayMode({ standalone: true });
     mockVersionResponse("99.0.0-newer");
     render(<UpdateBanner />);
 
     fireEvent.click(await screen.findByRole("button", { name: /update now/i }));
 
-    expect(await screen.findByRole("button", { name: /updating/i })).toBeDisabled();
+    // The full-screen splash is the feedback now; the banner itself goes away.
+    expect(screen.queryByText(/a new version is available/i)).not.toBeInTheDocument();
     // hardRefresh() holds the "Updating…" splash on screen for a beat before
     // it reloads, so give the fallback navigation room past that.
     await waitFor(() => expect(replaceSpy).toHaveBeenCalledWith(expect.stringContaining("force-update=")), {

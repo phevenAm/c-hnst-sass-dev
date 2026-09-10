@@ -1,7 +1,11 @@
+import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 
+import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import themeReducer from "@store/slices/themeSlice";
 
 import LoginPage from "./LoginPage";
 
@@ -37,10 +41,13 @@ const baseAuth = {
 };
 
 function renderPage() {
+  const store = configureStore({ reducer: { theme: themeReducer } });
   return render(
-    <MemoryRouter>
-      <LoginPage />
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    </Provider>,
   );
 }
 

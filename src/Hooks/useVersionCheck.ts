@@ -6,7 +6,17 @@ import { applyServiceWorkerUpdate, checkForServiceWorkerUpdate } from "@/lib/swU
 
 declare const __APP_VERSION__: string;
 
+let refreshInFlight = false;
+
 export async function hardRefresh() {
+  // Spam-clicking "Force app update" / "Update now" used to fire this once per
+  // click — each spawning its own registration.update() + bounded wait +
+  // fallback navigation, racing each other. Collapse repeats into the first
+  // run; it always ends in a navigation, so the guard only ever resets if
+  // that navigation somehow didn't happen.
+  if (refreshInFlight) return;
+  refreshInFlight = true;
+
   // Cover the app with the sapling + "Updating…" for every caller — the
   // UpdateBanner "Update now" button and the Settings "Force app update"
   // button alike — not just whichever one remembered to call showSplash.
@@ -15,7 +25,11 @@ export async function hardRefresh() {
   // reloads almost immediately; hold the splash on screen long enough to
   // actually read before the navigation yanks it.
   await new Promise((resolve) => setTimeout(resolve, 450));
-  await applyServiceWorkerUpdate();
+  try {
+    await applyServiceWorkerUpdate();
+  } finally {
+    refreshInFlight = false;
+  }
 }
 
 // Was polling /version.json every 5 min + on every tab focus, and was fully
