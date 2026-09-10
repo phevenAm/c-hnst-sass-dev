@@ -20,6 +20,30 @@
       })();
     </script>
 
+    <!-- Canonical-host guard. Vercel serves this SPA on every domain pointed at
+         the project — including old/forgotten aliases. Auth + storage are
+         per-origin, so loading the app on a stray host lands the user in a
+         confusing half-signed-in state against that origin's leftover session
+         (and its own separate onboarding/agency state). Bounce any host we
+         don't recognise to the real domain before the bundle, service worker,
+         or auth does anything. Allowlist: canonical + legacy alias + Vercel
+         preview deploys + local dev. withclarity.uk is on it, so no loop. -->
+    <script>
+      (function () {
+        try {
+          var h = location.hostname;
+          var ok =
+            h === "withclarity.uk" ||
+            h === "www.withclarity.uk" ||
+            h === "honest-portal.vercel.app" ||
+            h === "localhost" ||
+            h === "127.0.0.1" ||
+            /\.vercel\.app$/.test(h);
+          if (!ok) location.replace("https://withclarity.uk" + location.pathname + location.search + location.hash);
+        } catch (e) {}
+      })();
+    </script>
+
     <title>Clarity: Counselling Practice Management</title>
     <meta name="description" content="A counselling client portal for tracking personal growth and wellbeing." />
 

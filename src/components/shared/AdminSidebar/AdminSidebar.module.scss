@@ -33,6 +33,21 @@ $transition: 0.22s ease;
     pointer-events: none;
   }
 
+  // Collapsed rail: the unread pill can't sit at the row's end (margin-left:
+  // auto pushes it past the 60px rail, where .navLink's overflow:hidden clips
+  // it). Pin it to the top-right corner of the row instead so it rides the
+  // Messages icon. CountBadge renders nothing at 0, so no stray dot.
+  .navLink {
+    position: relative;
+  }
+
+  .navUnread {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    margin-left: 0;
+  }
+
   .logoText {
     width: 0;
     overflow: hidden;
@@ -465,6 +480,19 @@ $guide-x: 0.7rem;
     .logoText {
       width: 0;
       overflow: hidden;
+    }
+
+    // Same as .collapsed: pin the unread pill to the row's top-right corner so
+    // it stays visible on the icon strip instead of being clipped off the end.
+    .navLink {
+      position: relative;
+    }
+
+    .navUnread {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      margin-left: 0;
     }
 
     .groupChevron {

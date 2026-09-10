@@ -56,11 +56,25 @@ export function useAgencyBootstrap() {
 
       if (pending) {
         try {
-          await supabase.rpc("consume_agency_invite", {
-            input_token: pending,
-            p_agreement_accepted: agreement?.accepted ?? false,
-            p_signed_name: agreement?.signedName ?? null,
-          });
+          // Only consume an invite that was actually issued to THIS account.
+          // consume_agency_invite enforces this server-side too (WRONG_ACCOUNT),
+          // but checking here stops a stray token — one left in localStorage by
+          // another signup, a shared machine, or an invite link opened while
+          // signed in as someone else — from ever being sent, and clears it
+          // either way (the finally block below).
+          const { data: info } = await supabase.rpc("validate_agency_invite", { input_token: pending });
+          const invitedEmail = (info as { email?: string } | null)?.email?.trim().toLowerCase();
+          const myEmail = session?.user?.email?.trim().toLowerCase();
+
+          if (invitedEmail && myEmail && invitedEmail === myEmail) {
+            await supabase.rpc("consume_agency_invite", {
+              input_token: pending,
+              p_agreement_accepted: agreement?.accepted ?? false,
+              p_signed_name: agreement?.signedName ?? null,
+            });
+          } else {
+            console.warn("Pending agency invite ignored — it was issued to a different account.");
+          }
         } catch (err) {
           console.error("consume_agency_invite failed", err);
         } finally {

@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useSearchP
 
 import AgencyReviewBanner from "../components/agency/AgencyReviewBanner/AgencyReviewBanner";
 import ConsentModal from "../components/Consent/ConsentModal";
-import ChatWidget from "../components/messaging/ChatWidget/ChatWidget";
 import OnboardingModal from "../components/Onboarding/OnboardingModal";
 import AdminSidebar from "../components/shared/AdminSidebar/AdminSidebar";
 import AdminTopbar from "../components/shared/AdminTopbar/AdminTopbar";
@@ -341,9 +340,9 @@ function AgencyBootstrapper() {
   return null;
 }
 
-// Messaging realtime + unread badge — one mount, app-wide, so the floating
-// ChatWidget has live data on every authenticated page (not just the two
-// role layouts).
+// Messaging realtime + unread badge — one mount, app-wide, so the sidebar /
+// nav unread counts stay live on every authenticated page (not just the two
+// role layouts). The floating ChatWidget is currently disabled (see below).
 function MessagingRuntime() {
   useMessagesRealtime();
   return null;
@@ -379,7 +378,9 @@ export default function AppRoutes() {
           <OnboardingGate />
           <AgencyBootstrapper />
           <MessagingRuntime />
-          <ChatWidget />
+          {/* Floating chat widget hidden for now — full /messages pages and the
+              nav unread badges are unaffected. Re-add <ChatWidget /> here to
+              bring it back. */}
           <WalkthroughOverlay />
           {/* <Suspense fallback={<AuthLoadingState variant="splash" />}> */}
           <Suspense fallback={<HeroSplashBridge />}>

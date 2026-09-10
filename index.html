@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+    <!-- Canonical-host guard — see app.html for the full rationale. Vercel
+         answers on every domain attached to the project; send anything we
+         don't recognise to the real one. -->
+    <script>
+      (function () {
+        try {
+          var h = location.hostname;
+          var ok =
+            h === "withclarity.uk" ||
+            h === "www.withclarity.uk" ||
+            h === "honest-portal.vercel.app" ||
+            h === "localhost" ||
+            h === "127.0.0.1" ||
+            /\.vercel\.app$/.test(h);
+          if (!ok) location.replace("https://withclarity.uk" + location.pathname + location.search + location.hash);
+        } catch (e) {}
+      })();
+    </script>
+
     <title>Clarity — practice management software for therapists</title>
     <meta
       name="description"
@@ -194,13 +213,13 @@
 
     <header class="site-header">
       <div class="container site-header__inner">
-        <a class="wordmark" href="/">
+        <a class="wordmark wordmark--animate" href="/">
           <svg class="wordmark__mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22V12" />
-            <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" />
-            <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" />
+            <path d="M12 22V12" pathLength="1" />
+            <path d="M12 12C12 7 7 3 2 3c0 5 4 9 10 9z" pathLength="1" />
+            <path d="M12 12C12 7 17 3 22 3c0 5-4 9-10 9z" pathLength="1" />
           </svg>
-          Clarity
+          <span class="wordmark__text">Clarity</span>
         </a>
         <nav class="site-nav" aria-label="Primary">
           <span class="site-nav__primary">
