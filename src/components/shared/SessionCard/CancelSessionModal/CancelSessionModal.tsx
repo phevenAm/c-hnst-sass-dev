@@ -11,6 +11,9 @@ import { supabase } from "@/lib/supabase.js";
 import { Session } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { upsertSession } from "@/store/slices/sessionsSlice";
+import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
+import { useLocation } from "react-router-dom";
+import { getNotifyOption } from "@/Helpers/Helpers";
 
 type CancelSessionModalProps = {
   session: Session;
@@ -33,6 +36,13 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
   const msUntilSession = new Date(session.scheduled_at).getTime() - Date.now();
   const outsideCutoff = cutoffHours === null || msUntilSession > cutoffHours * 60 * 60 * 1000;
   const [issueRefund, setIssueRefund] = useState(outsideCutoff);
+
+  // dont show option to fire email if client doesnt have email address set
+  const location = useLocation();
+  const splitPath = location.pathname.split("/").filter(Boolean);
+
+  const urlId = splitPath[splitPath.length - 1];
+  const hasEmail = useDoesClientHaveEmail(urlId);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -73,11 +83,12 @@ const CancelSessionModal = ({ session, onClose }: CancelSessionModalProps) => {
       confirming={cancelling}
       confirmLabel="Yes, cancel it"
       cancelLabel="Keep it"
-      notifyOption={{
-        label: "Email the client that this session was cancelled",
-        checked: notifyClient,
-        onChange: setNotifyClient,
-      }}
+      notifyOption={getNotifyOption(
+        "Email the client that this session was cancelled",
+        hasEmail,
+        notifyClient,
+        setNotifyClient,
+      )}
     >
       <p>Cancel your session on {dayjs(session.scheduled_at).format("dddd D MMM [at] h:mma")}?</p>
       {canRefund && (
