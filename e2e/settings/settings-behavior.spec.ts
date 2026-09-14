@@ -773,3 +773,44 @@ test.describe("Manual payment decline and retry", () => {
     }
   });
 });
+
+// ── Configure client → Calendar colour ──────────────────────────────────────
+//
+// Previously a client's colour on the admin scheduler was purely a hash of
+// their id (schedulerUtils.ts's colourForClient) with no way to override it
+// — the same fixed-swatch pattern agency staff colours already had
+// (ConfigureMemberModal) wasn't available for admin's own clients. users.color
+// (migration 20260914000050) + AdminClientsPageDetailed's "Configure client"
+// modal close that gap; sessionEvents() now prefers a client's stored colour
+// over the hash fallback when one is set.
+
+test.describe("Configure client — calendar colour", () => {
+  test.afterAll(() => {
+    dbQuery(`update public.users set color = null where email = '${FIXTURES.client.email}';`);
+  });
+
+  test("an admin can set a client's calendar colour, and it persists over the hash fallback", async ({ page }) => {
+    test.setTimeout(60_000);
+    const { clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    dbQuery(`update public.users set color = null where id = '${clientId}';`);
+
+    await loginInBrowser(page, FIXTURES.admin.email, FIXTURES.admin.password);
+    await page.goto(`${APP_URL}/admin/clients/${clientId}`, { waitUntil: "load", timeout: 20_000 });
+
+    const configureBtn = page.getByRole("button", { name: "Configure client" });
+    await expect(configureBtn).toBeVisible({ timeout: 10_000 });
+    await configureBtn.click();
+
+    const swatches = page.locator('[role="radio"][aria-label]');
+    await expect(swatches).toHaveCount(8);
+    const targetColor = await swatches.nth(3).getAttribute("aria-label");
+    await swatches.nth(3).click();
+
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    // The modal closes on a successful save (handleSaveCodename).
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toHaveCount(0, { timeout: 10_000 });
+
+    const saved = dbQuery<{ color: string }>(`select color from public.users where id = '${clientId}';`).rows[0];
+    expect(saved.color).toBe(targetColor);
+  });
+});

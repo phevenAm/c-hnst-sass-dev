@@ -39,10 +39,12 @@ export type SchedulerEvent = {
   resource: SchedulerResource;
 };
 
-// Fixed palette — client colour is derived from their id so it's stable
-// across sessions without needing a colour column in the DB. Every tone is
-// dark enough that white event text clears WCAG AA 4.5:1 contrast.
-const CLIENT_PALETTE = [
+// Fixed palette — a client's colour defaults to a hash of their id (stable
+// without needing every client to set one) but an admin can override it via
+// "Configure client" → Calendar colour (users.color, migration
+// 20260914000050), same swatch-picker pattern as agency staff colours. Every
+// tone is dark enough that white event text clears WCAG AA 4.5:1 contrast.
+export const CLIENT_PALETTE = [
   "#3a5568", // slate blue
   "#8f3f3f", // brick red
   "#3f5a3a", // forest
@@ -53,7 +55,8 @@ const CLIENT_PALETTE = [
   "#6b3f54", // plum
 ];
 
-// Deterministic hash → palette index. Same client always gets the same colour.
+// Deterministic hash → palette index. Same client always gets the same colour
+// when they haven't (or can't — e.g. a stub) set one explicitly.
 export function colourForClient(clientId: string | null | undefined): string {
   if (!clientId) return "#4b5563"; // dark grey fallback (AA-safe with white text)
   let hash = 0;
@@ -111,6 +114,9 @@ export function sessionEvents(
       .add(s.duration_minutes ?? 50, "minute")
       .toDate();
     const clientName = clientNameFor(s, users, useCodenames);
+    // An admin-picked colour (users.color, set via "Configure client") wins
+    // over the hash fallback.
+    const color = users.find((u) => u.id === s.client_id)?.color || colourForClient(s.client_id);
 
     if (s.status === "cancelled") {
       return [
@@ -122,7 +128,7 @@ export function sessionEvents(
           resource: {
             type: "cancelled-session" as const,
             session: s,
-            color: colourForClient(s.client_id),
+            color,
             clientName,
           },
         },
@@ -135,7 +141,7 @@ export function sessionEvents(
         title: clientName,
         start,
         end,
-        resource: { type: "session" as const, session: s, color: colourForClient(s.client_id), clientName },
+        resource: { type: "session" as const, session: s, color, clientName },
       },
       ...bufferEventFor(s.id, end, bufferMinutes),
     ];
