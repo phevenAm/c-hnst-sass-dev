@@ -54,6 +54,8 @@ export interface AgencyMember {
   agreement_signed_name: string | null;
   /** null = follow the agency default (see agency.default_settlement_direction). */
   settlement_direction: AgencySettlementDirection | null;
+  /** Hex colour (e.g. "#2d7264") used for this member's events on the agency sessions calendar. */
+  color: string | null;
 }
 
 export interface AgencyPlanLimit {

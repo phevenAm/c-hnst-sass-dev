@@ -7,14 +7,14 @@ import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingSta
 import Button from "@components/shared/Button/Button";
 import {
   AssignmentClipIcon,
-  BookIcon,
   CalendarIcon,
   CancelIcon,
-  DocumentIcon,
+  FolderIcon,
   HistoryIcon,
   HomeIcon,
   MoneyIcon,
   Settingsicon,
+  StaffIcon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
 import SidebarCollapseButton from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
@@ -50,10 +50,9 @@ const MANAGER_LINKS: NavItem[] = [
     children: [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: AssignmentClipIcon }],
   },
   { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
-  { to: "/agency/members", label: "Staff", Icon: UsersIcon },
-  { to: "/agency/invoices", label: "Invoices", Icon: DocumentIcon },
+  { to: "/agency/members", label: "Staff", Icon: StaffIcon },
   { to: "/agency/finance", label: "Finance", Icon: MoneyIcon },
-  { to: "/agency/onboarding", label: "Onboarding", Icon: BookIcon },
+  { to: "/agency/files", label: "Files", Icon: FolderIcon },
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },
 ];
 
@@ -340,9 +339,11 @@ export default function AgencyLayout() {
       </aside>
 
       <main id="main-content" className={`${styles.main} ${!isMobile && collapsed ? styles.mainCollapsed : ""}`}>
-        <Suspense fallback={<AuthLoadingState variant="plain" />}>
-          {coreDataPending ? <AuthLoadingState variant="plain" /> : <Outlet />}
-        </Suspense>
+        <div className="page-content">
+          <Suspense fallback={<AuthLoadingState variant="plain" />}>
+            {coreDataPending ? <AuthLoadingState variant="plain" /> : <Outlet />}
+          </Suspense>
+        </div>
       </main>
     </div>
   );

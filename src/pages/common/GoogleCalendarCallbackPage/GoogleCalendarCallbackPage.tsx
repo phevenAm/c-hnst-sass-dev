@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { APP_URL } from "@/lib/appUrl";
 import { supabase } from "@/lib/supabase";
 
 export default function GoogleCalendarCallbackPage() {
@@ -25,7 +26,7 @@ export default function GoogleCalendarCallbackPage() {
 
     supabase.functions
       .invoke("google-calendar-oauth", {
-        body: { code, redirect_uri: `${window.location.origin}/settings/google-callback` },
+        body: { code, redirect_uri: `${APP_URL}/settings/google-callback` },
       })
       .then(({ error: fnError }) => {
         if (fnError) {

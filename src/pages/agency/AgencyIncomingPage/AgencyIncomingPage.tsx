@@ -22,7 +22,7 @@ export default function AgencyIncomingPage() {
   }, [dispatch]);
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-incoming-header">
         <div>
           <h1 className={styles.title}>Clients to review</h1>

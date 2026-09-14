@@ -1,3 +1,9 @@
+@use '../../styles/mixins' as *;
+
+.backButton {
+  margin-bottom: var(--sp-4);
+}
+
 .header {
   display: flex;
   align-items: flex-start;
@@ -42,7 +48,6 @@
 
 .tile {
   background: var(--bg-card);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: var(--sp-4);
 }
@@ -67,10 +72,18 @@
 }
 
 /* Simple card list ───────────────────────────────────── */
+// A flat divided list, not individual bordered cards — mirrors AdminClientsPage's
+// .clientRow (border-bottom divider only, no per-row border/radius/background).
+// The LIST ITSELF is the card — mirrors admin's PaginatedGroup, which wraps
+// its rows in one shared <Card> (background + radius, no padding — each row
+// pads its own content). Missing this wrapper was why agency lists rendered
+// with no background at all, just rows floating on the bare page.
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  overflow: hidden;
 }
 
 .row {
@@ -78,11 +91,29 @@
   align-items: center;
   gap: var(--sp-3);
   justify-content: space-between;
-  padding: var(--sp-4);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
   flex-wrap: wrap;
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  transition: background-color var(--transition-base);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--bg-muted);
+  }
+}
+
+// Opt-in modifier for rows that navigate to a detail page (members, clients).
+.rowClickable {
+  cursor: pointer;
+
+  &:focus-visible {
+    background: var(--bg-muted);
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
 }
 
 .rowMain {
@@ -107,6 +138,16 @@
   gap: var(--sp-2);
   align-items: center;
   flex-wrap: wrap;
+}
+
+// Narrow the row before the action button squeezes against the name/meta
+// column — push it onto its own full-width, right-aligned line instead.
+// Mirrors AdminClientsPage's .clientRow/.rowActions lt-s pattern.
+@include bp(lt-s) {
+  .rowActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .empty {
@@ -218,7 +259,6 @@
 
 .panel {
   background: var(--bg-card);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: var(--sp-5);
 }
@@ -333,9 +373,10 @@
 }
 
 /* ── Settings cards ──────────────────────────────────────── */
+// Filled surface + radius, no border stroke — brand card language, see
+// Card.module.scss and [[feedback_no_card_borders]].
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: var(--sp-5);
   margin-bottom: var(--sp-4);
@@ -502,7 +543,10 @@
 .filterBtnActive {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  // Not #fff — --accent is a light teal in dark mode (teal-400), so a
+  // hardcoded white fails contrast. --text-inverse is the token designed to
+  // pair with --accent correctly in both themes (see SplitButton .primary).
+  color: var(--text-inverse);
 }
 
 .pill {

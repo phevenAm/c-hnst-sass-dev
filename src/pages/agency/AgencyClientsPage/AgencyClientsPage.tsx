@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import AssignClientModal from "@components/agency/AssignClientModal/AssignClientModal";
 import IntakeClientModal from "@components/agency/IntakeClientModal/IntakeClientModal";
@@ -37,6 +37,7 @@ const VIEW_TABS = [
 
 export default function AgencyClientsPage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const clients = useAppSelector(selectAgencyClients);
@@ -84,7 +85,7 @@ export default function AgencyClientsPage() {
   const total = clients.length;
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-clients-header">
         <div>
           <h1 className={styles.title}>Clients</h1>
@@ -136,10 +137,26 @@ export default function AgencyClientsPage() {
                 const canAssign = !c.assignment || c.assignment.status === "declined";
                 const withName = c.assignment ? nameByUserId.get(c.assignment.to_admin_id) : null;
                 return (
-                  <div key={c.id} className={styles.row}>
+                  <div
+                    key={c.id}
+                    className={`${styles.row} ${styles.rowClickable}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/agency/clients/${c.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(`/agency/clients/${c.id}`);
+                      }
+                    }}
+                  >
                     <div className={styles.rowMain}>
                       <span className={styles.rowName}>
                         {c.first_name} {c.last_name}
+                        {key === "unassigned" && <Badge variant="warning">Unassigned</Badge>}
+                        {key === "pending" && <Badge variant="neutral">In review</Badge>}
+                        {key === "accepted" && <Badge variant="success">Active</Badge>}
+                        {key === "declined" && <Badge variant="danger">Declined</Badge>}
                       </span>
                       <span className={styles.rowMeta}>
                         {c.email || "No email"}
@@ -149,17 +166,13 @@ export default function AgencyClientsPage() {
                         {key === "declined" && c.assignment?.decline_reason && ` · "${c.assignment.decline_reason}"`}
                       </span>
                     </div>
-                    <div className={styles.rowActions}>
-                      {key === "unassigned" && <Badge variant="warning">Unassigned</Badge>}
-                      {key === "pending" && <Badge variant="neutral">In review</Badge>}
-                      {key === "accepted" && <Badge variant="success">Active</Badge>}
-                      {key === "declined" && <Badge variant="danger">Declined</Badge>}
-                      {canAssign && (
+                    {canAssign && (
+                      <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
                         <Button size="sm" onClick={() => setAssigning(c)}>
                           {c.assignment?.status === "declined" ? "Reassign" : "Assign"}
                         </Button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

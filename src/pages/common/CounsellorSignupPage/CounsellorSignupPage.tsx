@@ -11,6 +11,7 @@ import { useAuth } from "@context/AuthContext";
 
 import { captureReferralCode } from "@/Helpers/referral";
 import { stashPendingAgencyInvite } from "@/Hooks/useAgencyBootstrap";
+import { APP_URL } from "@/lib/appUrl";
 import { supabase } from "@/lib/supabase";
 import styles from "../SignUpPage/SignUpPage.module.scss";
 
@@ -99,7 +100,7 @@ export default function CounsellorSignupPage() {
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: form.email,
-      options: { emailRedirectTo: `${window.location.origin}/login` },
+      options: { emailRedirectTo: `${APP_URL}/login` },
     });
     setResending(false);
     setResendMessage(
@@ -205,7 +206,7 @@ export default function CounsellorSignupPage() {
             last_name: form.lastName,
             practice_name: invite ? invite.agencyName : form.practiceName,
           },
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${APP_URL}/login`,
         },
       });
       if (signUpError) throw signUpError;

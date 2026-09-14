@@ -8,6 +8,7 @@ import Modal from "@components/shared/Modal/Modal";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
+import { APP_URL } from "@/lib/appUrl";
 import { supabase } from "@/lib/supabase";
 
 import styles from "./LoginPage.module.scss";
@@ -112,7 +113,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
       // ?type=recovery lets LoginPage detect the mode synchronously on mount,
       // preventing the navigation guard from redirecting before PASSWORD_RECOVERY fires.
-      redirectTo: `${window.location.origin}/login?type=recovery`,
+      redirectTo: `${APP_URL}/login?type=recovery`,
     });
     setSubmitting(false);
     if (err) setError(err.message);

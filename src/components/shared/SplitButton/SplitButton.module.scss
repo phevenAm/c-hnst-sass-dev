@@ -74,6 +74,24 @@
     z-index: 200;
     min-width: 100%;
 
+    // Portal variant: rendered on document.body (see SplitButton.tsx) so it
+    // escapes any ancestor's overflow:hidden / stacking context — a row in a
+    // scrolling list, a modal body, a narrow card. top/left/min-width come
+    // from the inline style (measured off the trigger, viewport-relative,
+    // matching position:fixed), so reset the in-flow positioning here.
+    &.dropdownPortal {
+        position: fixed;
+        top: auto;
+        right: auto;
+        left: auto;
+        min-width: 0;
+
+        &.dropdownUp {
+            top: auto;
+            bottom: auto;
+        }
+    }
+
     ul {
         background: var(--bg-card);
         border: 1.5px solid var(--border);
@@ -171,6 +189,12 @@
     background: var(--accent-light);
     color: var(--accent-dark);
     border-color: var(--accent-light);
+
+    // See Button.module.scss .secondary for why this needs its own
+    // dark-mode override, not var(--text-inverse).
+    :global(.dark) & {
+        color: #8ecfc3;
+    }
 
     &:hover:not(:disabled) {
         background: var(--accent-subtle);

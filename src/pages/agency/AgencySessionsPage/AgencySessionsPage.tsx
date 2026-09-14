@@ -1,41 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
+import { type View, Views } from "react-big-calendar";
 import { Navigate } from "react-router-dom";
 
 import dayjs from "dayjs";
 
-import { clientDisplayName } from "@Helpers/Helpers";
+import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
+import type { SchedulerEvent } from "@components/shared/SchedulerCalendar/schedulerUtils";
+import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
+import type { Session, UserProfile } from "@models/globalTypes";
 import { useAppSelector } from "@store/hooks";
 import { selectAgencyMembers, selectIsAgencyManager } from "@store/slices/agencySlice";
 
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 
-type SessionRow = {
-  id: string;
-  scheduled_at: string;
-  status: string;
-  created_by: string;
-  client_id: string | null;
-};
+const DEFAULT_MEMBER_COLOR = "#2d7264";
 
-type ClientRow = {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  display_name: string | null;
-  admin_codename: string | null;
-};
+type StaffFilter = "all" | "internal" | "external";
+type ViewMode = "calendar" | "list";
 
-// Read-only, agency-wide upcoming-session list — the manager visibility RLS
-// policy (acts_for_admin, 20260902010003) already scopes `sessions` to the
-// caller's own rows plus every member's when they're an active manager, so
-// this is a plain select with no extra filtering needed.
+// Read-only, agency-wide sessions calendar. The manager visibility RLS policy
+// (acts_for_admin, 20260902010003) already scopes `sessions` to the caller's
+// own rows plus every member's when they're an active manager, so this is a
+// plain select with no extra filtering needed.
 export default function AgencySessionsPage() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const members = useAppSelector(selectAgencyMembers);
 
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [clients, setClients] = useState<Map<string, ClientRow>>(new Map());
+  const [date, setDate] = useState<Date>(new Date());
+  const [view, setView] = useState<View>(Views.WORK_WEEK);
+  const [filter, setFilter] = useState<StaffFilter>("all");
+  const [mode, setMode] = useState<ViewMode>("calendar");
+  const [query, setQuery] = useState("");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [clients, setClients] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -44,14 +42,13 @@ export default function AgencySessionsPage() {
     (async () => {
       setLoading(true);
       setError("");
-      const from = dayjs().startOf("day").toISOString();
-      const to = dayjs().add(30, "day").endOf("day").toISOString();
+      const from = dayjs(date).subtract(7, "day").startOf("day").toISOString();
+      const to = dayjs(date).add(7, "day").endOf("day").toISOString();
       const { data, error: fetchErr } = await supabase
         .from("sessions")
-        .select("id, scheduled_at, status, created_by, client_id")
+        .select("*")
         .gte("scheduled_at", from)
         .lte("scheduled_at", to)
-        .neq("status", "cancelled")
         .order("scheduled_at", { ascending: true });
 
       if (fetchErr) {
@@ -60,79 +57,147 @@ export default function AgencySessionsPage() {
         return;
       }
 
-      const rows = (data ?? []) as SessionRow[];
+      const rows = (data ?? []) as Session[];
       const clientIds = [...new Set(rows.map((r) => r.client_id).filter((id): id is string => !!id))];
       const { data: clientRows } = clientIds.length
-        ? await supabase
-            .from("users")
-            .select("id, first_name, last_name, display_name, admin_codename")
-            .in("id", clientIds)
+        ? await supabase.from("users").select("*").in("id", clientIds)
         : { data: [] };
 
-      setClients(new Map(((clientRows ?? []) as ClientRow[]).map((c) => [c.id, c])));
+      setClients((clientRows ?? []) as UserProfile[]);
       setSessions(rows);
       setLoading(false);
     })();
-  }, [isManager]);
+  }, [isManager, date]);
 
-  const memberName = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const m of members) {
-      map.set(m.user_id, m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Staff");
+  const memberById = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members]);
+  const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+
+  const visibleSessions = useMemo(() => {
+    if (filter === "all") return sessions;
+    return sessions.filter((s) => {
+      const m = memberById.get(s.created_by);
+      const isExternal = m?.employment_type === "freelance";
+      return filter === "external" ? isExternal : !isExternal;
+    });
+  }, [sessions, filter, memberById]);
+
+  const namesBySessionId = useMemo(() => {
+    const map = new Map<string, { staffName: string; clientName: string }>();
+    for (const s of sessions) {
+      const staff = memberById.get(s.created_by);
+      const staffName =
+        staff?.display_name || [staff?.first_name, staff?.last_name].filter(Boolean).join(" ") || "a staff member";
+      const client = clientById.get(s.client_id ?? "");
+      const clientName =
+        client?.display_name || [client?.first_name, client?.last_name].filter(Boolean).join(" ") || "Client";
+      map.set(s.id, { staffName, clientName });
     }
     return map;
-  }, [members]);
+  }, [sessions, memberById, clientById]);
 
-  const grouped = useMemo(() => {
-    const byDay = new Map<string, SessionRow[]>();
-    for (const s of sessions) {
-      const day = dayjs(s.scheduled_at).format("dddd D MMMM");
-      byDay.set(day, [...(byDay.get(day) ?? []), s]);
-    }
-    return byDay;
-  }, [sessions]);
+  const searchedSessions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return visibleSessions;
+    return visibleSessions.filter((s) => {
+      const names = namesBySessionId.get(s.id);
+      return `${names?.clientName ?? ""} ${names?.staffName ?? ""}`.toLowerCase().includes(q);
+    });
+  }, [visibleSessions, query, namesBySessionId]);
+
+  const events = useMemo<SchedulerEvent[]>(() => {
+    return visibleSessions.map((s) => {
+      const staff = memberById.get(s.created_by);
+      const names = namesBySessionId.get(s.id);
+      const clientName = names?.clientName ?? "Client";
+      const start = new Date(s.scheduled_at);
+      const end = dayjs(start)
+        .add(s.duration_minutes ?? 50, "minute")
+        .toDate();
+      return {
+        id: `session-${s.id}`,
+        title: clientName,
+        start,
+        end,
+        resource: {
+          type: s.status === "cancelled" ? ("cancelled-session" as const) : ("session" as const),
+          session: s,
+          color: staff?.color || DEFAULT_MEMBER_COLOR,
+          clientName: `${clientName} · ${names?.staffName ?? "a staff member"}`,
+        },
+      };
+    });
+  }, [visibleSessions, memberById, namesBySessionId]);
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-sessions-header">
         <div>
           <h1 className={styles.title}>Sessions</h1>
-          <p className={styles.subtitle}>Upcoming sessions across every staff member, next 30 days.</p>
+          <p className={styles.subtitle}>Every staff member's sessions, coloured by who's running them.</p>
         </div>
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
-      {loading && <p className={styles.empty}>Loading sessions…</p>}
-      {!loading && sessions.length === 0 && !error && (
-        <p className={styles.empty}>Nothing booked across the agency in the next 30 days.</p>
+      <div className={styles.toolbar} style={{ marginBottom: "var(--sp-4)" }}>
+        <SegmentedTabs
+          tabs={[
+            { value: "all", label: "All staff" },
+            { value: "internal", label: "Internal" },
+            { value: "external", label: "External" },
+          ]}
+          value={filter}
+          onChange={setFilter}
+          ariaLabel="Filter sessions by staff type"
+        />
+        <SegmentedTabs
+          tabs={[
+            { value: "calendar", label: "Calendar" },
+            { value: "list", label: "List" },
+          ]}
+          value={mode}
+          onChange={setMode}
+          ariaLabel="Sessions view"
+        />
+      </div>
+
+      {mode === "list" && (
+        <input
+          className={`${styles.input} ${styles.grow}`}
+          style={{ marginBottom: "var(--sp-4)" }}
+          placeholder="Search sessions by client or staff name…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       )}
 
-      {[...grouped.entries()].map(([day, rows]) => (
-        <div key={day} className={styles.section}>
-          <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>{day}</h2>
-            <span className={styles.countPill}>{rows.length}</span>
-          </div>
-          <div className={styles.list}>
-            {rows.map((s) => {
-              const client = s.client_id ? clients.get(s.client_id) : undefined;
-              return (
-                <div key={s.id} className={styles.row}>
-                  <div className={styles.rowMain}>
-                    <span className={styles.rowName}>
-                      {dayjs(s.scheduled_at).format("HH:mm")} · {client ? clientDisplayName(client) : "Offline client"}
-                    </span>
-                    <span className={styles.rowMeta}>with {memberName.get(s.created_by) ?? "a staff member"}</span>
-                  </div>
-                  <span className={styles.pill}>{s.status}</span>
+      {error && <p className={styles.error}>{error}</p>}
+      {loading && sessions.length === 0 ? (
+        <p className={styles.empty}>Loading sessions…</p>
+      ) : mode === "calendar" ? (
+        <SchedulerCalendar events={events} date={date} view={view} onNavigate={setDate} onView={setView} />
+      ) : searchedSessions.length === 0 ? (
+        <p className={styles.empty}>No sessions match.</p>
+      ) : (
+        <div className={styles.list}>
+          {searchedSessions.map((s) => {
+            const names = namesBySessionId.get(s.id);
+            return (
+              <div key={s.id} className={styles.row}>
+                <div className={styles.rowMain}>
+                  <span className={styles.rowName}>
+                    {names?.clientName} · {names?.staffName}
+                  </span>
+                  <span className={styles.rowMeta}>
+                    {dayjs(s.scheduled_at).format("ddd D MMM, h:mma")}
+                    {s.status === "cancelled" && " · Cancelled"}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
-      ))}
+      )}
     </div>
   );
 }

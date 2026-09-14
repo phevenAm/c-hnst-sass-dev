@@ -19,6 +19,7 @@ import { APP_ZOOM_LEVELS, type AppZoom, useInterfacePrefs } from "@context/Inter
 import { useToast } from "@context/ToastContext";
 import { useWalkthrough } from "@context/WalkthroughContext";
 import type { Agency, AgencyPlanKey, AgencySettlementDefault, AgencySettlementDirection } from "@models/agency";
+import AgencyOnboardingPage from "@pages/agency/AgencyOnboardingPage/AgencyOnboardingPage";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
   changeAgencyPlan,
@@ -50,7 +51,7 @@ const APPEARANCE_OPTIONS = [
   { value: "dark", label: "Dark", icon: <MoonIcon /> },
 ] as const;
 
-type TabId = "identity" | "policies" | "billing" | "payments" | "integrations" | "interface";
+type TabId = "identity" | "policies" | "billing" | "payments" | "integrations" | "onboarding" | "interface";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "identity", label: "Identity" },
@@ -58,6 +59,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "billing", label: "Billing & seats" },
   { id: "payments", label: "Payments" },
   { id: "integrations", label: "Integrations" },
+  { id: "onboarding", label: "Onboarding" },
   { id: "interface", label: "Interface & accessibility" },
 ];
 
@@ -322,7 +324,7 @@ export default function AgencySettingsPage() {
 
   return (
     <>
-      <form onSubmit={save}>
+      <form onSubmit={save} className="inner">
         <div className={styles.header} id="agency-settings-header">
           <div>
             <h1 className={styles.title}>Settings</h1>
@@ -768,6 +770,10 @@ export default function AgencySettingsPage() {
         </div>
 
         {/* ── Interface & accessibility ── */}
+        <div {...panelProps("onboarding")}>
+          <AgencyOnboardingPage embedded />
+        </div>
+
         <div {...panelProps("interface")}>
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Appearance & motion</h2>

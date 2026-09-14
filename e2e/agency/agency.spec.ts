@@ -555,3 +555,38 @@ test("agency activity feed captures governance events, filters by member, and ne
     delete from public.agency_activity_events where agency_id = '${ids.agencyA}';
   `);
 });
+
+// ─── 2026-09-14 regressions ──────────────────────────────────────────────
+// A manager's OWN employment_type can be "employee" (they're not literally
+// freelance) — SettingsPage's isAgencyEmployee gate must key off role, not
+// just employment_type, or a manager gets locked out of their own agency's
+// business/email settings. See src/pages/common/SettingsPage.
+test("an agency manager (not just freelance staff) keeps control of Business info and Emails in Settings", async ({
+  page,
+}) => {
+  await loginViaUi(page, `smissah321+${TAG}-a-mgr@gmail.com`, PASSWORD);
+  await page.goto(`${APP_URL}/settings?tab=practice`, { waitUntil: "load", timeout: 20_000 });
+  // A locked-out employee sees static "Employed staff don't set their own…"
+  // copy instead of the real form — the manager must see the real input.
+  await expect(page.locator('input, label:has-text("Business name")').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/don't set their own/i)).toHaveCount(0);
+
+  await page.goto(`${APP_URL}/settings?tab=emails`, { waitUntil: "load", timeout: 20_000 });
+  await expect(page.getByText("Session reminder")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/configured by/i)).toHaveCount(0);
+});
+
+// plan_change_check (feeds ClientCapBanner) must exempt agency members the
+// same way the hard enforcement triggers already do (20260902010007) — an
+// agency admin has no personal subscription, so practice_settings.
+// subscription_plan is unset and previously defaulted to Starter's 5-client
+// cap, showing a false "over your plan limit" warning. See migration
+// 20260914000020_agency_skip_plan_change_check.
+test("plan_change_check returns no cap for an agency member", async () => {
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+  const { data, error } = await asAManager.rpc("plan_change_check", { p_target: "starter" });
+  expect(error).toBeNull();
+  expect(data.max_active).toBeNull();
+  expect(data.max_archived).toBeNull();
+  expect(data.ok).toBe(true);
+});

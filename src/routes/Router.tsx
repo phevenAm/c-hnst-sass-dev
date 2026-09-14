@@ -91,12 +91,16 @@ const AgencyLayout = lazyWithReload(() => import("../components/agency/AgencyLay
 const CreateAgencyPage = lazyWithReload(() => import("../pages/agency/CreateAgencyPage/CreateAgencyPage"));
 const AgencyOverviewPage = lazyWithReload(() => import("../pages/agency/AgencyOverviewPage/AgencyOverviewPage"));
 const AgencyMembersPage = lazyWithReload(() => import("../pages/agency/AgencyMembersPage/AgencyMembersPage"));
+const AgencyMemberDetailPage = lazyWithReload(
+  () => import("../pages/agency/AgencyMemberDetailPage/AgencyMemberDetailPage"),
+);
 const AgencyClientsPage = lazyWithReload(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
+const AgencyClientDetailPage = lazyWithReload(
+  () => import("../pages/agency/AgencyClientDetailPage/AgencyClientDetailPage"),
+);
 const AgencySessionsPage = lazyWithReload(() => import("../pages/agency/AgencySessionsPage/AgencySessionsPage"));
-const AgencyInvoicesPage = lazyWithReload(() => import("../pages/agency/AgencyInvoicesPage/AgencyInvoicesPage"));
 const AgencyIncomingPage = lazyWithReload(() => import("../pages/agency/AgencyIncomingPage/AgencyIncomingPage"));
 const AgencyFinancePage = lazyWithReload(() => import("../pages/agency/AgencyFinancePage/AgencyFinancePage"));
-const AgencyOnboardingPage = lazyWithReload(() => import("../pages/agency/AgencyOnboardingPage/AgencyOnboardingPage"));
 const AgencyActivityPage = lazyWithReload(() => import("../pages/agency/AgencyActivityPage/AgencyActivityPage"));
 const AgencySettingsPage = lazyWithReload(() => import("../pages/agency/AgencySettingsPage/AgencySettingsPage"));
 
@@ -355,7 +359,12 @@ function MessagingRuntime() {
 function AgencyGate({ children }: { children: React.ReactNode }) {
   const status = useAppSelector(selectAgencyBootstrapStatus);
   const membership = useAppSelector(selectAgencyMembership);
+  const { pathname } = useLocation();
   if (status !== "succeeded") return <>{children}</>;
+  // File storage is agency-wide, not tied to whether this member personally
+  // counsels — a manager with counselling switched off still needs Files
+  // (linked from the agency sidebar) to actually load.
+  if (pathname.startsWith("/admin/files")) return <>{children}</>;
   if (membership && membership.status === "active" && !membership.counselling_enabled) {
     return <Navigate to="/agency" replace />;
   }
@@ -536,12 +545,18 @@ export default function AppRoutes() {
                 >
                   <Route path="/agency" element={<AgencyOverviewPage />} />
                   <Route path="/agency/members" element={<AgencyMembersPage />} />
+                  <Route path="/agency/members/:memberId" element={<AgencyMemberDetailPage />} />
                   <Route path="/agency/clients" element={<AgencyClientsPage />} />
+                  <Route path="/agency/clients/:clientId" element={<AgencyClientDetailPage />} />
                   <Route path="/agency/sessions" element={<AgencySessionsPage />} />
-                  <Route path="/agency/invoices" element={<AgencyInvoicesPage />} />
+                  <Route path="/agency/invoices" element={<Navigate to="/agency/finance?view=invoices" replace />} />
                   <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
                   <Route path="/agency/finance" element={<AgencyFinancePage />} />
-                  <Route path="/agency/onboarding" element={<AgencyOnboardingPage />} />
+                  {hasFileManager && <Route path="/agency/files" element={<AdminFilesPage />} />}
+                  <Route
+                    path="/agency/onboarding"
+                    element={<Navigate to="/agency/settings?tab=onboarding" replace />}
+                  />
                   <Route path="/agency/activity" element={<AgencyActivityPage />} />
                   <Route path="/agency/settings" element={<AgencySettingsPage />} />
                 </Route>
