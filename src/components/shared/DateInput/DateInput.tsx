@@ -52,6 +52,9 @@ const textFieldSx = {
     "&.Mui-focused": { borderColor: "var(--border-focus)" },
     "&.Mui-disabled": { opacity: 0.5 },
   },
+  // MUI's own default root padding is "0 4px 0 14px" — 4px on the end where
+  // the calendar-icon button sits crams it right against the border.
+  "& .MuiPickersInputBase-adornedEnd": { paddingRight: "10px" },
   "& .MuiPickersOutlinedInput-notchedOutline": { border: "none" },
   "& .MuiPickersInputBase-input": {
     padding: "10px 14px",
@@ -61,6 +64,11 @@ const textFieldSx = {
   },
   "& [data-mui-picker-open-button]": {
     color: "var(--text-muted)",
+    // MUI ships this button with a built-in -12px right margin (compensating
+    // for its own hit-target padding so the icon lines up flush in MUI's own
+    // layouts) — it was eating the adornedEnd padding above and then some,
+    // crowding the icon right up against our border.
+    marginRight: 0,
     "&:hover": { color: "var(--text-secondary)", background: "transparent" },
   },
 };

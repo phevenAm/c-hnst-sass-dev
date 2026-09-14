@@ -26,10 +26,8 @@
     font-size: 0.82rem !important;
   }
 
-  :global(.MuiPickersInputBase-adornedEnd) {
-    padding-right: 4px !important;
-  }
-
+  // Keep the icon's own breathing room from textFieldSx's adornedEnd padding
+  // (10px) — shrinking it here was what crammed the icon against the border.
   :global([data-mui-picker-open-button]) {
     padding: 4px !important;
   }
