@@ -1,6 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detailsTable, emailTemplate, formatDate, logEmail, para, sendEmail } from "../_shared/email.ts";
+import {
+  detailsTable,
+  emailTemplate,
+  formatDate,
+  interpolateTemplate,
+  logEmail,
+  para,
+  sendEmail,
+} from "../_shared/email.ts";
 
 const EMAIL_TYPE = "payment_confirmed";
 
@@ -50,11 +58,15 @@ Deno.serve(async (req) => {
 
     const { data: practiceSettings } = await supabase
       .from("practice_settings")
-      .select("disabled_email_types, counsellor_name")
+      .select(
+        "disabled_email_types, counsellor_name, payment_confirmed_email_subject, payment_confirmed_email_body, payment_confirmed_email_heading",
+      )
       .eq("admin_id", user.id)
       .maybeSingle();
 
     const counsellorName = practiceSettings?.counsellor_name ?? undefined;
+    const customBody = practiceSettings?.payment_confirmed_email_body ?? undefined;
+    const customHeading = practiceSettings?.payment_confirmed_email_heading ?? undefined;
 
     const [{ data: clientProfile }, { data: authResult }] = await Promise.all([
       supabase
@@ -72,7 +84,11 @@ Deno.serve(async (req) => {
 
     const dateStr = formatDate(session.scheduled_at);
     const pricePounds = (session.price_pence / 100).toFixed(2);
-    const subject = `Payment confirmed — your session on ${dateStr}`;
+    const firstName = clientProfile?.first_name ?? "there";
+    const templateVars = { name: firstName, date: dateStr, amount: `£${pricePounds}` };
+    const subject = practiceSettings?.payment_confirmed_email_subject
+      ? interpolateTemplate(practiceSettings.payment_confirmed_email_subject, templateVars)
+      : `Payment confirmed — your session on ${dateStr}`;
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
 
     const logBase = {
@@ -94,17 +110,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
     }
 
-    const firstName = clientProfile?.first_name ?? "there";
     const unsubscribeUrl = clientProfile?.unsubscribe_token
       ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${EMAIL_TYPE}`
       : undefined;
 
     const html = emailTemplate({
       label: "Payment Confirmed",
-      title: `Hi ${firstName},`,
+      title: customHeading ? interpolateTemplate(customHeading, templateVars) : `Hi ${firstName},`,
       body:
         para(
-          `Your payment of <strong style="color:#2d2520;">£${pricePounds}</strong> has been received and your session is confirmed.`,
+          customBody
+            ? interpolateTemplate(customBody, templateVars)
+            : `Your payment of <strong style="color:#2d2520;">£${pricePounds}</strong> has been received and your session is confirmed.`,
         ) +
         detailsTable([
           { label: "Date & time", value: dateStr, bold: true },

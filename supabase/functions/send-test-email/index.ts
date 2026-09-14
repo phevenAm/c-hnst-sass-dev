@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detailsTable, emailTemplate, noteBox, para, sendEmail } from "../_shared/email.ts";
+import { detailsTable, emailTemplate, interpolateTemplate, noteBox, para, sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,13 +10,18 @@ const corsHeaders = {
 const EXAMPLE_DATE = "Monday 10 August 2026 at 2:00pm";
 const EXAMPLE_NAME = "Alex";
 
-type EmailType = "reminder" | "session_booked" | "session_cancelled" | "session_rescheduled" | "payment_received";
+// "payment_confirmed" matches the id used everywhere else — the real sender
+// (send-payment-notification), UnsubscribePage.tsx, and the email_logs
+// email_type CHECK constraint (which never allowed "payment_received" at
+// all). This file used to be the odd one out.
+type EmailType = "reminder" | "session_booked" | "session_cancelled" | "session_rescheduled" | "payment_confirmed";
 
 function buildTemplate(
   type: EmailType,
   appUrl: string,
   customBody?: string,
   hoursBefore = 120,
+  heading?: string,
 ): { subject: string; html: string } {
   const daysBefore = Math.round(hoursBefore / 24);
   const timeLabel = daysBefore >= 1 ? `${daysBefore} day${daysBefore !== 1 ? "s" : ""}` : `${hoursBefore} hours`;
@@ -55,14 +60,19 @@ function buildTemplate(
       };
     }
 
-    case "session_booked":
+    case "session_booked": {
+      const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, location: "Online", duration: "50 minutes" };
       return {
         subject: `[TEST] Your session is confirmed — ${EXAMPLE_DATE}`,
         html: emailTemplate({
           label: "Session Confirmed",
-          title: `Hi ${EXAMPLE_NAME}, your session is booked`,
+          title: heading ? interpolateTemplate(heading, vars) : `Hi ${EXAMPLE_NAME}, your session is booked`,
           body:
-            para("Your session has been confirmed. Here are the details:") +
+            para(
+              customBody
+                ? interpolateTemplate(customBody, vars)
+                : "Your session has been confirmed. Here are the details:",
+            ) +
             detailsTable([
               { label: "Date & time", value: EXAMPLE_DATE, bold: true },
               { label: "Duration", value: "50 minutes" },
@@ -76,15 +86,17 @@ function buildTemplate(
           footerNote: "This email was sent because a session was booked for you through Clarity.",
         }),
       };
+    }
 
-    case "session_cancelled":
+    case "session_cancelled": {
+      const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, location: "Online", duration: "50 minutes" };
       return {
         subject: `[TEST] Session cancelled — ${EXAMPLE_DATE}`,
         html: emailTemplate({
           label: "Session Cancelled",
-          title: `Hi ${EXAMPLE_NAME}, your session has been cancelled`,
+          title: heading ? interpolateTemplate(heading, vars) : `Hi ${EXAMPLE_NAME}, your session has been cancelled`,
           body:
-            para("The following session has been cancelled:") +
+            para(customBody ? interpolateTemplate(customBody, vars) : "The following session has been cancelled:") +
             detailsTable([
               { label: "Date & time", value: EXAMPLE_DATE, bold: true },
               { label: "Duration", value: "50 minutes" },
@@ -94,15 +106,17 @@ function buildTemplate(
           footerNote: "This email was sent because a session was cancelled through Clarity.",
         }),
       };
+    }
 
-    case "session_rescheduled":
+    case "session_rescheduled": {
+      const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, location: "Online", duration: "50 minutes" };
       return {
         subject: `[TEST] Session rescheduled — ${EXAMPLE_DATE}`,
         html: emailTemplate({
           label: "Session Rescheduled",
-          title: `Hi ${EXAMPLE_NAME}, your session has been rescheduled`,
+          title: heading ? interpolateTemplate(heading, vars) : `Hi ${EXAMPLE_NAME}, your session has been rescheduled`,
           body:
-            para("Your session has been moved to a new time:") +
+            para(customBody ? interpolateTemplate(customBody, vars) : "Your session has been moved to a new time:") +
             detailsTable([
               { label: "New date & time", value: EXAMPLE_DATE, bold: true },
               { label: "Duration", value: "50 minutes" },
@@ -113,26 +127,32 @@ function buildTemplate(
           footerNote: "This email was sent because your session was rescheduled through Clarity.",
         }),
       };
+    }
 
-    case "payment_received":
+    case "payment_confirmed": {
+      const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, amount: "£60.00" };
       return {
-        subject: `[TEST] Payment received — ${EXAMPLE_NAME} (£60.00)`,
+        subject: `[TEST] Payment confirmed — your session on ${EXAMPLE_DATE}`,
         html: emailTemplate({
-          label: "Payment Received",
-          title: `${EXAMPLE_NAME} has paid`,
+          label: "Payment Confirmed",
+          title: heading ? interpolateTemplate(heading, vars) : `Hi ${EXAMPLE_NAME},`,
           body:
             para(
-              `A payment of <strong style="color:#2d2520;">£60.00</strong> has been received for a session on ${EXAMPLE_DATE}.`,
+              customBody
+                ? interpolateTemplate(customBody, vars)
+                : `Your payment of <strong style="color:#2d2520;">£60.00</strong> has been received and your session is confirmed.`,
             ) +
             detailsTable([
-              { label: "Client", value: EXAMPLE_NAME, bold: true },
-              { label: "Amount", value: "£60.00" },
-              { label: "Session", value: EXAMPLE_DATE },
+              { label: "Date & time", value: EXAMPLE_DATE, bold: true },
+              { label: "Duration", value: "50 minutes" },
+              { label: "Location", value: "Online" },
+              { label: "Amount paid", value: "£60.00" },
             ]),
-          cta: { label: "View client page", url: `${appUrl}/admin/clients` },
-          footerNote: "This email was sent because a client completed a payment through Clarity.",
+          cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
+          footerNote: "This email was sent because your payment was confirmed through Clarity.",
         }),
       };
+    }
   }
 }
 
@@ -152,14 +172,14 @@ Deno.serve(async (req) => {
     if (authError || !user)
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
 
-    const { type, custom_body, hours_before } = await req.json();
+    const { type, custom_body, hours_before, heading } = await req.json();
     if (!type) return new Response(JSON.stringify({ error: "Missing type" }), { status: 400, headers: corsHeaders });
 
     const resendKey = Deno.env.get("RESEND_API_KEY")!;
     const fromEmail = Deno.env.get("RESEND_FROM_EMAIL")!;
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
 
-    const { subject, html } = buildTemplate(type as EmailType, appUrl, custom_body, hours_before ?? 120);
+    const { subject, html } = buildTemplate(type as EmailType, appUrl, custom_body, hours_before ?? 120, heading);
 
     await sendEmail({ to: user.email!, subject, html, resendKey, fromEmail });
 

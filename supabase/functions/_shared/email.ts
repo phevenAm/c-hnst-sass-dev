@@ -190,6 +190,20 @@ export function para(text: string): string {
   return `<p class="em-text-2" style="font-family:${SANS};font-size:15px;color:${C.textSecondary};line-height:1.7;margin:0 0 22px;">${text}</p>`;
 }
 
+/** Substitutes {{token}} placeholders (case-insensitive) in an admin's custom
+ *  email subject/body/heading text — name/date/location/duration/amount,
+ *  whichever the caller has values for. Shared across the customizable email
+ *  types (notify-session-booked/cancelled/rescheduled, send-payment-notification,
+ *  send-test-email) so each doesn't reimplement the same replace chain. Keep
+ *  in lockstep with src/emails/emailHelpers.ts's client-side `interpolate`. */
+export function interpolateTemplate(text: string, vars: Record<string, string>): string {
+  let out = text;
+  for (const [token, value] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`\\{\\{${token}\\}\\}`, "gi"), value);
+  }
+  return out;
+}
+
 /** Formats an ISO date string for UK display in Europe/London timezone */
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {

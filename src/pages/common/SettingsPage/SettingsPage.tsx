@@ -496,6 +496,33 @@ const SettingsPage = () => {
     });
   }
 
+  // The other 4 client-facing email types (reminder was already
+  // customizable) — same subject/body/heading shape, so one keyed state
+  // object + generic editor block serves all of them instead of copy-pasting
+  // reminder's bespoke fields four times.
+  type EditableTemplateId = "session_booked" | "session_cancelled" | "session_rescheduled" | "payment_confirmed";
+  type TemplateFields = { subject: string; body: string; heading: string };
+  const emptyTemplateFields = (): TemplateFields => ({ subject: "", body: "", heading: "" });
+  const [templateContent, setTemplateContent] = useState<Record<EditableTemplateId, TemplateFields>>({
+    session_booked: emptyTemplateFields(),
+    session_cancelled: emptyTemplateFields(),
+    session_rescheduled: emptyTemplateFields(),
+    payment_confirmed: emptyTemplateFields(),
+  });
+  const setTemplateField = (id: EditableTemplateId, field: keyof TemplateFields, value: string) =>
+    setTemplateContent((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  // Var chips append to the end here rather than inserting at the cursor
+  // (unlike reminder's insertVar) — same editing capability, without a
+  // 12-ref map (4 templates × subject/body/heading) for a nice-to-have.
+  const appendVar = (id: EditableTemplateId, field: keyof TemplateFields, token: string) =>
+    setTemplateField(id, field, templateContent[id][field] + token);
+  const TEMPLATE_VARS: Record<EditableTemplateId, string[]> = {
+    session_booked: ["{{name}}", "{{date}}", "{{location}}", "{{duration}}"],
+    session_cancelled: ["{{name}}", "{{date}}", "{{location}}", "{{duration}}"],
+    session_rescheduled: ["{{name}}", "{{date}}", "{{location}}", "{{duration}}"],
+    payment_confirmed: ["{{name}}", "{{date}}", "{{amount}}"],
+  };
+
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
   useEffect(() => {
@@ -565,6 +592,28 @@ const SettingsPage = () => {
         setReminderSubject(data.reminder_email_subject ?? "");
         setReminderBody(data.reminder_email_body ?? "");
         setReminderHeading(data.reminder_email_heading ?? "");
+        setTemplateContent({
+          session_booked: {
+            subject: data.session_booked_email_subject ?? "",
+            body: data.session_booked_email_body ?? "",
+            heading: data.session_booked_email_heading ?? "",
+          },
+          session_cancelled: {
+            subject: data.session_cancelled_email_subject ?? "",
+            body: data.session_cancelled_email_body ?? "",
+            heading: data.session_cancelled_email_heading ?? "",
+          },
+          session_rescheduled: {
+            subject: data.session_rescheduled_email_subject ?? "",
+            body: data.session_rescheduled_email_body ?? "",
+            heading: data.session_rescheduled_email_heading ?? "",
+          },
+          payment_confirmed: {
+            subject: data.payment_confirmed_email_subject ?? "",
+            body: data.payment_confirmed_email_body ?? "",
+            heading: data.payment_confirmed_email_heading ?? "",
+          },
+        });
         setDisabledEmailTypes(data.disabled_email_types ?? []);
         setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
         setUseCodenames(data.use_client_codenames ?? false);
@@ -711,11 +760,19 @@ const SettingsPage = () => {
     if (guardDemo()) return;
     setSendingTest(type);
     try {
+      let extra: Record<string, unknown> = {};
+      if (type === "reminder") {
+        extra = {
+          custom_body: reminderBody || undefined,
+          hours_before: reminderHours,
+          heading: reminderHeading || undefined,
+        };
+      } else {
+        const editable = templateContent[type as EditableTemplateId];
+        if (editable) extra = { custom_body: editable.body || undefined, heading: editable.heading || undefined };
+      }
       const { error: fnError } = await supabase.functions.invoke("send-test-email", {
-        body: {
-          type,
-          ...(type === "reminder" ? { custom_body: reminderBody || undefined, hours_before: reminderHours } : {}),
-        },
+        body: { type, ...extra },
       });
       if (fnError) throw new Error(fnError.message);
       showToast("Test email sent — check your inbox.");
@@ -736,6 +793,18 @@ const SettingsPage = () => {
         reminder_email_subject: reminderSubject || null,
         reminder_email_body: reminderBody || null,
         reminder_email_heading: reminderHeading || null,
+        session_booked_email_subject: templateContent.session_booked.subject || null,
+        session_booked_email_body: templateContent.session_booked.body || null,
+        session_booked_email_heading: templateContent.session_booked.heading || null,
+        session_cancelled_email_subject: templateContent.session_cancelled.subject || null,
+        session_cancelled_email_body: templateContent.session_cancelled.body || null,
+        session_cancelled_email_heading: templateContent.session_cancelled.heading || null,
+        session_rescheduled_email_subject: templateContent.session_rescheduled.subject || null,
+        session_rescheduled_email_body: templateContent.session_rescheduled.body || null,
+        session_rescheduled_email_heading: templateContent.session_rescheduled.heading || null,
+        payment_confirmed_email_subject: templateContent.payment_confirmed.subject || null,
+        payment_confirmed_email_body: templateContent.payment_confirmed.body || null,
+        payment_confirmed_email_heading: templateContent.payment_confirmed.heading || null,
         disabled_email_types: disabledEmailTypes,
       })
       .eq("admin_id", userProfile.id);
@@ -1618,7 +1687,12 @@ const SettingsPage = () => {
                     <h2 className={styles.sectionTitle}>Edit profile</h2>
                     <div className={styles.field}>
                       <label htmlFor="displayName">
-                        Display name <small>(shown on your dashboard — use a nickname or short name)</small>
+                        Display name{" "}
+                        <small>
+                          {isAdmin
+                            ? "(shown on your dashboard, and to clients in emails sent on your behalf)"
+                            : "(shown on your dashboard — use a nickname or short name)"}
+                        </small>
                       </label>
                       <input
                         id="displayName"
@@ -3207,25 +3281,37 @@ const SettingsPage = () => {
                     id: "session_booked",
                     label: "Session confirmed",
                     desc: "Sent to clients when a session is booked",
-                    preview: previewSessionBooked(),
+                    preview: previewSessionBooked(
+                      templateContent.session_booked.body || undefined,
+                      templateContent.session_booked.heading || undefined,
+                    ),
                   },
                   {
                     id: "session_cancelled",
                     label: "Session cancelled",
                     desc: "Sent to clients when a session is cancelled",
-                    preview: previewSessionCancelled(),
+                    preview: previewSessionCancelled(
+                      templateContent.session_cancelled.body || undefined,
+                      templateContent.session_cancelled.heading || undefined,
+                    ),
                   },
                   {
                     id: "session_rescheduled",
                     label: "Session rescheduled",
                     desc: "Sent to clients when a session is rescheduled",
-                    preview: previewSessionRescheduled(),
+                    preview: previewSessionRescheduled(
+                      templateContent.session_rescheduled.body || undefined,
+                      templateContent.session_rescheduled.heading || undefined,
+                    ),
                   },
                   {
-                    id: "payment_received",
+                    id: "payment_confirmed",
                     label: "Payment confirmation",
                     desc: "Sent to clients when their payment is confirmed",
-                    preview: previewPaymentReceived(),
+                    preview: previewPaymentReceived(
+                      templateContent.payment_confirmed.body || undefined,
+                      templateContent.payment_confirmed.heading || undefined,
+                    ),
                   },
                 ].map((tpl) => (
                   <div key={tpl.id} className={styles.emailRow}>
@@ -3352,6 +3438,86 @@ const SettingsPage = () => {
                                 value={reminderBody}
                                 onChange={(e) => setReminderBody(e.target.value)}
                                 placeholder="Hi {{name}}, just a reminder about your session on {{date}}."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {tpl.id !== "reminder" && (
+                          <div className={styles.reminderControls}>
+                            <div className={styles.field}>
+                              <label htmlFor={`${tpl.id}-heading`}>
+                                Greeting <small>(optional — supports {"{{name}}"})</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {["{{name}}"].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => appendVar(tpl.id as EditableTemplateId, "heading", v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                id={`${tpl.id}-heading`}
+                                value={templateContent[tpl.id as EditableTemplateId].heading}
+                                onChange={(e) =>
+                                  setTemplateField(tpl.id as EditableTemplateId, "heading", e.target.value)
+                                }
+                                placeholder="Hi {{name}},"
+                              />
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor={`${tpl.id}-subject`}>
+                                Custom subject <small>(optional)</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {TEMPLATE_VARS[tpl.id as EditableTemplateId].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => appendVar(tpl.id as EditableTemplateId, "subject", v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                id={`${tpl.id}-subject`}
+                                value={templateContent[tpl.id as EditableTemplateId].subject}
+                                onChange={(e) =>
+                                  setTemplateField(tpl.id as EditableTemplateId, "subject", e.target.value)
+                                }
+                                placeholder="e.g. Your session on {{date}} is confirmed"
+                              />
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor={`${tpl.id}-body`}>
+                                Custom message body <small>(optional)</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {TEMPLATE_VARS[tpl.id as EditableTemplateId].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => appendVar(tpl.id as EditableTemplateId, "body", v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <textarea
+                                id={`${tpl.id}-body`}
+                                className={styles.textarea}
+                                rows={4}
+                                value={templateContent[tpl.id as EditableTemplateId].body}
+                                onChange={(e) => setTemplateField(tpl.id as EditableTemplateId, "body", e.target.value)}
+                                placeholder="Hi {{name}}, here's what's happening with your session on {{date}}."
                               />
                             </div>
                           </div>

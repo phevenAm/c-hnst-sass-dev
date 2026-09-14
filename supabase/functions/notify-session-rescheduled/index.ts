@@ -1,6 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
+import {
+  detailsTable,
+  emailTemplate,
+  formatDate,
+  interpolateTemplate,
+  logEmail,
+  noteBox,
+  para,
+  sendEmail,
+} from "../_shared/email.ts";
 
 const EMAIL_TYPE = "session_rescheduled";
 
@@ -48,17 +57,34 @@ Deno.serve(async (req) => {
     }
 
     const newDateStr = formatDate(session.scheduled_at);
-    const subject = `Your session has been rescheduled — now ${newDateStr}`;
+    const firstName = clientProfile?.first_name ?? "there";
+    const isOnline = session.location !== "in_person";
+    const templateVars = {
+      name: firstName,
+      date: newDateStr,
+      location: isOnline ? "Online" : "In person",
+      duration: `${session.duration_minutes} minutes`,
+    };
+
+    let subject = `Your session has been rescheduled — now ${newDateStr}`;
     let counsellorName: string | undefined;
+    let customBody: string | undefined;
+    let customHeading: string | undefined;
 
     if (clientProfile?.admin_id) {
       const { data: ps } = await supabase
         .from("practice_settings")
-        .select("disabled_email_types, counsellor_name")
+        .select(
+          "disabled_email_types, counsellor_name, session_rescheduled_email_subject, session_rescheduled_email_body, session_rescheduled_email_heading",
+        )
         .eq("admin_id", clientProfile.admin_id)
         .maybeSingle();
 
       counsellorName = ps?.counsellor_name ?? undefined;
+      customBody = ps?.session_rescheduled_email_body ?? undefined;
+      customHeading = ps?.session_rescheduled_email_heading ?? undefined;
+      if (ps?.session_rescheduled_email_subject)
+        subject = interpolateTemplate(ps.session_rescheduled_email_subject, templateVars);
 
       if ((ps?.disabled_email_types ?? []).includes(EMAIL_TYPE)) {
         await logEmail(supabase, {
@@ -87,8 +113,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
     }
 
-    const firstName = clientProfile?.first_name ?? "there";
-    const isOnline = session.location !== "in_person";
     const unsubscribeUrl = clientProfile?.unsubscribe_token
       ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${EMAIL_TYPE}`
       : undefined;
@@ -103,9 +127,15 @@ Deno.serve(async (req) => {
 
     const html = emailTemplate({
       label: "Session Rescheduled",
-      title: `Hi ${firstName}, your session has been rescheduled`,
+      title: customHeading
+        ? interpolateTemplate(customHeading, templateVars)
+        : `Hi ${firstName}, your session has been rescheduled`,
       body:
-        para("Your session has been moved to a new date and time. Here are the updated details:") +
+        para(
+          customBody
+            ? interpolateTemplate(customBody, templateVars)
+            : "Your session has been moved to a new date and time. Here are the updated details:",
+        ) +
         detailsTable(tableRows) +
         noteBox("If this date does not work for you, please contact your therapist to arrange an alternative."),
       cta: { label: "View my sessions", url: `${appUrl}/my-sessions` },
