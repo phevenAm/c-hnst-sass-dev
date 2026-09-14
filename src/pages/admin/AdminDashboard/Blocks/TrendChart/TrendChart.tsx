@@ -61,17 +61,22 @@ type MultiTooltipProps = {
   label?: string;
   payload?: { value: number; name: string; color: string; dataKey: string }[];
   valueFormatter: (v: number) => string;
+  series: TrendSeries[];
 };
 
-const MultiTooltip = ({ active, label, payload, valueFormatter }: MultiTooltipProps) => {
+// Exported for direct unit testing — a real hover interaction never reaches
+// this in jsdom since Recharts' ResponsiveContainer needs a real ResizeObserver
+// to lay out at nonzero size (see src/test/setupTests.js's no-op polyfill).
+export const MultiTooltip = ({ active, label, payload, valueFormatter, series }: MultiTooltipProps) => {
   if (!active || !payload?.length) return null;
+  const formatterFor = (dataKey: string) => series.find((s) => s.key === dataKey)?.valueFormatter ?? valueFormatter;
   return (
     <div className={styles.tooltip}>
       <span className={styles.tooltipLabel}>{label}</span>
       {payload.map((p) => (
         <span key={p.dataKey} className={styles.tooltipRow}>
           <span className={styles.tooltipDot} style={{ background: p.color }} />
-          {p.name}: <strong>{valueFormatter(p.value)}</strong>
+          {p.name}: <strong>{formatterFor(p.dataKey)(p.value)}</strong>
         </span>
       ))}
     </div>
@@ -88,6 +93,13 @@ export type TrendSeries = {
   kind?: "bar" | "line";
   /** Dashed stroke — line only (e.g. money owed / forecast). */
   dashed?: boolean;
+  /** Which y-axis this series scales against — e.g. a session count next to
+   *  money needs its own axis rather than being flattened near zero (or
+   *  forcing money onto a 0–10 scale) by sharing one. Defaults to "left". */
+  axis?: "left" | "right";
+  /** Overrides the chart's `valueFormatter` for just this series' tooltip row
+   *  — needed once series on different axes measure different things. */
+  valueFormatter?: (v: number) => string;
 };
 
 interface TrendChartProps {
@@ -124,7 +136,13 @@ export default function TrendChart({
     const rows = data as Array<Record<string, string | number>>;
     const valueAt = (d: Record<string, string | number>, k: string) => Number(d[k]) || 0;
     const hasData = rows.some((d) => series.some((s) => valueAt(d, s.key) > 0));
-    const nice = yDomain ? null : niceAxis(Math.max(0, ...rows.flatMap((d) => series.map((s) => valueAt(d, s.key)))));
+
+    const leftSeries = series.filter((s) => (s.axis ?? "left") === "left");
+    const rightSeries = series.filter((s) => s.axis === "right");
+    const niceFor = (ss: TrendSeries[]) =>
+      yDomain ? null : niceAxis(Math.max(0, ...rows.flatMap((d) => ss.map((s) => valueAt(d, s.key)))));
+    const niceLeft = niceFor(leftSeries);
+    const niceRight = rightSeries.length > 0 ? niceFor(rightSeries) : null;
 
     return (
       <Card className={styles.card}>
@@ -134,26 +152,41 @@ export default function TrendChart({
         ) : (
           <div aria-hidden="true">
             <ResponsiveContainer width="100%" height={height}>
-              <ComposedChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <ComposedChart data={rows} margin={{ top: 8, right: rightSeries.length > 0 ? 0 : 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="label" tick={axis} axisLine={false} tickLine={false} />
                 <YAxis
+                  yAxisId="left"
                   tick={axis}
                   axisLine={false}
                   tickLine={false}
                   width={40}
-                  domain={nice ? [0, nice.max] : yDomain}
-                  ticks={nice?.ticks}
+                  domain={niceLeft ? [0, niceLeft.max] : yDomain}
+                  ticks={niceLeft?.ticks}
                   allowDecimals={false}
                 />
+                {rightSeries.length > 0 && (
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={axis}
+                    axisLine={false}
+                    tickLine={false}
+                    width={32}
+                    domain={niceRight ? [0, niceRight.max] : undefined}
+                    ticks={niceRight?.ticks}
+                    allowDecimals={false}
+                  />
+                )}
                 <Tooltip
                   cursor={{ fill: "var(--bg-muted)" }}
-                  content={<MultiTooltip valueFormatter={valueFormatter} />}
+                  content={<MultiTooltip valueFormatter={valueFormatter} series={series} />}
                 />
                 {series.map((s) =>
                   (s.kind ?? type) === "bar" ? (
                     <Bar
                       key={s.key}
+                      yAxisId={s.axis ?? "left"}
                       dataKey={s.key}
                       name={s.name}
                       fill={s.color}
@@ -164,6 +197,7 @@ export default function TrendChart({
                   ) : (
                     <Line
                       key={s.key}
+                      yAxisId={s.axis ?? "left"}
                       type="monotone"
                       dataKey={s.key}
                       name={s.name}

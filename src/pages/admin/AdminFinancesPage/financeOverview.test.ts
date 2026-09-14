@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  bucketCount,
   bucketTrend,
   byMonth,
   ledgerRowKind,
@@ -138,6 +139,21 @@ describe("bucketTrend", () => {
   it("collapses to a single bucket when from is after to", () => {
     const points = bucketTrend([], { unit: "month", from: dayjs("2026-09-01"), to: dayjs("2026-06-01") });
     expect(points).toHaveLength(1);
+  });
+});
+
+describe("bucketCount", () => {
+  it("counts one per row regardless of any amount, unlike bucketTrend", () => {
+    const points = bucketCount(
+      [{ date: "2026-07-27" }, { date: "2026-08-03" }, { date: "2026-08-03" }, { date: "2026-08-10" }],
+      { unit: "week", from: dayjs("2026-07-27"), to: dayjs("2026-08-10") },
+    );
+    expect(points.map((p) => p.value)).toEqual([1, 2, 1]);
+  });
+
+  it("keeps empty buckets at zero", () => {
+    const points = bucketCount([], { unit: "week", from: dayjs("2026-07-27"), to: dayjs("2026-08-10") });
+    expect(points.map((p) => p.value)).toEqual([0, 0, 0]);
   });
 });
 

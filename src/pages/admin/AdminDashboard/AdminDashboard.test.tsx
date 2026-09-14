@@ -1,6 +1,8 @@
 import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -34,7 +36,9 @@ function renderPage() {
   return render(
     <Provider store={store}>
       <MemoryRouter>
-        <AdminDashboard />
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
+          <AdminDashboard />
+        </LocalizationProvider>
       </MemoryRouter>
     </Provider>,
   );
@@ -62,12 +66,18 @@ describe("AdminDashboard", () => {
     expect(screen.queryByRole("heading", { name: "Welcome, Sam" })).not.toBeInTheDocument();
   });
 
-  it("shows one combined revenue-vs-outgoings chart under Practice trends, not two separate ones", async () => {
+  it("shows one combined revenue/outgoings/sessions chart under Practice trends, not three separate ones", async () => {
     renderPage();
     await screen.findByRole("heading", { name: "Welcome, Sam" });
-    expect(screen.getByText("Revenue vs outgoings (last 6 months)")).toBeInTheDocument();
+    expect(screen.getByText("Revenue, outgoings & sessions")).toBeInTheDocument();
     expect(screen.queryByText(/^Revenue \(last/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Outgoings \(last/)).not.toBeInTheDocument();
-    expect(screen.getByText("Sessions per week")).toBeInTheDocument();
+    expect(screen.queryByText("Sessions per week")).not.toBeInTheDocument();
+  });
+
+  it("defaults the Practice trends granularity to weekly", async () => {
+    renderPage();
+    await screen.findByRole("heading", { name: "Welcome, Sam" });
+    expect(screen.getByRole("tab", { name: "Weeks" })).toHaveAttribute("aria-selected", "true");
   });
 });

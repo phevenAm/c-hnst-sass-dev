@@ -53,7 +53,9 @@ const PERIODS: { key: Period; label: string }[] = [
 const OVERVIEW_SERIES: TrendSeries[] = [
   { key: "Income", name: "Income", color: "#4a665b" },
   { key: "Outgoings", name: "Outgoings", color: "#a8633a" },
-  { key: "Owed", name: "Owed / overdue", color: "#8a6a2d", kind: "line", dashed: true },
+  // A distinct blue, not another orange/brown — Outgoings already owns that
+  // band and sat too close to Owed's old olive tone to tell apart at a glance.
+  { key: "Owed", name: "Owed / overdue", color: "#3a7fa8", kind: "line", dashed: true },
 ];
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
