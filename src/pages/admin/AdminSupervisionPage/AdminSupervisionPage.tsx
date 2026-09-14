@@ -74,6 +74,7 @@ type FormState = {
   issues_raised: string;
   venue: string;
   notes: string;
+  addToCpdExperience: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -89,6 +90,7 @@ const EMPTY_FORM: FormState = {
   issues_raised: "",
   venue: "",
   notes: "",
+  addToCpdExperience: false,
 };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -140,6 +142,7 @@ function SupervisionModal({
           issues_raised: initial.issues_raised ?? "",
           venue: initial.venue ?? "",
           notes: initial.notes ?? "",
+          addToCpdExperience: false,
         }
       : { ...EMPTY_FORM, session_number: String(nextSessionNumber) },
   );
@@ -181,12 +184,42 @@ function SupervisionModal({
       ? await supabase.from("supervision_sessions").update(payload).eq("id", initial.id)
       : await supabase.from("supervision_sessions").insert(payload);
 
-    setSaving(false);
     if (error) {
+      setSaving(false);
       showToast("Failed to save entry", "error");
       return;
     }
-    showToast(initial ? "Entry updated." : "Session added.");
+
+    // Opt-in, new entries only — editing an existing session re-runs this
+    // whole handler and would otherwise mint a duplicate CPD log every time.
+    if (!initial && form.addToCpdExperience) {
+      const { error: cpdError } = await supabase.from("cpd_logs").insert({
+        admin_id: adminId,
+        date: form.date,
+        activity_type: "supervision",
+        title: `Supervision with ${form.supervisor_name.trim()}`,
+        supervisor_name: form.supervisor_name.trim(),
+        duration_minutes: totalMins || null,
+        session_number: form.session_number ? Number(form.session_number) : null,
+        contract_code: form.contract_code.trim() || null,
+        mode: form.mode || null,
+        venue: form.venue.trim() || null,
+        issues_raised: form.issues_raised.trim() || null,
+        notes: form.notes.trim() || null,
+      });
+      if (cpdError) {
+        // The supervision entry itself is already saved — don't lose that over
+        // a secondary write failing; just tell them the CPD half didn't land.
+        showToast("Session added, but couldn't add it to your CPD log — add it manually.", "error");
+        setSaving(false);
+        onSaved();
+        return;
+      }
+    }
+
+    setSaving(false);
+    const savedMessage = form.addToCpdExperience ? "Session added to CPD experience hours." : "Session added.";
+    showToast(initial ? "Entry updated." : savedMessage);
     onSaved();
   };
 
@@ -225,6 +258,7 @@ function SupervisionModal({
               <label>Date</label>
               <DateInput
                 mode="date"
+                dense
                 value={form.date ? dayjs(form.date) : null}
                 onChange={(val) => set("date", val?.format("YYYY-MM-DD") ?? "")}
               />
@@ -345,6 +379,18 @@ function SupervisionModal({
               placeholder="Reflections, action points…"
             />
           </div>
+
+          {!initial && (
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={form.addToCpdExperience}
+                onChange={(e) => set("addToCpdExperience", e.target.checked)}
+              />
+              Also add to CPD experience hours (
+              {fmt((Number(form.duration_hours) || 0) * 60 + (Number(form.duration_mins) || 0))})
+            </label>
+          )}
         </div>
 
         <div className={styles.modalFooter}>

@@ -31,6 +31,12 @@ const SplitButton = ({
   const [coords, setCoords] = useState<DropdownCoords>({ top: 0, left: 0, minWidth: 0 });
   const classes = [styles.btn, styles[variant], styles[size]].filter(Boolean).join(" ");
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  // The dropdown itself lives in a document.body portal, so it's never a DOM
+  // descendant of wrapperRef — the outside-click closer below needs its own
+  // ref to it, or every option click reads as "outside" (mousedown fires,
+  // closes the menu and unmounts the button, before the click that would
+  // have run its onClick ever arrives) and silently does nothing.
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Rendered in a portal on document.body (see below) so the dropdown escapes
   // any ancestor's overflow:hidden / stacking context — a row in a scrolling
@@ -76,7 +82,8 @@ const SplitButton = ({
 
   useEffect(() => {
     const close = (e: MouseEvent | TouchEvent) => {
-      if (wrapperRef.current?.contains(e.target as Node)) return;
+      const target = e.target as Node;
+      if (wrapperRef.current?.contains(target) || dropdownRef.current?.contains(target)) return;
       setIsDropdownOpen(false);
     };
     // mousedown fires before the next click handler, ensuring this dropdown
@@ -118,6 +125,7 @@ const SplitButton = ({
       {isDropdownOpen &&
         createPortal(
           <div
+            ref={dropdownRef}
             data-testid="split-button-dropdown"
             className={[styles.dropdown, styles.dropdownPortal, opensUpward ? styles.dropdownUp : ""]
               .filter(Boolean)

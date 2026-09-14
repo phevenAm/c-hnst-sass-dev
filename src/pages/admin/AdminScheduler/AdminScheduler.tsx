@@ -127,6 +127,14 @@ const AdminScheduler = () => {
   const [allStubSessions, setAllStubSessions] = useState<StubSession[]>([]);
   const [newSessionWithoutId, setNewSessionWithoutId] = useState(false);
   const [newSessionClientId, setNewSessionClientId] = useState<string | null>(null);
+  // The "Who is this session for?" picker's own live dropdown value — kept
+  // separate from newSessionClientId, which also gates whether the picker or
+  // CreateSessionModal is on screen. Binding the <select> straight to
+  // newSessionClientId made the picker vanish the instant a client was
+  // picked (before "Continue" ran its stub-vs-real-client branch), so
+  // choosing an offline/stub client silently closed everything with no
+  // modal ever showing.
+  const [pickerClientId, setPickerClientId] = useState<string | null>(null);
   const [pendingDrop, setPendingDrop] = useState<{
     session: Session;
     clientName: string;
@@ -430,6 +438,7 @@ const AdminScheduler = () => {
   const closeNewSessionPicker = () => {
     setNewSessionWithoutId(false);
     setNewSessionClientId(null);
+    setPickerClientId(null);
     closeSlotFlow();
   };
 
@@ -893,15 +902,15 @@ const AdminScheduler = () => {
                 Cancel
               </Button>
               <Button
-                disabled={!newSessionClientId}
+                disabled={!pickerClientId}
                 onClick={() => {
-                  if (!newSessionClientId) return;
-                  const isStub = allStubs.some((s) => s.id === newSessionClientId);
+                  if (!pickerClientId) return;
+                  const isStub = allStubs.some((s) => s.id === pickerClientId);
                   if (isStub) {
-                    navigate(`/admin/clients/stub/${newSessionClientId}`);
+                    navigate(`/admin/clients/stub/${pickerClientId}`);
                     closeNewSessionPicker();
                   } else {
-                    startNewSessionForClient(newSessionClientId);
+                    startNewSessionForClient(pickerClientId);
                   }
                 }}
               >
@@ -918,8 +927,8 @@ const AdminScheduler = () => {
             <select
               id="new-session-client"
               className={styles.clientSelect}
-              value={newSessionClientId ?? ""}
-              onChange={(e) => setNewSessionClientId(e.target.value || null)}
+              value={pickerClientId ?? ""}
+              onChange={(e) => setPickerClientId(e.target.value || null)}
             >
               <option value="">Select a client</option>
               {clients.map((client) => (

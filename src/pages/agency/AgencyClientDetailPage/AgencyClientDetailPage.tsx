@@ -5,10 +5,13 @@ import AssignClientModal from "@components/agency/AssignClientModal/AssignClient
 import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import { useToast } from "@context/ToastContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
   fetchAgencyClients,
   fetchAgencyMembers,
+  removeClientAssignment,
   selectAgency,
   selectAgencyClients,
   selectAgencyMembers,
@@ -38,6 +41,7 @@ export default function AgencyClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { showToast } = useToast();
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const clients = useAppSelector(selectAgencyClients);
@@ -46,6 +50,8 @@ export default function AgencyClientDetailPage() {
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [assigning, setAssigning] = useState(false);
+  const [removingCounsellor, setRemovingCounsellor] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
@@ -90,10 +96,28 @@ export default function AgencyClientDetailPage() {
     : null;
   const badge = statusBadge(client.assignment?.status);
   const canAssign = !client.assignment || client.assignment.status === "declined";
+  const canRemoveCounsellor = client.assignment?.status === "accepted";
   const actorName = (actorId: string | null) => {
     if (!actorId) return "System";
     const m = members.find((mm) => mm.user_id === actorId);
     return m?.display_name || [m?.first_name, m?.last_name].filter(Boolean).join(" ") || m?.email || "Someone";
+  };
+
+  const confirmRemoveCounsellor = async () => {
+    if (!client.assignment) return;
+    setRemoveBusy(true);
+    try {
+      await dispatch(removeClientAssignment({ assignment_id: client.assignment.id, stub_id: client.id })).unwrap();
+      showToast(
+        `${assignedName ?? "The counsellor"} removed — ${name || "the client"} is back on the waiting list.`,
+        "success",
+      );
+      setRemovingCounsellor(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't remove the counsellor", "error");
+    } finally {
+      setRemoveBusy(false);
+    }
   };
 
   return (
@@ -108,17 +132,27 @@ export default function AgencyClientDetailPage() {
           <div>
             <h1 className={styles.title}>{name || "Unnamed client"}</h1>
             <p className={styles.subtitle}>
-              <Badge variant={badge.variant}>{badge.label}</Badge>
+              <Badge variant={badge.variant}>{badge.label}</Badge>{" "}
+              {client.previously_counselled && !client.assignment && (
+                <Badge variant="neutral">Previously counselled</Badge>
+              )}
               {assignedName && ` · with ${assignedName}`}
             </p>
           </div>
         </div>
 
-        {canAssign && (
-          <Button size="sm" onClick={() => setAssigning(true)}>
-            {client.assignment?.status === "declined" ? "Reassign" : "Assign"}
-          </Button>
-        )}
+        <div style={{ display: "flex", gap: "var(--sp-2)" }}>
+          {canAssign && (
+            <Button size="sm" onClick={() => setAssigning(true)}>
+              {client.assignment?.status === "declined" ? "Reassign" : "Assign"}
+            </Button>
+          )}
+          {canRemoveCounsellor && (
+            <Button size="sm" variant="danger" onClick={() => setRemovingCounsellor(true)}>
+              Remove counsellor
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className={styles.card}>
@@ -180,6 +214,22 @@ export default function AgencyClientDetailPage() {
       </div>
 
       {assigning && <AssignClientModal client={client} members={members} onClose={() => setAssigning(false)} />}
+
+      {removingCounsellor && (
+        <ConfirmModal
+          title="Remove counsellor from this client?"
+          danger
+          confirming={removeBusy}
+          onConfirm={confirmRemoveCounsellor}
+          onClose={() => setRemovingCounsellor(false)}
+        >
+          <p>
+            {name || "This client"} goes back on the waiting list, marked as previously counselled by{" "}
+            {assignedName ?? "this member"}. Their sessions, payments and notes aren't touched — only the live
+            assignment ends.
+          </p>
+        </ConfirmModal>
+      )}
     </div>
   );
 }

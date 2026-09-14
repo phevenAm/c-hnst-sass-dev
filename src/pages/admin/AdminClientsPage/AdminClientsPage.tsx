@@ -14,6 +14,7 @@ import { supabase } from "@lib/supabase";
 import type { ClientStub, Questionnaire, Response, UserProfile } from "@models/globalTypes";
 import { useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
+import { selectIsAgencyMember } from "@store/slices/agencySlice";
 import { deleteClientStub, fetchClientStubs, selectAllStubs, updateClientStub } from "@store/slices/clientStubsSlice";
 import { fetchPracticeSettings } from "@store/slices/practiceSettingsSlice";
 import { fetchAllAssignments, selectPlottedAssignmentByUser } from "@store/slices/questionnaireAssignmentsSlice";
@@ -576,6 +577,11 @@ const PAGE_SIZE = 25;
 export default function AdminClientsPage() {
   const { userProfile } = useAuth();
   const dispatch = useAppDispatch();
+  // Agency members (managers included) only acquire clients through the
+  // agency's intake + assignment flow (/agency/clients) — the personal
+  // "invite/create/import a client" entry points here would create a client
+  // outside that system entirely, so they're hidden, not just discouraged.
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
   const allUsers = useAppSelector(selectAllUsers) as UserProfile[];
   const allStubs = useAppSelector(selectAllStubs);
   const unlinkedStubs = useMemo(() => allStubs.filter((s) => !s.linked_user_id && !s.archived_at), [allStubs]);
@@ -784,17 +790,19 @@ export default function AdminClientsPage() {
             </p>
           </div>
 
-          <SplitButton
-            primaryLabel="Invite a client"
-            primaryAction={() => setShowInviteModal(true)}
-            options={[
-              { label: "Create token", onClick: () => setShowTokenModal(true) },
-              { label: "Create offline client", onClick: () => setCreateStubOpen(true) },
-              { label: "Manage tokens", onClick: () => setManageTokensModal(true) },
-              { label: "CSV client import", onClick: () => setImportOpen(true) },
-            ]}
-            secondaryLabel="View more options"
-          />
+          {!isAgencyMember && (
+            <SplitButton
+              primaryLabel="Invite a client"
+              primaryAction={() => setShowInviteModal(true)}
+              options={[
+                { label: "Create token", onClick: () => setShowTokenModal(true) },
+                { label: "Create offline client", onClick: () => setCreateStubOpen(true) },
+                { label: "Manage tokens", onClick: () => setManageTokensModal(true) },
+                { label: "CSV client import", onClick: () => setImportOpen(true) },
+              ]}
+              secondaryLabel="View more options"
+            />
+          )}
         </div>
 
         <ClientCapBanner />
@@ -815,21 +823,27 @@ export default function AdminClientsPage() {
           <Card>
             <div className={styles.freshAccount}>
               <h3>No clients yet</h3>
-              <p>
-                Invite someone to sign up themselves, add an offline client you manage yourself, or bring over your
-                existing list all at once.
-              </p>
-              <div className={styles.freshAccountActions}>
-                <Button variant="primary" onClick={() => setShowInviteModal(true)}>
-                  Invite a client
-                </Button>
-                <Button variant="ghost" onClick={() => setCreateStubOpen(true)}>
-                  Add offline client
-                </Button>
-                <Button variant="ghost" onClick={() => setImportOpen(true)}>
-                  Import from CSV
-                </Button>
-              </div>
+              {isAgencyMember ? (
+                <p>Your agency assigns clients to you — nothing to do here yet.</p>
+              ) : (
+                <>
+                  <p>
+                    Invite someone to sign up themselves, add an offline client you manage yourself, or bring over your
+                    existing list all at once.
+                  </p>
+                  <div className={styles.freshAccountActions}>
+                    <Button variant="primary" onClick={() => setShowInviteModal(true)}>
+                      Invite a client
+                    </Button>
+                    <Button variant="ghost" onClick={() => setCreateStubOpen(true)}>
+                      Add offline client
+                    </Button>
+                    <Button variant="ghost" onClick={() => setImportOpen(true)}>
+                      Import from CSV
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         ) : (
@@ -858,7 +872,6 @@ export default function AdminClientsPage() {
           </>
         )}
       </div>
-
       {showInviteModal && <InviteClientModal onClose={() => setShowInviteModal(false)} />}
       {showTokenModal && <AccessTokenModal onClose={() => setShowTokenModal(false)} />}
       {manageTokensModal && <ManageTokensModal onClose={() => setManageTokensModal(false)} />}

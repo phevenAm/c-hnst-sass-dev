@@ -94,7 +94,9 @@ export default function AgencyMemberDetailPage() {
 
       <div className={styles.header} id="agency-member-header">
         <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-4)" }}>
-          <Avatar name={displayName(member)} imageSrc={member.avatar_url ?? undefined} size={56} />
+          {/* Distinct colour from AgencyClientDetailPage's Avatar (default "teal") so staff and
+              clients are visually distinguishable at a glance, not just by their initials. */}
+          <Avatar name={displayName(member)} imageSrc={member.avatar_url ?? undefined} size={56} color="sky" />
           <div>
             <h1 className={styles.title}>{displayName(member)}</h1>
             <p className={styles.subtitle}>

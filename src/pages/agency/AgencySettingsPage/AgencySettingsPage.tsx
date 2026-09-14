@@ -80,7 +80,7 @@ const EMPTY_TEAMS: TeamsChannel = {
   notify_paid: true,
 };
 
-type PolicyKey = "shared_resources" | "require_note_encryption" | "locked_email_templates";
+type PolicyKey = "shared_resources" | "require_note_encryption" | "locked_email_templates" | "locked_session_policy";
 
 const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
   {
@@ -91,12 +91,19 @@ const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
   {
     key: "require_note_encryption",
     title: "Require note encryption",
-    blurb: "Members must switch on client-side encryption before writing session notes.",
+    blurb:
+      "Members must switch on client-side encryption before writing session notes — enforced server-side, not just a suggestion.",
   },
   {
     key: "locked_email_templates",
     title: "Lock client email wording",
     blurb: "Members can't edit the automated client emails or their on/off switches.",
+  },
+  {
+    key: "locked_session_policy",
+    title: "Lock the auto-cancel policy",
+    blurb:
+      "Members' \"auto-cancel unpaid sessions\" setting follows the agency default below and can't be changed per-member.",
   },
 ];
 
@@ -262,6 +269,8 @@ export default function AgencySettingsPage() {
           agreement_text: draft.agreement_text,
           agreement_pdf_url: draft.agreement_pdf_url,
           default_settlement_direction: draft.default_settlement_direction,
+          locked_session_policy: draft.locked_session_policy,
+          default_auto_cancel_enabled: draft.default_auto_cancel_enabled,
         }),
       ).unwrap();
       showToast("Agency settings saved.", "success");
@@ -534,6 +543,20 @@ export default function AgencySettingsPage() {
                 />
               </div>
             ))}
+
+            {draft.locked_session_policy && (
+              <div className={styles.toggleRow}>
+                <div className={styles.toggleText}>
+                  <strong>Agency default: auto-cancel unpaid sessions</strong>
+                  <span>Applied to every member while the lock above is on.</span>
+                </div>
+                <Switch
+                  checked={draft.default_auto_cancel_enabled}
+                  onChange={(v) => set({ default_auto_cancel_enabled: v })}
+                  label="Agency default auto-cancel"
+                />
+              </div>
+            )}
           </div>
         </div>
 

@@ -4,7 +4,7 @@
 export type AgencyMemberRole = "manager" | "counsellor";
 export type AgencyEmploymentType = "employee" | "freelance";
 export type AgencyMemberStatus = "active" | "disabled";
-export type AssignmentStatus = "pending" | "accepted" | "declined";
+export type AssignmentStatus = "pending" | "accepted" | "declined" | "ended";
 export type OnboardingAudience = "client" | "admin";
 export type AgencyPlanKey = "starter" | "growth" | "scale" | "unlimited";
 export type AgencyInvoiceStatus = "draft" | "sent" | "due" | "paid" | "overdue" | "cancelled";
@@ -35,6 +35,11 @@ export interface Agency {
   default_settlement_direction: AgencySettlementDefault;
   next_invoice_number: number;
   invoice_prefix: string;
+  /** Agency-wide storage pool cap (bytes) for the shared file manager. */
+  max_storage_bytes: number;
+  /** When true, members' `auto_cancel_enabled` is pinned to `default_auto_cancel_enabled`. */
+  locked_session_policy: boolean;
+  default_auto_cancel_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +61,9 @@ export interface AgencyMember {
   settlement_direction: AgencySettlementDirection | null;
   /** Hex colour (e.g. "#2d7264") used for this member's events on the agency sessions calendar. */
   color: string | null;
+  /** Set by request_agency_member_removal() — a self-service "please remove me" flag a manager acts on. */
+  deletion_requested_at: string | null;
+  deletion_requested_reason: string | null;
 }
 
 export interface AgencyPlanLimit {
@@ -129,6 +137,8 @@ export interface AgencyClient {
   created_by: string;
   created_at: string;
   linked_user_id: string | null;
+  /** True once any past assignment for this client reached 'accepted' — set when a counsellor is removed. */
+  previously_counselled: boolean;
   assignment: ClientAssignment | null;
 }
 

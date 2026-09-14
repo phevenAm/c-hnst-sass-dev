@@ -641,3 +641,308 @@ test("the agency owner can reach Configure member and change their calendar colo
     .rows[0];
   expect(saved.color).toBe(swatchColor);
 });
+
+// ─── 2026-09-14 todo-list batch: remove_client_assignment(), staff
+// self-removal requests, locked session policy, encryption enforcement,
+// client_stubs INSERT restriction, storage quota, client feature overrides.
+// Backs supabase/migrations/20260914000040_agency_todo_backend_batch1.sql.
+
+// ─── "Counsellor removed from client" → waiting list + previously_counselled ─
+test("remove_client_assignment ends the live assignment, flags previously_counselled, is authorization- and tenant-scoped", async () => {
+  test.setTimeout(60_000);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
+
+  const { data: stub, error: stubErr } = await asAManager
+    .from("client_stubs")
+    .insert({ agency_id: ids.agencyA, first_name: TAG, last_name: "removeflow", created_by: ids.aManager })
+    .select("id, previously_counselled")
+    .single();
+  expect(stubErr).toBeNull();
+  expect(stub!.previously_counselled).toBe(false);
+
+  const { data: assignment, error: aErr } = await asAManager
+    .from("client_assignments")
+    .insert({
+      stub_id: stub!.id,
+      agency_id: ids.agencyA,
+      from_manager_id: ids.aManager,
+      to_admin_id: ids.aStaff,
+      status: "accepted",
+      responded_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  expect(aErr).toBeNull();
+
+  // Cross-tenant: Agency B's manager can't touch it (acts_for_admin fails —
+  // they're neither the assigned admin nor a manager of Agency A).
+  const { error: crossErr } = await asBManager.rpc("remove_client_assignment", {
+    p_assignment_id: assignment!.id,
+    p_reason: "nope",
+  });
+  expect(crossErr).not.toBeNull();
+  expect(String(crossErr!.message)).toContain("NOT_AUTHORIZED");
+
+  // The assigned counsellor themself is authorized (acts_for_admin covers self).
+  const { error: removeErr } = await asAStaff.rpc("remove_client_assignment", {
+    p_assignment_id: assignment!.id,
+    p_reason: "moving away",
+  });
+  expect(removeErr).toBeNull();
+
+  const after = dbQuery<{ status: string; decline_reason: string; previously_counselled: boolean }>(`
+    select ca.status, ca.decline_reason, cs.previously_counselled
+    from public.client_assignments ca join public.client_stubs cs on cs.id = ca.stub_id
+    where ca.id = '${assignment!.id}';
+  `).rows[0];
+  expect(after.status).toBe("ended");
+  expect(after.decline_reason).toBe("moving away");
+  expect(after.previously_counselled).toBe(true);
+
+  // Re-running against an already-ended assignment is rejected, not silently re-applied.
+  const { error: reRunErr } = await asAManager.rpc("remove_client_assignment", { p_assignment_id: assignment!.id });
+  expect(String(reRunErr?.message ?? "")).toContain("NOT_ACTIVE_ASSIGNMENT");
+
+  // fetchAgencyClients' liveByStub map only keys pending/accepted — confirms
+  // the client genuinely falls back to "unassigned" client-side, not stuck
+  // showing a dead assignment.
+  const { data: liveOnly } = await asAManager
+    .from("client_assignments")
+    .select("id")
+    .eq("stub_id", stub!.id)
+    .in("status", ["pending", "accepted"]);
+  expect(liveOnly ?? []).toHaveLength(0);
+
+  // AgencyClientDetailPage's "Audit trail" card reads agency_activity_events
+  // directly (subject_type/subject_id), not the manager-only feed RPC — which
+  // itself doesn't even project subject_id (confirmed against its actual
+  // definition), so assert against the same table/columns the page queries.
+  const { data: events } = await asAManager
+    .from("agency_activity_events")
+    .select("summary")
+    .eq("subject_type", "client")
+    .eq("subject_id", stub!.id);
+  expect((events ?? []).some((e) => (e as { summary: string }).summary.includes("returned"))).toBe(true);
+
+  dbQuery(`delete from public.client_assignments where id = '${assignment!.id}';`);
+});
+
+// ─── Staff self-service "request removal" ──────────────────────────────────
+test("request_agency_member_removal flags the member, notifies every active manager, and requires membership", async () => {
+  test.setTimeout(60_000);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asAClient = await signedInAs(`smissah321+${TAG}-a-client@gmail.com`);
+
+  dbQuery(
+    `delete from public.notifications where user_id = '${ids.aManager}' and type = 'agency_member_removal_requested';`,
+  );
+
+  const { error } = await asAStaff.rpc("request_agency_member_removal", { p_reason: "relocating" });
+  expect(error).toBeNull();
+
+  const memberRow = dbQuery<{ deletion_requested_at: string | null; deletion_requested_reason: string }>(
+    `select deletion_requested_at, deletion_requested_reason from public.agency_members where user_id = '${ids.aStaff}';`,
+  ).rows[0];
+  expect(memberRow.deletion_requested_at).not.toBeNull();
+  expect(memberRow.deletion_requested_reason).toBe("relocating");
+
+  const notif = dbQuery<{ n: number }>(
+    `select count(*)::int as n from public.notifications where user_id = '${ids.aManager}' and type = 'agency_member_removal_requested';`,
+  ).rows[0];
+  expect(notif.n).toBeGreaterThan(0);
+
+  // Requesting doesn't remove them — only a manager's explicit removeAgencyMember does (tested elsewhere in this file).
+  const stillMember = dbQuery<{ n: number }>(
+    `select count(*)::int as n from public.agency_members where user_id = '${ids.aStaff}' and status = 'active';`,
+  ).rows[0];
+  expect(stillMember.n).toBe(1);
+
+  // A user who isn't in any agency gets a clean error, not a silent no-op.
+  const { error: nonMemberErr } = await asAClient.rpc("request_agency_member_removal", {});
+  expect(String(nonMemberErr?.message ?? "")).toContain("NOT_A_MEMBER");
+
+  dbQuery(
+    `update public.agency_members set deletion_requested_at = null, deletion_requested_reason = null where user_id = '${ids.aStaff}';`,
+  );
+  dbQuery(
+    `delete from public.notifications where user_id = '${ids.aManager}' and type = 'agency_member_removal_requested';`,
+  );
+});
+
+// ─── Delegated settings: locked auto-cancel policy ─────────────────────────
+// Uses real signed-in sessions (not raw dbQuery) so auth.uid() inside the
+// trigger resolves exactly as it would for the live app — same reasoning as
+// every other RLS-sensitive write in this file.
+test("locked_session_policy pins non-managers to the agency default and exempts managers", async () => {
+  test.setTimeout(60_000);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+
+  dbQuery(
+    `update public.agencies set locked_session_policy = true, default_auto_cancel_enabled = true where id = '${ids.agencyA}';`,
+  );
+  dbQuery(`update public.practice_settings set auto_cancel_enabled = true where admin_id = '${ids.aStaff}';`);
+
+  // A staff member trying to switch it off gets silently coerced back to the
+  // agency default — a soft pin (the toggle just won't stick), unlike the
+  // hard-raise codename policy tested above.
+  await asAStaff.from("practice_settings").update({ auto_cancel_enabled: false }).eq("admin_id", ids.aStaff);
+  const staffAfter = dbQuery<{ auto_cancel_enabled: boolean }>(
+    `select auto_cancel_enabled from public.practice_settings where admin_id = '${ids.aStaff}';`,
+  ).rows[0];
+  expect(staffAfter.auto_cancel_enabled).toBe(true); // coerced back, not left false
+
+  // The agency default itself can move it for everyone.
+  dbQuery(`update public.agencies set default_auto_cancel_enabled = false where id = '${ids.agencyA}';`);
+  await asAStaff.from("practice_settings").update({ auto_cancel_enabled: true }).eq("admin_id", ids.aStaff);
+  const staffAfter2 = dbQuery<{ auto_cancel_enabled: boolean }>(
+    `select auto_cancel_enabled from public.practice_settings where admin_id = '${ids.aStaff}';`,
+  ).rows[0];
+  expect(staffAfter2.auto_cancel_enabled).toBe(false);
+
+  // A manager is exempt from their own agency's lock.
+  dbQuery(`update public.practice_settings set auto_cancel_enabled = true where admin_id = '${ids.aManager}';`);
+  await asAManager.from("practice_settings").update({ auto_cancel_enabled: false }).eq("admin_id", ids.aManager);
+  const managerAfter = dbQuery<{ auto_cancel_enabled: boolean }>(
+    `select auto_cancel_enabled from public.practice_settings where admin_id = '${ids.aManager}';`,
+  ).rows[0];
+  expect(managerAfter.auto_cancel_enabled).toBe(false); // their own change stuck
+
+  dbQuery(`update public.agencies set locked_session_policy = false where id = '${ids.agencyA}';`);
+});
+
+// ─── Enforce agencies.require_note_encryption (previously stored, unread) ──
+test("require_note_encryption blocks unencrypted session-note writes for members, and is a no-op when off", () => {
+  dbQuery(`update public.agencies set require_note_encryption = true where id = '${ids.agencyA}';`);
+
+  let threw = "";
+  try {
+    dbQuery(
+      `insert into public.session_notes (admin_id, content, is_encrypted) values ('${ids.aStaff}', 'plaintext', false);`,
+    );
+  } catch (e) {
+    threw = String(e);
+  }
+  expect(threw).toContain("AGENCY_ENCRYPTION_REQUIRED");
+  expect(
+    dbQuery<{ n: number }>(
+      `select count(*)::int as n from public.session_notes where admin_id = '${ids.aStaff}' and content = 'plaintext';`,
+    ).rows[0].n,
+  ).toBe(0);
+
+  // Encrypted content is fine — freelancers can still write (and later
+  // read/decrypt with their own key) their own notes.
+  const encrypted = dbQuery<{ id: string }>(
+    `insert into public.session_notes (admin_id, content, is_encrypted, note_iv) values ('${ids.aStaff}', 'ciphertext', true, 'iv') returning id;`,
+  ).rows[0];
+  expect(encrypted.id).toBeTruthy();
+
+  // Turning the agency policy off lifts the guard for the same admin.
+  dbQuery(`update public.agencies set require_note_encryption = false where id = '${ids.agencyA}';`);
+  const unencrypted = dbQuery<{ id: string }>(
+    `insert into public.session_notes (admin_id, content, is_encrypted) values ('${ids.aStaff}', 'plaintext-ok', false) returning id;`,
+  ).rows[0];
+  expect(unencrypted.id).toBeTruthy();
+
+  // A solo admin outside any agency is never touched by this trigger.
+  dbQuery(
+    `insert into public.session_notes (admin_id, content, is_encrypted) values ('${ids.aClient}', 'solo-note', false);`,
+  );
+
+  dbQuery(`
+    delete from public.session_notes where admin_id = '${ids.aStaff}' and content in ('ciphertext', 'plaintext-ok');
+    delete from public.session_notes where admin_id = '${ids.aClient}' and content = 'solo-note';
+  `);
+});
+
+// ─── client_stubs INSERT restriction: counsellors can't self-acquire clients ─
+test("a non-manager agency counsellor cannot insert their own client_stub; a manager still can", async () => {
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+
+  const { data: staffAttempt, error: staffErr } = await asAStaff
+    .from("client_stubs")
+    .insert({ first_name: TAG, last_name: "selfacquired", created_by: ids.aStaff })
+    .select();
+  // RLS silently returns zero rows on a blocked insert rather than an error
+  // in some Postgrest configurations — assert both possibilities are covered.
+  if (staffErr) {
+    expect(staffErr).not.toBeNull();
+  } else {
+    expect(staffAttempt ?? []).toHaveLength(0);
+  }
+  expect(
+    dbQuery<{ n: number }>(
+      `select count(*)::int as n from public.client_stubs where created_by = '${ids.aStaff}' and last_name = 'selfacquired';`,
+    ).rows[0].n,
+  ).toBe(0);
+
+  const { data: managerInsert, error: managerErr } = await asAManager
+    .from("client_stubs")
+    .insert({ agency_id: ids.agencyA, first_name: TAG, last_name: "managerintake", created_by: ids.aManager })
+    .select("id")
+    .single();
+  expect(managerErr).toBeNull();
+  expect(managerInsert!.id).toBeTruthy();
+
+  dbQuery(`delete from public.client_stubs where last_name = 'managerintake';`);
+});
+
+// ─── Agency storage quota: 5 GiB, not 10 GiB ───────────────────────────────
+test("file_storage_quota resolves to 5 GiB for an agency member", () => {
+  const agencyBytes = dbQuery<{ max_storage_bytes: string }>(
+    `select max_storage_bytes from public.agencies where id = '${ids.agencyA}';`,
+  ).rows[0];
+  expect(Number(agencyBytes.max_storage_bytes)).toBe(5368709120);
+
+  const quota = dbQuery<{ q: string }>(`select public.file_storage_quota('${ids.aStaff}') as q;`).rows[0];
+  expect(Number(quota.q)).toBe(5368709120);
+});
+
+// ─── Per-client feature overrides: superadmin-only, owning admin read-only ──
+test("client_feature_overrides: superadmin manages, owning admin reads own clients only, others see nothing", async () => {
+  test.setTimeout(60_000);
+  const superId = createAuthUser({
+    email: `smissah321+${TAG}-super@gmail.com`,
+    password: PASSWORD,
+    meta: { role: "admin" },
+  });
+  dbQuery(`update public.users set is_superadmin = true where id = '${superId}';`);
+
+  const stub = dbQuery<{ id: string }>(
+    `insert into public.client_stubs (first_name, last_name, created_by) values ('${TAG}', 'flagtarget', '${ids.aStaff}') returning id;`,
+  ).rows;
+
+  const asSuper = await signedInAs(`smissah321+${TAG}-super@gmail.com`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
+
+  const { data: created, error: createErr } = await asSuper
+    .from("client_feature_overrides")
+    .insert({ stub_id: stub[0].id, feature_key: "beta_widget", enabled: true, set_by: superId })
+    .select("id")
+    .single();
+  expect(createErr).toBeNull();
+
+  // The owning admin (aStaff created this stub) can read it…
+  const { data: ownerRead } = await asAStaff.from("client_feature_overrides").select("*").eq("id", created!.id);
+  expect(ownerRead).toHaveLength(1);
+  // …but can't write it (superadmin-only for all).
+  const { data: ownerWrite } = await asAStaff
+    .from("client_feature_overrides")
+    .update({ enabled: false })
+    .eq("id", created!.id)
+    .select();
+  expect(ownerWrite ?? []).toHaveLength(0);
+
+  // An unrelated agency's manager sees nothing.
+  const { data: strangerRead } = await asBManager.from("client_feature_overrides").select("*").eq("id", created!.id);
+  expect(strangerRead ?? []).toHaveLength(0);
+
+  dbQuery(`delete from public.client_feature_overrides where id = '${created!.id}';`);
+  dbQuery(`delete from public.client_stubs where id = '${stub[0].id}';`);
+  dbQuery(`delete from public.users where id = '${superId}';`);
+  dbQuery(`delete from auth.users where id = '${superId}';`);
+});

@@ -262,7 +262,7 @@ export default function AgencyLayout() {
                   parentActive={false}
                   isItemActive={(to) => (to.includes("view=waiting") ? onWaitingList : onClientsPage && !onWaitingList)}
                   flyoutMode={!railOpen}
-                  hoverIntent={false}
+                  hoverIntent={!railOpen && !isMobile}
                   showTitle={!railOpen}
                   onNavigate={() => isMobile && setExpanded(false)}
                   cx={agencyGroupCx}

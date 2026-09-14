@@ -104,6 +104,7 @@ export default function AgencyMembersPage() {
                       {m.employment_type === "freelance" ? "External" : "Internal"}
                     </Badge>
                     {!m.counselling_enabled && <Badge variant="neutral">Manage-only</Badge>}
+                    {m.deletion_requested_at && <Badge variant="danger">Asked to leave</Badge>}
                   </span>
                   <span className={styles.rowMeta}>
                     {[

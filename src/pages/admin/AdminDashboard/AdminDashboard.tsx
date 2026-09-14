@@ -49,7 +49,7 @@ type PendingRequest =
 const PRACTICE_TRENDS_SERIES: TrendSeries[] = [
   { key: "Revenue", name: "Revenue", color: "#4a665b", valueFormatter: (v) => `£${v.toFixed(2)}` },
   { key: "Outgoings", name: "Outgoings", color: "#a8633a", kind: "line", valueFormatter: (v) => `£${v.toFixed(2)}` },
-  { key: "Sessions", name: "Sessions", color: "#6a5b8a", axis: "right", valueFormatter: (v) => `${v}` },
+  { key: "Sessions", name: "Sessions", color: "#3a7fa8", kind: "line", axis: "right", valueFormatter: (v) => `${v}` },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -407,6 +407,8 @@ export default function AdminDashboard() {
                 data={practiceTrendsData}
                 series={PRACTICE_TRENDS_SERIES}
                 valueFormatter={(v) => `£${v.toFixed(2)}`}
+                leftAxisLabel="£"
+                rightAxisLabel="Sessions"
               />
             </HideableSection>
           </CollapsibleSection>

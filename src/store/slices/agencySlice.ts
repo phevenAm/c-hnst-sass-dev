@@ -133,7 +133,7 @@ export const fetchAgencyClients = createAsyncThunk(
       supabase
         .from("client_stubs")
         .select(
-          "id, first_name, last_name, email, codename, agency_id, default_rate_pence, availability_note, created_by, created_at, linked_user_id",
+          "id, first_name, last_name, email, codename, agency_id, default_rate_pence, availability_note, created_by, created_at, linked_user_id, previously_counselled",
         )
         .eq("agency_id", agencyId)
         .order("created_at", { ascending: false }),
@@ -290,6 +290,34 @@ export const removeAgencyMember = createAsyncThunk(
   },
 );
 
+// Manager (or the assigned counsellor themselves — acts_for_admin covers
+// both) ends a live assignment. The client falls back into the "unassigned"
+// waiting-list bucket (fetchAgencyClients only surfaces pending/accepted as
+// `.assignment`) and is flagged previously_counselled for the UI badge.
+export const removeClientAssignment = createAsyncThunk(
+  "agency/removeClientAssignment",
+  async (payload: { assignment_id: string; stub_id: string; reason?: string }, { rejectWithValue }) => {
+    const { error } = await supabase.rpc("remove_client_assignment", {
+      p_assignment_id: payload.assignment_id,
+      p_reason: payload.reason ?? null,
+    });
+    if (error) return rejectWithValue(error.message || "Couldn't remove the counsellor from this client");
+    return payload;
+  },
+);
+
+// Self-service: a non-manager member asks to leave. Notifies every active
+// manager; managers still remove (with caseload reassignment) via
+// removeAgencyMember above.
+export const requestAgencyMemberRemoval = createAsyncThunk(
+  "agency/requestMemberRemoval",
+  async (reason: string | undefined, { rejectWithValue }) => {
+    const { error } = await supabase.rpc("request_agency_member_removal", { p_reason: reason ?? null });
+    if (error) return rejectWithValue(error.message || "Couldn't send your request");
+    return reason ?? null;
+  },
+);
+
 export const assignClient = createAsyncThunk(
   "agency/assignClient",
   async (
@@ -365,6 +393,8 @@ export const updateAgencyPolicies = createAsyncThunk(
         | "agreement_text"
         | "agreement_pdf_url"
         | "default_settlement_direction"
+        | "locked_session_policy"
+        | "default_auto_cancel_enabled"
       >
     >,
     { rejectWithValue },
@@ -647,6 +677,19 @@ const agencySlice = createSlice({
       })
       .addCase(removeAgencyMember.fulfilled, (state, action) => {
         state.members = state.members.filter((m) => m.user_id !== action.payload);
+      })
+      .addCase(removeClientAssignment.fulfilled, (state, action) => {
+        const c = state.clients.find((x) => x.assignment?.id === action.payload.assignment_id);
+        if (c) {
+          c.assignment = null;
+          c.previously_counselled = true;
+        }
+      })
+      .addCase(requestAgencyMemberRemoval.fulfilled, (state, action) => {
+        if (state.membership) {
+          state.membership.deletion_requested_at = new Date().toISOString();
+          state.membership.deletion_requested_reason = action.payload;
+        }
       })
       .addCase(respondToAssignment.fulfilled, (state, action) => {
         state.incoming = state.incoming.filter((a) => a.id !== action.payload);

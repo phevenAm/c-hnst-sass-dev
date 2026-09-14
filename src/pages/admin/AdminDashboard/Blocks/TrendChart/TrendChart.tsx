@@ -114,6 +114,31 @@ interface TrendChartProps {
   /** When given, renders one bar/line per entry over shared `{ label, ... }` points. */
   series?: TrendSeries[];
   height?: number;
+  /** Short label for the left y-axis (e.g. "£") — multi-series only. */
+  leftAxisLabel?: string;
+  /** Short label for the right y-axis (e.g. "Sessions") — multi-series only, ignored with no right-axis series. */
+  rightAxisLabel?: string;
+}
+
+// A row of colour-swatch + name for every series — the tooltip already shows
+// this on hover, but "hover to find out what a colour means" isn't a legend.
+// Line series get a short dash swatch instead of a dot, matching how they
+// actually render on the chart.
+function TrendLegend({ series }: { series: TrendSeries[] }) {
+  return (
+    <ul className={styles.legend}>
+      {series.map((s) => (
+        <li key={s.key} className={styles.legendItem}>
+          {(s.kind ?? "bar") === "line" ? (
+            <span className={styles.legendSwatchLine} style={{ background: s.color, opacity: s.dashed ? 0.6 : 1 }} />
+          ) : (
+            <span className={styles.legendSwatchDot} style={{ background: s.color }} />
+          )}
+          {s.name}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 // A small trend card: bar or line chart over a set of {label, value} points.
@@ -128,6 +153,8 @@ export default function TrendChart({
   yDomain,
   series,
   height = 180,
+  leftAxisLabel,
+  rightAxisLabel,
 }: TrendChartProps) {
   const { reduceMotion } = useInterfacePrefs();
   const axis = { fill: "var(--text-muted)", fontSize: 11 };
@@ -160,10 +187,15 @@ export default function TrendChart({
                   tick={axis}
                   axisLine={false}
                   tickLine={false}
-                  width={40}
+                  width={leftAxisLabel ? 52 : 40}
                   domain={niceLeft ? [0, niceLeft.max] : yDomain}
                   ticks={niceLeft?.ticks}
                   allowDecimals={false}
+                  label={
+                    leftAxisLabel
+                      ? { value: leftAxisLabel, angle: -90, position: "insideLeft", style: axis, dy: 20 }
+                      : undefined
+                  }
                 />
                 {rightSeries.length > 0 && (
                   <YAxis
@@ -172,10 +204,15 @@ export default function TrendChart({
                     tick={axis}
                     axisLine={false}
                     tickLine={false}
-                    width={32}
+                    width={rightAxisLabel ? 44 : 32}
                     domain={niceRight ? [0, niceRight.max] : undefined}
                     ticks={niceRight?.ticks}
                     allowDecimals={false}
+                    label={
+                      rightAxisLabel
+                        ? { value: rightAxisLabel, angle: 90, position: "insideRight", style: axis, dy: -20 }
+                        : undefined
+                    }
                   />
                 )}
                 <Tooltip
@@ -214,6 +251,7 @@ export default function TrendChart({
             </ResponsiveContainer>
           </div>
         )}
+        {hasData && <TrendLegend series={series} />}
       </Card>
     );
   }

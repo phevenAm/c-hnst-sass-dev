@@ -153,7 +153,12 @@ export default function AgencyClientsPage() {
                     <div className={styles.rowMain}>
                       <span className={styles.rowName}>
                         {c.first_name} {c.last_name}
-                        {key === "unassigned" && <Badge variant="warning">Unassigned</Badge>}
+                        {key === "unassigned" && !c.previously_counselled && (
+                          <Badge variant="warning">Unassigned</Badge>
+                        )}
+                        {key === "unassigned" && c.previously_counselled && (
+                          <Badge variant="neutral">Previously counselled</Badge>
+                        )}
                         {key === "pending" && <Badge variant="neutral">In review</Badge>}
                         {key === "accepted" && <Badge variant="success">Active</Badge>}
                         {key === "declined" && <Badge variant="danger">Declined</Badge>}

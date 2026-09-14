@@ -2,9 +2,17 @@ import { useEffect, useState } from "react";
 
 import ClientReviewModal from "@components/agency/ClientReviewModal/ClientReviewModal";
 import Button from "@components/shared/Button/Button";
+import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import { useToast } from "@context/ToastContext";
 import type { ClientAssignment } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
-import { fetchIncomingAssignments, selectIncomingAssignments } from "@store/slices/agencySlice";
+import {
+  fetchIncomingAssignments,
+  requestAgencyMemberRemoval,
+  selectAgencyMembership,
+  selectIncomingAssignments,
+  selectIsAgencyManager,
+} from "@store/slices/agencySlice";
 
 import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
@@ -13,13 +21,32 @@ type ReviewAssignment = ClientAssignment & { client_name: string };
 
 export default function AgencyIncomingPage() {
   const dispatch = useAppDispatch();
+  const { showToast } = useToast();
   const incoming = useAppSelector(selectIncomingAssignments);
   const status = useAppSelector((s) => s.agency.incomingStatus);
+  const isManager = useAppSelector(selectIsAgencyManager);
+  const membership = useAppSelector(selectAgencyMembership);
   const [reviewing, setReviewing] = useState<ReviewAssignment | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveReason, setLeaveReason] = useState("");
+  const [leaveBusy, setLeaveBusy] = useState(false);
 
   useEffect(() => {
     dispatch(fetchIncomingAssignments());
   }, [dispatch]);
+
+  const confirmLeave = async () => {
+    setLeaveBusy(true);
+    try {
+      await dispatch(requestAgencyMemberRemoval(leaveReason.trim() || undefined)).unwrap();
+      showToast("Sent — the agency's managers have been notified.", "success");
+      setLeaving(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't send your request", "error");
+    } finally {
+      setLeaveBusy(false);
+    }
+  };
 
   return (
     <div className="inner">
@@ -57,7 +84,52 @@ export default function AgencyIncomingPage() {
         </div>
       )}
 
+      {!isManager && (
+        <div className={styles.card} style={{ marginTop: "var(--sp-5)" }}>
+          <h2 className={styles.cardTitle}>Leave this agency</h2>
+          {membership?.deletion_requested_at ? (
+            <p className={styles.cardBlurb}>
+              Request sent {new Date(membership.deletion_requested_at).toLocaleDateString("en-GB")} — an agency manager
+              needs to action it. They'll reassign your caseload when they do.
+            </p>
+          ) : (
+            <>
+              <p className={styles.cardBlurb}>
+                You can't remove yourself — only an agency manager can, so your clients get reassigned properly. This
+                sends them a request.
+              </p>
+              <Button variant="danger" size="sm" onClick={() => setLeaving(true)}>
+                Request removal
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       {reviewing && <ClientReviewModal assignment={reviewing} onClose={() => setReviewing(null)} />}
+
+      {leaving && (
+        <ConfirmModal
+          title="Request to leave this agency?"
+          danger
+          confirming={leaveBusy}
+          onConfirm={confirmLeave}
+          onClose={() => setLeaving(false)}
+        >
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="leave-reason">
+              Reason (optional, shown to managers)
+            </label>
+            <textarea
+              id="leave-reason"
+              className={styles.textarea}
+              value={leaveReason}
+              onChange={(e) => setLeaveReason(e.target.value)}
+              placeholder="Let them know why, if you'd like."
+            />
+          </div>
+        </ConfirmModal>
+      )}
     </div>
   );
 }

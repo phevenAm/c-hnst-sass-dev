@@ -24,6 +24,21 @@ async function dismissOnboarding(page: Page) {
 
 async function loginAs(page: Page, email: string, password: string) {
   await page.addInitScript(() => localStorage.setItem("walkthrough_globally_dismissed", "true"));
+  // The demo onboarding modal can't be dismissed reliably in Playwright (see
+  // e2e/crawl/no-404s.spec.ts) — strip just that one dialog (scoped to its
+  // own aria-label, not every dialog — this test opens real modals of its
+  // own and needs those left alone) so it never sits on top intercepting
+  // clicks.
+  await page.addInitScript(() => {
+    const strip = () => {
+      // Removes the backdrop (the element actually intercepting clicks), not
+      // just the inner dialog — the overlay div itself has no distinguishing
+      // attribute, only its dialog child does.
+      for (const n of document.querySelectorAll('div:has(> [aria-label="Personalize your account"])')) n.remove();
+    };
+    document.addEventListener("DOMContentLoaded", strip);
+    new MutationObserver(strip).observe(document, { childList: true, subtree: true });
+  });
   await page.goto(`${BASE}/login`, { waitUntil: "load" });
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', password);
@@ -128,4 +143,26 @@ test("agency members list: no SplitButton dropdown clips", async ({ page }) => {
   await page.goto(`${BASE}/agency/members`, { waitUntil: "load" });
   await page.waitForTimeout(1000);
   await assertNoSplitButtonClipsOnThisPage(page, "/agency/members");
+});
+
+// Regression: clicking dropdown clips was fixed by portaling the menu onto
+// document.body, but the outside-click-to-close listener only ever checked
+// containment against the trigger's own wrapper — the portaled menu is not a
+// DOM descendant of it. mousedown on ANY option therefore read as "outside",
+// closed the menu (unmounting the button) before the click that would have
+// fired its onClick ever arrived. The visibility checks above never caught
+// this because they only assert the menu opens and is positioned on-screen —
+// none of them click an option. This test does.
+test("SplitButton dropdown options are actually clickable, not just visible", async ({ page }) => {
+  await loginAs(page, "demo-admin@honest.com", "DemoAdmin2026");
+  await page.goto(`${BASE}/admin/scheduler`, { waitUntil: "load" });
+  await page.waitForTimeout(1000);
+
+  // The chevron (secondary trigger), not the "Create a session" label itself
+  // — that's the primary action and opens an unrelated picker of its own.
+  const chevron = page.getByRole("button", { name: /show more options|view more options/i });
+  await chevron.click();
+  await page.getByTestId("split-button-dropdown").getByRole("button", { name: "Manage availability" }).click();
+
+  await expect(page.getByRole("heading", { name: "Manage availability" })).toBeVisible({ timeout: 5000 });
 });
