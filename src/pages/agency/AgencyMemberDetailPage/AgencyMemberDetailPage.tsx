@@ -38,7 +38,6 @@ export default function AgencyMemberDetailPage() {
   const { memberId } = useParams<{ memberId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { showToast } = useToast();
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const members = useAppSelector(selectAgencyMembers);

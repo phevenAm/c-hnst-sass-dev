@@ -94,9 +94,19 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
+  // This seeds into the shared "Clarity Collective" demo agency (demo-agency@
+  // honest.com is a fixed login, not a throwaway per-run fixture like
+  // e2e/agency's Agency A/B) — the join/remove triggers write rows to
+  // agency_activity_events that the member/user/auth deletes don't touch,
+  // and those events are Stephen's own real demo Activity page. The member
+  // delete below itself fires the "removed from the agency" trigger, so the
+  // activity-event purge must run LAST — deleting it first (as an earlier
+  // version of this test did) only catches the "joined" event and leaves
+  // the "removed" one that the member delete creates afterwards.
   dbQuery(`delete from public.agency_members where user_id = '${staffId}';`);
   dbQuery(`delete from public.users where id = '${staffId}';`);
   dbQuery(`delete from auth.users where id = '${staffId}';`);
+  dbQuery(`delete from public.agency_activity_events where subject_id = '${staffId}' or actor_id = '${staffId}';`);
 });
 
 test("admin clients list: no SplitButton dropdown clips at a short viewport", async ({ page }) => {
