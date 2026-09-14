@@ -10,17 +10,19 @@
   color: var(--text-secondary);
 }
 
-// Matches SegmentedTabs' pill height (~2.4rem) for control bars that mix a
+// Matches SegmentedTabs' pill height (~38px) for control bars that mix a
 // date range in with toggle buttons — the default MUI field reads oversized
-// next to them, mostly from the calendar-icon open-button's own padding.
+// next to them. The visible content sits in .sectionsContainer (the day/
+// month/year spinbuttons); .MuiPickersInputBase-input is a separate,
+// aria-hidden, zero-size native input kept only for form semantics — styling
+// it does nothing visually, which is why an earlier pass at this looked like
+// it should shrink the field but didn't.
 // `!important` because this and DateInput's own sx-injected rule land on the
 // same selector specificity — whichever stylesheet is inserted last would
 // otherwise win, which is mount-order-dependent rather than something to rely on.
 .dense {
-  :global(.MuiPickersInputBase-input) {
-    // 8px top/bottom + ~19px line-height + the 1.5px border on each side of
-    // the field lands right on SegmentedTabs' own ~38px pill height.
-    padding: 8px 10px !important;
+  :global(.MuiPickersInputBase-sectionsContainer) {
+    padding: 8px 0 !important;
     font-size: 0.82rem !important;
   }
 
