@@ -31,9 +31,11 @@ const name = (m: AgencyMemberWithUser) =>
 
 export default function ConfigureMemberModal({
   member,
+  isOwner = false,
   onClose,
 }: {
   member: AgencyMemberWithUser;
+  isOwner?: boolean;
   onClose: () => void;
 }) {
   const dispatch = useAppDispatch();
@@ -93,11 +95,17 @@ export default function ConfigureMemberModal({
           id="cfg-role"
           className={styles.select}
           value={role}
+          disabled={isOwner}
           onChange={(e) => setRole(e.target.value as "manager" | "counsellor")}
         >
           <option value="counsellor">Counsellor</option>
           <option value="manager">Manager</option>
         </select>
+        {isOwner && (
+          <p className={styles.cardBlurb} style={{ margin: "var(--sp-1) 0 0" }}>
+            The agency owner always stays a manager.
+          </p>
+        )}
       </div>
 
       <label className={styles.toggleRow}>
@@ -111,11 +119,12 @@ export default function ConfigureMemberModal({
       <label className={styles.toggleRow}>
         <div className={styles.toggleText}>
           <strong>Active</strong>
-          <span>Off disables their sign-in entirely.</span>
+          <span>{isOwner ? "The agency owner can't be disabled." : "Off disables their sign-in entirely."}</span>
         </div>
         <input
           type="checkbox"
           checked={status === "active"}
+          disabled={isOwner}
           onChange={(e) => setStatus(e.target.checked ? "active" : "disabled")}
         />
       </label>

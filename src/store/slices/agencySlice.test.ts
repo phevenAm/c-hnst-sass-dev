@@ -34,3 +34,88 @@ describe("agencySlice initial bootstrapStatus", () => {
     expect(state.bootstrapStatus).toBe("idle");
   });
 });
+
+describe("agencySlice setAgencyMember.fulfilled", () => {
+  it("applies role, counselling_enabled, status, and color to the matching member", async () => {
+    vi.stubEnv("VITE_FF_AGENCY", "true");
+    const reducer = await loadReducer();
+
+    const member = {
+      id: "m-1",
+      agency_id: "agency-1",
+      user_id: "staff-1",
+      role: "counsellor" as const,
+      employment_type: "employee" as const,
+      counselling_enabled: true,
+      status: "active" as const,
+      invited_at: null,
+      joined_at: "2026-01-01T00:00:00Z",
+      agreement_accepted_at: null,
+      agreement_accepted_version: null,
+      agreement_signed_name: null,
+      color: null,
+      first_name: "Sam",
+      last_name: "Staff",
+      display_name: null,
+      email: null,
+      avatar_url: null,
+    };
+    const seeded = { ...reducer(undefined, { type: "@@INIT" }), members: [member] };
+
+    // Regression: the reducer used to copy role/counselling_enabled/status onto
+    // the in-memory member but silently dropped color, so ConfigureMemberModal's
+    // colour swatch save persisted to the DB fine but never showed up in the UI
+    // until a full refetch — see AgencyMemberDetailPage's owner-configure fix.
+    const next = reducer(seeded, {
+      type: "agency/setMember/fulfilled",
+      payload: {
+        member_user_id: "staff-1",
+        role: "manager" as const,
+        counselling_enabled: false,
+        status: "active" as const,
+        color: "#8f3f3f",
+      },
+    });
+
+    const updated = next.members.find((m) => m.user_id === "staff-1");
+    expect(updated?.role).toBe("manager");
+    expect(updated?.counselling_enabled).toBe(false);
+    expect(updated?.color).toBe("#8f3f3f");
+  });
+
+  it("leaves color untouched when the payload doesn't include one", async () => {
+    vi.stubEnv("VITE_FF_AGENCY", "true");
+    const reducer = await loadReducer();
+
+    const member = {
+      id: "m-1",
+      agency_id: "agency-1",
+      user_id: "staff-1",
+      role: "counsellor" as const,
+      employment_type: "employee" as const,
+      counselling_enabled: true,
+      status: "active" as const,
+      invited_at: null,
+      joined_at: "2026-01-01T00:00:00Z",
+      agreement_accepted_at: null,
+      agreement_accepted_version: null,
+      agreement_signed_name: null,
+      color: "#2d7264",
+      first_name: "Sam",
+      last_name: "Staff",
+      display_name: null,
+      email: null,
+      avatar_url: null,
+    };
+    const seeded = { ...reducer(undefined, { type: "@@INIT" }), members: [member] };
+
+    const next = reducer(seeded, {
+      type: "agency/setMember/fulfilled",
+      payload: { member_user_id: "staff-1", status: "disabled" as const },
+    });
+
+    const updated = next.members.find((m) => m.user_id === "staff-1");
+    expect(updated?.status).toBe("disabled");
+    expect(updated?.color).toBe("#2d7264");
+  });
+});

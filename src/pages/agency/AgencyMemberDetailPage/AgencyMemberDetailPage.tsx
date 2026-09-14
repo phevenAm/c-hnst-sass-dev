@@ -112,7 +112,15 @@ export default function AgencyMemberDetailPage() {
           </div>
         </div>
 
-        {!owner && (
+        {owner ? (
+          // No SplitButton — "Remove from agency" is the only secondary
+          // option and it never applies to the owner (blocked server-side
+          // too), so a single action gets a plain Button, same convention
+          // as AgencyClientDetailPage's Assign/Reassign.
+          <Button variant="secondary" size="sm" onClick={() => setConfiguring(true)}>
+            Configure member
+          </Button>
+        ) : (
           <SplitButton
             variant="secondary"
             size="sm"
@@ -171,7 +179,7 @@ export default function AgencyMemberDetailPage() {
         </div>
       </div>
 
-      {configuring && <ConfigureMemberModal member={member} onClose={() => setConfiguring(false)} />}
+      {configuring && <ConfigureMemberModal member={member} isOwner={owner} onClose={() => setConfiguring(false)} />}
       {removing && <RemoveMemberModal member={member} members={members} onClose={() => setRemoving(false)} />}
     </div>
   );

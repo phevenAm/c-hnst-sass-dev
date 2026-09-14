@@ -28,6 +28,21 @@ async function loginViaUi(page: Page, email: string, password: string) {
   await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 20_000 });
 }
 
+// OnboardingModal's "Welcome, …!" personalize-your-space gate is separate
+// from the walkthrough tour (already suppressed via localStorage above) and
+// only mounts once userProfile/practiceSettings finish loading, so a single
+// isVisible() check right after navigation can run before it appears. Poll
+// like split-button-visibility.spec.ts's dismissOnboarding does.
+async function dismissWelcomeModal(page: Page) {
+  const heading = page.locator('h2:has-text("Welcome,")');
+  for (let i = 0; i < 8; i++) {
+    if (!(await heading.isVisible({ timeout: 800 }).catch(() => false))) return;
+    const btn = page.locator('button:has-text("Save")').first();
+    if (await btn.isVisible({ timeout: 500 }).catch(() => false)) await btn.click();
+    await page.waitForTimeout(500);
+  }
+}
+
 test.describe.configure({ mode: "serial" });
 
 const TAG = `e2eagency${Date.now()}`;
@@ -589,4 +604,40 @@ test("plan_change_check returns no cap for an agency member", async () => {
   expect(data.max_active).toBeNull();
   expect(data.max_archived).toBeNull();
   expect(data.ok).toBe(true);
+});
+
+// AgencyMemberDetailPage used to hide its whole "Configure member" entry
+// point with `{!owner && …}` — meant only to withhold "Remove from agency"
+// (correctly blocked for the owner, server-side too, in
+// remove-agency-member) — which also blocked Role/Counselling/Active/Colour,
+// including the colour swatches, which set-agency-member always allowed for
+// the owner. See ConfigureMemberModal's isOwner prop.
+test("the agency owner can reach Configure member and change their calendar colour", async ({ page }) => {
+  await loginViaUi(page, `smissah321+${TAG}-a-mgr@gmail.com`, PASSWORD);
+  await page.goto(`${APP_URL}/agency/members/${ids.aManager}`, { waitUntil: "load", timeout: 20_000 });
+  // The cold-load boot splash (app.html #boot-splash) sits on top of
+  // everything until the app hides it — wait it out before touching the
+  // welcome modal or anything else intercepts clicks the same way.
+  await page.waitForSelector("#boot-splash", { state: "hidden", timeout: 10_000 }).catch(() => {});
+  await dismissWelcomeModal(page);
+
+  const configureBtn = page.getByRole("button", { name: "Configure member" });
+  await expect(configureBtn).toBeVisible({ timeout: 10_000 });
+  await configureBtn.click();
+
+  // Role is locked for the owner (can't be demoted — enforced server-side
+  // too), but the colour swatches must stay live.
+  await expect(page.locator("#cfg-role")).toBeDisabled();
+  const swatches = page.locator('[role="radio"][aria-label]');
+  await expect(swatches).toHaveCount(8);
+  await swatches.nth(3).click();
+  const swatchColor = await swatches.nth(3).getAttribute("aria-label");
+
+  await page.getByRole("button", { name: "Save changes" }).click();
+  // The modal calls onClose() on a successful save.
+  await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0, { timeout: 10_000 });
+
+  const saved = dbQuery<{ color: string }>(`select color from public.agency_members where user_id = '${ids.aManager}';`)
+    .rows[0];
+  expect(saved.color).toBe(swatchColor);
 });

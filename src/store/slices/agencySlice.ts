@@ -265,6 +265,7 @@ export const setAgencyMember = createAsyncThunk(
       role?: "manager" | "counsellor";
       counselling_enabled?: boolean;
       status?: "active" | "disabled";
+      color?: string;
     },
     { rejectWithValue },
   ) => {
@@ -641,6 +642,7 @@ const agencySlice = createSlice({
           if (typeof action.payload.counselling_enabled === "boolean")
             m.counselling_enabled = action.payload.counselling_enabled;
           if (action.payload.status) m.status = action.payload.status;
+          if (action.payload.color) m.color = action.payload.color;
         }
       })
       .addCase(removeAgencyMember.fulfilled, (state, action) => {
