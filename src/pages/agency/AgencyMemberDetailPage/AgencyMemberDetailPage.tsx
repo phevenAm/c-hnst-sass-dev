@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
+import ConfigureMemberModal from "@components/agency/ConfigureMemberModal/ConfigureMemberModal";
 import RemoveMemberModal from "@components/agency/RemoveMemberModal/RemoveMemberModal";
 import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
-import { useToast } from "@context/ToastContext";
 import { isAgencyOwner } from "@models/agencyPermissions";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -16,7 +16,6 @@ import {
   selectAgencyClients,
   selectAgencyMembers,
   selectIsAgencyManager,
-  setAgencyMember,
 } from "@store/slices/agencySlice";
 
 import { supabase } from "@/lib/supabase";
@@ -35,8 +34,6 @@ const displayName = (m: {
   email: string | null;
 }) => m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Member";
 
-const DEFAULT_MEMBER_COLOR = "#2d7264";
-
 export default function AgencyMemberDetailPage() {
   const { memberId } = useParams<{ memberId: string }>();
   const navigate = useNavigate();
@@ -50,8 +47,7 @@ export default function AgencyMemberDetailPage() {
   const [details, setDetails] = useState<MemberPracticeDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [removing, setRemoving] = useState(false);
-  const [color, setColor] = useState(DEFAULT_MEMBER_COLOR);
-  const [savingColor, setSavingColor] = useState(false);
+  const [configuring, setConfiguring] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
@@ -72,11 +68,6 @@ export default function AgencyMemberDetailPage() {
       });
   }, [memberId]);
 
-  useEffect(() => {
-    const m = members.find((mm) => mm.user_id === memberId);
-    if (m?.color) setColor(m.color);
-  }, [members, memberId]);
-
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
   const member = members.find((m) => m.user_id === memberId);
@@ -95,21 +86,6 @@ export default function AgencyMemberDetailPage() {
   const caseload = clients.filter(
     (c) => c.assignment?.status === "accepted" && c.assignment.to_admin_id === member.user_id,
   ).length;
-
-  const patch = (fields: Partial<Parameters<typeof setAgencyMember>[0]>) =>
-    dispatch(setAgencyMember({ member_user_id: member.user_id, ...fields } as Parameters<typeof setAgencyMember>[0]));
-
-  const saveColor = async () => {
-    setSavingColor(true);
-    try {
-      await patch({ color }).unwrap();
-      showToast("Calendar colour saved.", "success");
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't save the colour", "danger");
-    } finally {
-      setSavingColor(false);
-    }
-  };
 
   return (
     <div className="inner">
@@ -142,22 +118,8 @@ export default function AgencyMemberDetailPage() {
             variant="secondary"
             size="sm"
             primaryLabel="Configure member"
-            primaryAction={() => patch({ counselling_enabled: !member.counselling_enabled })}
-            options={[
-              {
-                label: member.role === "manager" ? "Make counsellor" : "Make manager",
-                onClick: () => patch({ role: member.role === "manager" ? "counsellor" : "manager" }),
-              },
-              {
-                label: member.counselling_enabled ? "Turn off counselling" : "Turn on counselling",
-                onClick: () => patch({ counselling_enabled: !member.counselling_enabled }),
-              },
-              {
-                label: member.status === "active" ? "Disable" : "Enable",
-                onClick: () => patch({ status: member.status === "active" ? "disabled" : "active" }),
-              },
-              { label: "Remove from agency", onClick: () => setRemoving(true) },
-            ]}
+            primaryAction={() => setConfiguring(true)}
+            options={[{ label: "Remove from agency", onClick: () => setRemoving(true) }]}
             secondaryLabel="More options"
           />
         )}
@@ -210,19 +172,7 @@ export default function AgencyMemberDetailPage() {
         </div>
       </div>
 
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Calendar colour</h2>
-        <p className={styles.cardBlurb}>Used for this member's sessions on the agency sessions calendar.</p>
-        <div className={styles.settingRow}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-3)" }}>
-            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-            <Button variant="secondary" size="sm" onClick={saveColor} disabled={savingColor}>
-              {savingColor ? "Saving…" : "Save colour"}
-            </Button>
-          </div>
-        </div>
-      </div>
-
+      {configuring && <ConfigureMemberModal member={member} onClose={() => setConfiguring(false)} />}
       {removing && <RemoveMemberModal member={member} members={members} onClose={() => setRemoving(false)} />}
     </div>
   );

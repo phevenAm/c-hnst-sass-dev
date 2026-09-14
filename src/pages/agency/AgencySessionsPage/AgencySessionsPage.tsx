@@ -139,65 +139,67 @@ export default function AgencySessionsPage() {
         </div>
       </div>
 
-      <div className={styles.toolbar} style={{ marginBottom: "var(--sp-4)" }}>
-        <SegmentedTabs
-          tabs={[
-            { value: "all", label: "All staff" },
-            { value: "internal", label: "Internal" },
-            { value: "external", label: "External" },
-          ]}
-          value={filter}
-          onChange={setFilter}
-          ariaLabel="Filter sessions by staff type"
-        />
-        <SegmentedTabs
-          tabs={[
-            { value: "calendar", label: "Calendar" },
-            { value: "list", label: "List" },
-          ]}
-          value={mode}
-          onChange={setMode}
-          ariaLabel="Sessions view"
-        />
-      </div>
-
-      {mode === "list" && (
-        <input
-          className={`${styles.input} ${styles.grow}`}
-          style={{ marginBottom: "var(--sp-4)" }}
-          placeholder="Search sessions by client or staff name…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      )}
-
-      {error && <p className={styles.error}>{error}</p>}
-      {loading && sessions.length === 0 ? (
-        <p className={styles.empty}>Loading sessions…</p>
-      ) : mode === "calendar" ? (
-        <SchedulerCalendar events={events} date={date} view={view} onNavigate={setDate} onView={setView} />
-      ) : searchedSessions.length === 0 ? (
-        <p className={styles.empty}>No sessions match.</p>
-      ) : (
-        <div className={styles.list}>
-          {searchedSessions.map((s) => {
-            const names = namesBySessionId.get(s.id);
-            return (
-              <div key={s.id} className={styles.row}>
-                <div className={styles.rowMain}>
-                  <span className={styles.rowName}>
-                    {names?.clientName} · {names?.staffName}
-                  </span>
-                  <span className={styles.rowMeta}>
-                    {dayjs(s.scheduled_at).format("ddd D MMM, h:mma")}
-                    {s.status === "cancelled" && " · Cancelled"}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+      <div className={styles.card}>
+        <div className={styles.toolbar} style={{ marginBottom: "var(--sp-4)" }}>
+          <SegmentedTabs
+            tabs={[
+              { value: "all", label: "All staff" },
+              { value: "internal", label: "Internal" },
+              { value: "external", label: "External" },
+            ]}
+            value={filter}
+            onChange={setFilter}
+            ariaLabel="Filter sessions by staff type"
+          />
+          <SegmentedTabs
+            tabs={[
+              { value: "calendar", label: "Calendar" },
+              { value: "list", label: "List" },
+            ]}
+            value={mode}
+            onChange={setMode}
+            ariaLabel="Sessions view"
+          />
         </div>
-      )}
+
+        {mode === "list" && (
+          <input
+            className={`${styles.input} ${styles.grow}`}
+            style={{ marginBottom: "var(--sp-4)" }}
+            placeholder="Search sessions by client or staff name…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        )}
+
+        {error && <p className={styles.error}>{error}</p>}
+        {loading && sessions.length === 0 ? (
+          <p className={styles.empty}>Loading sessions…</p>
+        ) : mode === "calendar" ? (
+          <SchedulerCalendar events={events} date={date} view={view} onNavigate={setDate} onView={setView} />
+        ) : searchedSessions.length === 0 ? (
+          <p className={styles.empty}>No sessions match.</p>
+        ) : (
+          <div className={styles.list}>
+            {searchedSessions.map((s) => {
+              const names = namesBySessionId.get(s.id);
+              return (
+                <div key={s.id} className={styles.row}>
+                  <div className={styles.rowMain}>
+                    <span className={styles.rowName}>
+                      {names?.clientName} · {names?.staffName}
+                    </span>
+                    <span className={styles.rowMeta}>
+                      {dayjs(s.scheduled_at).format("ddd D MMM, h:mma")}
+                      {s.status === "cancelled" && " · Cancelled"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
