@@ -6,7 +6,9 @@
   padding: 0 0.28rem;
   border-radius: var(--r-full);
   background: var(--danger, #d64545);
-  color: #fff;
+  // Not #fff — --danger goes light (red-400) in dark mode; --text-inverse
+  // flips opposite to it in both themes, so it stays correct either way.
+  color: var(--text-inverse);
   font-size: 0.66rem;
   font-weight: 700;
   line-height: 1;

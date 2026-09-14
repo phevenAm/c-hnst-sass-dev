@@ -137,7 +137,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  // Not #fff — --accent goes light (teal-400) in dark mode; --text-inverse
+  // flips opposite to it in both themes, so it stays correct either way.
+  color: var(--text-inverse);
   margin-bottom: $sp-4;
 
   svg {
@@ -278,7 +280,9 @@
   font-size: 0.65rem;
   font-weight: 700;
   background: var(--accent);
-  color: #fff;
+  // Not #fff — --accent goes light (teal-400) in dark mode; --text-inverse
+  // flips opposite to it in both themes, so it stays correct either way.
+  color: var(--text-inverse);
   padding: 1px 6px;
   border-radius: var(--r-full);
   white-space: nowrap;
@@ -488,7 +492,9 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   background: var(--accent);
-  color: #fff;
+  // Not #fff — --accent goes light (teal-400) in dark mode; --text-inverse
+  // flips opposite to it in both themes, so it stays correct either way.
+  color: var(--text-inverse);
   padding: 2px $sp-2;
   border-radius: 3px;
   width: fit-content;

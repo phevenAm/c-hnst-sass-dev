@@ -199,7 +199,9 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #fff;
+  // Not #fff — --danger goes light (red-400) in dark mode; --text-inverse
+  // flips opposite to it in both themes, so it stays correct either way.
+  color: var(--text-inverse);
   background: var(--danger);
   padding: 3px 8px;
   border-radius: 100px;

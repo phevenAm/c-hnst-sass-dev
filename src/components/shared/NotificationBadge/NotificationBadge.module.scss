@@ -5,7 +5,11 @@
   min-width: 1.25rem;
   height: 1.25rem;
   padding: 0 0.25rem;
-  color: #fff;
+  // Not #fff — the default background (--danger) goes light (red-400) in
+  // dark mode; --text-inverse flips opposite to it in both themes, so it
+  // stays correct either way. The only real caller (AdminDashboard) uses
+  // the default, uncustomized color.
+  color: var(--text-inverse);
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
