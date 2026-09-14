@@ -44,6 +44,28 @@
   gap: var(--sp-6);
 }
 
+// ── Consolidated controls bar (period / group-by / range / chart / series) ──
+.controlsBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.controlLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .periodRow {
   display: flex;
   gap: var(--sp-2);

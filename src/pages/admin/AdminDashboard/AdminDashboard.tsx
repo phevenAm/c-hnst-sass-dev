@@ -26,7 +26,7 @@ import { clientDisplayName, isPageStatusLoading, pickColor } from "@/Helpers/Hel
 import { supabase } from "@/lib/supabase";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import TodoListCard from "../Blocks/TodoList/TodoListCard";
-import TrendChart from "./Blocks/TrendChart/TrendChart";
+import TrendChart, { type TrendSeries } from "./Blocks/TrendChart/TrendChart";
 import UpcomingSessions, { type UpcomingStubSession } from "./Blocks/UpcomingSessions/UpcomingSessions";
 import {
   mergeTrendPoints,
@@ -43,6 +43,13 @@ import styles from "./AdminDashboard.module.scss";
 type PendingRequest =
   | { kind: "reschedule"; id: string; client_id: string; requested_at: string; created_at: string }
   | { kind: "cancellation"; id: string; client_id: string; created_at: string };
+
+// Revenue as bars, outgoings overlaid as a line — one combined read of the
+// practice's last 6 months instead of two separate same-shaped charts.
+const REVENUE_VS_OUTGOINGS_SERIES: TrendSeries[] = [
+  { key: "Revenue", name: "Revenue", color: "#4a665b" },
+  { key: "Outgoings", name: "Outgoings", color: "#a8633a", kind: "line" },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -154,6 +161,12 @@ export default function AdminDashboard() {
         6,
       ),
     [expenses],
+  );
+  // Revenue and outgoings both bucket into the same 6 calendar months, so they
+  // zip 1:1 by index into one bar-vs-line chart instead of two separate cards.
+  const revenueVsOutgoingsData = useMemo(
+    () => revenueData.map((r, i) => ({ label: r.label, Revenue: r.value, Outgoings: outgoingsData[i]?.value ?? 0 })),
+    [revenueData, outgoingsData],
   );
 
   const unpaidSessions = useMemo(
@@ -387,21 +400,11 @@ export default function AdminDashboard() {
         <Card className={styles.sectionCard}>
           <CollapsibleSection title="Practice trends" storageKey="dash:trends">
             <div className={styles.chartsGrid}>
-              <HideableSection id="dashboard-revenue">
+              <HideableSection id="dashboard-revenue-outgoings">
                 <TrendChart
-                  title="Revenue (last 6 months)"
-                  data={revenueData}
-                  type="bar"
-                  color="#4a665b"
-                  valueFormatter={(v) => `£${v.toFixed(2)}`}
-                />
-              </HideableSection>
-              <HideableSection id="dashboard-outgoings">
-                <TrendChart
-                  title="Outgoings (last 6 months)"
-                  data={outgoingsData}
-                  type="bar"
-                  color="#a8633a"
+                  title="Revenue vs outgoings (last 6 months)"
+                  data={revenueVsOutgoingsData}
+                  series={REVENUE_VS_OUTGOINGS_SERIES}
                   valueFormatter={(v) => `£${v.toFixed(2)}`}
                 />
               </HideableSection>

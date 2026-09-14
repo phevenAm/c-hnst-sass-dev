@@ -25,6 +25,8 @@ type Props = {
   /** Override the displayed value format (defaults per `mode`). */
   format?: string;
   className?: string;
+  /** Shrink to the same height as the app's pill toggles (e.g. SegmentedTabs) — for control bars where the default MUI field reads oversized. */
+  dense?: boolean;
 };
 
 const FORMAT: Record<DateInputMode, string> = {
@@ -33,9 +35,13 @@ const FORMAT: Record<DateInputMode, string> = {
   datetime: "D MMM YYYY, HH:mm",
 };
 
+// MUI X's sectioned date/time fields render as PickersInputBase /
+// PickersOutlinedInput, not the classic MUI TextField's InputBase /
+// OutlinedInput — the class names below match that (verified against the
+// rendered DOM; the old Mui*Input* selectors silently matched nothing).
 const textFieldSx = {
   width: "100%",
-  "& .MuiInputBase-root": {
+  "& .MuiPickersInputBase-root": {
     background: "var(--bg-muted)",
     borderRadius: "var(--r-md)",
     border: "1.5px solid var(--border)",
@@ -46,14 +52,14 @@ const textFieldSx = {
     "&.Mui-focused": { borderColor: "var(--border-focus)" },
     "&.Mui-disabled": { opacity: 0.5 },
   },
-  "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-  "& .MuiInputBase-input": {
+  "& .MuiPickersOutlinedInput-notchedOutline": { border: "none" },
+  "& .MuiPickersInputBase-input": {
     padding: "10px 14px",
     cursor: "pointer",
     color: "var(--text-primary)",
     "&.Mui-disabled": { WebkitTextFillColor: "var(--text-muted)" },
   },
-  "& .MuiInputAdornment-root .MuiButtonBase-root": {
+  "& [data-mui-picker-open-button]": {
     color: "var(--text-muted)",
     "&:hover": { color: "var(--text-secondary)", background: "transparent" },
   },
@@ -138,6 +144,7 @@ export default function DateInput({
   openTo,
   format,
   className,
+  dense,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -155,13 +162,10 @@ export default function DateInput({
     disabled,
     disablePast,
     format: format ?? FORMAT[mode],
+    ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
     slotProps: {
       field: { readOnly: true },
-      textField: {
-        fullWidth: true,
-        sx: textFieldSx,
-        inputProps: ariaLabel ? { "aria-label": ariaLabel } : undefined,
-      },
+      textField: { fullWidth: true, sx: textFieldSx },
       desktopPaper: { sx: paperSx },
     },
   };
@@ -170,7 +174,7 @@ export default function DateInput({
   const timeProps = { shouldDisableTime, ampm: false as const };
 
   return (
-    <div className={[styles.wrapper, className].filter(Boolean).join(" ")}>
+    <div className={[styles.wrapper, dense ? styles.dense : "", className].filter(Boolean).join(" ")}>
       {label && <span className={styles.label}>{label}</span>}
       {mode === "date" && <DatePicker {...commonProps} {...dateProps} />}
       {mode === "time" && <TimePicker {...commonProps} {...timeProps} />}

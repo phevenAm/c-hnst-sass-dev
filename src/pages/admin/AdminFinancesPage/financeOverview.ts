@@ -82,6 +82,19 @@ export const rangeForUnit = (unit: TrendUnit): { from: Dayjs; to: Dayjs } => {
 };
 
 /**
+ * The chart granularity + range a "Last 30 days / This tax year / All time"
+ * preset implies, so picking one moves the trend chart's date range along
+ * with the stat tiles instead of leaving two range pickers that look related
+ * but don't agree with each other.
+ */
+export const presetRangeForPeriod = (period: Period): { unit: TrendUnit; from: Dayjs; to: Dayjs } => {
+  const to = dayjs();
+  if (period === "30d") return { unit: "week", from: to.subtract(30, "day"), to };
+  if (period === "year") return { unit: "month", from: taxYearStart(), to };
+  return { unit: "year", ...rangeForUnit("year") };
+};
+
+/**
  * Bucket dated + priced (pence) rows into week / month / year buckets spanning
  * `[from, to]` inclusive. Empty buckets are kept so the axis stays continuous;
  * rows outside the range are ignored. Values are whole pounds.

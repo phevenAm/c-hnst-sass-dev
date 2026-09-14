@@ -26,39 +26,51 @@ type Props = {
 /**
  * The control row above a finance trend chart: granularity, a from–month /
  * to–month range and (optionally) a bar-vs-line switch. State lives in
- * `useTrendControls`.
+ * `useTrendControls`. Each control sits under a small caption so a bare row
+ * of pills and date fields doesn't read as unlabelled clutter.
  */
 export default function TrendControls({ state, hideChartType }: Props) {
   const { unit, from, to, chartType, setUnit, setFrom, setTo, setChartType } = state;
 
   return (
     <div className={styles.row}>
-      <SegmentedTabs tabs={UNIT_TABS} value={unit} onChange={setUnit} ariaLabel="Chart granularity" />
+      <div className={styles.group}>
+        <span className={styles.groupLabel}>Granularity</span>
+        <SegmentedTabs tabs={UNIT_TABS} value={unit} onChange={setUnit} ariaLabel="Chart granularity" />
+      </div>
 
-      <div className={styles.range}>
-        <DateInput
-          mode="date"
-          views={["year", "month"]}
-          openTo="month"
-          format="MMM YYYY"
-          value={from}
-          onChange={(d) => d && setFrom(d)}
-          ariaLabel="Range start month"
-        />
-        <span className={styles.dash}>–</span>
-        <DateInput
-          mode="date"
-          views={["year", "month"]}
-          openTo="month"
-          format="MMM YYYY"
-          value={to}
-          onChange={(d) => d && setTo(d)}
-          ariaLabel="Range end month"
-        />
+      <div className={styles.group}>
+        <span className={styles.groupLabel}>Custom range</span>
+        <div className={styles.range}>
+          <DateInput
+            mode="date"
+            views={["year", "month"]}
+            openTo="month"
+            format="MMM YYYY"
+            value={from}
+            onChange={(d) => d && setFrom(d)}
+            ariaLabel="Range start month"
+            dense
+          />
+          <span className={styles.dash}>–</span>
+          <DateInput
+            mode="date"
+            views={["year", "month"]}
+            openTo="month"
+            format="MMM YYYY"
+            value={to}
+            onChange={(d) => d && setTo(d)}
+            ariaLabel="Range end month"
+            dense
+          />
+        </div>
       </div>
 
       {!hideChartType && (
-        <SegmentedTabs tabs={TYPE_TABS} value={chartType} onChange={setChartType} ariaLabel="Chart style" />
+        <div className={styles.group}>
+          <span className={styles.groupLabel}>Chart</span>
+          <SegmentedTabs tabs={TYPE_TABS} value={chartType} onChange={setChartType} ariaLabel="Chart style" />
+        </div>
       )}
     </div>
   );

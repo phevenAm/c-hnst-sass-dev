@@ -61,4 +61,13 @@ describe("AdminDashboard", () => {
     renderPage();
     expect(screen.queryByRole("heading", { name: "Welcome, Sam" })).not.toBeInTheDocument();
   });
+
+  it("shows one combined revenue-vs-outgoings chart under Practice trends, not two separate ones", async () => {
+    renderPage();
+    await screen.findByRole("heading", { name: "Welcome, Sam" });
+    expect(screen.getByText("Revenue vs outgoings (last 6 months)")).toBeInTheDocument();
+    expect(screen.queryByText(/^Revenue \(last/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Outgoings \(last/)).not.toBeInTheDocument();
+    expect(screen.getByText("Sessions per week")).toBeInTheDocument();
+  });
 });

@@ -9,3 +9,30 @@
   font-weight: 500;
   color: var(--text-secondary);
 }
+
+// Matches SegmentedTabs' pill height (~2.4rem) for control bars that mix a
+// date range in with toggle buttons — the default MUI field reads oversized
+// next to them, mostly from the calendar-icon open-button's own padding.
+// `!important` because this and DateInput's own sx-injected rule land on the
+// same selector specificity — whichever stylesheet is inserted last would
+// otherwise win, which is mount-order-dependent rather than something to rely on.
+.dense {
+  :global(.MuiPickersInputBase-input) {
+    // 8px top/bottom + ~19px line-height + the 1.5px border on each side of
+    // the field lands right on SegmentedTabs' own ~38px pill height.
+    padding: 8px 10px !important;
+    font-size: 0.82rem !important;
+  }
+
+  :global(.MuiPickersInputBase-adornedEnd) {
+    padding-right: 4px !important;
+  }
+
+  :global([data-mui-picker-open-button]) {
+    padding: 4px !important;
+  }
+
+  :global([data-mui-picker-open-button] svg) {
+    font-size: 1.1rem !important;
+  }
+}

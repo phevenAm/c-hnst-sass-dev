@@ -1,9 +1,22 @@
 .row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
+  align-items: flex-end;
+  gap: var(--sp-5);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.groupLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .range {
@@ -11,7 +24,7 @@
   align-items: center;
   gap: var(--sp-2);
 
-  // The two month pickers only need room for "MMM YYYY".
+  // Room for "MMM YYYY" plus the calendar-icon button without crowding it.
   :global(.MuiFormControl-root),
   :global(.MuiTextField-root) {
     width: 9.5rem;
