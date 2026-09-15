@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import sessionsReducer from "@store/slices/sessionsSlice";
 
 import type { Session } from "@/models/globalTypes";
+import clientStubsReducer from "@/store/slices/clientStubsSlice";
+import userDirectoryReducer from "@/store/slices/userDirectorySlice";
 import { BlockSessionCard } from "./BlockSessionCard";
 
 afterEach(() => {
@@ -47,7 +49,12 @@ const makeSession = (overrides: Partial<Session> & { id: string; scheduled_at: s
   }) as unknown as Session;
 
 function renderWithStore(ui: React.ReactElement) {
-  const store = configureStore({ reducer: { sessions: sessionsReducer } });
+  // See the matching comment in SessionCard.test.tsx — BlockSessionCard
+  // renders SessionCard internally, which now needs these two slices to
+  // exist (useDoesClientHaveEmail, via useSessionCard's payment-email offer).
+  const store = configureStore({
+    reducer: { sessions: sessionsReducer, userDirectory: userDirectoryReducer, clientStubs: clientStubsReducer },
+  });
   return render(<Provider store={store}>{ui}</Provider>);
 }
 

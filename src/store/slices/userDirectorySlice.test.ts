@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import userDirectoryReducer, {
   archiveClient,
   deleteOwnAccount,
+  deleteUser,
   selectAllUsers,
   unarchiveClient,
 } from "./userDirectorySlice";
@@ -144,6 +145,54 @@ describe("unarchiveClient", () => {
 
     expect(unarchiveClient.rejected.match(result)).toBe(true);
     expect(store.getState().userDirectory.error).toMatch(/Unauthorized/);
+  });
+});
+
+// deleteUser (admin hard-delete via DeleteClientModal) is a different RPC/path
+// from deleteOwnAccount above (client "close account", which archives +
+// anonymises server-side) — this one had zero coverage anywhere before.
+describe("deleteUser", () => {
+  it("calls delete_user_by_id with the target user's id", async () => {
+    const store = makeStore();
+    await store.dispatch(deleteUser("client-1"));
+
+    expect(rpcSpy).toHaveBeenCalledWith("delete_user_by_id", { target_user_id: "client-1" });
+  });
+
+  it("drops the user from the local directory on success", async () => {
+    const store = makeStore();
+    await store.dispatch(deleteUser("client-1"));
+
+    expect(selectAllUsers(store.getState())).toHaveLength(0);
+  });
+
+  it("surfaces a rejected RPC via state.error and leaves the user in place (sad path)", async () => {
+    rpcSpy.mockResolvedValueOnce({ data: null, error: { message: "not part of your practice" } });
+    const store = makeStore();
+
+    const result = await store.dispatch(deleteUser("client-1"));
+
+    expect(deleteUser.rejected.match(result)).toBe(true);
+    expect(store.getState().userDirectory.error).toMatch(/not part of your practice/);
+    expect(selectAllUsers(store.getState())).toHaveLength(1);
+  });
+
+  // Edge case: a thrown/rejected RPC call (network drop, timeout) is a
+  // different failure shape from an RPC that resolves with { error } (a
+  // clean server-side rejection) — createAsyncThunk still turns it into a
+  // `rejected` action, but WITHOUT going through rejectWithValue, so
+  // action.payload (what the reducer reads into state.error) is undefined
+  // rather than a message. Documents that this path degrades to a blank
+  // error instead of crashing — not "handled well", just not fatal.
+  it("does not crash when the RPC call itself rejects (network failure) instead of resolving with { error }", async () => {
+    rpcSpy.mockRejectedValueOnce(new Error("network request failed"));
+    const store = makeStore();
+
+    const result = await store.dispatch(deleteUser("client-1"));
+
+    expect(deleteUser.rejected.match(result)).toBe(true);
+    expect(store.getState().userDirectory.error).toBeUndefined();
+    expect(selectAllUsers(store.getState())).toHaveLength(1);
   });
 });
 

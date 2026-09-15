@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -11,8 +12,9 @@ import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import { supabase } from "@lib/supabase";
 import type { StubSession } from "@models/globalTypes";
+
 import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
-import { useLocation } from "react-router-dom";
+import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
 
 interface Props {
   session: StubSession;
@@ -64,6 +66,7 @@ export default function StubSessionCard({
 
   const urlId = splitPath[splitPath.length - 1];
   const hasEmail = useDoesClientHaveEmail(urlId);
+  const offerPaymentEmail = usePaymentConfirmationToast();
 
   // Keep draft text in sync with incoming prop changes (e.g. realtime updates)
   // while the user is NOT actively editing.
@@ -105,8 +108,14 @@ export default function StubSessionCard({
       : query.eq("id", session.id);
     const { data, error } = await scoped.select();
     setSaving(false);
-    if (error) showToast("Failed to update.", "danger");
-    else onUpdated(data as StubSession[]);
+    if (error) {
+      showToast("Failed to update.", "danger");
+      return;
+    }
+    onUpdated(data as StubSession[]);
+    if (!isPaid) {
+      offerPaymentEmail(hasEmail, { type: "stub", stubSessionId: session.id }, "Marked as paid.");
+    }
   };
 
   const demoGuard = () => {

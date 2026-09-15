@@ -4,7 +4,8 @@ import dayjs from "dayjs";
 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { supabase } from "@/lib/supabase.js";
+import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
+import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
 import { Session, SessionEvent } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { updateSession } from "@/store/slices/sessionsSlice";
@@ -23,28 +24,35 @@ const useSessionCard = (session: Session) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
   const { rescheduleCutoffHours, isDemo } = useAuth();
+  const hasClientEmail = useDoesClientHaveEmail(session.client_id);
+  const offerPaymentEmail = usePaymentConfirmationToast();
 
   // sessions IS covered by the DB's block_demo_write trigger, so a demo write
   // was never actually going through — but these fired the dispatch and then
   // unconditionally showed a "success" toast without waiting to see whether
   // it actually succeeded, so a demo admin saw a false positive instead of
   // the honest "nothing happened" the other guarded actions on this page show.
-  const toggleNoShowOrPayment = (e: MouseEvent<HTMLButtonElement>) => {
+  // Factored out of toggleNoShowOrPayment so the mobile SplitButton (which
+  // has no DOM event to read data-action-type off) can trigger the exact
+  // same payment toggle + email offer as the desktop button, instead of the
+  // bare dispatch it used to duplicate on its own with no email option.
+  const togglePayment = () => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
       return;
     }
-    const actionType = e.currentTarget.getAttribute("data-action-type");
-    if (actionType === "payment") {
-      dispatch(updateSession({ id: session.id, paid: !session.paid }));
+    const markingPaid = !session.paid;
+    dispatch(updateSession({ id: session.id, paid: markingPaid }));
+    if (markingPaid) {
+      offerPaymentEmail(hasClientEmail, { type: "session", sessionId: session.id }, "Marked as paid.");
+    } else {
       showToast("Updated payment status");
-      // notify client when admin marks as paid (not when unmarking)
-      if (!session.paid) {
-        supabase.functions.invoke("send-payment-notification", {
-          body: { session_id: session.id },
-        });
-      }
     }
+  };
+
+  const toggleNoShowOrPayment = (e: MouseEvent<HTMLButtonElement>) => {
+    const actionType = e.currentTarget.getAttribute("data-action-type");
+    if (actionType === "payment") togglePayment();
   };
 
   const markAttended = () => {
@@ -142,6 +150,7 @@ const useSessionCard = (session: Session) => {
 
   return {
     toggleNoShowOrPayment,
+    togglePayment,
     markAttended,
     markNoShow,
     restoreSession,

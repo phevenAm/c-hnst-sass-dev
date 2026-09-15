@@ -48,13 +48,34 @@ Deno.serve(async (req) => {
 
     const { data: session } = await supabase
       .from("sessions")
-      .select("client_id, scheduled_at, duration_minutes, location, price_pence")
+      .select("client_id, scheduled_at, duration_minutes, location, price_pence, metadata")
       .eq("id", session_id)
       .single();
 
     if (!session) {
       return new Response(JSON.stringify({ error: "Session not found" }), { status: 404, headers: corsHeaders });
     }
+
+    // The caller passes whichever session was clicked, which may be one of
+    // several in a block (all paid together — see cascade_block_payment).
+    // Pull in every sibling sharing the same block_id so the email reports
+    // the whole block's dates and total instead of understating it to just
+    // this one session, mirroring notify-block-booked's approach.
+    const blockId = (session.metadata as Record<string, unknown> | null)?.block_id;
+    let blockSessions: { scheduled_at: string; price_pence: number }[] = [
+      { scheduled_at: session.scheduled_at, price_pence: session.price_pence },
+    ];
+    if (typeof blockId === "string" && blockId) {
+      const { data: siblings } = await supabase
+        .from("sessions")
+        .select("scheduled_at, price_pence")
+        .eq("client_id", session.client_id)
+        .filter("metadata->>block_id", "eq", blockId)
+        .order("scheduled_at", { ascending: true });
+      if (siblings && siblings.length > 0) blockSessions = siblings;
+    }
+    const isBlock = blockSessions.length > 1;
+    const totalPricePence = blockSessions.reduce((sum, s) => sum + (s.price_pence ?? 0), 0);
 
     const { data: practiceSettings } = await supabase
       .from("practice_settings")
@@ -83,12 +104,14 @@ Deno.serve(async (req) => {
     }
 
     const dateStr = formatDate(session.scheduled_at);
-    const pricePounds = (session.price_pence / 100).toFixed(2);
+    const pricePounds = (totalPricePence / 100).toFixed(2);
     const firstName = clientProfile?.first_name ?? "there";
     const templateVars = { name: firstName, date: dateStr, amount: `£${pricePounds}` };
     const subject = practiceSettings?.payment_confirmed_email_subject
       ? interpolateTemplate(practiceSettings.payment_confirmed_email_subject, templateVars)
-      : `Payment confirmed — your session on ${dateStr}`;
+      : isBlock
+        ? `Payment confirmed — your ${blockSessions.length}-session block`
+        : `Payment confirmed — your session on ${dateStr}`;
     const appUrl = (Deno.env.get("APP_URL") ?? "").replace(/\/$/, "");
 
     const logBase = {
@@ -114,6 +137,14 @@ Deno.serve(async (req) => {
       ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${EMAIL_TYPE}`
       : undefined;
 
+    const dateRows = isBlock
+      ? blockSessions.map((s, i) => ({
+          label: i === 0 ? "Sessions" : "",
+          value: formatDate(s.scheduled_at),
+          bold: i === 0,
+        }))
+      : [{ label: "Date & time", value: dateStr, bold: true }];
+
     const html = emailTemplate({
       label: "Payment Confirmed",
       title: customHeading ? interpolateTemplate(customHeading, templateVars) : `Hi ${firstName},`,
@@ -121,11 +152,13 @@ Deno.serve(async (req) => {
         para(
           customBody
             ? interpolateTemplate(customBody, templateVars)
-            : `Your payment of <strong style="color:#2d2520;">£${pricePounds}</strong> has been received and your session is confirmed.`,
+            : `Your payment of <strong style="color:#2d2520;">£${pricePounds}</strong> has been received and your ${
+                isBlock ? `${blockSessions.length}-session block is` : "session is"
+              } confirmed.`,
         ) +
         detailsTable([
-          { label: "Date & time", value: dateStr, bold: true },
-          { label: "Duration", value: `${session.duration_minutes} minutes` },
+          ...dateRows,
+          { label: "Duration", value: `${session.duration_minutes} minutes${isBlock ? " each" : ""}` },
           { label: "Location", value: session.location !== "in_person" ? "Online" : "In person" },
           { label: "Amount paid", value: `£${pricePounds}` },
         ]),
@@ -151,7 +184,9 @@ Deno.serve(async (req) => {
       supabase.from("notifications").insert({
         user_id: session.client_id,
         type: "marked_paid",
-        message: `Your session on ${dateStr} has been marked as paid.`,
+        message: isBlock
+          ? `Your ${blockSessions.length}-session block has been marked as paid.`
+          : `Your session on ${dateStr} has been marked as paid.`,
       }),
     ]);
 

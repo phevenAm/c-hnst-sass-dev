@@ -167,6 +167,7 @@ export function SessionCard({
 
   const {
     toggleNoShowOrPayment,
+    togglePayment,
     markAttended,
     markNoShow,
     restoreSession,
@@ -408,13 +409,7 @@ export function SessionCard({
                   variant="secondary"
                   size="sm"
                   primaryLabel={session.paid ? "Mark as unpaid" : "Mark as paid"}
-                  primaryAction={() => {
-                    if (isDemo) {
-                      showToast("Demo mode — changes are not saved.");
-                      return;
-                    }
-                    dispatch(updateSession({ id: session.id, paid: !session.paid }));
-                  }}
+                  primaryAction={togglePayment}
                   options={[
                     ...(onNotesClick ? [{ label: "Notes", onClick: () => onNotesClick(session.id) }] : []),
                     { label: "Edit", onClick: () => setOpenEditSession(true) },

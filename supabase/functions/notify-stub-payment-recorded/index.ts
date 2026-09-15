@@ -29,6 +29,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
+    const { data: callerProfile } = await supabase.from("users").select("role").eq("id", user.id).single();
+    if (callerProfile?.role !== "admin") {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+    }
+
     const { stub_session_id } = await req.json();
     if (!stub_session_id) {
       return new Response(JSON.stringify({ error: "Missing stub_session_id" }), { status: 400, headers: corsHeaders });
@@ -37,7 +42,7 @@ Deno.serve(async (req) => {
     const { data: ss } = await supabase
       .from("stub_sessions")
       .select(
-        "id, scheduled_at, duration_minutes, location, amount_paid, currency, admin_id, client_stubs(first_name, email)",
+        "id, stub_id, scheduled_at, duration_minutes, location, amount_paid, price_pence, currency, admin_id, metadata, client_stubs(first_name, email)",
       )
       .eq("id", stub_session_id)
       .single();
@@ -51,7 +56,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: "no_email" }), { headers: corsHeaders });
     }
 
-    if (!ss.amount_paid) {
+    // The clicked stub session may be one of several in a block — the "Mark
+    // paid" toggle (StubSessionCard) sets `paid` across every sibling
+    // sharing the same block_id in one query, but only the clicked row gets
+    // an amount_paid. Pull the whole block so the email's total and date
+    // list cover all of it, same as send-payment-notification does for
+    // real-client blocks.
+    const blockId = (ss.metadata as Record<string, unknown> | null)?.block_id;
+    type BlockRow = { scheduled_at: string; amount_paid: number | null; price_pence: number | null };
+    let blockSessions: BlockRow[] = [
+      { scheduled_at: ss.scheduled_at, amount_paid: ss.amount_paid, price_pence: ss.price_pence },
+    ];
+    if (typeof blockId === "string" && blockId) {
+      const { data: siblings } = await supabase
+        .from("stub_sessions")
+        .select("scheduled_at, amount_paid, price_pence")
+        .eq("stub_id", ss.stub_id)
+        .filter("metadata->>block_id", "eq", blockId)
+        .order("scheduled_at", { ascending: true });
+      if (siblings && siblings.length > 0) blockSessions = siblings;
+    }
+    const isBlock = blockSessions.length > 1;
+    const sessionAmount = (s: BlockRow) => s.amount_paid ?? (s.price_pence ?? 0) / 100;
+    const totalAmount = blockSessions.reduce((sum, s) => sum + sessionAmount(s), 0);
+
+    if (!totalAmount) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: "no_amount" }), { headers: corsHeaders });
     }
 
@@ -63,8 +92,10 @@ Deno.serve(async (req) => {
 
     const dateStr = formatDate(ss.scheduled_at);
     const currencySymbol = ss.currency === "GBP" ? "£" : ss.currency === "EUR" ? "€" : "$";
-    const amountFormatted = `${currencySymbol}${Number(ss.amount_paid).toFixed(2)}`;
-    const subject = `Payment confirmed — your session on ${dateStr}`;
+    const amountFormatted = `${currencySymbol}${totalAmount.toFixed(2)}`;
+    const subject = isBlock
+      ? `Payment confirmed — your ${blockSessions.length}-session block`
+      : `Payment confirmed — your session on ${dateStr}`;
     const logBase = {
       adminId: ss.admin_id,
       clientId: null,
@@ -83,16 +114,28 @@ Deno.serve(async (req) => {
     const isOnline = ss.location !== "in_person";
     const counsellorName = ps?.counsellor_name ?? undefined;
 
+    const dateRows = isBlock
+      ? blockSessions.map((s, i) => ({
+          label: i === 0 ? "Sessions" : "",
+          value: formatDate(s.scheduled_at),
+          bold: i === 0,
+        }))
+      : [{ label: "Date & time", value: dateStr, bold: true }];
+
     const html = emailTemplate({
       label: "Payment Confirmed",
       title: `Hi ${firstName},`,
       body:
         para(
-          `Your payment of <strong style="color:#2d2520;">${amountFormatted}</strong> has been received and your session is confirmed.`,
+          `Your payment of <strong style="color:#2d2520;">${amountFormatted}</strong> has been received and your ${
+            isBlock ? `${blockSessions.length}-session block is` : "session is"
+          } confirmed.`,
         ) +
         detailsTable([
-          { label: "Date & time", value: dateStr, bold: true },
-          ...(ss.duration_minutes ? [{ label: "Duration", value: `${ss.duration_minutes} minutes` }] : []),
+          ...dateRows,
+          ...(ss.duration_minutes
+            ? [{ label: "Duration", value: `${ss.duration_minutes} minutes${isBlock ? " each" : ""}` }]
+            : []),
           { label: "Location", value: isOnline ? "Online" : "In person" },
           { label: "Amount paid", value: amountFormatted },
         ]),

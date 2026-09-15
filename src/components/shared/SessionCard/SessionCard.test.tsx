@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import sessionsReducer from "@store/slices/sessionsSlice";
 
 import type { Session } from "@/models/globalTypes";
+import clientStubsReducer from "@/store/slices/clientStubsSlice";
+import userDirectoryReducer from "@/store/slices/userDirectorySlice";
 import { SessionCard } from "./SessionCard";
 
 afterEach(() => {
@@ -54,7 +56,14 @@ const baseSession: Session = {
 } as unknown as Session;
 
 function renderWithStore(ui: React.ReactElement) {
-  const store = configureStore({ reducer: { sessions: sessionsReducer } });
+  // userDirectory + clientStubs: useSessionCard now checks whether the
+  // session's client has an email (useDoesClientHaveEmail) to decide
+  // whether the "mark as paid" toast offers a "Send email" action — that
+  // selector reads both slices, so they need to exist even though this
+  // suite doesn't seed any users/stubs into them.
+  const store = configureStore({
+    reducer: { sessions: sessionsReducer, userDirectory: userDirectoryReducer, clientStubs: clientStubsReducer },
+  });
   return render(<Provider store={store}>{ui}</Provider>);
 }
 
@@ -107,7 +116,10 @@ describe("SessionCard — demo mode", () => {
 
     clickDesktopMarkAsPaid(container);
 
-    expect(mockShowToast).toHaveBeenCalledWith("Updated payment status");
+    // The mock store has no matching user/stub, so useDoesClientHaveEmail
+    // is false and the toast has no "Send email" action — just confirms
+    // the toggle went through as a real (non-demo) write.
+    expect(mockShowToast).toHaveBeenCalledWith("Marked as paid.", "success");
   });
 });
 
