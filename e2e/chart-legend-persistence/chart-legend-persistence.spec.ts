@@ -103,7 +103,7 @@ test("Finance Overview: hiding Income also hides its stat tile, Net, and the don
   test.setTimeout(90_000);
   await login(page, FIXTURES.admin.email, FIXTURES.admin.password);
   await page.goto(`${APP_URL}/admin/finances`, { waitUntil: "load", timeout: 20_000 });
-  await page.getByRole("button", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: "Overview" }).click();
   await page.waitForSelector("text=Income & outgoings", { timeout: 20_000 });
 
   // "Income"/"Net" as plain text collide with the Overview/Income/Invoices/
@@ -134,7 +134,7 @@ test("Finance Overview: hiding Income also hides its stat tile, Net, and the don
     .toEqual(["Income"]);
 
   await page.reload({ waitUntil: "load", timeout: 20_000 });
-  await page.getByRole("button", { name: "Overview" }).click();
+  await page.getByRole("tab", { name: "Overview" }).click();
   await page.waitForSelector("text=Income & outgoings", { timeout: 20_000 });
   await expect(page.getByText("Payments received")).toHaveCount(0, { timeout: 15_000 });
   await expect(page.getByText("Income minus outgoings")).toHaveCount(0);

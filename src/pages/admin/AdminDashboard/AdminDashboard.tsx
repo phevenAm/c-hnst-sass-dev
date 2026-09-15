@@ -41,19 +41,26 @@ type PendingRequest =
   | { kind: "reschedule"; id: string; client_id: string; requested_at: string; created_at: string }
   | { kind: "cancellation"; id: string; client_id: string; created_at: string };
 
-// All three as lines — a Sessions bar shared the chart with two money lines
-// on a 0–4-ish right axis, so at any given point its bar filled nearly the
-// full chart height while Revenue/Outgoings sat low against their much
-// larger left-axis range. A bar's fill draws the eye far harder than a
-// stroke, so that scale mismatch read as the bar swamping the chart even
-// though the numbers were fine — a line doesn't have that problem, it just
-// traces its own small range. Sessions keeps its own right-hand axis rather
-// than sharing the left one, since flattening a 0–4 count onto a 0–1500+
-// money scale would erase all its variation instead.
-const PRACTICE_TRENDS_SERIES: TrendSeries[] = [
+// Revenue/Outgoings (money, lines) used to share one dual-axis chart with
+// Sessions (a count, was tried as both a bar and a line) — a count on its
+// own much smaller axis either filled almost the full chart height (as a
+// bar) or read as visually unrelated to the money lines it sat next to on a
+// totally different scale. Split into its own single-axis chart instead
+// (see .trendsRow in the stylesheet) rather than keep forcing two different
+// kinds of measurement onto one plot.
+// --highlight is the design system's own "second accent" (see _colors.scss)
+// — a warm terracotta reserved for decorative use, explicitly not buttons,
+// which fits a chart line far better than it fit the muddy brown it
+// replaced here.
+const REVENUE_SERIES: TrendSeries[] = [
   { key: "Revenue", name: "Revenue", color: "var(--accent)", kind: "line", valueFormatter: (v) => `£${v.toFixed(2)}` },
-  { key: "Outgoings", name: "Outgoings", color: "#a8633a", kind: "line", valueFormatter: (v) => `£${v.toFixed(2)}` },
-  { key: "Sessions", name: "Sessions", color: "#3a7fa8", kind: "line", axis: "right", valueFormatter: (v) => `${v}` },
+  {
+    key: "Outgoings",
+    name: "Outgoings",
+    color: "var(--highlight)",
+    kind: "line",
+    valueFormatter: (v) => `£${v.toFixed(2)}`,
+  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -183,26 +190,28 @@ export default function AdminDashboard() {
   // weekly (matching the old "Sessions per week" card it's replacing).
   const trend = useTrendControls("week");
 
-  const practiceTrendsData = useMemo(() => {
+  const revenueTrendData = useMemo(() => {
     const revenueRows = [
       ...paidSessionRows(allSessions),
       ...paidStubSessionRows(stubSessions),
       ...paidPaymentRows(manualPayments),
     ];
     const outgoingsRows = expenses.map((e) => ({ date: e.incurred_on, pence: e.amount_pence }));
-    const sessionRows = allSessions.filter((s) => s.status !== "cancelled").map((s) => ({ date: s.scheduled_at }));
 
     const revenue = bucketTrend(revenueRows, trend);
     const outgoings = bucketTrend(outgoingsRows, trend);
-    const sessionCounts = bucketCount(sessionRows, trend);
 
     return revenue.map((r, i) => ({
       label: r.label,
       Revenue: r.value,
       Outgoings: outgoings[i]?.value ?? 0,
-      Sessions: sessionCounts[i]?.value ?? 0,
     }));
   }, [allSessions, stubSessions, manualPayments, expenses, trend]);
+
+  const sessionsTrendData = useMemo(() => {
+    const sessionRows = allSessions.filter((s) => s.status !== "cancelled").map((s) => ({ date: s.scheduled_at }));
+    return bucketCount(sessionRows, trend);
+  }, [allSessions, trend]);
 
   const unpaidSessions = useMemo(
     () =>
@@ -436,17 +445,25 @@ export default function AdminDashboard() {
           <CollapsibleSection title="Practice trends" storageKey="dash:trends">
             <HideableSection id="dashboard-practice-trends">
               <TrendControls state={trend} hideChartType />
-              <TrendChart
-                title="Revenue, outgoings & sessions"
-                data={practiceTrendsData}
-                series={PRACTICE_TRENDS_SERIES}
-                valueFormatter={(v) => `£${v.toFixed(2)}`}
-                leftAxisLabel="£"
-                rightAxisLabel="Sessions"
-                toggleableLegend
-                hiddenKeys={hiddenTrendKeys}
-                onToggleKey={toggleTrendSeries}
-              />
+              <div className={styles.trendsRow}>
+                <TrendChart
+                  title="Sessions"
+                  data={sessionsTrendData}
+                  type="bar"
+                  color="#3a7fa8"
+                  valueFormatter={(v) => `${v}`}
+                />
+                <TrendChart
+                  title="Revenue & outgoings"
+                  data={revenueTrendData}
+                  series={REVENUE_SERIES}
+                  valueFormatter={(v) => `£${v.toFixed(2)}`}
+                  leftAxisLabel="£"
+                  toggleableLegend
+                  hiddenKeys={hiddenTrendKeys}
+                  onToggleKey={toggleTrendSeries}
+                />
+              </div>
             </HideableSection>
           </CollapsibleSection>
         </Card>

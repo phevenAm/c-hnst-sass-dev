@@ -516,3 +516,36 @@
     background: var(--warning-light);
   }
 }
+
+// Revenue/outgoings (money, lines) and Sessions (a count, bar) used to share
+// one dual-axis chart — a count on a 0–4-ish axis filled almost the full
+// chart height next to money lines sitting low on their own much larger
+// range, which read as the bar swamping the chart regardless of the actual
+// numbers. Two charts side by side instead: DOM order is Sessions first so
+// a narrow mobile viewport (no `from-md` row) stacks it on top; the `order`
+// swap below only kicks in once there's room for both side by side, putting
+// Sessions on the right.
+.trendsRow {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+
+  // A raw breakpoint rather than the from-md mixin — two charts side by
+  // side need more room than the mixin's cutoff gives them before the
+  // narrower one starts cramping.
+  @media (min-width: 1020px) {
+    flex-direction: row;
+    align-items: stretch;
+
+    > :first-child {
+      order: 2;
+      flex: 0 0 clamp(220px, 28%, 320px);
+    }
+
+    > :last-child {
+      order: 1;
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}

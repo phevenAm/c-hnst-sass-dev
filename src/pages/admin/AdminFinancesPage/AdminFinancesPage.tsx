@@ -57,7 +57,10 @@ const PERIODS: { key: Period; label: string }[] = [
 // "provisional", vs. Income/Outgoings' settled solid lines.
 const OVERVIEW_SERIES: TrendSeries[] = [
   { key: "Income", name: "Income", color: "var(--accent)" },
-  { key: "Outgoings", name: "Outgoings", color: "#a8633a" },
+  // --highlight is the design system's own "second accent" (a warm
+  // terracotta reserved for decorative use, not buttons) — matches the
+  // same swap on the Dashboard's Revenue/Outgoings chart.
+  { key: "Outgoings", name: "Outgoings", color: "var(--highlight)" },
   // A distinct blue, not another orange/brown — Outgoings already owns that
   // band and sat too close to Owed's old olive tone to tell apart at a glance.
   { key: "Owed", name: "Owed / overdue", color: "#3a7fa8", dashed: true },
@@ -306,7 +309,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
           title="Income vs outgoings"
           slices={[
             ...(incomeHidden ? [] : [{ name: "Income", value: incomePence / 100, color: "var(--accent)" }]),
-            ...(outgoingsHidden ? [] : [{ name: "Outgoings", value: outgoingsPence / 100, color: "#a8633a" }]),
+            ...(outgoingsHidden ? [] : [{ name: "Outgoings", value: outgoingsPence / 100, color: "var(--highlight)" }]),
           ]}
           centerValue={money(netHidden ? donutSoloPence : netPence)}
           centerLabel={netHidden ? donutSoloLabel : "net"}

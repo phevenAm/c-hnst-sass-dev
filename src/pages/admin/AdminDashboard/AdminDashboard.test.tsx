@@ -66,13 +66,18 @@ describe("AdminDashboard", () => {
     expect(screen.queryByRole("heading", { name: "Welcome, Sam" })).not.toBeInTheDocument();
   });
 
-  it("shows one combined revenue/outgoings/sessions chart under Practice trends, not three separate ones", async () => {
+  // Revenue/Outgoings (money, lines) and Sessions (a count, a bar) used to
+  // share one dual-axis chart — a count on its own much smaller axis either
+  // swamped the chart as a bar or read as unrelated to the money lines next
+  // to it on a totally different scale either way. Split into two
+  // single-axis charts instead (see AdminDashboard.module.scss .trendsRow
+  // for how they lay out side by side on desktop / stacked on mobile).
+  it("shows Revenue & outgoings and Sessions as two separate charts under Practice trends, not one combined one", async () => {
     renderPage();
     await screen.findByRole("heading", { name: "Welcome, Sam" });
-    expect(screen.getByText("Revenue, outgoings & sessions")).toBeInTheDocument();
-    expect(screen.queryByText(/^Revenue \(last/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Outgoings \(last/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Sessions per week")).not.toBeInTheDocument();
+    expect(screen.getByText("Revenue & outgoings")).toBeInTheDocument();
+    expect(screen.getByText("Sessions")).toBeInTheDocument();
+    expect(screen.queryByText("Revenue, outgoings & sessions")).not.toBeInTheDocument();
   });
 
   it("defaults the Practice trends granularity to weekly", async () => {
