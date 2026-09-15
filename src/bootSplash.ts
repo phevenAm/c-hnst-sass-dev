@@ -110,6 +110,37 @@ function setCaption(root: HTMLElement, text: string): void {
   p.textContent = text;
 }
 
+function setSubcaption(root: HTMLElement, text: string): void {
+  let p = root.querySelector<HTMLParagraphElement>("#boot-splash-subcaption");
+  if (!p) {
+    p = document.createElement("p");
+    p.id = "boot-splash-subcaption";
+    p.style.cssText =
+      "margin:0;max-width:280px;text-align:center;" +
+      "font:500 13px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" +
+      `letter-spacing:0.01em;opacity:0.7;color:${captionColor()};`;
+    root.appendChild(p);
+  }
+  p.textContent = text;
+}
+
+// Both real-world hangs seen here so far — the auth-init lock stall
+// (AuthContext's own hard ceiling is REQUEST_TIMEOUT_MS + LOCK_OVERHEAD_MS in
+// lib/supabase.ts, ~25s) and a stuck service-worker update — leave the splash
+// on screen with zero feedback. This adds a second line once it's been up
+// long enough to be abnormal rather than just "a bit slow." Timer dies for
+// free on a successful reload (the JS context goes with it); the cold-boot
+// path clears it explicitly in finish() below.
+const SLOW_WARNING_MS = 30_000;
+const SLOW_WARNING_TEXT = "Taking longer than usual — check your connection, and make sure a VPN isn't interfering.";
+
+let slowWarnTimer: ReturnType<typeof setTimeout> | undefined;
+
+function armSlowWarning(root: HTMLElement): void {
+  clearTimeout(slowWarnTimer);
+  slowWarnTimer = setTimeout(() => setSubcaption(root, SLOW_WARNING_TEXT), SLOW_WARNING_MS);
+}
+
 // Paints the hero sapling splash over the whole app, with an optional
 // caption. Plain DOM (not React) on purpose: it has to paint instantly and
 // survive right up to a navigation. No-ops in SSR. If app.html's cold-load
@@ -121,6 +152,7 @@ export function showSplash(text?: string): void {
   const existing = document.getElementById("boot-splash");
   if (existing) {
     if (text) setCaption(existing, text);
+    armSlowWarning(existing);
     return;
   }
 
@@ -148,6 +180,7 @@ export function showSplash(text?: string): void {
   if (text) setCaption(root, text);
 
   document.body.appendChild(root);
+  armSlowWarning(root);
 
   const svg = root.querySelector<SVGSVGElement>("svg");
   if (prefersReducedMotion()) freezeSapling(svg);
@@ -165,9 +198,12 @@ function boot() {
   let authReady = !!window.__authReady;
   let finished = false;
 
+  armSlowWarning(root);
+
   const finish = () => {
     if (finished) return;
     finished = true;
+    clearTimeout(slowWarnTimer);
     root.style.transition = `opacity ${FADE_MS}ms ease`;
     root.style.opacity = "0";
     root.style.pointerEvents = "none";
