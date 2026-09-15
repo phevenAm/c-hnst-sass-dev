@@ -2,16 +2,17 @@
 // be unit-tested with vitest (index.ts is Deno/HTTP glue and imports
 // _shared/email.ts, which touches Deno.env at load time).
 
-export type LifecycleEvent = "deactivated" | "reactivated" | "closed";
+export type LifecycleEvent = "deactivated" | "reactivated" | "closed" | "deleted";
 
 export const LIFECYCLE_EMAIL_TYPE: Record<LifecycleEvent, string> = {
   deactivated: "account_deactivated",
   reactivated: "account_reactivated",
   closed: "account_closed",
+  deleted: "account_deleted",
 };
 
 export function isValidEvent(value: unknown): value is LifecycleEvent {
-  return value === "deactivated" || value === "reactivated" || value === "closed";
+  return value === "deactivated" || value === "reactivated" || value === "closed" || value === "deleted";
 }
 
 /**
@@ -71,13 +72,25 @@ export function buildLifecycleEmail(opts: {
     };
   }
 
+  if (opts.event === "closed") {
+    return {
+      label: "Account closed",
+      subject: "Your account has been closed",
+      title: `Hi ${name}, your account is now closed`,
+      paras: ["This confirms your account has been closed at your request. Your login has been removed."],
+      notes: [
+        "Your personal details have been anonymised. Your practitioner keeps an anonymised record of your sessions and payments — identified only by a codename — for as long as their professional guidelines require.",
+      ],
+    };
+  }
+
   return {
-    label: "Account closed",
-    subject: "Your account has been closed",
-    title: `Hi ${name}, your account is now closed`,
-    paras: ["This confirms your account has been closed at your request. Your login has been removed."],
-    notes: [
-      "Your personal details have been anonymised. Your practitioner keeps an anonymised record of your sessions and payments — identified only by a codename — for as long as their professional guidelines require.",
+    label: "Account deleted",
+    subject: "Your account has been deleted",
+    title: `Hi ${name}, your account has been deleted`,
+    paras: [
+      "Your practitioner has permanently deleted your account. Your login, sessions, notes and payment history have all been removed and cannot be recovered.",
     ],
+    notes: ["If you believe this was a mistake, please contact your practitioner directly."],
   };
 }

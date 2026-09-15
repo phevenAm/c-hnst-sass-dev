@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import { buildLifecycleEmail, isValidEvent, LIFECYCLE_EMAIL_TYPE, lifecycleSkipReason } from "./lifecycleEmail";
 
 describe("isValidEvent", () => {
-  it("accepts the three lifecycle events", () => {
+  it("accepts the four lifecycle events", () => {
     expect(isValidEvent("deactivated")).toBe(true);
     expect(isValidEvent("reactivated")).toBe(true);
     expect(isValidEvent("closed")).toBe(true);
+    expect(isValidEvent("deleted")).toBe(true);
   });
 
   it("rejects anything else", () => {
@@ -90,6 +91,15 @@ describe("buildLifecycleEmail", () => {
     expect(buildLifecycleEmail({ event: "closed", firstName: null }).title).toContain("there");
     expect(buildLifecycleEmail({ event: "closed", firstName: "   " }).title).toContain("there");
   });
+
+  it("deleted: no CTA, says the deletion is permanent, doesn't claim anonymisation", () => {
+    const c = buildLifecycleEmail({ event: "deleted", firstName: "Jane" });
+    expect(c.subject).toBe("Your account has been deleted");
+    expect(c.title).toContain("Jane");
+    expect(c.cta).toBeUndefined();
+    expect(c.paras.join(" ")).toMatch(/permanently deleted/i);
+    expect(c.paras.join(" ") + c.notes.join(" ")).not.toMatch(/anonymised/i);
+  });
 });
 
 describe("LIFECYCLE_EMAIL_TYPE", () => {
@@ -98,6 +108,7 @@ describe("LIFECYCLE_EMAIL_TYPE", () => {
       deactivated: "account_deactivated",
       reactivated: "account_reactivated",
       closed: "account_closed",
+      deleted: "account_deleted",
     });
   });
 });

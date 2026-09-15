@@ -66,6 +66,7 @@ const ClientSchedule = lazyWithReload(() => import("../pages/client/ClientSchedu
 const RcadsAssessmentPage = lazyWithReload(() => import("../pages/client/RcadsAssessmentPage/RcadsAssessmentPage"));
 const ResourcesPage = lazyWithReload(() => import("../pages/client/ResourcesPage/ResourcesPage"));
 const AdminSetupPage = lazyWithReload(() => import("../pages/common/AdminSetupPage/AdminSetupPage"));
+const WelcomePage = lazyWithReload(() => import("../pages/common/WelcomePage/WelcomePage"));
 const CounsellorSignupPage = lazyWithReload(() => import("../pages/common/CounsellorSignupPage/CounsellorSignupPage"));
 const DemoPage = lazyWithReload(() => import("../pages/common/DemoPage/DemoPage"));
 const HelpSupportPage = lazyWithReload(() => import("../pages/common/HelpSupportPage/HelpSupportPage"));
@@ -456,6 +457,20 @@ export default function AppRoutes() {
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <AdminSetupPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Standalone — Stripe's success_url lands here, not /admin
+                  directly. SubscriptionGate still owns the ?subscribed=true
+                  webhook-verification wait, same as it does for /admin. */}
+              <Route
+                path="/admin/welcome"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <SubscriptionGate>
+                      <WelcomePage />
+                    </SubscriptionGate>
                   </ProtectedRoute>
                 }
               />

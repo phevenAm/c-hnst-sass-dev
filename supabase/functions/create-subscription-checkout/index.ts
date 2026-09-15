@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
 
     console.log("Creating Stripe Checkout session");
     console.log("Price:", priceId);
-    console.log("Success URL:", `${cleanAppUrl}/admin?subscribed=true`);
+    console.log("Success URL:", `${cleanAppUrl}/admin/welcome?subscribed=true`);
     console.log("Cancel URL:", `${cleanAppUrl}/subscribe`);
 
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: `${cleanAppUrl}/admin?subscribed=true`,
+      success_url: `${cleanAppUrl}/admin/welcome?subscribed=true`,
       cancel_url: `${cleanAppUrl}/subscribe`,
       metadata: {
         admin_id: user.id,
