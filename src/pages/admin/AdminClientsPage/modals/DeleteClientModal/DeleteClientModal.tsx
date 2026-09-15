@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
@@ -19,11 +19,20 @@ export default function DeleteClientModal({
   modalTitle = "Delete user",
 }: DeleteClientModalProps) {
   const dispatch = useAppDispatch();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConfirm = async () => {
-    await dispatch(deleteUser(id)).unwrap();
-    //!how to use unwrapp?
-    onClose();
+    setDeleting(true);
+    setError(null);
+    try {
+      await dispatch(deleteUser(id)).unwrap();
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete user", err);
+      setError("Something went wrong. Please try again.");
+      setDeleting(false);
+    }
   };
 
   return (
@@ -32,17 +41,18 @@ export default function DeleteClientModal({
       onClose={onClose}
       actions={
         <>
-          <Button variant="primary" onClick={onClose} aria-label="cancel user deletion">
+          <Button variant="primary" onClick={onClose} aria-label="cancel user deletion" disabled={deleting}>
             Cancel
           </Button>
 
-          <Button variant="danger" onClick={handleConfirm} aria-label="confirm user deletion">
-            Delete
+          <Button variant="danger" onClick={handleConfirm} aria-label="confirm user deletion" disabled={deleting}>
+            {deleting ? "Deleting…" : "Delete"}
           </Button>
         </>
       }
     >
       <p>{bodyText}</p>
+      {error && <p style={{ color: "var(--error)", marginTop: "0.5rem" }}>{error}</p>}
     </Modal>
   );
 }
