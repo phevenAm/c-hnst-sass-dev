@@ -304,9 +304,14 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
     >
       <div className={styles.form}>
         {STEP_LABELS.length > 1 && (
-          <p className={styles.stepHeader}>
-            Step {step + 1} of {STEP_LABELS.length} · {STEP_LABELS[step]}
-          </p>
+          <>
+            <div className={styles.stepDots} aria-label={`Step ${step + 1} of ${STEP_LABELS.length}`}>
+              {STEP_LABELS.map((label, i) => (
+                <div key={label} className={`${styles.stepDot} ${step >= i ? styles.stepDotActive : ""}`} />
+              ))}
+            </div>
+            <h3 className={styles.stepHeading}>{STEP_LABELS[step]}</h3>
+          </>
         )}
 
         {step === 0 && (
