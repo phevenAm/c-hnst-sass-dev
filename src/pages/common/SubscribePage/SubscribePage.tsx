@@ -94,7 +94,7 @@ const PLAN_ORDER: Plan[] = ["starter", "growth", "unlimited"];
 export default function SubscribePage() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut, practiceSettings, loading: authLoading } = useAuth();
 
   // Agency-managed counsellors are billed at the agency level (staff-count
   // tiers) — there is nothing for them to buy here. SubscriptionGate already
@@ -192,6 +192,22 @@ export default function SubscribePage() {
   // before their membership loads, then send them back to their workspace.
   if (agencyStatus !== "loading" && agencyStatus !== "idle" && isAgencyMember) {
     return <Navigate to={isAgencyManager ? "/agency" : "/admin"} replace />;
+  }
+
+  // An already-subscribed admin landing here directly (a stale bookmark, the
+  // browser back button after checkout, retyping the URL) shouldn't be shown
+  // the pay page again — SubscriptionGate only stops them being *forced*
+  // here when the subscription lapses, it doesn't stop a direct visit.
+  // subscribed=true is excluded: SubscriptionGate is still mid-verification
+  // (waiting on the webhook) for that case and owns the redirect once it
+  // resolves — bouncing on stale practiceSettings here would race it.
+  if (
+    !authLoading &&
+    practiceSettings &&
+    searchParams.get("subscribed") !== "true" &&
+    (practiceSettings.subscription_status === "active" || practiceSettings.subscription_status === "trialing")
+  ) {
+    return <Navigate to={practiceSettings.onboarding_required ? "/admin/setup" : "/admin"} replace />;
   }
 
   return (
