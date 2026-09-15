@@ -180,12 +180,25 @@ export function previewSessionReminder(customBody?: string, hoursBefore = 120, h
   });
 }
 
-export function previewSessionBooked(): string {
+// customBody's {{tokens}} mirror what the sending edge function interpolates
+// (see notify-session-booked et al) — name/date/location/duration, plus
+// amount for the payment template. A custom body replaces just the intro
+// paragraph; the details table below it always stays.
+function interpolate(text: string, vars: Record<string, string>): string {
+  let out = text;
+  for (const [token, value] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`\\{\\{${token}\\}\\}`, "gi"), value);
+  }
+  return out;
+}
+
+export function previewSessionBooked(customBody?: string, heading?: string): string {
+  const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, location: "Online", duration: "50 minutes" };
   return emailTemplate({
     label: "Session Confirmed",
-    title: `Hi ${EXAMPLE_NAME}, your session is booked`,
+    title: heading ? interpolate(heading, vars) : `Hi ${EXAMPLE_NAME}, your session is booked`,
     body:
-      para("Your session has been confirmed. Here are the details:") +
+      para(customBody ? interpolate(customBody, vars) : "Your session has been confirmed. Here are the details:") +
       detailsTable([
         { label: "Date & time", value: EXAMPLE_DATE, bold: true },
         { label: "Duration", value: "50 minutes" },
@@ -200,12 +213,13 @@ export function previewSessionBooked(): string {
   });
 }
 
-export function previewSessionCancelled(): string {
+export function previewSessionCancelled(customBody?: string, heading?: string): string {
+  const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, location: "Online", duration: "50 minutes" };
   return emailTemplate({
     label: "Session Cancelled",
-    title: `Hi ${EXAMPLE_NAME}, your session has been cancelled`,
+    title: heading ? interpolate(heading, vars) : `Hi ${EXAMPLE_NAME}, your session has been cancelled`,
     body:
-      para("The following session has been cancelled:") +
+      para(customBody ? interpolate(customBody, vars) : "The following session has been cancelled:") +
       detailsTable([
         { label: "Date & time", value: EXAMPLE_DATE, bold: true },
         { label: "Duration", value: "50 minutes" },
@@ -216,12 +230,13 @@ export function previewSessionCancelled(): string {
   });
 }
 
-export function previewSessionRescheduled(): string {
+export function previewSessionRescheduled(customBody?: string, heading?: string): string {
+  const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, location: "Online", duration: "50 minutes" };
   return emailTemplate({
     label: "Session Rescheduled",
-    title: `Hi ${EXAMPLE_NAME}, your session has been rescheduled`,
+    title: heading ? interpolate(heading, vars) : `Hi ${EXAMPLE_NAME}, your session has been rescheduled`,
     body:
-      para("Your session has been moved to a new time:") +
+      para(customBody ? interpolate(customBody, vars) : "Your session has been moved to a new time:") +
       detailsTable([
         { label: "New date & time", value: EXAMPLE_DATE, bold: true },
         { label: "Duration", value: "50 minutes" },
@@ -233,13 +248,16 @@ export function previewSessionRescheduled(): string {
   });
 }
 
-export function previewPaymentReceived(): string {
+export function previewPaymentReceived(customBody?: string, heading?: string): string {
+  const vars = { name: EXAMPLE_NAME, date: EXAMPLE_DATE, amount: "£60.00" };
   return emailTemplate({
     label: "Payment Confirmed",
-    title: `Hi ${EXAMPLE_NAME},`,
+    title: heading ? interpolate(heading, vars) : `Hi ${EXAMPLE_NAME},`,
     body:
       para(
-        `Your payment of <strong style="color:#2d2520;">£60.00</strong> has been received for a session on ${EXAMPLE_DATE}.`,
+        customBody
+          ? interpolate(customBody, vars)
+          : `Your payment of <strong style="color:#2d2520;">£60.00</strong> has been received for a session on ${EXAMPLE_DATE}.`,
       ) +
       detailsTable([
         { label: "Amount paid", value: "£60.00" },

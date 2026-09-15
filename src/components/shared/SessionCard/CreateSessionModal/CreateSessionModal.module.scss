@@ -127,6 +127,32 @@
   margin: 0;
 }
 
+// Step wizard — same step-dots pattern as AdminSetupPage/SignUpPage.
+.stepDots {
+  display: flex;
+  justify-content: center;
+  gap: $sp-2;
+}
+
+.stepDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--transition-base);
+}
+
+.stepDotActive {
+  background: var(--accent);
+}
+
+.stepHeading {
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
 .settingsLink {
   display: inline-block;
   margin-top: 0.4rem;

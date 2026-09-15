@@ -28,7 +28,7 @@ const STATUS_FILTERS: (AgencyInvoiceStatus | "all")[] = ["all", "draft", "sent",
 const memberName = (m: AgencyMemberWithUser | undefined) =>
   m ? m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Member" : "Former staff";
 
-export default function AgencyInvoicesPage() {
+export default function AgencyInvoicesPage({ embedded = false }: { embedded?: boolean } = {}) {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
   const isManager = useAppSelector(selectIsAgencyManager);
@@ -63,7 +63,7 @@ export default function AgencyInvoicesPage() {
     return { outstanding, overdue, paidThisYear, year };
   }, [invoices]);
 
-  if (!isManager) return <Navigate to="/agency/incoming" replace />;
+  if (!isManager && !embedded) return <Navigate to="/agency/incoming" replace />;
 
   const activeMembers = members.filter((m) => m.status === "active");
 
@@ -97,12 +97,14 @@ export default function AgencyInvoicesPage() {
   return (
     <div>
       <div className={styles.header} id="agency-invoices-header">
-        <div>
-          <h1 className={styles.title}>Invoices</h1>
-          <p className={styles.subtitle}>
-            What staff owe the agency — seat fees, referrals, anything you bill them for.
-          </p>
-        </div>
+        {!embedded && (
+          <div>
+            <h1 className={styles.title}>Invoices</h1>
+            <p className={styles.subtitle}>
+              What staff owe the agency — seat fees, referrals, anything you bill them for.
+            </p>
+          </div>
+        )}
         <Button onClick={() => setModalOpen(true)} disabled={activeMembers.length === 0}>
           New invoice
         </Button>

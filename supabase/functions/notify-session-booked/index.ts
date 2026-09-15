@@ -2,7 +2,16 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { postAgencyTeamsCard } from "../_shared/agencyTeams.ts";
-import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
+import {
+  detailsTable,
+  emailTemplate,
+  formatDate,
+  interpolateTemplate,
+  logEmail,
+  noteBox,
+  para,
+  sendEmail,
+} from "../_shared/email.ts";
 
 const EMAIL_TYPE = "session_booked";
 
@@ -57,17 +66,36 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422, headers: corsHeaders });
     }
 
-    const subject = `Your session is confirmed`;
+    const firstName = clientProfile?.first_name ?? "there";
+    const dateStr = formatDate(session.scheduled_at);
+    const isOnline = session.location !== "in_person";
+    const pricePounds = session.price_pence ? `£${(session.price_pence / 100).toFixed(2)}` : null;
+    const templateVars = {
+      name: firstName,
+      date: dateStr,
+      location: isOnline ? "Online" : "In person",
+      duration: `${session.duration_minutes} minutes`,
+    };
+
+    let subject = `Your session is confirmed`;
     let counsellorName: string | undefined;
+    let customBody: string | undefined;
+    let customHeading: string | undefined;
 
     if (clientProfile?.admin_id) {
       const { data: ps } = await supabase
         .from("practice_settings")
-        .select("disabled_email_types, counsellor_name")
+        .select(
+          "disabled_email_types, counsellor_name, session_booked_email_subject, session_booked_email_body, session_booked_email_heading",
+        )
         .eq("admin_id", clientProfile.admin_id)
         .maybeSingle();
 
       counsellorName = ps?.counsellor_name ?? undefined;
+      customBody = ps?.session_booked_email_body ?? undefined;
+      customHeading = ps?.session_booked_email_heading ?? undefined;
+      if (ps?.session_booked_email_subject)
+        subject = interpolateTemplate(ps.session_booked_email_subject, templateVars);
 
       if ((ps?.disabled_email_types ?? []).includes(EMAIL_TYPE)) {
         await logEmail(supabase, {
@@ -96,11 +124,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
     }
 
-    const firstName = clientProfile?.first_name ?? "there";
-    const dateStr = formatDate(session.scheduled_at);
-    const isOnline = session.location !== "in_person";
-    const pricePounds = session.price_pence ? `£${(session.price_pence / 100).toFixed(2)}` : null;
-
     const unsubscribeUrl = clientProfile?.unsubscribe_token
       ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${EMAIL_TYPE}`
       : undefined;
@@ -115,9 +138,15 @@ Deno.serve(async (req) => {
 
     const html = emailTemplate({
       label: "Session Confirmed",
-      title: `Hi ${firstName}, your session is booked`,
+      title: customHeading
+        ? interpolateTemplate(customHeading, templateVars)
+        : `Hi ${firstName}, your session is booked`,
       body:
-        para("Your session has been confirmed. Here are the details:") +
+        para(
+          customBody
+            ? interpolateTemplate(customBody, templateVars)
+            : "Your session has been confirmed. Here are the details:",
+        ) +
         detailsTable(tableRows) +
         noteBox(
           "If you need to cancel or reschedule, please do so at least 48 hours in advance through your client portal.",

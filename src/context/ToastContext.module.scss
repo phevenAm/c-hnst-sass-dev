@@ -38,4 +38,60 @@
     color: var(--text-primary);
 
   }
+
+  // A toast carrying a button needs to be clickable — plain status toasts
+  // stay click-through (pointer-events: none above) since they cover a
+  // fixed strip of the header area and dismiss themselves either way.
+  // It also stays up much longer (see ACTION_DURATION_MS) and needs to
+  // actually get noticed in that time, not just blend into the usual
+  // one-line status ticker — bigger, weightier, and its own pop-in beat.
+  &.hasAction {
+    pointer-events: auto;
+    border-radius: var(--r-lg);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px 12px 22px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-xl);
+    animation: slideDownPop 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+.toastAction {
+  flex-shrink: 0;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  border: none;
+  padding: 8px 14px;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: var(--r-full);
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, currentColor 28%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+@keyframes slideDownPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 2px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }

@@ -3,9 +3,9 @@ import { useMemo } from "react";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import CreateOutlinedIcon from "@mui/icons-material/CreateOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import CreditScoreOutlinedIcon from "@mui/icons-material/CreditScoreOutlined";
@@ -543,7 +543,23 @@ export const DocumentIcon = () => <ArticleOutlinedIcon />;
 
 export const FolderIcon = () => <FolderOutlinedIcon />;
 export const FolderOpenIcon = () => <FolderOpenOutlinedIcon />;
-export const NewFolderIcon = () => <CreateNewFolderOutlinedIcon />;
+export const NewFolderIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <line x1="12" y1="10.5" x2="12" y2="15.5" />
+    <line x1="9.5" y1="13" x2="14.5" y2="13" />
+  </svg>
+);
 export const UploadIcon = () => <FileUploadOutlinedIcon />;
 export const FileGenericIcon = () => <InsertDriveFileOutlinedIcon />;
 export const ImageFileIcon = () => <ImageOutlinedIcon />;
@@ -752,5 +768,6 @@ export const SupervisionLogo = () => <AdminPanelSettingsOutlinedIcon />;
 export const CpdIcon = () => <WebStoriesOutlinedIcon />;
 export const CreateSession = () => <InsertInvitationIcon />;
 export const AssignmentClipIcon = () => <AssignmentOutlinedIcon />;
+export const StaffIcon = () => <BadgeOutlinedIcon />;
 
 export const MegaphoneIcon = () => <CampaignOutlinedIcon />;

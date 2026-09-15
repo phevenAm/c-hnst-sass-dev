@@ -105,7 +105,7 @@ export default function AgencyOverviewPage() {
     );
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-overview-header">
         <div>
           <h1 className={styles.title}>{agency?.name}</h1>

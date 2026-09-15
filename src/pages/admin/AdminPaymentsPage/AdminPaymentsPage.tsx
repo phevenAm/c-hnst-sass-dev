@@ -14,6 +14,7 @@ import { Button } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
+import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
 import type { Session, StubSession } from "@/models/globalTypes";
@@ -136,6 +137,7 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
   const navigate = useNavigate();
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
+  const offerPaymentEmail = usePaymentConfirmationToast();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
   const [selectedClientId, setSelectedClientId] = useState("all");
@@ -448,7 +450,7 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  const handleMarkPaid = async (e: React.MouseEvent, sessionId: string) => {
+  const handleMarkPaid = async (e: React.MouseEvent, sessionId: string, clientId: string | null) => {
     e.stopPropagation();
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
@@ -456,7 +458,8 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
     }
     await dispatch(updateSession({ id: sessionId, paid: true })).unwrap();
     await loadLedgerPage();
-    showToast("Session marked as paid.");
+    const hasEmail = Boolean(clients.find((c) => c.id === clientId)?.email);
+    offerPaymentEmail(hasEmail, { type: "session", sessionId }, "Session marked as paid.");
   };
 
   const handleMarkUnpaid = async (e: React.MouseEvent, sessionId: string) => {
@@ -622,7 +625,7 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
         // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops the row-click from firing when an action button is used; the buttons are the real controls
         <div className={styles.actionsCell} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
           {!r.isPaid && r.source === "session" && (
-            <Button size="sm" variant="ghost" onClick={(e) => handleMarkPaid(e, r.id)}>
+            <Button size="sm" variant="ghost" onClick={(e) => handleMarkPaid(e, r.id, r.clientId)}>
               Mark paid
             </Button>
           )}

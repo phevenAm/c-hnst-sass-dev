@@ -14,7 +14,6 @@ import {
   BookIcon,
   CalendarIcon,
   ChatIcon,
-  ChevronDownSmIcon,
   CpdIcon,
   FolderIcon,
   HistoryIcon,
@@ -27,11 +26,14 @@ import {
   UsersIcon,
 } from "../Icons/Icons";
 import SidebarCollapseButton from "../SidebarCollapseButton/SidebarCollapseButton";
+import SidebarNavGroup, { type SidebarNavGroupClasses, type SidebarNavLeaf } from "../SidebarNavGroup/SidebarNavGroup";
+import SidebarNavItem, { type SidebarNavItemClasses } from "../SidebarNavItem/SidebarNavItem";
+import { SIDEBAR_MOBILE_QUERY } from "../sidebarBreakpoint";
 
 import styles from "./AdminSidebar.module.scss";
 
 type NavLeaf = { to: string; label: string; Icon: React.ComponentType; exact: boolean };
-type NavGroup = { label: string; Icon: React.ComponentType; children: Omit<NavLeaf, "exact">[] };
+type NavGroup = { label: string; Icon: React.ComponentType; children: SidebarNavLeaf[] };
 type NavItem = NavLeaf | NavGroup;
 
 const isGroup = (item: NavItem): item is NavGroup => "children" in item;
@@ -58,7 +60,28 @@ const NAV: NavItem[] = [
   },
 ];
 
-const LOG_PATHS = ["/admin/cpd", "/admin/supervision"];
+// Same shared components AgencyLayout builds its nav from (SidebarNavGroup /
+// SidebarNavItem) — group flyout/hover-intent/collapse behaviour lives in
+// exactly one place now, not hand-rolled separately per sidebar.
+const adminItemCx: SidebarNavItemClasses = {
+  link: styles.navLink,
+  icon: styles.icon,
+  label: styles.label,
+};
+
+const adminGroupCx: SidebarNavGroupClasses = {
+  group: styles.groupItem,
+  row: styles.groupBtn,
+  rowActive: styles.groupActive,
+  icon: styles.icon,
+  label: styles.label,
+  chevron: styles.groupChevron,
+  chevronOpen: styles.groupChevronOpen,
+  children: styles.groupChildren,
+  childrenOpen: styles.groupChildrenOpen,
+  childLink: styles.childLink,
+  childActive: styles.active,
+};
 
 export default function AdminSidebar({
   collapsed,
@@ -85,97 +108,19 @@ export default function AdminSidebar({
     return at === -1 ? [...NAV, files] : [...NAV.slice(0, at + 1), files, ...NAV.slice(at + 1)];
   }, [hasFileManager]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const [logsOpen, setLogsOpen] = useState(() => LOG_PATHS.some((p) => location.pathname.startsWith(p)));
-  const [flyoutTop, setFlyoutTop] = useState(0);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(SIDEBAR_MOBILE_QUERY).matches);
 
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const groupBtnRef = useRef<HTMLButtonElement>(null);
-  const flyoutListRef = useRef<HTMLUListElement>(null);
-  const closeTimer = useRef<number | undefined>(undefined);
-  const firstChildRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    const mq = window.matchMedia(SIDEBAR_MOBILE_QUERY);
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   const isFlyoutMode = collapsed || (isMobile && !isOpen);
-
-  useEffect(() => {
-    if (!isFlyoutMode && LOG_PATHS.some((p) => location.pathname.startsWith(p))) {
-      setLogsOpen(true);
-    }
-  }, [location.pathname, isFlyoutMode]);
-
-  useEffect(() => {
-    if (collapsed) setLogsOpen(false);
-  }, [collapsed]);
-
-  useEffect(() => {
-    if (isMobile && !isOpen) setLogsOpen(false);
-  }, [isMobile, isOpen]);
-
-  // Close flyout on outside tap — more reliable than onBlur on iOS
-  useEffect(() => {
-    if (!logsOpen || !isFlyoutMode) return;
-    const handler = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node;
-      if (!flyoutListRef.current?.contains(target) && !groupBtnRef.current?.contains(target)) {
-        setLogsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler, { passive: true });
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("touchstart", handler);
-    };
-  }, [logsOpen, isFlyoutMode]);
-
-  const isActive = (to: string, exact: boolean) =>
-    exact ? location.pathname === to : location.pathname.startsWith(to);
-
-  const openFlyout = () => {
-    window.clearTimeout(closeTimer.current);
-    if (groupBtnRef.current) setFlyoutTop(groupBtnRef.current.getBoundingClientRect().top);
-    setLogsOpen(true);
-  };
-
-  // Grace period on leave so the pointer can cross the gap between the collapsed
-  // rail and the fixed-position flyout without it snapping shut. Re-entering the
-  // button OR the flyout cancels it (openFlyout clears the timer).
-  const scheduleCloseFlyout = () => {
-    window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => setLogsOpen(false), 180);
-  };
-
-  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
-
-  const handleGroupClick = () => {
-    if (!logsOpen && isFlyoutMode && groupBtnRef.current) {
-      setFlyoutTop(groupBtnRef.current.getBoundingClientRect().top);
-    }
-    setLogsOpen((v) => !v);
-  };
-
-  // Hover to open the flyout ONLY on a real pointer (desktop, collapsed rail).
-  // On touch, mobile browsers synthesise mouseenter on tap — combined with the
-  // click toggle that meant "tap once to open, tap again because the first tap
-  // opened-then-closed". Touch gets click-only (handleGroupClick).
-  const hoverFlyout = collapsed && !isMobile;
-  const groupHoverProps = hoverFlyout
-    ? {
-        onMouseEnter: openFlyout,
-        onMouseLeave: scheduleCloseFlyout,
-        onFocus: openFlyout,
-        onBlur: (e: React.FocusEvent<HTMLLIElement>) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setLogsOpen(false);
-        },
-      }
-    : {};
 
   return (
     <>
@@ -194,83 +139,45 @@ export default function AdminSidebar({
         </div>
 
         <nav aria-label="Admin pages" className={styles.nav}>
-          <ul className={styles.navList}>
-            {nav.map((item) => {
-              if (isGroup(item)) {
-                const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
-                return (
-                  <li key={item.label} className={styles.groupItem} {...groupHoverProps}>
-                    <button
-                      ref={groupBtnRef}
-                      type="button"
-                      className={`${styles.groupBtn} ${anyChildActive ? styles.groupActive : ""}`}
-                      onClick={handleGroupClick}
-                      title={collapsed ? item.label : undefined}
-                      aria-expanded={logsOpen}
-                    >
-                      <span className={styles.icon}>
-                        <item.Icon />
-                      </span>
-                      <span className={styles.label}>{item.label}</span>
-                      <span className={`${styles.groupChevron} ${logsOpen ? styles.groupChevronOpen : ""}`}>
-                        <ChevronDownSmIcon />
-                      </span>
-                    </button>
-                    <ul
-                      ref={flyoutListRef}
-                      className={`${styles.groupChildren} ${logsOpen ? styles.groupChildrenOpen : ""}`}
-                      style={isFlyoutMode ? ({ "--flyout-top": `${flyoutTop}px` } as React.CSSProperties) : undefined}
-                      onMouseEnter={hoverFlyout ? openFlyout : undefined}
-                      onMouseLeave={hoverFlyout ? scheduleCloseFlyout : undefined}
-                    >
-                      {item.children.map((child, i) => {
-                        const active = location.pathname.startsWith(child.to);
-                        return (
-                          <li key={child.to}>
-                            <Link
-                              ref={i === 0 ? firstChildRef : undefined}
-                              to={child.to}
-                              className={`${styles.childLink} ${active ? styles.active : ""}`}
-                              aria-current={active ? "page" : undefined}
-                              tabIndex={logsOpen ? undefined : -1}
-                              onClick={() => {
-                                setLogsOpen(false);
-                                onClose();
-                              }}
-                            >
-                              <span className={styles.icon}>
-                                <child.Icon />
-                              </span>
-                              <span className={styles.label}>{child.label}</span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </li>
-                );
-              }
-
-              const active = isActive(item.to, item.exact);
+          {nav.map((item) => {
+            if (isGroup(item)) {
+              const anyChildActive = item.children.some((c) => location.pathname.startsWith(c.to));
               return (
-                <li key={item.to}>
-                  <Link
-                    to={item.to}
-                    className={`${styles.navLink} ${active ? styles.active : ""}`}
-                    aria-current={active ? "page" : undefined}
-                    title={collapsed || !isOpen ? item.label : undefined}
-                    onClick={onClose}
-                  >
-                    <span className={styles.icon}>
-                      <item.Icon />
-                    </span>
-                    <span className={styles.label}>{item.label}</span>
-                    {item.to === "/admin/messages" && <CountBadge count={totalUnread} className={styles.navUnread} />}
-                  </Link>
-                </li>
+                <SidebarNavGroup
+                  key={item.label}
+                  label={item.label}
+                  Icon={item.Icon}
+                  items={item.children}
+                  parentActive={false}
+                  isItemActive={(to) => location.pathname.startsWith(to)}
+                  flyoutMode={isFlyoutMode}
+                  hoverIntent={collapsed && !isMobile}
+                  forceOpen={!isFlyoutMode && anyChildActive}
+                  showTitle={collapsed}
+                  onNavigate={onClose}
+                  cx={adminGroupCx}
+                />
               );
-            })}
-          </ul>
+            }
+
+            return (
+              <SidebarNavItem
+                key={item.to}
+                to={item.to}
+                end={item.exact}
+                label={item.label}
+                Icon={item.Icon}
+                showTitle={collapsed || !isOpen}
+                onNavigate={onClose}
+                badge={
+                  item.to === "/admin/messages" ? (
+                    <CountBadge count={totalUnread} className={styles.navUnread} />
+                  ) : undefined
+                }
+                cx={adminItemCx}
+              />
+            );
+          })}
         </nav>
 
         <div className={styles.bottom} ref={bottomRef}>

@@ -4,12 +4,13 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
 import { useAuth } from "@context/AuthContext";
-
+import { useLocation } from "react-router-dom";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase.js";
 import type { Session } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { deleteSession } from "@/store/slices/sessionsSlice";
+import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
 
 type DeleteModalProps = {
   session: Session;
@@ -30,6 +31,13 @@ const DeleteSessionModal = ({ session, onClose }: DeleteModalProps) => {
   const msUntilSession = new Date(session.scheduled_at).getTime() - Date.now();
   const outsideCutoff = cutoffHours === null || msUntilSession > cutoffHours * 60 * 60 * 1000;
   const [issueRefund, setIssueRefund] = useState(outsideCutoff);
+
+  // dont show option to fire email if client doesnt have email address set
+  const location = useLocation();
+  const splitPath = location.pathname.split("/").filter(Boolean);
+
+  const urlId = splitPath[splitPath.length - 1];
+  const hasEmail = useDoesClientHaveEmail(urlId);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -74,11 +82,15 @@ const DeleteSessionModal = ({ session, onClose }: DeleteModalProps) => {
       confirming={deleting || isDemo}
       confirmLabel="Yes, delete"
       cancelLabel="No, cancel"
-      notifyOption={{
-        label: "Email the client that this session was removed",
-        checked: notifyClient,
-        onChange: setNotifyClient,
-      }}
+      notifyOption={
+        hasEmail
+          ? {
+              label: "Email the client that this session was removed",
+              checked: notifyClient,
+              onChange: setNotifyClient,
+            }
+          : undefined
+      }
     >
       <p>This action cannot be undone.</p>
       {canRefund && (

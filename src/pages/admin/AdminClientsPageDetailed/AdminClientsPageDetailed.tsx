@@ -19,6 +19,7 @@ import {
   ToggleButtonTabs,
 } from "@components/shared/index";
 import RcadsResultsCard from "@components/shared/RcadsResultsCard/RcadsResultsCard";
+import { CLIENT_PALETTE, colourForClient } from "@components/shared/SchedulerCalendar/schedulerUtils";
 import CancelSessionModal from "@components/shared/SessionCard/CancelSessionModal/CancelSessionModal";
 import CreateSessionModal from "@components/shared/SessionCard/CreateSessionModal/CreateSessionModal";
 import { SessionCard } from "@components/shared/SessionCard/SessionCard";
@@ -491,6 +492,7 @@ export default function AdminClientsPageDetailed() {
   const [showAge, setShowAge] = useState(client?.profile_show_age ?? false);
   const [showEmail, setShowEmail] = useState(client?.profile_show_email ?? false);
   const [showLastSeen, setShowLastSeen] = useState(client?.profile_show_last_seen ?? false);
+  const [color, setColor] = useState(client?.color || colourForClient(clientId));
   const [savingCodename, setSavingCodename] = useState(false);
 
   useEffect(() => {
@@ -498,7 +500,15 @@ export default function AdminClientsPageDetailed() {
     setShowAge(client?.profile_show_age ?? false);
     setShowEmail(client?.profile_show_email ?? false);
     setShowLastSeen(client?.profile_show_last_seen ?? false);
-  }, [client?.admin_codename, client?.profile_show_age, client?.profile_show_email, client?.profile_show_last_seen]);
+    setColor(client?.color || colourForClient(clientId));
+  }, [
+    client?.admin_codename,
+    client?.profile_show_age,
+    client?.profile_show_email,
+    client?.profile_show_last_seen,
+    client?.color,
+    clientId,
+  ]);
 
   const handleSaveCodename = async () => {
     if (!clientId) return;
@@ -510,6 +520,7 @@ export default function AdminClientsPageDetailed() {
         profile_show_age: showAge,
         profile_show_email: showEmail,
         profile_show_last_seen: showLastSeen,
+        color,
       })
       .eq("id", clientId);
     dispatch(fetchAllUsers());
@@ -1656,6 +1667,33 @@ export default function AdminClientsPageDetailed() {
                 </span>
               </label>
             ))}
+          </div>
+
+          <div className={styles.configSection}>
+            <p className={styles.configLabel}>Calendar colour</p>
+            <p className={styles.configHint}>Used for {client.first_name}'s sessions on your scheduler.</p>
+            <div role="radiogroup" aria-label="Calendar colour" style={{ display: "flex", gap: "var(--sp-2)" }}>
+              {CLIENT_PALETTE.map((swatch) => (
+                <button
+                  key={swatch}
+                  type="button"
+                  role="radio"
+                  aria-checked={color === swatch}
+                  aria-label={swatch}
+                  onClick={() => setColor(swatch)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: swatch,
+                    cursor: "pointer",
+                    border: color === swatch ? "2.5px solid var(--text-primary)" : "2.5px solid transparent",
+                    outlineOffset: 2,
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           <div className={styles.configSection}>

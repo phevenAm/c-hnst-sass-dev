@@ -42,7 +42,7 @@ import { useWalkthrough } from "@context/WalkthroughContext";
 import { type BankDetails, fetchBankDetails, saveBankDetails } from "@lib/bankDetails";
 import { isEncryptedValue } from "@lib/noteEncryption";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
-import { selectAgency, selectIsAgencyMember } from "@store/slices/agencySlice";
+import { selectAgency, selectAgencyMembership, selectIsAgencyMember } from "@store/slices/agencySlice";
 import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
 import Spinner from "@/components/shared/Spinner/Spinner";
@@ -53,6 +53,7 @@ import {
   previewSessionReminder,
   previewSessionRescheduled,
 } from "@/emails/emailHelpers";
+import { APP_URL } from "@/lib/appUrl";
 import { supabase } from "@/lib/supabase";
 import { previewInvoicePdf } from "@/pages/admin/AdminInvoicesPage/invoicePdf";
 import ChangePasswordModal from "./ChangePasswordModal/ChangePasswordModal";
@@ -405,8 +406,16 @@ const SettingsPage = () => {
 
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
   const agency = useAppSelector(selectAgency);
+  const agencyMembership = useAppSelector(selectAgencyMembership);
   const codenamesLockedByAgency = isAgencyMember && !!agency?.require_client_codenames;
   const consentLockedByAgency = isAgencyMember && !!agency?.locked_consent;
+  // Employed COUNSELLOR staff don't own their business identity or email
+  // config — the agency does. Freelancers keep control of both (they may
+  // invoice clients directly, under their own name), and so does a manager
+  // (even one whose employment_type happens to be "employee") — they're the
+  // one setting policy for the agency, not receiving it from someone else.
+  const isAgencyEmployee =
+    isAgencyMember && agencyMembership?.employment_type === "employee" && agencyMembership?.role !== "manager";
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [hideProfilePii, setHideProfilePii] = useState(false);
@@ -487,6 +496,33 @@ const SettingsPage = () => {
     });
   }
 
+  // The other 4 client-facing email types (reminder was already
+  // customizable) — same subject/body/heading shape, so one keyed state
+  // object + generic editor block serves all of them instead of copy-pasting
+  // reminder's bespoke fields four times.
+  type EditableTemplateId = "session_booked" | "session_cancelled" | "session_rescheduled" | "payment_confirmed";
+  type TemplateFields = { subject: string; body: string; heading: string };
+  const emptyTemplateFields = (): TemplateFields => ({ subject: "", body: "", heading: "" });
+  const [templateContent, setTemplateContent] = useState<Record<EditableTemplateId, TemplateFields>>({
+    session_booked: emptyTemplateFields(),
+    session_cancelled: emptyTemplateFields(),
+    session_rescheduled: emptyTemplateFields(),
+    payment_confirmed: emptyTemplateFields(),
+  });
+  const setTemplateField = (id: EditableTemplateId, field: keyof TemplateFields, value: string) =>
+    setTemplateContent((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  // Var chips append to the end here rather than inserting at the cursor
+  // (unlike reminder's insertVar) — same editing capability, without a
+  // 12-ref map (4 templates × subject/body/heading) for a nice-to-have.
+  const appendVar = (id: EditableTemplateId, field: keyof TemplateFields, token: string) =>
+    setTemplateField(id, field, templateContent[id][field] + token);
+  const TEMPLATE_VARS: Record<EditableTemplateId, string[]> = {
+    session_booked: ["{{name}}", "{{date}}", "{{location}}", "{{duration}}"],
+    session_cancelled: ["{{name}}", "{{date}}", "{{location}}", "{{duration}}"],
+    session_rescheduled: ["{{name}}", "{{date}}", "{{location}}", "{{duration}}"],
+    payment_confirmed: ["{{name}}", "{{date}}", "{{amount}}"],
+  };
+
   const avatarColor = userProfile?.id ? pickColor(userProfile.id) : "teal";
 
   useEffect(() => {
@@ -556,6 +592,28 @@ const SettingsPage = () => {
         setReminderSubject(data.reminder_email_subject ?? "");
         setReminderBody(data.reminder_email_body ?? "");
         setReminderHeading(data.reminder_email_heading ?? "");
+        setTemplateContent({
+          session_booked: {
+            subject: data.session_booked_email_subject ?? "",
+            body: data.session_booked_email_body ?? "",
+            heading: data.session_booked_email_heading ?? "",
+          },
+          session_cancelled: {
+            subject: data.session_cancelled_email_subject ?? "",
+            body: data.session_cancelled_email_body ?? "",
+            heading: data.session_cancelled_email_heading ?? "",
+          },
+          session_rescheduled: {
+            subject: data.session_rescheduled_email_subject ?? "",
+            body: data.session_rescheduled_email_body ?? "",
+            heading: data.session_rescheduled_email_heading ?? "",
+          },
+          payment_confirmed: {
+            subject: data.payment_confirmed_email_subject ?? "",
+            body: data.payment_confirmed_email_body ?? "",
+            heading: data.payment_confirmed_email_heading ?? "",
+          },
+        });
         setDisabledEmailTypes(data.disabled_email_types ?? []);
         setPaymentDeadlineHours(data.payment_deadline_hours ?? 48);
         setUseCodenames(data.use_client_codenames ?? false);
@@ -702,11 +760,19 @@ const SettingsPage = () => {
     if (guardDemo()) return;
     setSendingTest(type);
     try {
+      let extra: Record<string, unknown> = {};
+      if (type === "reminder") {
+        extra = {
+          custom_body: reminderBody || undefined,
+          hours_before: reminderHours,
+          heading: reminderHeading || undefined,
+        };
+      } else {
+        const editable = templateContent[type as EditableTemplateId];
+        if (editable) extra = { custom_body: editable.body || undefined, heading: editable.heading || undefined };
+      }
       const { error: fnError } = await supabase.functions.invoke("send-test-email", {
-        body: {
-          type,
-          ...(type === "reminder" ? { custom_body: reminderBody || undefined, hours_before: reminderHours } : {}),
-        },
+        body: { type, ...extra },
       });
       if (fnError) throw new Error(fnError.message);
       showToast("Test email sent — check your inbox.");
@@ -727,6 +793,18 @@ const SettingsPage = () => {
         reminder_email_subject: reminderSubject || null,
         reminder_email_body: reminderBody || null,
         reminder_email_heading: reminderHeading || null,
+        session_booked_email_subject: templateContent.session_booked.subject || null,
+        session_booked_email_body: templateContent.session_booked.body || null,
+        session_booked_email_heading: templateContent.session_booked.heading || null,
+        session_cancelled_email_subject: templateContent.session_cancelled.subject || null,
+        session_cancelled_email_body: templateContent.session_cancelled.body || null,
+        session_cancelled_email_heading: templateContent.session_cancelled.heading || null,
+        session_rescheduled_email_subject: templateContent.session_rescheduled.subject || null,
+        session_rescheduled_email_body: templateContent.session_rescheduled.body || null,
+        session_rescheduled_email_heading: templateContent.session_rescheduled.heading || null,
+        payment_confirmed_email_subject: templateContent.payment_confirmed.subject || null,
+        payment_confirmed_email_body: templateContent.payment_confirmed.body || null,
+        payment_confirmed_email_heading: templateContent.payment_confirmed.heading || null,
         disabled_email_types: disabledEmailTypes,
       })
       .eq("admin_id", userProfile.id);
@@ -1006,7 +1084,7 @@ const SettingsPage = () => {
 
   const handleCopyReferralLink = async () => {
     if (!practiceSettings?.referral_code) return;
-    const link = `${window.location.origin}/register?ref=${practiceSettings.referral_code}`;
+    const link = `${APP_URL}/register?ref=${practiceSettings.referral_code}`;
     try {
       await navigator.clipboard.writeText(link);
       setReferralCopied(true);
@@ -1159,7 +1237,7 @@ const SettingsPage = () => {
   const handleConnectGoogleCalendar = () => {
     if (guardDemo()) return;
     const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
-    const redirect = `${window.location.origin}/settings/google-callback`;
+    const redirect = `${APP_URL}/settings/google-callback`;
     const scope = "https://www.googleapis.com/auth/calendar.events";
     window.location.href =
       `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}` +
@@ -1233,7 +1311,7 @@ const SettingsPage = () => {
   const handleConnectMicrosoftCalendar = () => {
     if (guardDemo()) return;
     const clientId = import.meta.env.VITE_MICROSOFT_CALENDAR_CLIENT_ID;
-    const redirect = `${window.location.origin}/settings/microsoft-callback`;
+    const redirect = `${APP_URL}/settings/microsoft-callback`;
     const scope = "offline_access Calendars.ReadWrite OnlineMeetings.ReadWrite User.Read";
     window.location.href =
       `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}` +
@@ -1306,6 +1384,32 @@ const SettingsPage = () => {
         </p>
       </section>
     </SettingsCard>
+  );
+
+  // Employed staff (not freelance) don't own their business identity or email
+  // config either — same "the agency owns this" reasoning as agencyManagedCard
+  // above, just for the Practice/Emails tabs instead of Billing.
+  const businessManagedByAgencyCard = isAgencyEmployee && (
+    <SettingsCard title="Business information" storageKey="settings:practice:agency-managed-business" searchQuery="">
+      <section className={styles.businessSection}>
+        <p>
+          Your business details and branding are set by {agency?.name ? <strong>{agency.name}</strong> : "your agency"},
+          not per-counsellor — there's nothing to configure here.
+        </p>
+      </section>
+    </SettingsCard>
+  );
+
+  const emailsManagedByAgencyCard = isAgencyEmployee && (
+    <Card className={styles.card}>
+      <section className={styles.businessSection}>
+        <h2>Manage emails</h2>
+        <p>
+          Email content and delivery are configured by {agency?.name ? <strong>{agency.name}</strong> : "your agency"},
+          not per-counsellor — there's nothing to configure here.
+        </p>
+      </section>
+    </Card>
   );
 
   const practiceLifecycleCard = isAdmin && !isAgencyMember && (
@@ -1394,9 +1498,7 @@ const SettingsPage = () => {
         <div className={styles.field}>
           <label>Your referral link</label>
           <div className={styles.copyField}>
-            <span
-              className={styles.copyFieldValue}
-            >{`${window.location.origin}/register?ref=${practiceSettings.referral_code}`}</span>
+            <span className={styles.copyFieldValue}>{`${APP_URL}/register?ref=${practiceSettings.referral_code}`}</span>
             <button
               type="button"
               className={styles.copyFieldBtn}
@@ -1585,7 +1687,12 @@ const SettingsPage = () => {
                     <h2 className={styles.sectionTitle}>Edit profile</h2>
                     <div className={styles.field}>
                       <label htmlFor="displayName">
-                        Display name <small>(shown on your dashboard — use a nickname or short name)</small>
+                        Display name{" "}
+                        <small>
+                          {isAdmin
+                            ? "(shown on your dashboard, and to clients in emails sent on your behalf)"
+                            : "(shown on your dashboard — use a nickname or short name)"}
+                        </small>
                       </label>
                       <input
                         id="displayName"
@@ -1812,51 +1919,55 @@ const SettingsPage = () => {
               </div>
             )}
 
-            {/* Business info */}
-            <SettingsCard
-              title="Business information"
-              storageKey="settings:practice:business"
-              searchQuery={practiceSearch}
-            >
-              <section className={styles.businessSection}>
-                <p>This information can be used across the app and in client communications.</p>
-                <form className={styles.form}>
-                  {BUSINESS_FIELDS.map(({ key, label }) => (
-                    <div className={styles.field} key={key}>
-                      <label>{label}</label>
-                      <input
-                        value={practiceDetails[key] ?? ""}
-                        onChange={(e) => setPracticeDetails((prev) => ({ ...prev, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                  <WIP>
-                    <div className={styles.field}>
-                      <label>Logo</label>
-                      {logoUrl ? (
-                        <>
-                          <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
-                          <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
-                            Remove logo
-                          </Button>
-                        </>
-                      ) : (
-                        <UploadAndDisplayImage
-                          userId={userProfile?.id ?? ""}
-                          bucket="logos"
-                          onUpload={(url) => setLogoUrl(url)}
+            {/* Business info — agency employees don't own this, see isAgencyEmployee */}
+            {isAgencyEmployee ? (
+              businessManagedByAgencyCard
+            ) : (
+              <SettingsCard
+                title="Business information"
+                storageKey="settings:practice:business"
+                searchQuery={practiceSearch}
+              >
+                <section className={styles.businessSection}>
+                  <p>This information can be used across the app and in client communications.</p>
+                  <form className={styles.form}>
+                    {BUSINESS_FIELDS.map(({ key, label }) => (
+                      <div className={styles.field} key={key}>
+                        <label>{label}</label>
+                        <input
+                          value={practiceDetails[key] ?? ""}
+                          onChange={(e) => setPracticeDetails((prev) => ({ ...prev, [key]: e.target.value }))}
                         />
-                      )}
-                    </div>
-                  </WIP>
-                </form>
-              </section>
-              <div className={styles.actions}>
-                <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBusiness}>
-                  {savingBusiness ? "Saving…" : "Save business info"}
-                </Button>
-              </div>
-            </SettingsCard>
+                      </div>
+                    ))}
+                    <WIP>
+                      <div className={styles.field}>
+                        <label>Logo</label>
+                        {logoUrl ? (
+                          <>
+                            <img src={logoUrl} alt="Practice logo" className={styles.logoPreview} />
+                            <Button variant="ghost-danger" size="sm" onClick={() => setLogoUrl("")}>
+                              Remove logo
+                            </Button>
+                          </>
+                        ) : (
+                          <UploadAndDisplayImage
+                            userId={userProfile?.id ?? ""}
+                            bucket="logos"
+                            onUpload={(url) => setLogoUrl(url)}
+                          />
+                        )}
+                      </div>
+                    </WIP>
+                  </form>
+                </section>
+                <div className={styles.actions}>
+                  <Button variant="primary" className={styles.saveButton} onClick={handleUpdateBusiness}>
+                    {savingBusiness ? "Saving…" : "Save business info"}
+                  </Button>
+                </div>
+              </SettingsCard>
+            )}
 
             {/* Client announcements */}
             <SettingsCard
@@ -2716,8 +2827,8 @@ const SettingsPage = () => {
                   <span className={styles.toggleLabel}>
                     <strong>Enable invoicing</strong>
                     <span>
-                      When off, the Invoices tab, the client's invoice list, and every "Raise invoice" button are
-                      hidden.
+                      Enable Invoices tab (on Finances page), the client's invoice list, and "Raise invoice" button in
+                      the UI.
                     </span>
                   </span>
                   <span className={`${styles.toggleSwitch} ${invoicesEnabled ? styles.toggleSwitchOn : ""}`}>
@@ -2928,7 +3039,7 @@ const SettingsPage = () => {
                     variant="primary"
                     onClick={() => {
                       const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
-                      const redirect = `${window.location.origin}/settings/stripe-callback`;
+                      const redirect = `${APP_URL}/settings/stripe-callback`;
                       window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${encodeURIComponent(redirect)}`;
                     }}
                   >
@@ -3146,210 +3257,306 @@ const SettingsPage = () => {
             id="settings-panel-emails"
             aria-labelledby="settings-tab-emails"
           >
-            <Card className={styles.card}>
-              <section className={styles.businessSection}>
-                <h2>Manage emails</h2>
-                <p>Control which emails go out, customise their content, and send tests to your inbox.</p>
-              </section>
+            {isAgencyEmployee ? (
+              emailsManagedByAgencyCard
+            ) : (
+              <Card className={styles.card}>
+                <section className={styles.businessSection}>
+                  <h2>Manage emails</h2>
+                  <p>Control which emails go out, customise their content, and send tests to your inbox.</p>
+                </section>
 
-              {[
-                {
-                  id: "reminder",
-                  label: "Session reminder",
-                  desc: "Sent to clients before their session",
-                  preview: previewSessionReminder(
-                    reminderBody || undefined,
-                    reminderHours,
-                    reminderHeading || undefined,
-                  ),
-                },
-                {
-                  id: "session_booked",
-                  label: "Session confirmed",
-                  desc: "Sent to clients when a session is booked",
-                  preview: previewSessionBooked(),
-                },
-                {
-                  id: "session_cancelled",
-                  label: "Session cancelled",
-                  desc: "Sent to clients when a session is cancelled",
-                  preview: previewSessionCancelled(),
-                },
-                {
-                  id: "session_rescheduled",
-                  label: "Session rescheduled",
-                  desc: "Sent to clients when a session is rescheduled",
-                  preview: previewSessionRescheduled(),
-                },
-                {
-                  id: "payment_received",
-                  label: "Payment confirmation",
-                  desc: "Sent to clients when their payment is confirmed",
-                  preview: previewPaymentReceived(),
-                },
-              ].map((tpl) => (
-                <div key={tpl.id} className={styles.emailRow}>
-                  <div className={styles.emailRowHeader}>
-                    <button
-                      type="button"
-                      className={styles.emailRowExpandBtn}
-                      onClick={() => setExpandedTemplate(expandedTemplate === tpl.id ? null : tpl.id)}
-                    >
-                      <div>
-                        <span className={styles.emailRowLabel}>{tpl.label}</span>
-                        <span className={styles.emailRowDesc}>{tpl.desc}</span>
-                      </div>
-                      <span className={styles.emailRowChevron}>{expandedTemplate === tpl.id ? "▲" : "▼"}</span>
-                    </button>
-                    <label
-                      className={`${styles.toggleSwitch} ${!disabledEmailTypes.includes(tpl.id) ? styles.toggleSwitchOn : ""} ${styles.emailRowToggle}`}
-                      title={
-                        disabledEmailTypes.includes(tpl.id) ? "Paused — click to enable" : "Sending — click to pause"
-                      }
-                    >
-                      <input
-                        type="checkbox"
-                        className={styles.toggleInput}
-                        checked={!disabledEmailTypes.includes(tpl.id)}
-                        onChange={() =>
-                          setDisabledEmailTypes((prev) =>
-                            prev.includes(tpl.id) ? prev.filter((t) => t !== tpl.id) : [...prev, tpl.id],
-                          )
-                        }
-                      />
-                      <span className={styles.toggleThumb} />
-                    </label>
-                  </div>
-
-                  {expandedTemplate === tpl.id && (
-                    <div className={styles.emailRowBody}>
-                      {tpl.id === "reminder" && (
-                        <div className={styles.reminderControls}>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderHeading">
-                              Greeting <small>(optional — supports {"{{name}}"})</small>
-                            </label>
-                            <div className={styles.varChips}>
-                              {["{{name}}"].map((v) => (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  className={styles.varChip}
-                                  onClick={() => insertVar(reminderHeadingRef, setReminderHeading, v)}
-                                >
-                                  {v}
-                                </button>
-                              ))}
-                            </div>
-                            <input
-                              ref={reminderHeadingRef}
-                              id="reminderHeading"
-                              value={reminderHeading}
-                              onChange={(e) => setReminderHeading(e.target.value)}
-                              placeholder="Hi {{name}},"
-                            />
-                          </div>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderTiming">Send reminder</label>
-                            <select
-                              id="reminderTiming"
-                              value={reminderHours}
-                              onChange={(e) => setReminderHours(Number(e.target.value))}
-                              className={styles.select}
-                            >
-                              <option value={24}>1 day before</option>
-                              <option value={48}>2 days before</option>
-                              <option value={72}>3 days before</option>
-                              <option value={120}>5 days before (default)</option>
-                              <option value={168}>1 week before</option>
-                            </select>
-                          </div>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderSubject">
-                              Custom subject <small>(optional)</small>
-                            </label>
-                            <div className={styles.varChips}>
-                              {["{{name}}", "{{date}}"].map((v) => (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  className={styles.varChip}
-                                  onClick={() => insertVar(reminderSubjectRef, setReminderSubject, v)}
-                                >
-                                  {v}
-                                </button>
-                              ))}
-                            </div>
-                            <input
-                              ref={reminderSubjectRef}
-                              id="reminderSubject"
-                              value={reminderSubject}
-                              onChange={(e) => setReminderSubject(e.target.value)}
-                              placeholder="e.g. Reminder: your session on {{date}}"
-                            />
-                          </div>
-                          <div className={styles.field}>
-                            <label htmlFor="reminderBody">
-                              Custom message body <small>(optional)</small>
-                            </label>
-                            <div className={styles.varChips}>
-                              {["{{name}}", "{{date}}", "{{location}}", "{{duration}}"].map((v) => (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  className={styles.varChip}
-                                  onClick={() => insertVar(reminderBodyRef, setReminderBody, v)}
-                                >
-                                  {v}
-                                </button>
-                              ))}
-                            </div>
-                            <textarea
-                              ref={reminderBodyRef}
-                              id="reminderBody"
-                              className={styles.textarea}
-                              rows={4}
-                              value={reminderBody}
-                              onChange={(e) => setReminderBody(e.target.value)}
-                              placeholder="Hi {{name}}, just a reminder about your session on {{date}}."
-                            />
-                          </div>
+                {[
+                  {
+                    id: "reminder",
+                    label: "Session reminder",
+                    desc: "Sent to clients before their session",
+                    preview: previewSessionReminder(
+                      reminderBody || undefined,
+                      reminderHours,
+                      reminderHeading || undefined,
+                    ),
+                  },
+                  {
+                    id: "session_booked",
+                    label: "Session confirmed",
+                    desc: "Sent to clients when a session is booked",
+                    preview: previewSessionBooked(
+                      templateContent.session_booked.body || undefined,
+                      templateContent.session_booked.heading || undefined,
+                    ),
+                  },
+                  {
+                    id: "session_cancelled",
+                    label: "Session cancelled",
+                    desc: "Sent to clients when a session is cancelled",
+                    preview: previewSessionCancelled(
+                      templateContent.session_cancelled.body || undefined,
+                      templateContent.session_cancelled.heading || undefined,
+                    ),
+                  },
+                  {
+                    id: "session_rescheduled",
+                    label: "Session rescheduled",
+                    desc: "Sent to clients when a session is rescheduled",
+                    preview: previewSessionRescheduled(
+                      templateContent.session_rescheduled.body || undefined,
+                      templateContent.session_rescheduled.heading || undefined,
+                    ),
+                  },
+                  {
+                    id: "payment_confirmed",
+                    label: "Payment confirmation",
+                    desc: "Sent to clients when their payment is confirmed",
+                    preview: previewPaymentReceived(
+                      templateContent.payment_confirmed.body || undefined,
+                      templateContent.payment_confirmed.heading || undefined,
+                    ),
+                  },
+                ].map((tpl) => (
+                  <div key={tpl.id} className={styles.emailRow}>
+                    <div className={styles.emailRowHeader}>
+                      <button
+                        type="button"
+                        className={styles.emailRowExpandBtn}
+                        onClick={() => setExpandedTemplate(expandedTemplate === tpl.id ? null : tpl.id)}
+                      >
+                        <div>
+                          <span className={styles.emailRowLabel}>{tpl.label}</span>
+                          <span className={styles.emailRowDesc}>{tpl.desc}</span>
                         </div>
-                      )}
-
-                      <iframe
-                        title={tpl.label}
-                        srcDoc={tpl.preview}
-                        className={styles.emailIframe}
-                        sandbox="allow-same-origin allow-scripts"
-                      />
-
-                      <div className={styles.emailRowActions}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleSendTest(tpl.id)}
-                          disabled={sendingTest === tpl.id}
-                        >
-                          {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
-                        </Button>
-                      </div>
+                        <span className={styles.emailRowChevron}>{expandedTemplate === tpl.id ? "▲" : "▼"}</span>
+                      </button>
+                      <label
+                        className={`${styles.toggleSwitch} ${!disabledEmailTypes.includes(tpl.id) ? styles.toggleSwitchOn : ""} ${styles.emailRowToggle}`}
+                        title={
+                          disabledEmailTypes.includes(tpl.id) ? "Paused — click to enable" : "Sending — click to pause"
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          className={styles.toggleInput}
+                          checked={!disabledEmailTypes.includes(tpl.id)}
+                          onChange={() =>
+                            setDisabledEmailTypes((prev) =>
+                              prev.includes(tpl.id) ? prev.filter((t) => t !== tpl.id) : [...prev, tpl.id],
+                            )
+                          }
+                        />
+                        <span className={styles.toggleThumb} />
+                      </label>
                     </div>
-                  )}
-                </div>
-              ))}
 
-              <div className={styles.actions}>
-                <Button
-                  variant="primary"
-                  className={styles.saveButton}
-                  onClick={handleSaveReminderSettings}
-                  disabled={savingReminders}
-                >
-                  {savingReminders ? "Saving…" : "Save email settings"}
-                </Button>
-              </div>
-            </Card>
+                    {expandedTemplate === tpl.id && (
+                      <div className={styles.emailRowBody}>
+                        {tpl.id === "reminder" && (
+                          <div className={styles.reminderControls}>
+                            <div className={styles.field}>
+                              <label htmlFor="reminderHeading">
+                                Greeting <small>(optional — supports {"{{name}}"})</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {["{{name}}"].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => insertVar(reminderHeadingRef, setReminderHeading, v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                ref={reminderHeadingRef}
+                                id="reminderHeading"
+                                value={reminderHeading}
+                                onChange={(e) => setReminderHeading(e.target.value)}
+                                placeholder="Hi {{name}},"
+                              />
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor="reminderTiming">Send reminder</label>
+                              <select
+                                id="reminderTiming"
+                                value={reminderHours}
+                                onChange={(e) => setReminderHours(Number(e.target.value))}
+                                className={styles.select}
+                              >
+                                <option value={24}>1 day before</option>
+                                <option value={48}>2 days before</option>
+                                <option value={72}>3 days before</option>
+                                <option value={120}>5 days before (default)</option>
+                                <option value={168}>1 week before</option>
+                              </select>
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor="reminderSubject">
+                                Custom subject <small>(optional)</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {["{{name}}", "{{date}}"].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => insertVar(reminderSubjectRef, setReminderSubject, v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                ref={reminderSubjectRef}
+                                id="reminderSubject"
+                                value={reminderSubject}
+                                onChange={(e) => setReminderSubject(e.target.value)}
+                                placeholder="e.g. Reminder: your session on {{date}}"
+                              />
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor="reminderBody">
+                                Custom message body <small>(optional)</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {["{{name}}", "{{date}}", "{{location}}", "{{duration}}"].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => insertVar(reminderBodyRef, setReminderBody, v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <textarea
+                                ref={reminderBodyRef}
+                                id="reminderBody"
+                                className={styles.textarea}
+                                rows={4}
+                                value={reminderBody}
+                                onChange={(e) => setReminderBody(e.target.value)}
+                                placeholder="Hi {{name}}, just a reminder about your session on {{date}}."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {tpl.id !== "reminder" && (
+                          <div className={styles.reminderControls}>
+                            <div className={styles.field}>
+                              <label htmlFor={`${tpl.id}-heading`}>
+                                Greeting <small>(optional — supports {"{{name}}"})</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {["{{name}}"].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => appendVar(tpl.id as EditableTemplateId, "heading", v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                id={`${tpl.id}-heading`}
+                                value={templateContent[tpl.id as EditableTemplateId].heading}
+                                onChange={(e) =>
+                                  setTemplateField(tpl.id as EditableTemplateId, "heading", e.target.value)
+                                }
+                                placeholder="Hi {{name}},"
+                              />
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor={`${tpl.id}-subject`}>
+                                Custom subject <small>(optional)</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {TEMPLATE_VARS[tpl.id as EditableTemplateId].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => appendVar(tpl.id as EditableTemplateId, "subject", v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                id={`${tpl.id}-subject`}
+                                value={templateContent[tpl.id as EditableTemplateId].subject}
+                                onChange={(e) =>
+                                  setTemplateField(tpl.id as EditableTemplateId, "subject", e.target.value)
+                                }
+                                placeholder="e.g. Your session on {{date}} is confirmed"
+                              />
+                            </div>
+                            <div className={styles.field}>
+                              <label htmlFor={`${tpl.id}-body`}>
+                                Custom message body <small>(optional)</small>
+                              </label>
+                              <div className={styles.varChips}>
+                                {TEMPLATE_VARS[tpl.id as EditableTemplateId].map((v) => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    className={styles.varChip}
+                                    onClick={() => appendVar(tpl.id as EditableTemplateId, "body", v)}
+                                  >
+                                    {v}
+                                  </button>
+                                ))}
+                              </div>
+                              <textarea
+                                id={`${tpl.id}-body`}
+                                className={styles.textarea}
+                                rows={4}
+                                value={templateContent[tpl.id as EditableTemplateId].body}
+                                onChange={(e) => setTemplateField(tpl.id as EditableTemplateId, "body", e.target.value)}
+                                placeholder="Hi {{name}}, here's what's happening with your session on {{date}}."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <iframe
+                          title={tpl.label}
+                          srcDoc={tpl.preview}
+                          className={styles.emailIframe}
+                          sandbox="allow-same-origin allow-scripts"
+                        />
+
+                        <div className={styles.emailRowActions}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleSendTest(tpl.id)}
+                            disabled={sendingTest === tpl.id}
+                          >
+                            {sendingTest === tpl.id ? "Sending…" : "Send test to me"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <div className={styles.actions}>
+                  <Button
+                    variant="primary"
+                    className={styles.saveButton}
+                    onClick={handleSaveReminderSettings}
+                    disabled={savingReminders}
+                  >
+                    {savingReminders ? "Saving…" : "Save email settings"}
+                  </Button>
+                </div>
+              </Card>
+            )}
           </div>
         )}
       </div>

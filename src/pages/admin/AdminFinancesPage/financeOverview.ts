@@ -82,12 +82,28 @@ export const rangeForUnit = (unit: TrendUnit): { from: Dayjs; to: Dayjs } => {
 };
 
 /**
- * Bucket dated + priced (pence) rows into week / month / year buckets spanning
- * `[from, to]` inclusive. Empty buckets are kept so the axis stays continuous;
- * rows outside the range are ignored. Values are whole pounds.
+ * The chart granularity + range a "Last 30 days / This tax year / All time"
+ * preset implies, so picking one moves the trend chart's date range along
+ * with the stat tiles instead of leaving two range pickers that look related
+ * but don't agree with each other.
  */
-export const bucketTrend = (
-  rows: { date: string; pence: number }[],
+export const presetRangeForPeriod = (period: Period): { unit: TrendUnit; from: Dayjs; to: Dayjs } => {
+  const to = dayjs();
+  if (period === "30d") return { unit: "week", from: to.subtract(30, "day"), to };
+  if (period === "year") return { unit: "month", from: taxYearStart(), to };
+  return { unit: "year", ...rangeForUnit("year") };
+};
+
+/**
+ * Bucket dated rows into week / month / year buckets spanning `[from, to]`
+ * inclusive, summing whatever `getValue` extracts from each row (pence-to-
+ * pounds for money, a flat 1 for a plain count — see `bucketCount`). Empty
+ * buckets are kept so the axis stays continuous; rows outside the range are
+ * ignored.
+ */
+export const bucketSeries = <T extends { date: string }>(
+  rows: T[],
+  getValue: (row: T) => number,
   { unit, from, to }: { unit: TrendUnit; from: Dayjs; to: Dayjs },
 ): TrendPoint[] => {
   let start = startOfUnit(from, unit);
@@ -103,10 +119,22 @@ export const bucketTrend = (
   const index = new Map(buckets.map((b) => [b.key, b]));
   for (const r of rows) {
     const b = index.get(bucketKey(dayjs(r.date), unit));
-    if (b) b.value += r.pence / 100;
+    if (b) b.value += getValue(r);
   }
   return buckets.map(({ label, value }) => ({ label, value: Math.round(value) }));
 };
+
+/** Bucket dated + priced (pence) rows into whole-pound totals per bucket. */
+export const bucketTrend = (
+  rows: { date: string; pence: number }[],
+  range: { unit: TrendUnit; from: Dayjs; to: Dayjs },
+): TrendPoint[] => bucketSeries(rows, (r) => r.pence / 100, range);
+
+/** Count of dated rows per bucket (e.g. sessions per week). */
+export const bucketCount = (
+  rows: { date: string }[],
+  range: { unit: TrendUnit; from: Dayjs; to: Dayjs },
+): TrendPoint[] => bucketSeries(rows, () => 1, range);
 
 /**
  * Merge several same-range `bucketTrend` outputs into one multi-series row set:

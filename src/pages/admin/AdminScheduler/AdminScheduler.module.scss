@@ -64,8 +64,9 @@
 
 // Legend swatches mirror the shared .cal-window / .cal-blocked ghost fills.
 .swatchWindow {
-  background-color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--accent-dark) 45%, transparent);
+  background-color: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent);
+
 }
 
 .swatchBlocked {
@@ -78,8 +79,8 @@
 }
 
 .swatchPrivate {
-  background-color: color-mix(in srgb, var(--text-muted) 22%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--text-muted) 70%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-dark) 45%, transparent);
 }
 
 .calendarHint {

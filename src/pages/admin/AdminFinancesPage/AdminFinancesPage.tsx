@@ -20,6 +20,7 @@ import {
   money,
   type Period,
   periodStart,
+  presetRangeForPeriod,
   zipTrends,
 } from "./financeOverview";
 import TrendControls from "./TrendControls";
@@ -52,7 +53,9 @@ const PERIODS: { key: Period; label: string }[] = [
 const OVERVIEW_SERIES: TrendSeries[] = [
   { key: "Income", name: "Income", color: "#4a665b" },
   { key: "Outgoings", name: "Outgoings", color: "#a8633a" },
-  { key: "Owed", name: "Owed / overdue", color: "#8a6a2d", kind: "line", dashed: true },
+  // A distinct blue, not another orange/brown — Outgoings already owns that
+  // band and sat too close to Owed's old olive tone to tell apart at a glance.
+  { key: "Owed", name: "Owed / overdue", color: "#3a7fa8", kind: "line", dashed: true },
 ];
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
@@ -80,6 +83,22 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
   const invoicesEnabled = practiceSettings?.invoices_enabled !== false;
   const [period, setPeriod] = useState<Period>("30d");
   const trend = useTrendControls("month");
+  const { setUnit: setTrendUnit, setFrom: setTrendFrom, setTo: setTrendTo } = trend;
+
+  // The quick-select period pills used to only scope the stat tiles while a
+  // separate date-range picker scoped the chart — two range controls that
+  // looked related but could disagree. Picking a period now also moves the
+  // chart's range to match; the pickers stay for fine-tuning the chart alone.
+  const selectPeriod = useCallback(
+    (p: Period) => {
+      setPeriod(p);
+      const preset = presetRangeForPeriod(p);
+      setTrendUnit(preset.unit);
+      setTrendFrom(preset.from);
+      setTrendTo(preset.to);
+    },
+    [setTrendUnit, setTrendFrom, setTrendTo],
+  );
   const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<string>>(new Set());
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
@@ -190,18 +209,46 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
 
   return (
     <div className={styles.overview}>
-      <div className={styles.periodRow}>
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            className={`${styles.periodBtn} ${period === p.key ? styles.periodBtnActive : ""}`}
-            onClick={() => setPeriod(p.key)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      <Card className={styles.controlsBar}>
+        <div className={styles.controlGroup}>
+          <span className={styles.controlLabel}>Range presets</span>
+          <div className={styles.periodRow}>
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                className={`${styles.periodBtn} ${period === p.key ? styles.periodBtnActive : ""}`}
+                onClick={() => selectPeriod(p.key)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <TrendControls state={trend} />
+
+        <div className={styles.controlGroup}>
+          <span className={styles.controlLabel}>Series shown</span>
+          <div className={styles.seriesToggle}>
+            {OVERVIEW_SERIES.map((s) => {
+              const on = !hiddenSeries.has(s.key);
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  className={`${styles.seriesChip} ${on ? "" : styles.seriesChipOff}`}
+                  aria-pressed={on}
+                  onClick={() => toggleSeries(s.key)}
+                >
+                  <span className={styles.seriesDot} style={{ background: s.color }} />
+                  {s.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
 
       <div className={styles.tiles}>
         <StatTile label="Income" value={money(incomePence)} sub="Payments received" />
@@ -212,26 +259,6 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
           sub="Income minus outgoings"
           tone={netPence < 0 ? "danger" : "default"}
         />
-      </div>
-
-      <TrendControls state={trend} />
-
-      <div className={styles.seriesToggle}>
-        {OVERVIEW_SERIES.map((s) => {
-          const on = !hiddenSeries.has(s.key);
-          return (
-            <button
-              key={s.key}
-              type="button"
-              className={`${styles.seriesChip} ${on ? "" : styles.seriesChipOff}`}
-              aria-pressed={on}
-              onClick={() => toggleSeries(s.key)}
-            >
-              <span className={styles.seriesDot} style={{ background: s.color }} />
-              {s.name}
-            </button>
-          );
-        })}
       </div>
 
       <div className={styles.chartsRow}>

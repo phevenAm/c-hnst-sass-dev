@@ -101,6 +101,17 @@
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
   }
+
+  // --accent-subtle/--accent-light/--accent-dark are a light-bg/dark-text
+  // set only in light mode; in dark mode they collapse toward each other
+  // (see Button.module.scss .secondary for the full explanation).
+  :global(.dark) & {
+    color: #8ecfc3;
+
+    &:hover {
+      color: #8ecfc3;
+    }
+  }
 }
 
 .avatarLink {

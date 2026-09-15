@@ -773,3 +773,106 @@ test.describe("Manual payment decline and retry", () => {
     }
   });
 });
+
+// ── Configure client → Calendar colour ──────────────────────────────────────
+//
+// Previously a client's colour on the admin scheduler was purely a hash of
+// their id (schedulerUtils.ts's colourForClient) with no way to override it
+// — the same fixed-swatch pattern agency staff colours already had
+// (ConfigureMemberModal) wasn't available for admin's own clients. users.color
+// (migration 20260914000050) + AdminClientsPageDetailed's "Configure client"
+// modal close that gap; sessionEvents() now prefers a client's stored colour
+// over the hash fallback when one is set.
+
+test.describe("Configure client — calendar colour", () => {
+  test.afterAll(() => {
+    dbQuery(`update public.users set color = null where email = '${FIXTURES.client.email}';`);
+  });
+
+  test("an admin can set a client's calendar colour, and it persists over the hash fallback", async ({ page }) => {
+    test.setTimeout(60_000);
+    const { clientId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    dbQuery(`update public.users set color = null where id = '${clientId}';`);
+
+    await loginInBrowser(page, FIXTURES.admin.email, FIXTURES.admin.password);
+    await page.goto(`${APP_URL}/admin/clients/${clientId}`, { waitUntil: "load", timeout: 20_000 });
+
+    const configureBtn = page.getByRole("button", { name: "Configure client" });
+    await expect(configureBtn).toBeVisible({ timeout: 10_000 });
+    await configureBtn.click();
+
+    const swatches = page.locator('[role="radio"][aria-label]');
+    await expect(swatches).toHaveCount(8);
+    const targetColor = await swatches.nth(3).getAttribute("aria-label");
+    await swatches.nth(3).click();
+
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    // The modal closes on a successful save (handleSaveCodename).
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toHaveCount(0, { timeout: 10_000 });
+
+    const saved = dbQuery<{ color: string }>(`select color from public.users where id = '${clientId}';`).rows[0];
+    expect(saved.color).toBe(targetColor);
+  });
+});
+
+// ── Settings → Emails: all 5 templates are now customizable ─────────────────
+//
+// Only session-reminder had editable subject/body/heading (reminder_email_*
+// on practice_settings) — the other 4 client-facing emails (session booked/
+// cancelled/rescheduled, payment confirmed) were preview-only, enable/disable
+// toggle aside. Migration 20260914000070 adds the same subject/body/heading
+// columns for each; AdminClientsPageDetailed... no, SettingsPage's "Configure
+// emails" rows now render the same editor for all 5. This test exercises one
+// (session_booked) end to end through the real UI, not just the DB layer.
+
+test.describe("Settings → Emails: template customization", () => {
+  test.afterAll(() => {
+    dbQuery(`
+      update public.practice_settings
+      set session_booked_email_subject = null, session_booked_email_body = null, session_booked_email_heading = null
+      where admin_id = (select id from public.users where email = '${FIXTURES.admin.email}');
+    `);
+  });
+
+  test("an admin can customize the session-booked email's subject/body/heading and it persists", async ({ page }) => {
+    test.setTimeout(60_000);
+    const { adminId } = lookupFixtureIds(FIXTURES.admin.email, FIXTURES.client.email);
+    dbQuery(`
+      update public.practice_settings
+      set session_booked_email_subject = null, session_booked_email_body = null, session_booked_email_heading = null
+      where admin_id = '${adminId}';
+    `);
+
+    await loginInBrowser(page, FIXTURES.admin.email, FIXTURES.admin.password);
+    await page.goto(`${APP_URL}/settings?tab=emails`, { waitUntil: "load", timeout: 20_000 });
+
+    await page.getByRole("button", { name: /Session confirmed/ }).click();
+
+    const heading = "Great news, {{name}}!";
+    const subject = "Booked for {{date}}";
+    const body = "Hi {{name}}, your session on {{date}} at {{location}} ({{duration}}) is locked in.";
+
+    await page.locator("#session_booked-heading").fill(heading);
+    await page.locator("#session_booked-subject").fill(subject);
+    await page.locator("#session_booked-body").fill(body);
+
+    // The live iframe preview should reflect the custom heading immediately,
+    // without needing to save first.
+    const iframe = page.frameLocator('iframe[title="Session confirmed"]');
+    await expect(iframe.getByText("Great news, Alex!")).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole("button", { name: "Save email settings" }).click();
+    await expect(page.getByText("Email settings saved.")).toBeVisible({ timeout: 10_000 });
+
+    const saved = dbQuery<{
+      session_booked_email_subject: string;
+      session_booked_email_body: string;
+      session_booked_email_heading: string;
+    }>(
+      `select session_booked_email_subject, session_booked_email_body, session_booked_email_heading from public.practice_settings where admin_id = '${adminId}';`,
+    ).rows[0];
+    expect(saved.session_booked_email_subject).toBe(subject);
+    expect(saved.session_booked_email_body).toBe(body);
+    expect(saved.session_booked_email_heading).toBe(heading);
+  });
+});

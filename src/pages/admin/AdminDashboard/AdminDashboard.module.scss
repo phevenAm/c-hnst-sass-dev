@@ -116,30 +116,6 @@
   margin: 0 0 $sp-4;
 }
 
-.chartsGrid {
-  display: grid;
-  gap: $sp-5;
-  grid-template-columns: 1fr;
-
-  // 2-up on medium screens; an odd trailing chart spans the full row rather
-  // than sitting alone beside empty space.
-  @media (min-width: 720px) {
-    grid-template-columns: 1fr 1fr;
-
-    > :last-child:nth-child(odd) {
-      grid-column: 1 / -1;
-    }
-  }
-
-  @media (min-width: 1160px) {
-    grid-template-columns: repeat(3, 1fr);
-
-    > :last-child:nth-child(odd) {
-      grid-column: auto;
-    }
-  }
-}
-
 .sectionLink {
   font-size: 0.8rem;
   color: var(--accent-dark);
@@ -148,6 +124,13 @@
 
   &:hover {
     text-decoration: underline;
+  }
+
+  // --accent-dark is a dark teal tuned for light-mode's near-white card bg;
+  // in dark mode it's only a mid-tone teal-500 against the dark card bg
+  // (~4.05:1, fails AA). Same fix as Button.module.scss .secondary.
+  :global(.dark) & {
+    color: #8ecfc3;
   }
 }
 
@@ -185,9 +168,15 @@
     flex-shrink: 0;
   }
 
+  // Same --accent-light/--accent-subtle + --accent-dark pairing as
+  // .sectionLink above — collapses to ~3:1 in dark mode.
   &.teal {
     background: var(--accent-light);
     color: var(--accent-dark);
+
+    :global(.dark) & {
+      color: #8ecfc3;
+    }
   }
 
   &.stone {
@@ -198,6 +187,10 @@
   &.sky {
     background: var(--accent-subtle);
     color: var(--accent-dark);
+
+    :global(.dark) & {
+      color: #8ecfc3;
+    }
   }
 
   &.peach {

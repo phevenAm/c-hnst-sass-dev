@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import dayjs from "dayjs";
 
@@ -11,6 +12,9 @@ import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import { supabase } from "@lib/supabase";
 import type { StubSession } from "@models/globalTypes";
+
+import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
+import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
 
 interface Props {
   session: StubSession;
@@ -57,6 +61,13 @@ export default function StubSessionCard({
   const [notifyClient, setNotifyClient] = useState(true);
   const [confirming, setConfirming] = useState(false);
 
+  const location = useLocation();
+  const splitPath = location.pathname.split("/").filter(Boolean);
+
+  const urlId = splitPath[splitPath.length - 1];
+  const hasEmail = useDoesClientHaveEmail(urlId);
+  const offerPaymentEmail = usePaymentConfirmationToast();
+
   // Keep draft text in sync with incoming prop changes (e.g. realtime updates)
   // while the user is NOT actively editing.
   useEffect(() => {
@@ -97,8 +108,14 @@ export default function StubSessionCard({
       : query.eq("id", session.id);
     const { data, error } = await scoped.select();
     setSaving(false);
-    if (error) showToast("Failed to update.", "danger");
-    else onUpdated(data as StubSession[]);
+    if (error) {
+      showToast("Failed to update.", "danger");
+      return;
+    }
+    onUpdated(data as StubSession[]);
+    if (!isPaid) {
+      offerPaymentEmail(hasEmail, { type: "stub", stubSessionId: session.id }, "Marked as paid.");
+    }
   };
 
   const demoGuard = () => {
@@ -466,11 +483,15 @@ export default function StubSessionCard({
           confirming={confirming}
           confirmLabel="Yes, cancel it"
           cancelLabel="Keep it"
-          notifyOption={{
-            label: "Email the client that this session was cancelled",
-            checked: notifyClient,
-            onChange: setNotifyClient,
-          }}
+          notifyOption={
+            hasEmail
+              ? {
+                  label: "Email the client that this session was cancelled",
+                  checked: notifyClient,
+                  onChange: setNotifyClient,
+                }
+              : undefined
+          }
         >
           <p>Cancel this session on {dayjs(session.scheduled_at).format("dddd D MMM [at] h:mma")}?</p>
         </ConfirmModal>
@@ -484,6 +505,15 @@ export default function StubSessionCard({
           confirming={confirming}
           confirmLabel="Yes, delete"
           cancelLabel="No, cancel"
+          notifyOption={
+            hasEmail
+              ? {
+                  label: "Email the client that this session was deleted",
+                  checked: notifyClient,
+                  onChange: setNotifyClient,
+                }
+              : undefined
+          }
         >
           <p>This action cannot be undone.</p>
         </ConfirmModal>

@@ -1,27 +1,57 @@
-import { useAuth } from "@context/AuthContext";
+import { useEffect, useState } from "react";
+
 import { useAppSelector } from "@store/hooks";
-import { selectIsAgencyMember } from "@store/slices/agencySlice";
+import { selectIsAgencyManager, selectIsAgencyMember } from "@store/slices/agencySlice";
 
 import { isFeatureEnabled } from "@/lib/featureFlags";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Whether the signed-in admin has the file manager (`/admin/files`).
  *
- * It's a Growth+ perk: Starter gets 0 bytes of storage (see the `plan_limits`
- * table + migration 20260910130000), so the page is hidden for that tier.
- * Agency members always have it — their files count against the shared agency
- * pool, and agencies skip plan limits entirely.
+ * Agency-only (2026-09-14): file storage is an agency perk, not a solo-admin
+ * tier one — a solo admin never sees Files regardless of plan, even Growth/
+ * Unlimited, which still carry a `plan_limits.max_storage_bytes` quota in the
+ * DB (2.5/10 GiB) that's currently unused by this gate. If those tiers are
+ * meant to advertise storage again later, reinstate the `plan !== "starter"`
+ * branch below — and update the Settings/SubscribePage/promo copy that still
+ * markets per-tier storage to match whichever way this goes.
  *
- * Mirrors the server-side backstop: on Starter `file_storage_quota` returns 0,
- * so `file_enforce_quota` rejects every upload even if the route is reached.
+ * Manager vs. staff (2026-09-15): a manager always gets Files — they're the
+ * one who'd populate it in the first place, and need the empty state to do
+ * that. Staff only get it once the agency has actually shared something —
+ * showing an always-empty folder to every hire, whether or not their agency
+ * uses shared resources, was the actual complaint. The check relies entirely
+ * on file_folders/file_objects' existing RLS ("shared and agency_id =
+ * current_agency_id()", see 20260909000400_file_manager.sql) rather than a
+ * new RPC — any active member, manager or not, can already read that a
+ * shared row exists; we just check whether one does.
  */
 export function useHasFileManager(): boolean {
-  const { practiceSettings } = useAuth();
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const isAgencyManager = useAppSelector(selectIsAgencyManager);
+  const featureOn = isFeatureEnabled("fileManager");
+  const staffNeedsCheck = featureOn && isAgencyMember && !isAgencyManager;
 
-  if (!isFeatureEnabled("fileManager")) return false;
-  if (isAgencyMember) return true;
+  const [staffHasSharedFiles, setStaffHasSharedFiles] = useState(false);
 
-  const plan = (practiceSettings?.subscription_plan as string | undefined) ?? "starter";
-  return plan !== "starter";
+  useEffect(() => {
+    if (!staffNeedsCheck) return;
+    let cancelled = false;
+
+    (async () => {
+      const [{ data: folders }, { data: files }] = await Promise.all([
+        supabase.from("file_folders").select("id").eq("shared", true).limit(1),
+        supabase.from("file_objects").select("id").eq("shared", true).limit(1),
+      ]);
+      if (!cancelled) setStaffHasSharedFiles(!!folders?.length || !!files?.length);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [staffNeedsCheck]);
+
+  if (!featureOn || !isAgencyMember) return false;
+  return isAgencyManager || staffHasSharedFiles;
 }

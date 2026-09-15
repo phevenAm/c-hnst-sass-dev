@@ -15,7 +15,7 @@ import {
 
 import styles from "../agency.module.scss";
 
-export default function AgencyOnboardingPage() {
+export default function AgencyOnboardingPage({ embedded = false }: { embedded?: boolean } = {}) {
   const dispatch = useAppDispatch();
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
@@ -32,7 +32,7 @@ export default function AgencyOnboardingPage() {
     dispatch(fetchOnboardingItems());
   }, [dispatch]);
 
-  if (!isManager) return <Navigate to="/agency/incoming" replace />;
+  if (!isManager && !embedded) return <Navigate to="/agency/incoming" replace />;
 
   const visible = items.filter((i) => i.audience === audience);
 
@@ -64,14 +64,16 @@ export default function AgencyOnboardingPage() {
 
   return (
     <div>
-      <div className={styles.header} id="agency-onboarding-header">
-        <div>
-          <h1 className={styles.title}>Onboarding material</h1>
-          <p className={styles.subtitle}>
-            Notes and links shown to new people at your agency — one set for clients, one for counsellors.
-          </p>
+      {!embedded && (
+        <div className={styles.header} id="agency-onboarding-header">
+          <div>
+            <h1 className={styles.title}>Onboarding material</h1>
+            <p className={styles.subtitle}>
+              Notes and links shown to new people at your agency — one set for clients, one for counsellors.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.toolbar}>
         <Button variant={audience === "client" ? "primary" : "ghost"} size="sm" onClick={() => setAudience("client")}>

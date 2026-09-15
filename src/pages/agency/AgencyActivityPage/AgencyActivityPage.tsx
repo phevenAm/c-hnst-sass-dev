@@ -171,7 +171,7 @@ export default function AgencyActivityPage() {
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-activity-header">
         <div>
           <h1 className={styles.title}>Activity</h1>

@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  bucketCount,
   bucketTrend,
   byMonth,
   ledgerRowKind,
@@ -9,6 +10,7 @@ import {
   money,
   periodStart,
   personName,
+  presetRangeForPeriod,
   rangeForUnit,
   taxYearStart,
   zipTrends,
@@ -140,6 +142,21 @@ describe("bucketTrend", () => {
   });
 });
 
+describe("bucketCount", () => {
+  it("counts one per row regardless of any amount, unlike bucketTrend", () => {
+    const points = bucketCount(
+      [{ date: "2026-07-27" }, { date: "2026-08-03" }, { date: "2026-08-03" }, { date: "2026-08-10" }],
+      { unit: "week", from: dayjs("2026-07-27"), to: dayjs("2026-08-10") },
+    );
+    expect(points.map((p) => p.value)).toEqual([1, 2, 1]);
+  });
+
+  it("keeps empty buckets at zero", () => {
+    const points = bucketCount([], { unit: "week", from: dayjs("2026-07-27"), to: dayjs("2026-08-10") });
+    expect(points.map((p) => p.value)).toEqual([0, 0, 0]);
+  });
+});
+
 describe("zipTrends", () => {
   it("merges same-length series into one row set keyed by name", () => {
     const rows = zipTrends({
@@ -180,6 +197,33 @@ describe("rangeForUnit", () => {
     expect(rangeForUnit("month").from.format("YYYY-MM-DD")).toBe("2026-04-03");
     expect(rangeForUnit("week").from.format("YYYY-MM-DD")).toBe("2026-06-18");
     expect(rangeForUnit("year").from.format("YYYY-MM-DD")).toBe("2022-09-03");
+  });
+});
+
+describe("presetRangeForPeriod", () => {
+  it("'30d' spans the last 30 days at week granularity", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T12:00:00Z"));
+    const r = presetRangeForPeriod("30d");
+    expect(r.unit).toBe("week");
+    expect(r.from.format("YYYY-MM-DD")).toBe("2026-08-04");
+    expect(r.to.format("YYYY-MM-DD")).toBe("2026-09-03");
+  });
+
+  it("'year' spans the current tax year at month granularity", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T12:00:00Z"));
+    const r = presetRangeForPeriod("year");
+    expect(r.unit).toBe("month");
+    expect(r.from.format("YYYY-MM-DD")).toBe("2026-04-06");
+  });
+
+  it("'all' spans several years at year granularity", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T12:00:00Z"));
+    const r = presetRangeForPeriod("all");
+    expect(r.unit).toBe("year");
+    expect(r.from.format("YYYY-MM-DD")).toBe("2022-09-03");
   });
 });
 

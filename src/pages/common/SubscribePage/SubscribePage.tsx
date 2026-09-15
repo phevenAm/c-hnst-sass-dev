@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
-import { CheckIcon, ClipboardIcon, LeafLogoMark, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
+import { ClipboardIcon, HomeIcon, LeafLogoMark, PaidIcon, UsersIcon } from "@components/shared/Icons/Icons";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 import { selectAgencyBootstrapStatus, selectIsAgencyManager, selectIsAgencyMember } from "@store/slices/agencySlice";
@@ -41,7 +41,7 @@ const SLIDES = [
     ],
   },
   {
-    Icon: CheckIcon,
+    Icon: HomeIcon,
     title: "Real-time practice dashboard",
     description: "See your whole practice at a glance — sessions, check-ins, and outstanding items.",
     points: ["Upcoming sessions and schedule", "Client check-in tracking", "Analytics, PDF reports, and export"],
@@ -51,7 +51,7 @@ const SLIDES = [
 const PRICING_FEATURES = [
   { text: "Every core feature on every plan", slide: 0 },
   { text: "Card payments via Stripe Connect", slide: 2 },
-  { text: "Client check-ins and surveys", slide: 1 },
+  { text: "Client check-ins and surveys", slide: 3 },
   { text: "Practice analytics and PDF export", slide: 3 },
 ];
 

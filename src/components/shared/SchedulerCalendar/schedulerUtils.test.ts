@@ -1,8 +1,21 @@
 import dayjs from "dayjs";
 import { describe, expect, it } from "vitest";
 
-import type { AvailabilityOverride, AvailabilityRule, ClientStub, Session, StubSession } from "@/models/globalTypes";
-import { bookableWindowsForDate, clientSessionEvents, sessionEvents, stubSessionEvents } from "./schedulerUtils";
+import type {
+  AvailabilityOverride,
+  AvailabilityRule,
+  ClientStub,
+  Session,
+  StubSession,
+  UserProfile,
+} from "@/models/globalTypes";
+import {
+  bookableWindowsForDate,
+  clientSessionEvents,
+  colourForClient,
+  sessionEvents,
+  stubSessionEvents,
+} from "./schedulerUtils";
 
 // A concrete Friday to anchor the tests; day_of_week is derived so the test
 // doesn't depend on knowing the weekday index by hand.
@@ -110,6 +123,29 @@ describe("sessionEvents — buffer strip", () => {
     const events = sessionEvents([session({ status: "cancelled" })], [], false, 10);
     expect(events).toHaveLength(1);
     expect(events[0].resource.type).toBe("cancelled-session");
+  });
+});
+
+describe("sessionEvents — client calendar colour", () => {
+  const client = (o: Partial<UserProfile> = {}): UserProfile => ({ id: "c-1", color: null, ...o }) as UserProfile;
+
+  it("falls back to the id-hash colour when the client hasn't set one", () => {
+    const events = sessionEvents([session()], [client({ color: null })]);
+    const resource = events[0].resource as { color: string };
+    expect(resource.color).toBe(colourForClient("c-1"));
+  });
+
+  it("uses the client's own colour (Configure client → Calendar colour) over the hash", () => {
+    const events = sessionEvents([session()], [client({ color: "#8f3f3f" })]);
+    const resource = events[0].resource as { color: string };
+    expect(resource.color).toBe("#8f3f3f");
+    expect(resource.color).not.toBe(colourForClient("c-1"));
+  });
+
+  it("still hash-falls-back when the client profile isn't in the given list at all", () => {
+    const events = sessionEvents([session()], []);
+    const resource = events[0].resource as { color: string };
+    expect(resource.color).toBe(colourForClient("c-1"));
   });
 });
 

@@ -268,7 +268,9 @@
 
 .filterPillActive {
   background: var(--accent);
-  color: #fff;
+  // Not #fff — --accent goes light (teal-400) in dark mode; --text-inverse
+  // flips opposite to it in both themes, so it stays correct either way.
+  color: var(--text-inverse);
   border-color: var(--accent);
 
   &:hover {

@@ -2,7 +2,16 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { postAgencyTeamsCard } from "../_shared/agencyTeams.ts";
-import { detailsTable, emailTemplate, formatDate, logEmail, noteBox, para, sendEmail } from "../_shared/email.ts";
+import {
+  detailsTable,
+  emailTemplate,
+  formatDate,
+  interpolateTemplate,
+  logEmail,
+  noteBox,
+  para,
+  sendEmail,
+} from "../_shared/email.ts";
 
 const EMAIL_TYPE = "session_cancelled";
 
@@ -45,6 +54,13 @@ Deno.serve(async (req) => {
     ]);
 
     const dateStr = formatDate(session.scheduled_at);
+    const firstName = clientProfile?.first_name ?? "there";
+    const templateVars = {
+      name: firstName,
+      date: dateStr,
+      location: session.location !== "in_person" ? "Online" : "In person",
+      duration: `${session.duration_minutes} minutes`,
+    };
 
     // Agency Teams channel — independent of the client email below.
     await postAgencyTeamsCard(supabase, clientProfile?.admin_id, {
@@ -58,17 +74,25 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Client has no email" }), { status: 422, headers: corsHeaders });
     }
 
-    const subject = `Your session on ${dateStr} has been cancelled`;
+    let subject = `Your session on ${dateStr} has been cancelled`;
     let counsellorName: string | undefined;
+    let customBody: string | undefined;
+    let customHeading: string | undefined;
 
     if (clientProfile?.admin_id) {
       const { data: ps } = await supabase
         .from("practice_settings")
-        .select("disabled_email_types, counsellor_name")
+        .select(
+          "disabled_email_types, counsellor_name, session_cancelled_email_subject, session_cancelled_email_body, session_cancelled_email_heading",
+        )
         .eq("admin_id", clientProfile.admin_id)
         .maybeSingle();
 
       counsellorName = ps?.counsellor_name ?? undefined;
+      customBody = ps?.session_cancelled_email_body ?? undefined;
+      customHeading = ps?.session_cancelled_email_heading ?? undefined;
+      if (ps?.session_cancelled_email_subject)
+        subject = interpolateTemplate(ps.session_cancelled_email_subject, templateVars);
 
       if ((ps?.disabled_email_types ?? []).includes(EMAIL_TYPE)) {
         await logEmail(supabase, {
@@ -97,16 +121,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
     }
 
-    const firstName = clientProfile?.first_name ?? "there";
     const unsubscribeUrl = clientProfile?.unsubscribe_token
       ? `${appUrl}/unsubscribe?token=${clientProfile.unsubscribe_token}&type=${EMAIL_TYPE}`
       : undefined;
 
     const html = emailTemplate({
       label: "Session Cancelled",
-      title: `Hi ${firstName}, your session has been cancelled`,
+      title: customHeading
+        ? interpolateTemplate(customHeading, templateVars)
+        : `Hi ${firstName}, your session has been cancelled`,
       body:
-        para("The following session has been cancelled:") +
+        para(customBody ? interpolateTemplate(customBody, templateVars) : "The following session has been cancelled:") +
         detailsTable([
           { label: "Date & time", value: dateStr, bold: true },
           { label: "Duration", value: `${session.duration_minutes} minutes` },

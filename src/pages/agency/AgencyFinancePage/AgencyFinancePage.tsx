@@ -1,7 +1,8 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
+import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
 import type { AgencyFinanceSummary } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -14,8 +15,11 @@ import {
 } from "@store/slices/agencySlice";
 
 import { supabase } from "@/lib/supabase";
+import AgencyInvoicesPage from "../AgencyInvoicesPage/AgencyInvoicesPage";
 import styles from "../agency.module.scss";
 import { formatPence, poundsToPence } from "../agencyFormat";
+
+type FinanceView = "overview" | "invoices";
 
 const RANGES = [
   { label: "Last 30 days", days: 30 },
@@ -31,6 +35,20 @@ export default function AgencyFinancePage() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const expenses = useAppSelector(selectAgencyExpenses);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawView = searchParams.get("view");
+  const view: FinanceView = rawView === "invoices" ? "invoices" : "overview";
+  const setView = (v: FinanceView) => {
+    setSearchParams(
+      (p) => {
+        if (v === "overview") p.delete("view");
+        else p.set("view", v);
+        return p;
+      },
+      { replace: true },
+    );
+  };
 
   const [days, setDays] = useState(30);
   const [summary, setSummary] = useState<AgencyFinanceSummary | null>(null);
@@ -87,189 +105,209 @@ export default function AgencyFinancePage() {
   };
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-finance-header">
         <div>
           <h1 className={styles.title}>Finance</h1>
           <p className={styles.subtitle}>Client payments across the agency, against what you record as outgoings.</p>
         </div>
-        <select
-          className={styles.select}
-          style={{ width: "auto" }}
-          value={days}
-          onChange={(e) => setDays(Number(e.target.value))}
-        >
-          {RANGES.map((r) => (
-            <option key={r.days} value={r.days}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.tiles}>
-        <div className={styles.tile}>
-          <p className={styles.tileLabel}>Income</p>
-          <div className={styles.tileValue}>{summary ? formatPence(summary.income_pence) : "—"}</div>
-        </div>
-        <div className={styles.tile}>
-          <p className={styles.tileLabel}>Outgoings</p>
-          <div className={styles.tileValue}>{summary ? formatPence(summary.outgoings_pence) : "—"}</div>
-        </div>
-        <div className={styles.tile}>
-          <p className={styles.tileLabel}>Net</p>
-          <div
-            className={styles.tileValue}
-            style={{ color: (summary?.net_pence ?? 0) < 0 ? "var(--danger)" : "var(--success)" }}
+        {view === "overview" && (
+          <select
+            className={styles.select}
+            style={{ width: "auto" }}
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
           >
-            {summary ? formatPence(summary.net_pence) : "—"}
-          </div>
-        </div>
+            {RANGES.map((r) => (
+              <option key={r.days} value={r.days}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      <div className={styles.grid2}>
-        <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Income vs outgoings</h3>
-          {(() => {
-            const inc = summary?.income_pence ?? 0;
-            const out = summary?.outgoings_pence ?? 0;
-            const max = Math.max(1, inc, out);
-            return (
-              <>
-                <div className={styles.barRow}>
-                  <span className={styles.barLabel}>Income</span>
-                  <span className={styles.barTrack}>
-                    <span
-                      className={styles.barFill}
-                      style={{ width: `${(inc / max) * 100}%`, background: "#3f7d6e" }}
-                    />
-                  </span>
-                  <span className={styles.barValue}>{formatPence(inc)}</span>
-                </div>
-                <div className={styles.barRow}>
-                  <span className={styles.barLabel}>Outgoings</span>
-                  <span className={styles.barTrack}>
-                    <span
-                      className={styles.barFill}
-                      style={{ width: `${(out / max) * 100}%`, background: "#b23b3b" }}
-                    />
-                  </span>
-                  <span className={styles.barValue}>{formatPence(out)}</span>
-                </div>
-              </>
-            );
-          })()}
-        </div>
-
-        <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Outgoings by category</h3>
-          {(() => {
-            const byCat = new Map<string, number>();
-            for (const x of expenses) {
-              const k = x.category?.trim() || "Uncategorised";
-              byCat.set(k, (byCat.get(k) ?? 0) + x.amount_pence);
-            }
-            const rows = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
-            const max = Math.max(1, ...rows.map(([, v]) => v));
-            if (rows.length === 0) return <p className={styles.empty}>No outgoings recorded yet.</p>;
-            return rows.map(([cat, amt]) => (
-              <div key={cat} className={styles.barRow}>
-                <span className={styles.barLabel}>{cat}</span>
-                <span className={styles.barTrack}>
-                  <span className={styles.barFill} style={{ width: `${(amt / max) * 100}%` }} />
-                </span>
-                <span className={styles.barValue}>{formatPence(amt)}</span>
-              </div>
-            ));
-          })()}
-        </div>
+      <div style={{ marginBottom: "var(--sp-4)" }}>
+        <SegmentedTabs
+          tabs={[
+            { value: "overview", label: "Overview" },
+            { value: "invoices", label: "Invoices" },
+          ]}
+          value={view}
+          onChange={setView}
+          ariaLabel="Finance view"
+        />
       </div>
 
-      <h2 className={styles.title} style={{ fontSize: "1.1rem" }}>
-        Record an outgoing
-      </h2>
+      {view === "invoices" && <AgencyInvoicesPage embedded />}
 
-      <form className={styles.toolbar} onSubmit={addExpense} style={{ alignItems: "flex-end" }}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="ex-date">
-            Date
-          </label>
-          <input
-            id="ex-date"
-            type="date"
-            className={styles.input}
-            value={incurredOn}
-            onChange={(e) => setIncurredOn(e.target.value)}
-          />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="ex-cat">
-            Category
-          </label>
-          <input
-            id="ex-cat"
-            className={styles.input}
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="Rent, software…"
-          />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="ex-amt">
-            Amount (£)
-          </label>
-          <input
-            id="ex-amt"
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            className={styles.input}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-          />
-        </div>
-        <div className={`${styles.field} ${styles.grow}`}>
-          <label className={styles.label} htmlFor="ex-note">
-            Note
-          </label>
-          <input id="ex-note" className={styles.input} value={note} onChange={(e) => setNote(e.target.value)} />
-        </div>
-        <Button type="submit" disabled={busy || !amount.trim()}>
-          Add
-        </Button>
-      </form>
-
-      {error && <div className={styles.error}>{error}</div>}
-
-      {expenses.length === 0 ? (
-        <p className={styles.empty}>No outgoings recorded for this agency yet.</p>
-      ) : (
-        <div className={styles.list}>
-          {expenses.map((x) => (
-            <div key={x.id} className={styles.row}>
-              <div className={styles.rowMain}>
-                <span className={styles.rowName}>
-                  {formatPence(x.amount_pence)} {x.category && `· ${x.category}`}
-                </span>
-                <span className={styles.rowMeta}>
-                  {x.incurred_on}
-                  {x.note && ` · ${x.note}`}
-                </span>
-              </div>
-              <div className={styles.rowActions}>
-                <Button
-                  size="sm"
-                  variant="ghost-danger"
-                  onClick={() => dispatch(deleteAgencyExpense(x.id)).then(() => loadSummary())}
-                >
-                  Delete
-                </Button>
+      {view === "overview" && (
+        <>
+          <div className={styles.tiles}>
+            <div className={styles.tile}>
+              <p className={styles.tileLabel}>Income</p>
+              <div className={styles.tileValue}>{summary ? formatPence(summary.income_pence) : "—"}</div>
+            </div>
+            <div className={styles.tile}>
+              <p className={styles.tileLabel}>Outgoings</p>
+              <div className={styles.tileValue}>{summary ? formatPence(summary.outgoings_pence) : "—"}</div>
+            </div>
+            <div className={styles.tile}>
+              <p className={styles.tileLabel}>Net</p>
+              <div
+                className={styles.tileValue}
+                style={{ color: (summary?.net_pence ?? 0) < 0 ? "var(--danger)" : "var(--success)" }}
+              >
+                {summary ? formatPence(summary.net_pence) : "—"}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+
+          <div className={styles.grid2}>
+            <div className={styles.panel}>
+              <h3 className={styles.panelTitle}>Income vs outgoings</h3>
+              {(() => {
+                const inc = summary?.income_pence ?? 0;
+                const out = summary?.outgoings_pence ?? 0;
+                const max = Math.max(1, inc, out);
+                return (
+                  <>
+                    <div className={styles.barRow}>
+                      <span className={styles.barLabel}>Income</span>
+                      <span className={styles.barTrack}>
+                        <span
+                          className={styles.barFill}
+                          style={{ width: `${(inc / max) * 100}%`, background: "#3f7d6e" }}
+                        />
+                      </span>
+                      <span className={styles.barValue}>{formatPence(inc)}</span>
+                    </div>
+                    <div className={styles.barRow}>
+                      <span className={styles.barLabel}>Outgoings</span>
+                      <span className={styles.barTrack}>
+                        <span
+                          className={styles.barFill}
+                          style={{ width: `${(out / max) * 100}%`, background: "#b23b3b" }}
+                        />
+                      </span>
+                      <span className={styles.barValue}>{formatPence(out)}</span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className={styles.panel}>
+              <h3 className={styles.panelTitle}>Outgoings by category</h3>
+              {(() => {
+                const byCat = new Map<string, number>();
+                for (const x of expenses) {
+                  const k = x.category?.trim() || "Uncategorised";
+                  byCat.set(k, (byCat.get(k) ?? 0) + x.amount_pence);
+                }
+                const rows = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+                const max = Math.max(1, ...rows.map(([, v]) => v));
+                if (rows.length === 0) return <p className={styles.empty}>No outgoings recorded yet.</p>;
+                return rows.map(([cat, amt]) => (
+                  <div key={cat} className={styles.barRow}>
+                    <span className={styles.barLabel}>{cat}</span>
+                    <span className={styles.barTrack}>
+                      <span className={styles.barFill} style={{ width: `${(amt / max) * 100}%` }} />
+                    </span>
+                    <span className={styles.barValue}>{formatPence(amt)}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+
+          <h2 className={styles.title} style={{ fontSize: "1.1rem" }}>
+            Record an outgoing
+          </h2>
+
+          <form className={styles.toolbar} onSubmit={addExpense} style={{ alignItems: "flex-end" }}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="ex-date">
+                Date
+              </label>
+              <input
+                id="ex-date"
+                type="date"
+                className={styles.input}
+                value={incurredOn}
+                onChange={(e) => setIncurredOn(e.target.value)}
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="ex-cat">
+                Category
+              </label>
+              <input
+                id="ex-cat"
+                className={styles.input}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Rent, software…"
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="ex-amt">
+                Amount (£)
+              </label>
+              <input
+                id="ex-amt"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                className={styles.input}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+              />
+            </div>
+            <div className={`${styles.field} ${styles.grow}`}>
+              <label className={styles.label} htmlFor="ex-note">
+                Note
+              </label>
+              <input id="ex-note" className={styles.input} value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={busy || !amount.trim()}>
+              Add
+            </Button>
+          </form>
+
+          {error && <div className={styles.error}>{error}</div>}
+
+          {expenses.length === 0 ? (
+            <p className={styles.empty}>No outgoings recorded for this agency yet.</p>
+          ) : (
+            <div className={styles.list}>
+              {expenses.map((x) => (
+                <div key={x.id} className={styles.row}>
+                  <div className={styles.rowMain}>
+                    <span className={styles.rowName}>
+                      {formatPence(x.amount_pence)} {x.category && `· ${x.category}`}
+                    </span>
+                    <span className={styles.rowMeta}>
+                      {x.incurred_on}
+                      {x.note && ` · ${x.note}`}
+                    </span>
+                  </div>
+                  <div className={styles.rowActions}>
+                    <Button
+                      size="sm"
+                      variant="ghost-danger"
+                      onClick={() => dispatch(deleteAgencyExpense(x.id)).then(() => loadSummary())}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

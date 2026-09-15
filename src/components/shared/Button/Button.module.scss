@@ -61,6 +61,15 @@
   color: var(--accent-dark);
   border-color: var(--accent-light);
 
+  // --accent-light/--accent-dark flip to a dark bg + mid-tone text in dark
+  // mode (they're a light-bg/dark-text pair only in light mode), which
+  // collapsed this to ~3:1. #8ecfc3 is $teal-300, the palette's own
+  // "dark-mode accent" color — verified ~6.7:1 against --accent-light's
+  // dark-mode value.
+  :global(.dark) & {
+    color: #8ecfc3;
+  }
+
   &:hover:not(:disabled) {
     background: var(--accent-subtle);
     border-color: var(--border);

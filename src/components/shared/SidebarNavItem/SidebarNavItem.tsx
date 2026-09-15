@@ -1,4 +1,4 @@
-import type { ComponentType, CSSProperties } from "react";
+import type { ComponentType, CSSProperties, ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
 import styles from "./SidebarNavItem.module.scss";
@@ -23,10 +23,12 @@ type Props = {
   /** Override the selected background/text — e.g. `"var(--accent-subtle)"`.
    *  Pass `[bg, fg]`; omit for the shared default (`--accent-secondary`). */
   accent?: [bg: string, fg: string];
+  /** Optional trailing content next to the label — e.g. an unread CountBadge. */
+  badge?: ReactNode;
   cx: SidebarNavItemClasses;
 };
 
-export default function SidebarNavItem({ to, label, Icon, end, showTitle, onNavigate, accent, cx }: Props) {
+export default function SidebarNavItem({ to, label, Icon, end, showTitle, onNavigate, accent, badge, cx }: Props) {
   const style = accent
     ? ({ "--nav-selected-bg": accent[0], "--nav-selected-fg": accent[1] } as CSSProperties)
     : undefined;
@@ -44,6 +46,7 @@ export default function SidebarNavItem({ to, label, Icon, end, showTitle, onNavi
         <Icon />
       </span>
       <span className={cx.label}>{label}</span>
+      {badge}
     </NavLink>
   );
 }

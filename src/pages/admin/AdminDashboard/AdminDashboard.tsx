@@ -24,17 +24,14 @@ import { fetchAllUsers, selectClientUsers } from "@store/slices/userDirectorySli
 
 import { clientDisplayName, isPageStatusLoading, pickColor } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
+import { bucketCount, bucketTrend } from "@/pages/admin/AdminFinancesPage/financeOverview";
+import TrendControls from "@/pages/admin/AdminFinancesPage/TrendControls";
+import { useTrendControls } from "@/pages/admin/AdminFinancesPage/useTrendControls";
 import { fetchClientStubs, selectAllStubs } from "@/store/slices/clientStubsSlice";
 import TodoListCard from "../Blocks/TodoList/TodoListCard";
-import TrendChart from "./Blocks/TrendChart/TrendChart";
+import TrendChart, { type TrendSeries } from "./Blocks/TrendChart/TrendChart";
 import UpcomingSessions, { type UpcomingStubSession } from "./Blocks/UpcomingSessions/UpcomingSessions";
-import {
-  mergeTrendPoints,
-  revenueByMonth,
-  revenueByMonthFromPayments,
-  revenueByMonthFromStubSessions,
-  sessionsByWeek,
-} from "./dashboardUtils";
+import { paidPaymentRows, paidSessionRows, paidStubSessionRows } from "./dashboardUtils";
 
 import styles from "./AdminDashboard.module.scss";
 
@@ -43,6 +40,17 @@ import styles from "./AdminDashboard.module.scss";
 type PendingRequest =
   | { kind: "reschedule"; id: string; client_id: string; requested_at: string; created_at: string }
   | { kind: "cancellation"; id: string; client_id: string; created_at: string };
+
+// Revenue + Sessions as grouped bars, outgoings overlaid as a line — one
+// combined read of the practice's activity instead of three separate charts.
+// Sessions is a count, not money, so it gets its own right-hand axis rather
+// than being flattened near zero (or forcing money onto a tiny 0–10 scale)
+// by sharing the left one with Revenue/Outgoings.
+const PRACTICE_TRENDS_SERIES: TrendSeries[] = [
+  { key: "Revenue", name: "Revenue", color: "#4a665b", valueFormatter: (v) => `£${v.toFixed(2)}` },
+  { key: "Outgoings", name: "Outgoings", color: "#a8633a", kind: "line", valueFormatter: (v) => `£${v.toFixed(2)}` },
+  { key: "Sessions", name: "Sessions", color: "#3a7fa8", kind: "line", axis: "right", valueFormatter: (v) => `${v}` },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -137,24 +145,30 @@ export default function AdminDashboard() {
     });
   }, []);
 
-  const revenueData = useMemo(
-    () =>
-      mergeTrendPoints(
-        revenueByMonth(allSessions, 6),
-        revenueByMonthFromStubSessions(stubSessions, 6),
-        revenueByMonthFromPayments(manualPayments, 6),
-      ),
-    [allSessions, stubSessions, manualPayments],
-  );
-  const sessionVolumeData = useMemo(() => sessionsByWeek(allSessions, 8), [allSessions]);
-  const outgoingsData = useMemo(
-    () =>
-      revenueByMonthFromPayments(
-        expenses.map((e) => ({ paid_at: e.incurred_on, amount_pence: e.amount_pence })),
-        6,
-      ),
-    [expenses],
-  );
+  // Granularity + range for the combined Practice trends chart — defaults to
+  // weekly (matching the old "Sessions per week" card it's replacing).
+  const trend = useTrendControls("week");
+
+  const practiceTrendsData = useMemo(() => {
+    const revenueRows = [
+      ...paidSessionRows(allSessions),
+      ...paidStubSessionRows(stubSessions),
+      ...paidPaymentRows(manualPayments),
+    ];
+    const outgoingsRows = expenses.map((e) => ({ date: e.incurred_on, pence: e.amount_pence }));
+    const sessionRows = allSessions.filter((s) => s.status !== "cancelled").map((s) => ({ date: s.scheduled_at }));
+
+    const revenue = bucketTrend(revenueRows, trend);
+    const outgoings = bucketTrend(outgoingsRows, trend);
+    const sessionCounts = bucketCount(sessionRows, trend);
+
+    return revenue.map((r, i) => ({
+      label: r.label,
+      Revenue: r.value,
+      Outgoings: outgoings[i]?.value ?? 0,
+      Sessions: sessionCounts[i]?.value ?? 0,
+    }));
+  }, [allSessions, stubSessions, manualPayments, expenses, trend]);
 
   const unpaidSessions = useMemo(
     () =>
@@ -386,27 +400,17 @@ export default function AdminDashboard() {
 
         <Card className={styles.sectionCard}>
           <CollapsibleSection title="Practice trends" storageKey="dash:trends">
-            <div className={styles.chartsGrid}>
-              <HideableSection id="dashboard-revenue">
-                <TrendChart
-                  title="Revenue (last 6 months)"
-                  data={revenueData}
-                  type="bar"
-                  color="#4a665b"
-                  valueFormatter={(v) => `£${v.toFixed(2)}`}
-                />
-              </HideableSection>
-              <HideableSection id="dashboard-outgoings">
-                <TrendChart
-                  title="Outgoings (last 6 months)"
-                  data={outgoingsData}
-                  type="bar"
-                  color="#a8633a"
-                  valueFormatter={(v) => `£${v.toFixed(2)}`}
-                />
-              </HideableSection>
-              <TrendChart title="Sessions per week" data={sessionVolumeData} type="bar" color="#5f8073" />
-            </div>
+            <HideableSection id="dashboard-practice-trends">
+              <TrendControls state={trend} hideChartType />
+              <TrendChart
+                title="Revenue, outgoings & sessions"
+                data={practiceTrendsData}
+                series={PRACTICE_TRENDS_SERIES}
+                valueFormatter={(v) => `£${v.toFixed(2)}`}
+                leftAxisLabel="£"
+                rightAxisLabel="Sessions"
+              />
+            </HideableSection>
           </CollapsibleSection>
         </Card>
 

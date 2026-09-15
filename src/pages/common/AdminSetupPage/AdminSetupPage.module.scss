@@ -235,11 +235,21 @@ label.toggleSwitch {
   input,
   textarea {
     padding: $sp-2;
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border);
     border-radius: var(--r-sm);
-    background: var(--bg-card);
+    background: var(--bg-muted);
     color: var(--text-primary);
     font-family: var(--font-sans);
+    outline: none;
+    transition: border-color var(--transition-base);
+
+    &:focus {
+      border-color: var(--border-focus);
+    }
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
   }
 
   textarea {

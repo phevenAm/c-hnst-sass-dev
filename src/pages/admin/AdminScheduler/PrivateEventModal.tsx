@@ -10,6 +10,7 @@ import Modal from "@components/shared/Modal/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { useFeatureFlag } from "@/lib/featureFlags";
+import { supabase } from "@/lib/supabase.js";
 import type { AdminPrivateEvent } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createPrivateEvent, deletePrivateEvent, updatePrivateEvent } from "@/store/slices/adminPrivateEventsSlice";
@@ -73,12 +74,35 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
   const [currency, setCurrency] = useState(event?.currency ?? "GBP");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Mirrors the cost above into `expenses` (category "Supervision") via the
+  // source_private_event_id FK, so it counts on the Expenses page without
+  // being entered twice. Defaults on when editing an event that already has
+  // a linked expense row.
+  const [addToExpenses, setAddToExpenses] = useState(false);
+  useEffect(() => {
+    if (!isEdit || !event) return;
+    supabase
+      .from("expenses")
+      .select("id")
+      .eq("source_private_event_id", event.id)
+      .maybeSingle()
+      .then(({ data }) => setAddToExpenses(Boolean(data)));
+  }, [isEdit, event]);
+
   // ── "Mirror to Messages" (create mode only) ───────────────────────────────
   // Let chosen clients know about this block via their message thread. Behind
   // the messaging flag; re-mirroring an existing event isn't offered (there's
   // no per-client "already told" state to reason about yet).
   const messagingOn = useFeatureFlag("messaging");
   const canNotify = messagingOn && !isEdit && !isDemo;
+
+  // Short, focused steps instead of one long scroll — the notify-clients
+  // step only exists when notifying is actually available.
+  const STEP_LABELS = ["Details", "Supervision & CPD", canNotify ? "Notify clients" : null].filter(Boolean) as string[];
+  const [step, setStep] = useState(0);
+  const lastStep = STEP_LABELS.length - 1;
+  const goNext = () => setStep((s) => Math.min(s + 1, lastStep));
+  const goBack = () => setStep((s) => Math.max(s - 1, 0));
 
   const clients = useAppSelector(selectClientUsers);
   const [notifyClients, setNotifyClients] = useState(false);
@@ -117,6 +141,32 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
       return true;
     }
     return false;
+  };
+
+  // Keeps the linked `expenses` row (category "Supervision") in step with the
+  // checkbox: upserts on the unique source_private_event_id FK when the
+  // checkbox is on, deletes it when turned off. Deleting the event itself
+  // cascades at the DB level, so no cleanup needed there.
+  const syncExpense = async (eventId: string) => {
+    if (!authUser) return;
+    const amountPence = cost ? Math.round(parseFloat(cost) * 100) : 0;
+    if (isSupervision && addToExpenses && amountPence > 0) {
+      const { error } = await supabase.from("expenses").upsert(
+        {
+          admin_id: authUser.id,
+          incurred_on: (startsAt ?? dayjs()).format("YYYY-MM-DD"),
+          category: "Supervision",
+          amount_pence: amountPence,
+          description: title.trim(),
+          source_private_event_id: eventId,
+        },
+        { onConflict: "source_private_event_id" },
+      );
+      if (error) throw error;
+    } else if (isEdit) {
+      const { error } = await supabase.from("expenses").delete().eq("source_private_event_id", eventId);
+      if (error) throw error;
+    }
   };
 
   const handleSave = async () => {
@@ -159,7 +209,14 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
     if (isEdit && event) {
       const res = await dispatch(updatePrivateEvent({ id: event.id, ...fields }));
       if (updatePrivateEvent.fulfilled.match(res)) {
-        showToast("Private event updated.", "success");
+        const expenseOk = await syncExpense(event.id).then(
+          () => true,
+          () => false,
+        );
+        showToast(
+          expenseOk ? "Private event updated." : "Private event updated, but the expense entry couldn't be saved.",
+          expenseOk ? "success" : "warning",
+        );
         onClose();
       } else {
         showToast("Couldn't save the event.", "danger");
@@ -175,18 +232,28 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
       return;
     }
 
+    const expenseOk = await syncExpense(res.payload.id).then(
+      () => true,
+      () => false,
+    );
+
+    const expenseNote = expenseOk ? "" : " — but the expense entry couldn't be saved";
+
     if (canNotify && notifyClients && selectedClientIds.length > 0) {
       const mirror = await dispatch(
         mirrorPrivateEvent({ eventId: res.payload.id, clientIds: selectedClientIds, body: messageBody }),
       );
       if (mirrorPrivateEvent.fulfilled.match(mirror)) {
         const n = mirror.payload.count;
-        showToast(`Private event added — ${n} client${n === 1 ? "" : "s"} messaged.`, "success");
+        showToast(
+          `Private event added — ${n} client${n === 1 ? "" : "s"} messaged.${expenseNote}`,
+          expenseOk ? "success" : "warning",
+        );
       } else {
         showToast("Private event added, but the client messages couldn't be sent.", "warning");
       }
     } else {
-      showToast("Private event added.", "success");
+      showToast(`Private event added.${expenseNote}`, expenseOk ? "success" : "warning");
     }
     onClose();
     setIsSaving(false);
@@ -211,14 +278,23 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
       actions={
         <div style={{ display: "flex", gap: "0.75rem", justifyContent: "space-between", width: "100%" }}>
           <div style={{ display: "flex", gap: "0.75rem" }}>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "Saving…" : isEdit ? "Save" : "Add event"}
-            </Button>
+            {step > 0 && (
+              <Button variant="ghost" onClick={goBack}>
+                Back
+              </Button>
+            )}
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
+            {step < lastStep ? (
+              <Button onClick={goNext}>Next</Button>
+            ) : (
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Saving…" : isEdit ? "Save" : "Add event"}
+              </Button>
+            )}
           </div>
-          {isEdit && (
+          {isEdit && step === lastStep && (
             <Button variant="ghost-danger" onClick={handleDelete}>
               Delete
             </Button>
@@ -227,98 +303,128 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
       }
     >
       <div className={styles.form}>
-        <p className={styles.hint}>Private events show only on your schedule. Clients never see them.</p>
+        {STEP_LABELS.length > 1 && (
+          <>
+            <div className={styles.stepDots} aria-label={`Step ${step + 1} of ${STEP_LABELS.length}`}>
+              {STEP_LABELS.map((label, i) => (
+                <div key={label} className={`${styles.stepDot} ${step >= i ? styles.stepDotActive : ""}`} />
+              ))}
+            </div>
+            <h3 className={styles.stepHeading}>{STEP_LABELS[step]}</h3>
+          </>
+        )}
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="private-title">
-            Title
-          </label>
-          <input
-            id="private-title"
-            className={styles.input}
-            type="text"
-            placeholder="e.g. Supervision"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
+        {step === 0 && (
+          <>
+            <p className={styles.hint}>Private events show only on your schedule. Clients never see them.</p>
 
-        <div className={styles.times}>
-          <div className={styles.field}>
-            <span className={styles.label}>Starts</span>
-            <DateInput mode="datetime" value={startsAt} onChange={setStartsAt} />
-          </div>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="private-duration">
-              Duration (minutes)
-            </label>
-            <input
-              id="private-duration"
-              className={styles.input}
-              type="number"
-              min={1}
-              max={480}
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value)))}
-            />
-          </div>
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="private-notes">
-            Notes (optional)
-          </label>
-          <textarea
-            id="private-notes"
-            className={styles.textarea}
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
-
-        <label className={styles.checkboxLabel}>
-          <input type="checkbox" checked={isSupervision} onChange={(e) => setIsSupervision(e.target.checked)} />
-          Add to supervision log
-        </label>
-
-        {isSupervision && (
-          <div className={styles.feeRow}>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="private-currency">
-                Fee (optional)
+              <label className={styles.label} htmlFor="private-title">
+                Title
               </label>
-              <div className={styles.costRow}>
-                <select
-                  id="private-currency"
-                  className={styles.select}
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                >
-                  <option value="GBP">£</option>
-                  <option value="EUR">€</option>
-                  <option value="USD">$</option>
-                </select>
+              <input
+                id="private-title"
+                className={styles.input}
+                type="text"
+                placeholder="e.g. Supervision"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.times}>
+              <div className={styles.field}>
+                <span className={styles.label}>Starts</span>
+                <DateInput mode="datetime" value={startsAt} onChange={setStartsAt} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="private-duration">
+                  Duration (minutes)
+                </label>
                 <input
+                  id="private-duration"
                   className={styles.input}
                   type="number"
-                  min={0}
-                  step={0.01}
-                  value={cost}
-                  onChange={(e) => setCost(e.target.value)}
-                  placeholder="0.00"
+                  min={1}
+                  max={480}
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value)))}
                 />
               </div>
             </div>
-          </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="private-notes">
+                Notes (optional)
+              </label>
+              <textarea
+                id="private-notes"
+                className={styles.textarea}
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </>
         )}
 
-        <label className={styles.checkboxLabel}>
-          <input type="checkbox" checked={isCpd} onChange={(e) => setIsCpd(e.target.checked)} />
-          Add to CPD log
-        </label>
+        {step === 1 && (
+          <>
+            <label className={styles.checkboxLabel}>
+              <input type="checkbox" checked={isSupervision} onChange={(e) => setIsSupervision(e.target.checked)} />
+              Add to supervision log
+            </label>
 
-        {canNotify && (
+            {isSupervision && (
+              <div className={styles.feeRow}>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="private-currency">
+                    Fee (optional)
+                  </label>
+                  <div className={styles.costRow}>
+                    <select
+                      id="private-currency"
+                      className={styles.select}
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                    >
+                      <option value="GBP">£</option>
+                      <option value="EUR">€</option>
+                      <option value="USD">$</option>
+                    </select>
+                    <input
+                      className={styles.input}
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={cost}
+                      onChange={(e) => setCost(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {cost && parseFloat(cost) > 0 && (
+                  <label className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={addToExpenses}
+                      onChange={(e) => setAddToExpenses(e.target.checked)}
+                    />
+                    Also log this as a practice expense
+                  </label>
+                )}
+              </div>
+            )}
+
+            <label className={styles.checkboxLabel}>
+              <input type="checkbox" checked={isCpd} onChange={(e) => setIsCpd(e.target.checked)} />
+              Add to CPD log
+            </label>
+          </>
+        )}
+
+        {step === 2 && canNotify && (
           <div className={styles.notifyBlock}>
             <label className={styles.checkboxLabel}>
               <input

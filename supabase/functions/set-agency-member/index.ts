@@ -7,9 +7,10 @@ const corsHeaders = {
 };
 
 // Manager edits a member: role (manager|counsellor), counselling_enabled,
-// status (active|disabled). Disabling also flips users.disabled so the shared
-// pause machinery blocks their sign-in. The agency owner can't be demoted or
-// disabled, and an agency can't be left with zero active managers.
+// status (active|disabled), color (hex, for the sessions calendar). Disabling
+// also flips users.disabled so the shared pause machinery blocks their
+// sign-in. The agency owner can't be demoted or disabled, and an agency can't
+// be left with zero active managers.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -72,6 +73,7 @@ Deno.serve(async (req) => {
       patch.role = body.role;
     }
     if (typeof body?.counselling_enabled === "boolean") patch.counselling_enabled = body.counselling_enabled;
+    if (typeof body?.color === "string" && /^#[0-9a-fA-F]{6}$/.test(body.color)) patch.color = body.color;
     if (body?.status === "active" || body?.status === "disabled") {
       if (isOwner && body.status === "disabled") {
         return new Response(JSON.stringify({ error: "The agency owner can't be disabled" }), {

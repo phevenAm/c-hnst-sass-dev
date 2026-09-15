@@ -28,37 +28,37 @@ const startOfWeek = (date: Date) => {
   return d;
 };
 
-// Shared bucketing for anything shaped as "an amount, on a date, that may or
-// may not count as collected yet" — sessions, stub sessions, and manual
-// payments each have a different shape, so callers extract the three fields
-// this needs via `pick` rather than this function knowing about any of them.
-function revenueByMonthGeneric<T>(
-  rows: T[],
-  pick: (row: T) => { dateIso: string; amountPence: number; isPaid: boolean },
-  months: number,
-): TrendPoint[] {
-  const { points, index } = monthBuckets(months);
-  for (const row of rows) {
-    const { dateIso, amountPence, isPaid } = pick(row);
-    if (!isPaid) continue;
-    const idx = index.get(monthKey(new Date(dateIso)));
-    if (idx === undefined) continue;
-    points[idx].value += amountPence / 100;
-  }
-  return points.map((p) => ({ ...p, value: Math.round(p.value * 100) / 100 }));
-}
+/** A row that counted towards revenue: when, and how much (in pence). */
+export type PaidRow = { date: string; pence: number };
 
 // Revenue in pounds from PAID sessions, bucketed by calendar month.
 export function revenueByMonth(sessions: Session[], months = 6): TrendPoint[] {
-  return revenueByMonthGeneric(
-    sessions,
-    (s) => ({ dateIso: s.scheduled_at, amountPence: s.price_pence ?? 0, isPaid: !!s.paid }),
-    months,
-  );
+  return bucketPaidRowsByMonth(paidSessionRows(sessions), months);
 }
 
 // Revenue from paid offline (stub) sessions — same shape, different table.
-//
+export function revenueByMonthFromStubSessions(
+  stubSessions: { scheduled_at: string; amount_paid: number | null; paid: boolean; price_pence: number | null }[],
+  months = 6,
+): TrendPoint[] {
+  return bucketPaidRowsByMonth(paidStubSessionRows(stubSessions), months);
+}
+
+// Revenue from manually-recorded payments (cash, bank transfer, etc.).
+export function revenueByMonthFromPayments(
+  payments: { paid_at: string; amount_pence: number }[],
+  months = 6,
+): TrendPoint[] {
+  return bucketPaidRowsByMonth(paidPaymentRows(payments), months);
+}
+
+// Paid sessions as flat {date, pence} rows — the building block both the
+// fixed "last N months" exports above and AdminDashboard's flexible-range
+// trend chart (bucketTrend/bucketSeries in financeOverview.ts) bucket from.
+export function paidSessionRows(sessions: Session[]): PaidRow[] {
+  return sessions.filter((s) => s.paid).map((s) => ({ date: s.scheduled_at, pence: s.price_pence ?? 0 }));
+}
+
 // stub_sessions carries two separate "is this paid" signals that can each be
 // set independently: `paid` (a plain boolean, set at creation time or via
 // StubSessionCard's Mark as paid/unpaid toggle) and `amount_paid` (a specific
@@ -68,35 +68,35 @@ export function revenueByMonth(sessions: Session[], months = 6): TrendPoint[] {
 // more specific figure when both are set, since it's what was actually
 // entered as received, falling back to the listed price_pence when only the
 // plain boolean was flipped on.
-export function revenueByMonthFromStubSessions(
+export function paidStubSessionRows(
   stubSessions: { scheduled_at: string; amount_paid: number | null; paid: boolean; price_pence: number | null }[],
-  months = 6,
-): TrendPoint[] {
-  return revenueByMonthGeneric(
-    stubSessions,
-    (s) => {
+): PaidRow[] {
+  return stubSessions
+    .map((s) => {
       const hasAmountPaid = s.amount_paid != null && s.amount_paid > 0;
-      let amountPence = 0;
-      if (hasAmountPaid) amountPence = Math.round((s.amount_paid as number) * 100);
-      else if (s.paid) amountPence = s.price_pence ?? 0;
-      return { dateIso: s.scheduled_at, amountPence, isPaid: s.paid || hasAmountPaid };
-    },
-    months,
-  );
+      let pence = 0;
+      if (hasAmountPaid) pence = Math.round((s.amount_paid as number) * 100);
+      else if (s.paid) pence = s.price_pence ?? 0;
+      return { date: s.scheduled_at, pence, isPaid: s.paid || hasAmountPaid };
+    })
+    .filter((r) => r.isPaid)
+    .map(({ date, pence }) => ({ date, pence }));
 }
 
-// Revenue from manually-recorded payments (cash, bank transfer, etc. logged
-// via "Add payment") — a row in `payments` only ever exists once money has
-// actually been received, so every row counts.
-export function revenueByMonthFromPayments(
-  payments: { paid_at: string; amount_pence: number }[],
-  months = 6,
-): TrendPoint[] {
-  return revenueByMonthGeneric(
-    payments,
-    (p) => ({ dateIso: p.paid_at, amountPence: p.amount_pence, isPaid: true }),
-    months,
-  );
+// A row in `payments` only ever exists once money has actually been
+// received, so every row counts — no paid/unpaid filtering needed.
+export function paidPaymentRows(payments: { paid_at: string; amount_pence: number }[]): PaidRow[] {
+  return payments.map((p) => ({ date: p.paid_at, pence: p.amount_pence }));
+}
+
+function bucketPaidRowsByMonth(rows: PaidRow[], months: number): TrendPoint[] {
+  const { points, index } = monthBuckets(months);
+  for (const { date, pence } of rows) {
+    const idx = index.get(monthKey(new Date(date)));
+    if (idx === undefined) continue;
+    points[idx].value += pence / 100;
+  }
+  return points.map((p) => ({ ...p, value: Math.round(p.value * 100) / 100 }));
 }
 
 // Sums same-length TrendPoint series index-wise (all bucketed with the same

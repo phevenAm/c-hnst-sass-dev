@@ -117,6 +117,16 @@ vi.mock("@/lib/supabase.js", () => ({
   },
 }));
 
+// The modal is now paginated into steps; the Schedule/Update button only
+// exists on the final one. Click through however many "Next"s remain.
+function advanceToFinalStep() {
+  let next = screen.queryByRole("button", { name: "Next" });
+  while (next) {
+    fireEvent.click(next);
+    next = screen.queryByRole("button", { name: "Next" });
+  }
+}
+
 function renderModal(props: Partial<React.ComponentProps<typeof CreateSessionModal>> = {}) {
   const store = configureStore({ reducer: { sessions: sessionsReducer, practiceSettings: practiceSettingsReducer } });
   const onClose = vi.fn();
@@ -139,7 +149,7 @@ describe("CreateSessionModal — session type picker", () => {
     fireEvent.change(select, { target: { value: "pkg-2" } });
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Session fee (£)")).toHaveValue(90);
+      expect(document.querySelector("#session-price")!).toHaveValue(90);
     });
     expect(document.querySelector("#session-duration")).toHaveValue(80);
   });
@@ -149,10 +159,10 @@ describe("CreateSessionModal — session type picker", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
-    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toHaveValue(60));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
-    fireEvent.change(screen.getByLabelText("Session fee (£)"), { target: { value: "45" } });
-    expect(screen.getByLabelText("Session fee (£)")).toHaveValue(45);
+    fireEvent.change(document.querySelector("#session-price")!, { target: { value: "45" } });
+    expect(document.querySelector("#session-price")!).toHaveValue(45);
   });
 
   it("does not show the picker when no session types are configured (sad path)", async () => {
@@ -207,13 +217,25 @@ describe("CreateSessionModal — recurring block from session type", () => {
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
 
-    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toHaveValue(240));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
+    expect(screen.getByText("Block fee (£) — covers 4 sessions")).toBeInTheDocument();
     expect(screen.getByTestId("per-session-fee")).toHaveTextContent("Each session shows £60.00.");
-    // The block explainer is shown (pulled from the type, not a manual checkbox).
-    expect(screen.getByTestId("recurring-summary")).toHaveTextContent(
-      "Creates 4 sessions, one week apart starting from the date above. They're tracked and paid together — marking any one of them as paid marks the whole block as paid.",
-    );
-    // The "Schedule sessions" (plural) button confirms block mode is on.
+    // The block explainer moved into the fee label's info tooltip (a "rich"
+    // variant, which opens as its own modal) rather than a static paragraph —
+    // it's still pulled from the type, not a manual checkbox, just revealed
+    // on demand now instead of always shown.
+    fireEvent.click(screen.getByRole("button", { name: "More information: Session Fee information" }));
+    expect(
+      await screen.findByText(/Creates 4 sessions, one week apart starting from the date above\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /They're tracked and paid together — marking any one of them as paid marks the whole block as paid\./,
+      ),
+    ).toBeInTheDocument();
+    // The "Schedule sessions" (plural) button confirms block mode is on —
+    // it only exists on the final step.
+    advanceToFinalStep();
     expect(screen.getByRole("button", { name: "Schedule sessions" })).toBeInTheDocument();
   });
 
@@ -221,10 +243,10 @@ describe("CreateSessionModal — recurring block from session type", () => {
     renderModal();
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
-    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector("#session-price")!).toBeInTheDocument());
 
     fireEvent.change(select, { target: { value: "" } });
-    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector("#session-price")!).toBeInTheDocument());
     expect(screen.queryByTestId("per-session-fee")).not.toBeInTheDocument();
   });
 });
@@ -239,8 +261,9 @@ describe("CreateSessionModal — saving a block", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
-    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toHaveValue(240));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -280,10 +303,11 @@ describe("CreateSessionModal — saving a block", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
-    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector("#session-price")!).toBeInTheDocument());
 
     // £100.01 → 10001p, 10001 / 4 → floor 2500 each, remainder 1p on the first.
     fireEvent.change(document.querySelector("#session-price")!, { target: { value: "100.01" } });
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(store.getState().sessions.sessions).toHaveLength(4));
@@ -302,8 +326,9 @@ describe("CreateSessionModal — saving a block", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
-    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector("#session-price")!).toBeInTheDocument());
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
@@ -321,8 +346,9 @@ describe("CreateSessionModal — saving a block", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
-    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toHaveValue(60));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
@@ -345,8 +371,9 @@ describe("CreateSessionModal — double-booking guard", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
-    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toHaveValue(60));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
 
     await waitFor(() => expect(screen.getByText(/overlaps with an existing session/i)).toBeInTheDocument());
@@ -368,8 +395,9 @@ describe("CreateSessionModal — double-booking guard", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
-    await waitFor(() => expect(screen.getByLabelText("Block fee (£) — covers 4 sessions")).toHaveValue(240));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(screen.getByText(/overlaps with an existing session/i)).toBeInTheDocument());
@@ -385,8 +413,9 @@ describe("CreateSessionModal — double-booking guard", () => {
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
-    await waitFor(() => expect(screen.getByLabelText("Session fee (£)")).toHaveValue(60));
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());

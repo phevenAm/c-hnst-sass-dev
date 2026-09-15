@@ -115,3 +115,19 @@ export function isPageStatusLoading(...statuses: string[]) {
     );
   }
 }
+
+// dont show option to fire email if client doesnt have email address set
+
+export const getNotifyOption = (
+  label: string,
+  hasEmail: boolean,
+  checked: boolean,
+  onChange: (checked: boolean) => void,
+) =>
+  hasEmail
+    ? {
+        label,
+        checked,
+        onChange,
+      }
+    : undefined;

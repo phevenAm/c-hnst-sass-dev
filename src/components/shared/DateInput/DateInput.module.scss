@@ -9,3 +9,30 @@
   font-weight: 500;
   color: var(--text-secondary);
 }
+
+// Matches SegmentedTabs' pill height (~38px) for control bars that mix a
+// date range in with toggle buttons — the default MUI field reads oversized
+// next to them. The visible content sits in .sectionsContainer (the day/
+// month/year spinbuttons); .MuiPickersInputBase-input is a separate,
+// aria-hidden, zero-size native input kept only for form semantics — styling
+// it does nothing visually, which is why an earlier pass at this looked like
+// it should shrink the field but didn't.
+// `!important` because this and DateInput's own sx-injected rule land on the
+// same selector specificity — whichever stylesheet is inserted last would
+// otherwise win, which is mount-order-dependent rather than something to rely on.
+.dense {
+  :global(.MuiPickersInputBase-sectionsContainer) {
+    padding: 8px 0 !important;
+    font-size: 0.82rem !important;
+  }
+
+  // Keep the icon's own breathing room from textFieldSx's adornedEnd padding
+  // (10px) — shrinking it here was what crammed the icon against the border.
+  :global([data-mui-picker-open-button]) {
+    padding: 4px !important;
+  }
+
+  :global([data-mui-picker-open-button] svg) {
+    font-size: 1.1rem !important;
+  }
+}

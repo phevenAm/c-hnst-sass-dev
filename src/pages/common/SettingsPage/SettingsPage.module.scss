@@ -939,7 +939,10 @@ input.copyFieldValue {
 
 .tierToggleBtnActive {
   background: var(--accent);
-  color: #fff;
+  // Not #fff — --accent goes light (teal-400) in dark mode, so a hardcoded
+  // white would fail contrast there. --text-inverse flips opposite to
+  // --accent in both themes, so it stays correct either way.
+  color: var(--text-inverse);
 }
 
 .tierGrid {

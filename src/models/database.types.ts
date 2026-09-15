@@ -228,11 +228,13 @@ export type Database = {
           consent_pdf_url: string | null
           consent_text: string | null
           created_at: string
+          default_auto_cancel_enabled: boolean
           default_settlement_direction: string
           id: string
           invoice_prefix: string
           locked_consent: boolean
           locked_email_templates: boolean
+          locked_session_policy: boolean
           logo_url: string | null
           max_storage_bytes: number
           name: string
@@ -253,11 +255,13 @@ export type Database = {
           consent_pdf_url?: string | null
           consent_text?: string | null
           created_at?: string
+          default_auto_cancel_enabled?: boolean
           default_settlement_direction?: string
           id?: string
           invoice_prefix?: string
           locked_consent?: boolean
           locked_email_templates?: boolean
+          locked_session_policy?: boolean
           logo_url?: string | null
           max_storage_bytes?: number
           name: string
@@ -278,11 +282,13 @@ export type Database = {
           consent_pdf_url?: string | null
           consent_text?: string | null
           created_at?: string
+          default_auto_cancel_enabled?: boolean
           default_settlement_direction?: string
           id?: string
           invoice_prefix?: string
           locked_consent?: boolean
           locked_email_templates?: boolean
+          locked_session_policy?: boolean
           logo_url?: string | null
           max_storage_bytes?: number
           name?: string
@@ -508,7 +514,10 @@ export type Database = {
           agreement_accepted_at: string | null
           agreement_accepted_version: number | null
           agreement_signed_name: string | null
+          color: string | null
           counselling_enabled: boolean
+          deletion_requested_at: string | null
+          deletion_requested_reason: string | null
           employment_type: string
           id: string
           invited_at: string | null
@@ -523,7 +532,10 @@ export type Database = {
           agreement_accepted_at?: string | null
           agreement_accepted_version?: number | null
           agreement_signed_name?: string | null
+          color?: string | null
           counselling_enabled?: boolean
+          deletion_requested_at?: string | null
+          deletion_requested_reason?: string | null
           employment_type?: string
           id?: string
           invited_at?: string | null
@@ -538,7 +550,10 @@ export type Database = {
           agreement_accepted_at?: string | null
           agreement_accepted_version?: number | null
           agreement_signed_name?: string | null
+          color?: string | null
           counselling_enabled?: boolean
+          deletion_requested_at?: string | null
+          deletion_requested_reason?: string | null
           employment_type?: string
           id?: string
           invited_at?: string | null
@@ -908,6 +923,47 @@ export type Database = {
           },
         ]
       }
+      client_feature_overrides: {
+        Row: {
+          client_user_id: string | null
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          id: string
+          note: string | null
+          set_by: string | null
+          stub_id: string | null
+        }
+        Insert: {
+          client_user_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          id?: string
+          note?: string | null
+          set_by?: string | null
+          stub_id?: string | null
+        }
+        Update: {
+          client_user_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          note?: string | null
+          set_by?: string | null
+          stub_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_feature_overrides_stub_id_fkey"
+            columns: ["stub_id"]
+            isOneToOne: false
+            referencedRelation: "client_stubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_stubs: {
         Row: {
           agency_id: string | null
@@ -922,6 +978,7 @@ export type Database = {
           id: string
           last_name: string
           linked_user_id: string | null
+          previously_counselled: boolean
         }
         Insert: {
           agency_id?: string | null
@@ -936,6 +993,7 @@ export type Database = {
           id?: string
           last_name: string
           linked_user_id?: string | null
+          previously_counselled?: boolean
         }
         Update: {
           agency_id?: string | null
@@ -950,6 +1008,7 @@ export type Database = {
           id?: string
           last_name?: string
           linked_user_id?: string | null
+          previously_counselled?: boolean
         }
         Relationships: [
           {
@@ -1201,6 +1260,7 @@ export type Database = {
           id: string
           incurred_on: string
           receipt_url: string | null
+          source_private_event_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1212,6 +1272,7 @@ export type Database = {
           id?: string
           incurred_on?: string
           receipt_url?: string | null
+          source_private_event_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1223,9 +1284,18 @@ export type Database = {
           id?: string
           incurred_on?: string
           receipt_url?: string | null
+          source_private_event_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_source_private_event_id_fkey"
+            columns: ["source_private_event_id"]
+            isOneToOne: true
+            referencedRelation: "admin_private_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -1838,6 +1908,9 @@ export type Database = {
           onboarding_required: boolean
           paused_at: string | null
           paused_reason: string | null
+          payment_confirmed_email_body: string | null
+          payment_confirmed_email_heading: string | null
+          payment_confirmed_email_subject: string | null
           payment_deadline_hours: number
           phone: string | null
           promo_code: string | null
@@ -1851,7 +1924,16 @@ export type Database = {
           reminder_hours_before: number
           reschedule_cutoff_hours: number | null
           saved_locations: Json
+          session_booked_email_body: string | null
+          session_booked_email_heading: string | null
+          session_booked_email_subject: string | null
           session_buffer_minutes: number
+          session_cancelled_email_body: string | null
+          session_cancelled_email_heading: string | null
+          session_cancelled_email_subject: string | null
+          session_rescheduled_email_body: string | null
+          session_rescheduled_email_heading: string | null
+          session_rescheduled_email_subject: string | null
           show_session_reference: boolean
           stripe_connect_account_id: string | null
           stripe_connect_onboarded: boolean
@@ -1916,6 +1998,9 @@ export type Database = {
           onboarding_required?: boolean
           paused_at?: string | null
           paused_reason?: string | null
+          payment_confirmed_email_body?: string | null
+          payment_confirmed_email_heading?: string | null
+          payment_confirmed_email_subject?: string | null
           payment_deadline_hours?: number
           phone?: string | null
           promo_code?: string | null
@@ -1929,7 +2014,16 @@ export type Database = {
           reminder_hours_before?: number
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
+          session_booked_email_body?: string | null
+          session_booked_email_heading?: string | null
+          session_booked_email_subject?: string | null
           session_buffer_minutes?: number
+          session_cancelled_email_body?: string | null
+          session_cancelled_email_heading?: string | null
+          session_cancelled_email_subject?: string | null
+          session_rescheduled_email_body?: string | null
+          session_rescheduled_email_heading?: string | null
+          session_rescheduled_email_subject?: string | null
           show_session_reference?: boolean
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
@@ -1994,6 +2088,9 @@ export type Database = {
           onboarding_required?: boolean
           paused_at?: string | null
           paused_reason?: string | null
+          payment_confirmed_email_body?: string | null
+          payment_confirmed_email_heading?: string | null
+          payment_confirmed_email_subject?: string | null
           payment_deadline_hours?: number
           phone?: string | null
           promo_code?: string | null
@@ -2007,7 +2104,16 @@ export type Database = {
           reminder_hours_before?: number
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
+          session_booked_email_body?: string | null
+          session_booked_email_heading?: string | null
+          session_booked_email_subject?: string | null
           session_buffer_minutes?: number
+          session_cancelled_email_body?: string | null
+          session_cancelled_email_heading?: string | null
+          session_cancelled_email_subject?: string | null
+          session_rescheduled_email_body?: string | null
+          session_rescheduled_email_heading?: string | null
+          session_rescheduled_email_subject?: string | null
           show_session_reference?: boolean
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
@@ -2907,6 +3013,7 @@ export type Database = {
           archived_at: string | null
           archived_reason: string | null
           avatar_url: string | null
+          color: string | null
           consent_signed_name: string | null
           consented_at: string | null
           created_at: string
@@ -2942,6 +3049,7 @@ export type Database = {
           archived_at?: string | null
           archived_reason?: string | null
           avatar_url?: string | null
+          color?: string | null
           consent_signed_name?: string | null
           consented_at?: string | null
           created_at?: string
@@ -2977,6 +3085,7 @@ export type Database = {
           archived_at?: string | null
           archived_reason?: string | null
           avatar_url?: string | null
+          color?: string | null
           consent_signed_name?: string | null
           consented_at?: string | null
           created_at?: string
@@ -3305,6 +3414,14 @@ export type Database = {
         Returns: undefined
       }
       redeem_promo_code: { Args: { p_code: string }; Returns: string }
+      remove_client_assignment: {
+        Args: { p_assignment_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      request_agency_member_removal: {
+        Args: { p_reason?: string }
+        Returns: undefined
+      }
       request_manual_payment: {
         Args: { p_session_id: string }
         Returns: undefined

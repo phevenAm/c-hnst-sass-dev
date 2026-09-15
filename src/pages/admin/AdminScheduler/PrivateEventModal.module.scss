@@ -50,6 +50,32 @@
     color: var(--text-muted);
 }
 
+// Step wizard — same step-dots pattern as AdminSetupPage/SignUpPage.
+.stepDots {
+    display: flex;
+    justify-content: center;
+    gap: $sp-2;
+}
+
+.stepDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background var(--transition-base);
+}
+
+.stepDotActive {
+    background: var(--accent);
+}
+
+.stepHeading {
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    margin: 0;
+}
+
 .feeRow {
     margin-top: -$sp-2;
     padding-left: $sp-5;

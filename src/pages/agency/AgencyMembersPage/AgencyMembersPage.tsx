@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import InviteMemberModal from "@components/agency/InviteMemberModal/InviteMemberModal";
 import RemoveMemberModal from "@components/agency/RemoveMemberModal/RemoveMemberModal";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
+import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import type { AgencyMemberWithUser } from "@models/agency";
 import { isAgencyOwner } from "@models/agencyPermissions";
@@ -26,6 +27,7 @@ const displayName = (m: AgencyMemberWithUser) =>
 
 export default function AgencyMembersPage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { authUser } = useAuth();
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
@@ -58,7 +60,7 @@ export default function AgencyMembersPage() {
   const patch = (fields: Parameters<typeof setAgencyMember>[0]) => dispatch(setAgencyMember(fields));
 
   return (
-    <div>
+    <div className="inner">
       <div className={styles.header} id="agency-members-header">
         <div>
           <h1 className={styles.title}>Members</h1>
@@ -76,73 +78,83 @@ export default function AgencyMembersPage() {
           {members.map((m) => {
             const self = m.user_id === authUser?.id;
             return (
-              <div key={m.user_id} className={styles.row}>
+              <div
+                key={m.user_id}
+                className={`${styles.row} ${styles.rowClickable}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/agency/members/${m.user_id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/agency/members/${m.user_id}`);
+                  }
+                }}
+              >
                 <div className={styles.rowMain}>
                   <span className={styles.rowName}>
                     {displayName(m)} {self && <span className={styles.rowMeta}>(you)</span>}
+                    <Badge variant={m.status === "active" ? "success" : "danger"}>
+                      {m.status === "active" ? "Active" : "Disabled"}
+                    </Badge>
+                    <Badge variant={m.role === "manager" ? "neutral" : "warning"}>
+                      {m.role === "manager" ? "Manager" : "Counsellor"}
+                    </Badge>
+                    <Badge variant={m.employment_type === "freelance" ? "neutral" : "success"}>
+                      {m.employment_type === "freelance" ? "External" : "Internal"}
+                    </Badge>
+                    {!m.counselling_enabled && <Badge variant="neutral">Manage-only</Badge>}
+                    {m.deletion_requested_at && <Badge variant="danger">Asked to leave</Badge>}
                   </span>
                   <span className={styles.rowMeta}>
-                    {m.employment_type === "freelance" ? "Freelance" : "Employee"}
-                    {isOwner(m) && " · owner"}
-                    {m.counselling_enabled &&
-                      ` · ${caseloadByMember.get(m.user_id) ?? 0} agency client${
-                        (caseloadByMember.get(m.user_id) ?? 0) === 1 ? "" : "s"
-                      }`}
+                    {[
+                      isOwner(m) ? "owner" : null,
+                      m.counselling_enabled
+                        ? `${caseloadByMember.get(m.user_id) ?? 0} agency client${
+                            (caseloadByMember.get(m.user_id) ?? 0) === 1 ? "" : "s"
+                          }`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </span>
                 </div>
 
-                <div className={styles.rowActions}>
-                  <Badge variant={m.status === "active" ? "success" : "danger"}>
-                    {m.status === "active" ? "Active" : "Disabled"}
-                  </Badge>
-                  <Badge variant={m.role === "manager" ? "neutral" : "warning"}>
-                    {m.role === "manager" ? "Manager" : "Counsellor"}
-                  </Badge>
-                  {!m.counselling_enabled && <Badge variant="neutral">Manage-only</Badge>}
-
-                  {!isOwner(m) && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          patch({
-                            member_user_id: m.user_id,
-                            role: m.role === "manager" ? "counsellor" : "manager",
-                          })
-                        }
-                      >
-                        {m.role === "manager" ? "Make counsellor" : "Make manager"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          patch({ member_user_id: m.user_id, counselling_enabled: !m.counselling_enabled })
-                        }
-                      >
-                        {m.counselling_enabled ? "Turn off counselling" : "Turn on counselling"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          patch({
-                            member_user_id: m.user_id,
-                            status: m.status === "active" ? "disabled" : "active",
-                          })
-                        }
-                      >
-                        {m.status === "active" ? "Disable" : "Enable"}
-                      </Button>
-                      {!self && (
-                        <Button size="sm" variant="ghost-danger" onClick={() => setRemoving(m)}>
-                          Remove
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
+                {!isOwner(m) && (
+                  <div className={styles.rowActions} onClick={(e) => e.stopPropagation()}>
+                    <SplitButton
+                      size="sm"
+                      variant="secondary"
+                      primaryLabel="Manage"
+                      primaryAction={() => navigate(`/agency/members/${m.user_id}`)}
+                      options={[
+                        {
+                          label: m.role === "manager" ? "Make counsellor" : "Make manager",
+                          onClick: () =>
+                            patch({
+                              member_user_id: m.user_id,
+                              role: m.role === "manager" ? "counsellor" : "manager",
+                            }),
+                        },
+                        {
+                          label: m.counselling_enabled ? "Turn off counselling" : "Turn on counselling",
+                          onClick: () =>
+                            patch({ member_user_id: m.user_id, counselling_enabled: !m.counselling_enabled }),
+                        },
+                        {
+                          label: m.status === "active" ? "Disable" : "Enable",
+                          onClick: () =>
+                            patch({
+                              member_user_id: m.user_id,
+                              status: m.status === "active" ? "disabled" : "active",
+                            }),
+                        },
+                        ...(!self ? [{ label: "Remove", onClick: () => setRemoving(m) }] : []),
+                      ]}
+                      secondaryLabel="More options"
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { APP_URL } from "@/lib/appUrl";
 import { supabase } from "@/lib/supabase";
 
 export default function MicrosoftCalendarCallbackPage() {
@@ -25,7 +26,7 @@ export default function MicrosoftCalendarCallbackPage() {
 
     supabase.functions
       .invoke("microsoft-calendar-oauth", {
-        body: { code, redirect_uri: `${window.location.origin}/settings/microsoft-callback` },
+        body: { code, redirect_uri: `${APP_URL}/settings/microsoft-callback` },
       })
       .then(({ error: fnError }) => {
         if (fnError) {
