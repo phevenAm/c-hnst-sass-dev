@@ -946,3 +946,181 @@ test("client_feature_overrides: superadmin manages, owning admin reads own clien
   dbQuery(`delete from public.users where id = '${superId}';`);
   dbQuery(`delete from auth.users where id = '${superId}';`);
 });
+
+// ─── Sidebar nav parity: Finances is hidden for agency employees (the agency
+// bills their clients centrally) but shown for freelance/associate staff (they
+// bill their own clients, then settle a cut with the agency separately) and
+// for managers. Backs AdminSidebar.tsx's employment_type branch. Each variant
+// is its own test (its own fresh `page`/browser context) rather than chaining
+// logins in one test — navigating loginViaUi's /login while already signed in
+// just bounces straight back out before the form ever renders. ────────────────
+test("an agency employee doesn't see Finances in Counselling view", async ({ page }) => {
+  test.setTimeout(60_000);
+  dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
+  await loginViaUi(page, `smissah321+${TAG}-a-staff@gmail.com`, PASSWORD);
+  await page.goto(`${APP_URL}/admin`, { waitUntil: "load", timeout: 20_000 });
+  await dismissWelcomeModal(page);
+  await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("link", { name: "Finances" })).toHaveCount(0);
+});
+
+test("a freelance/associate agency staff member sees Finances in Counselling view", async ({ page }) => {
+  test.setTimeout(60_000);
+  dbQuery(`update public.agency_members set employment_type = 'freelance' where user_id = '${ids.aStaff}';`);
+  await loginViaUi(page, `smissah321+${TAG}-a-staff@gmail.com`, PASSWORD);
+  await page.goto(`${APP_URL}/admin`, { waitUntil: "load", timeout: 20_000 });
+  await dismissWelcomeModal(page);
+  await expect(page.getByRole("link", { name: "Finances" })).toBeVisible({ timeout: 10_000 });
+  dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
+});
+
+test("an agency manager sees Finances in Counselling view regardless of their own employment_type", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await loginViaUi(page, `smissah321+${TAG}-a-mgr@gmail.com`, PASSWORD);
+  await page.goto(`${APP_URL}/admin`, { waitUntil: "load", timeout: 20_000 });
+  await dismissWelcomeModal(page);
+  await expect(page.getByRole("link", { name: "Finances" })).toBeVisible({ timeout: 10_000 });
+});
+
+// ─── /agency (manage mode) nav for a plain staff member: intake inbox always,
+// Files once the agency has actually shared something — never a dead link to
+// a manager-only page (Clients/Sessions/Finance/Staff/Settings all redirect
+// non-managers straight back to /agency/incoming). Backs AgencyLayout.tsx. ──
+test("a non-manager's /agency sidebar gains Files once the agency shares a folder, and never shows manager-only links", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+
+  await loginViaUi(page, `smissah321+${TAG}-a-staff@gmail.com`, PASSWORD);
+  await page.goto(`${APP_URL}/agency`, { waitUntil: "load", timeout: 20_000 });
+  await dismissWelcomeModal(page);
+  await expect(page.getByRole("link", { name: "Clients to review" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("link", { name: "Files" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Finance" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Staff" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
+
+  const folder = dbQuery<{ id: string }>(
+    `insert into public.file_folders (name, owner_admin_id, agency_id, shared)
+     values ('${TAG}-shared', '${ids.aManager}', '${ids.agencyA}', true) returning id;`,
+  ).rows[0];
+
+  // Already signed in — a plain reload (not another loginViaUi) picks up the
+  // newly-shared folder. Re-navigating loginViaUi's /login while authenticated
+  // just bounces straight back out before the form renders. A cold reload
+  // re-runs auth + agency bootstrap before the sidebar renders at all, so give
+  // it more room than a simple assertion.
+  await page.reload({ waitUntil: "load", timeout: 20_000 });
+  await dismissWelcomeModal(page);
+  await expect(page.getByRole("link", { name: "Files" })).toBeVisible({ timeout: 30_000 });
+
+  dbQuery(`delete from public.file_folders where id = '${folder.id}';`);
+});
+
+// ─── Creation-permission toggles: staff can create their own forms/resources
+// only once the agency turns each on; managers are always allowed regardless.
+// Backs 20260915000030's agency_may_create() + the two restrictive insert-only
+// policies — deliberately API-layer, not UI, per this file's own convention. ──
+test("agency staff can create a form/resource only once the agency permits it; managers always can", async () => {
+  test.setTimeout(90_000);
+  dbQuery(
+    `update public.agencies set allow_staff_forms = false, allow_staff_resources = false where id = '${ids.agencyA}';`,
+  );
+
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+
+  const { error: blockedFormErr } = await asAStaff.from("questionnaires").insert({ title: `${TAG}-blocked-form` });
+  expect(blockedFormErr).not.toBeNull();
+  const { error: blockedResourceErr } = await asAStaff.from("resources").insert({ title: `${TAG}-blocked-resource` });
+  expect(blockedResourceErr).not.toBeNull();
+
+  // The flag is staff-only — a manager's own creation is never gated by it.
+  const { error: mgrFormErr } = await asAManager.from("questionnaires").insert({ title: `${TAG}-mgr-form-while-off` });
+  expect(mgrFormErr).toBeNull();
+
+  dbQuery(
+    `update public.agencies set allow_staff_forms = true, allow_staff_resources = true where id = '${ids.agencyA}';`,
+  );
+
+  const { error: allowedFormErr } = await asAStaff.from("questionnaires").insert({ title: `${TAG}-allowed-form` });
+  expect(allowedFormErr).toBeNull();
+  const { error: allowedResourceErr } = await asAStaff.from("resources").insert({ title: `${TAG}-allowed-resource` });
+  expect(allowedResourceErr).toBeNull();
+
+  dbQuery(
+    `delete from public.questionnaires where title in ('${TAG}-mgr-form-while-off', '${TAG}-allowed-form') and admin_id in ('${ids.aManager}', '${ids.aStaff}');`,
+  );
+  dbQuery(`delete from public.resources where title = '${TAG}-allowed-resource' and admin_id = '${ids.aStaff}';`);
+  dbQuery(
+    `update public.agencies set allow_staff_forms = false, allow_staff_resources = false where id = '${ids.agencyA}';`,
+  );
+});
+
+// ─── Staff inherit the agency's shared resource library (read-only) when
+// agencies.shared_resources is on — off by default, and off means staff see
+// only their own resources same as today. Backs agency_shares_resources(). ──
+test("a non-manager reads the manager's resources only when shared_resources is on", async () => {
+  test.setTimeout(90_000);
+  const managerResource = dbQuery<{ id: string }>(
+    `insert into public.resources (admin_id, title) values ('${ids.aManager}', '${TAG}-mgr-resource') returning id;`,
+  ).rows[0];
+
+  dbQuery(`update public.agencies set shared_resources = false where id = '${ids.agencyA}';`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const { data: hiddenRead } = await asAStaff.from("resources").select("id").eq("id", managerResource.id);
+  expect(hiddenRead ?? []).toHaveLength(0);
+
+  dbQuery(`update public.agencies set shared_resources = true where id = '${ids.agencyA}';`);
+  const { data: sharedRead } = await asAStaff.from("resources").select("id").eq("id", managerResource.id);
+  expect(sharedRead).toHaveLength(1);
+
+  // Cross-agency staff never see it, on or off.
+  const asBStaff = await signedInAs(`smissah321+${TAG}-b-staff@gmail.com`);
+  const { data: crossAgencyRead } = await asBStaff.from("resources").select("id").eq("id", managerResource.id);
+  expect(crossAgencyRead ?? []).toHaveLength(0);
+
+  dbQuery(`delete from public.resources where id = '${managerResource.id}';`);
+  dbQuery(`update public.agencies set shared_resources = false where id = '${ids.agencyA}';`);
+});
+
+// ─── Folder sharing scoped to internal vs. freelance staff — a folder can be
+// shared with one employment_type and not the other. Backs
+// file_shared_with_caller() and the shared_internal/shared_freelance columns. ──
+test("a shared folder is visible only to the staff employment_type(s) it's shared with", async () => {
+  test.setTimeout(90_000);
+  dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+
+  const internalOnly = dbQuery<{ id: string }>(
+    `insert into public.file_folders (name, owner_admin_id, shared, shared_internal, shared_freelance)
+     values ('${TAG}-internal-only', '${ids.aManager}', true, true, false) returning id;`,
+  ).rows[0];
+  const freelanceOnly = dbQuery<{ id: string }>(
+    `insert into public.file_folders (name, owner_admin_id, shared, shared_internal, shared_freelance)
+     values ('${TAG}-freelance-only', '${ids.aManager}', true, false, true) returning id;`,
+  ).rows[0];
+
+  const { data: seesInternal } = await asAStaff.from("file_folders").select("id").eq("id", internalOnly.id);
+  expect(seesInternal).toHaveLength(1);
+  const { data: seesFreelanceAsEmployee } = await asAStaff.from("file_folders").select("id").eq("id", freelanceOnly.id);
+  expect(seesFreelanceAsEmployee ?? []).toHaveLength(0);
+
+  dbQuery(`update public.agency_members set employment_type = 'freelance' where user_id = '${ids.aStaff}';`);
+  const asAStaffFreelance = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const { data: seesFreelanceNow } = await asAStaffFreelance
+    .from("file_folders")
+    .select("id")
+    .eq("id", freelanceOnly.id);
+  expect(seesFreelanceNow).toHaveLength(1);
+  const { data: seesInternalAsFreelance } = await asAStaffFreelance
+    .from("file_folders")
+    .select("id")
+    .eq("id", internalOnly.id);
+  expect(seesInternalAsFreelance ?? []).toHaveLength(0);
+
+  dbQuery(`delete from public.file_folders where id in ('${internalOnly.id}', '${freelanceOnly.id}');`);
+  dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
+});

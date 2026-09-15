@@ -386,6 +386,8 @@ export const updateAgencyPolicies = createAsyncThunk(
         | "consent_text"
         | "consent_pdf_url"
         | "shared_resources"
+        | "allow_staff_forms"
+        | "allow_staff_resources"
         | "require_note_encryption"
         | "locked_email_templates"
         | "require_client_codenames"

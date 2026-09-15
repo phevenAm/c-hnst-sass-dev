@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { useCanCreateResources } from "@Hooks/useAgencyCreatePermission";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { ArticleIcon, DocumentIcon, LinkIcon, VideoIcon } from "@components/shared/Icons/Icons";
@@ -59,6 +60,7 @@ export default function AdminResourcesPage() {
   const dispatch = useAppDispatch();
   const { isDemo, userProfile } = useAuth();
   const { showToast } = useToast();
+  const canCreateResources = useCanCreateResources();
   const resources: Resource[] = useAppSelector(selectAllResources);
 
   const [showForm, setShowForm] = useState(false);
@@ -109,6 +111,10 @@ export default function AdminResourcesPage() {
             onClick={() => {
               if (isDemo) {
                 showToast("Demo mode — changes are not saved.");
+                return;
+              }
+              if (!canCreateResources) {
+                showToast("Your agency hasn't turned on staff-created resources — ask a manager to enable it.");
                 return;
               }
               setShowForm(true);

@@ -3,6 +3,7 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from "r
 
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
+import { useHasFileManager } from "@Hooks/useHasFileManager";
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
 import {
@@ -56,6 +57,11 @@ const MANAGER_LINKS: NavItem[] = [
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },
 ];
 
+// Manager-only pages (Clients, Sessions, Finance, Staff, Settings) hard-redirect
+// non-managers back to /agency/incoming — so a plain staff member's real nav
+// here is deliberately just intake + Files, once the agency has shared any.
+// Their day-to-day counselling work (Dashboard, Schedule, own Clients, Forms,
+// Finances if freelance, Resources, Logs) lives under "Counselling view" (/admin).
 const COUNSELLOR_LINKS: NavItem[] = [
   { to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon },
 ];
@@ -99,6 +105,7 @@ export default function AgencyLayout() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const membersStatus = useAppSelector(selectAgencyMembersStatus);
   const clientsStatus = useAppSelector(selectAgencyClientsStatus);
+  const hasFileManager = useHasFileManager();
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   // Mobile: the rail is a slim strip that `expanded` blows up into an overlay.
@@ -203,7 +210,10 @@ export default function AgencyLayout() {
     );
   }
 
-  const links = isManager ? MANAGER_LINKS : COUNSELLOR_LINKS;
+  let links = isManager ? MANAGER_LINKS : COUNSELLOR_LINKS;
+  if (!isManager && hasFileManager) {
+    links = [...COUNSELLOR_LINKS, { to: "/agency/files", label: "Files", Icon: FolderIcon }];
+  }
   const agencyName = agency?.name ?? "Agency";
   // Labelled rail vs. icon-only: on mobile that's the overlay state, on
   // tablet & up it's the persisted collapse.

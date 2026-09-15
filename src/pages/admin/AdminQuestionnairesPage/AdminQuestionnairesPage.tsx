@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { useCanCreateForms } from "@Hooks/useAgencyCreatePermission";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
@@ -601,6 +602,7 @@ export default function AdminQuestionnairesPage() {
   const dispatch = useAppDispatch();
   const { isDemo } = useAuth();
   const { showToast } = useToast();
+  const canCreateForms = useCanCreateForms();
   const questionnaires = useAppSelector(selectAllQuestionnaires);
   const clients = useAppSelector(selectClientUsers);
   const tags = useAppSelector(selectAllTags);
@@ -724,7 +726,11 @@ export default function AdminQuestionnairesPage() {
           </div>
           <SplitButton
             primaryLabel="New form"
-            primaryAction={() => setShowBuilder(true)}
+            primaryAction={() =>
+              canCreateForms
+                ? setShowBuilder(true)
+                : showToast("Your agency hasn't turned on staff-created forms — ask a manager to enable it.")
+            }
             options={[{ label: "Manage tags", onClick: () => setShowTagsModal(true) }]}
             secondaryLabel="More options"
           />

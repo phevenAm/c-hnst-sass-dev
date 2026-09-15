@@ -159,7 +159,8 @@ $rail: 56px;
 .signOut {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
   color: var(--text-secondary);
@@ -252,6 +253,30 @@ $rail: 56px;
 
 .childLink {
   font-size: 0.86rem;
+  position: relative;
+  overflow: visible;
+
+  // Selected child: bold + accent text, plus a floating accent segment over
+  // the guide line as the anchor — mirrors AdminSidebar's Logs submenu.
+  &.active {
+    color: var(--accent-dark);
+    font-weight: 600;
+    background: transparent;
+
+    &::before {
+      content: "";
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      width: 3px;
+      height: 70%;
+      border-radius: 1px;
+      background: var(--accent);
+      left: calc(-1 * var(--sp-2) - 1px);
+      transform: translate(-50%, -50%);
+      transition: all 350ms ease-in-out;
+    }
+  }
 }
 
 .sidebarFoot {

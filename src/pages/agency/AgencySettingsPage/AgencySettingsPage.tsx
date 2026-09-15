@@ -42,7 +42,7 @@ const PLAN_LABEL: Record<AgencyPlanKey, string> = {
   starter: "Starter",
   growth: "Growth",
   scale: "Scale",
-  unlimited: "Unlimited",
+  unlimited: "Beyond",
 };
 
 const APPEARANCE_OPTIONS = [
@@ -80,13 +80,29 @@ const EMPTY_TEAMS: TeamsChannel = {
   notify_paid: true,
 };
 
-type PolicyKey = "shared_resources" | "require_note_encryption" | "locked_email_templates" | "locked_session_policy";
+type PolicyKey =
+  | "shared_resources"
+  | "allow_staff_forms"
+  | "allow_staff_resources"
+  | "require_note_encryption"
+  | "locked_email_templates"
+  | "locked_session_policy";
 
 const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
   {
     key: "shared_resources",
     title: "Shared resource library",
     blurb: "Resources added by the agency appear for every member's clients.",
+  },
+  {
+    key: "allow_staff_forms",
+    title: "Staff can create their own forms",
+    blurb: "Non-manager staff can build their own questionnaires/forms, not just use the agency's.",
+  },
+  {
+    key: "allow_staff_resources",
+    title: "Staff can create their own resources",
+    blurb: "Non-manager staff can add their own resources, not just the agency's shared library.",
   },
   {
     key: "require_note_encryption",
@@ -262,6 +278,8 @@ export default function AgencySettingsPage() {
           consent_text: draft.consent_text,
           consent_pdf_url: draft.consent_pdf_url,
           shared_resources: draft.shared_resources,
+          allow_staff_forms: draft.allow_staff_forms,
+          allow_staff_resources: draft.allow_staff_resources,
           require_note_encryption: draft.require_note_encryption,
           locked_email_templates: draft.locked_email_templates,
           require_client_codenames: draft.require_client_codenames,

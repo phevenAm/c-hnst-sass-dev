@@ -60,17 +60,13 @@ type Billing = "monthly" | "annual";
 
 // £ figures mirror the marketing page (index.html TIERS) and the Stripe
 // products. Client caps are enforced server-side from the plan_limits table.
-const PLANS: Record<
-  Plan,
-  { label: string; monthly: number; annual: number; desc: string; capacity: string; storage: string }
-> = {
+const PLANS: Record<Plan, { label: string; monthly: number; annual: number; desc: string; capacity: string }> = {
   starter: {
     label: "Starter",
     monthly: 7.99,
     annual: 79,
     desc: "For a small caseload",
     capacity: "5 active · 5 archived",
-    storage: "No file storage",
   },
   growth: {
     label: "Growth",
@@ -78,15 +74,13 @@ const PLANS: Record<
     annual: 169,
     desc: "For a growing practice",
     capacity: "15 active · 15 archived",
-    storage: "2.5 GB file storage",
   },
   unlimited: {
-    label: "Unlimited",
+    label: "Beyond",
     monthly: 24.99,
     annual: 249,
     desc: "No limit",
     capacity: "Unlimited clients",
-    storage: "10 GB file storage",
   },
 };
 const PLAN_ORDER: Plan[] = ["starter", "growth", "unlimited"];
@@ -309,7 +303,6 @@ export default function SubscribePage() {
                       <span className={styles.planCardMain}>
                         <span className={styles.planCardName}>{p.label}</span>
                         <span className={styles.planCardSub}>{p.capacity}</span>
-                        <span className={styles.planCardSub}>{p.storage}</span>
                       </span>
                       <span className={styles.planCardPrice}>
                         £{billing === "annual" ? p.annual : p.monthly}

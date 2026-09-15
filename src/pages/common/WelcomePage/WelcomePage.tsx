@@ -16,7 +16,7 @@ import styles from "./WelcomePage.module.scss";
 const PLAN_SUMMARY: Record<string, { label: string; desc: string; capacity: string }> = {
   starter: { label: "Starter", desc: "For a small caseload", capacity: "5 active · 5 archived clients" },
   growth: { label: "Growth", desc: "For a growing practice", capacity: "15 active · 15 archived clients" },
-  unlimited: { label: "Unlimited", desc: "No limit", capacity: "Unlimited clients" },
+  unlimited: { label: "Beyond", desc: "No limit", capacity: "Unlimited clients" },
 };
 
 export default function WelcomePage() {

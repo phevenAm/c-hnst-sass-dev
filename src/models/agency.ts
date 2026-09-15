@@ -23,6 +23,8 @@ export interface Agency {
   consent_text: string | null;
   consent_pdf_url: string | null;
   shared_resources: boolean;
+  allow_staff_forms: boolean;
+  allow_staff_resources: boolean;
   require_note_encryption: boolean;
   locked_email_templates: boolean;
   require_client_codenames: boolean;
