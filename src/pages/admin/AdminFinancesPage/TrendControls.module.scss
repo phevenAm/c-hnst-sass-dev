@@ -1,3 +1,5 @@
+@use "../../../styles/mixins" as *;
+
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -29,8 +31,24 @@
   :global(.MuiTextField-root) {
     width: 9.5rem;
   }
+
+  // The two month-pickers plus the dash don't fit side by side on a phone —
+  // stack them instead of letting the row overflow off-screen.
+  @include until-sm {
+    flex-direction: column;
+    align-items: stretch;
+
+    :global(.MuiFormControl-root),
+    :global(.MuiTextField-root) {
+      width: 100%;
+    }
+  }
 }
 
 .dash {
   color: var(--text-muted);
+
+  @include until-sm {
+    display: none;
+  }
 }

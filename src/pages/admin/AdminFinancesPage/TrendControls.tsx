@@ -49,7 +49,7 @@ export default function TrendControls({ state, hideChartType }: Props) {
             format="MMM YYYY"
             value={from}
             onChange={(d) => d && setFrom(d)}
-            ariaLabel="Range start month"
+            floatingLabel="From"
             dense
           />
           <span className={styles.dash}>–</span>
@@ -60,7 +60,7 @@ export default function TrendControls({ state, hideChartType }: Props) {
             format="MMM YYYY"
             value={to}
             onChange={(d) => d && setTo(d)}
-            ariaLabel="Range end month"
+            floatingLabel="To"
             dense
           />
         </div>

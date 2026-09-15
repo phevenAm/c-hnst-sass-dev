@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
+import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -729,20 +730,14 @@ export default function AdminQuestionnairesPage() {
           />
         </div>
 
-        <div className={styles.tabs} role="tablist">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <SettingsTabs
+          tabs={TABS}
+          value={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Form categories"
+          idBase="admin-forms"
+          syncSearchParam={false}
+        />
 
         {(tabQuestionnaires.length > 0 || needle) && (
           <input

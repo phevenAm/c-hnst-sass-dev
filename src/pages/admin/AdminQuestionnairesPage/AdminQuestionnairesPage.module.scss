@@ -23,43 +23,6 @@
   }
 }
 
-// ── Tabs ───────────────────────────────────────────────────
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  gap: 0;
-  margin-bottom: $sp-6;
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.tab {
-  padding: $sp-3 $sp-5;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-
-  &:hover {
-    color: var(--text-primary);
-  }
-}
-
-.tabActive {
-  color: var(--accent-dark);
-  border-bottom-color: var(--accent);
-}
-
 .formSearch {
   width: 100%;
   box-sizing: border-box;

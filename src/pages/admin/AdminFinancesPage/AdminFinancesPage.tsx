@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import DonutChart from "@components/shared/DonutChart/DonutChart";
+import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import Spinner from "@components/shared/Spinner/Spinner";
 import StatTile from "@components/shared/StatTile/StatTile";
 import { useAuth } from "@context/AuthContext";
@@ -395,19 +396,14 @@ export default function AdminFinancesPage() {
           <h1 className={styles.title}>Finances</h1>
         </div>
 
-        <nav className={styles.tabs} aria-label="Finances views">
-          {VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              className={`${styles.tab} ${view === v.key ? styles.tabActive : ""}`}
-              aria-current={view === v.key ? "page" : undefined}
-              onClick={() => setView(v.key)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </nav>
+        <SettingsTabs
+          tabs={VIEWS.map((v) => ({ id: v.key, label: v.label }))}
+          value={view}
+          onChange={setView}
+          ariaLabel="Finances views"
+          idBase="admin-finances"
+          syncSearchParam={false}
+        />
 
         <Suspense fallback={<Spinner />}>
           {view === "overview" && <Overview onJump={jump} />}
