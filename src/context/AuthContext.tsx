@@ -68,6 +68,10 @@ type PracticeSettings = {
   invoice_payment_terms_days: number | null;
   invoice_default_notes: string | null;
   invoice_accent_hex: string | null;
+  /** Per-chart hidden-series preference, keyed by an arbitrary chart id
+   *  (e.g. "practiceTrends") to the series keys hidden on it — lets a
+   *  toggleable trend legend survive a reload instead of resetting. */
+  hidden_chart_series?: Record<string, string[]>;
 };
 
 type AuthContextType = {

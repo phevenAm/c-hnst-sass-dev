@@ -1889,6 +1889,7 @@ export type Database = {
           enc_data_key_iv: string | null
           enc_data_key_salt: string | null
           first_client_milestone_shown: boolean
+          hidden_chart_series: Json
           hidden_sections: string[]
           hide_client_profile_pii: boolean
           id: string
@@ -1979,6 +1980,7 @@ export type Database = {
           enc_data_key_iv?: string | null
           enc_data_key_salt?: string | null
           first_client_milestone_shown?: boolean
+          hidden_chart_series?: Json
           hidden_sections?: string[]
           hide_client_profile_pii?: boolean
           id?: string
@@ -2069,6 +2071,7 @@ export type Database = {
           enc_data_key_iv?: string | null
           enc_data_key_salt?: string | null
           first_client_milestone_shown?: boolean
+          hidden_chart_series?: Json
           hidden_sections?: string[]
           hide_client_profile_pii?: boolean
           id?: string

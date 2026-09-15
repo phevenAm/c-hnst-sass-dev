@@ -41,13 +41,17 @@ type PendingRequest =
   | { kind: "reschedule"; id: string; client_id: string; requested_at: string; created_at: string }
   | { kind: "cancellation"; id: string; client_id: string; created_at: string };
 
-// Revenue + Sessions as grouped bars, outgoings overlaid as a line — one
-// combined read of the practice's activity instead of three separate charts.
-// Sessions is a count, not money, so it gets its own right-hand axis rather
-// than being flattened near zero (or forcing money onto a tiny 0–10 scale)
-// by sharing the left one with Revenue/Outgoings.
+// All three as lines — a Sessions bar shared the chart with two money lines
+// on a 0–4-ish right axis, so at any given point its bar filled nearly the
+// full chart height while Revenue/Outgoings sat low against their much
+// larger left-axis range. A bar's fill draws the eye far harder than a
+// stroke, so that scale mismatch read as the bar swamping the chart even
+// though the numbers were fine — a line doesn't have that problem, it just
+// traces its own small range. Sessions keeps its own right-hand axis rather
+// than sharing the left one, since flattening a 0–4 count onto a 0–1500+
+// money scale would erase all its variation instead.
 const PRACTICE_TRENDS_SERIES: TrendSeries[] = [
-  { key: "Revenue", name: "Revenue", color: "#4a665b", valueFormatter: (v) => `£${v.toFixed(2)}` },
+  { key: "Revenue", name: "Revenue", color: "var(--accent)", kind: "line", valueFormatter: (v) => `£${v.toFixed(2)}` },
   { key: "Outgoings", name: "Outgoings", color: "#a8633a", kind: "line", valueFormatter: (v) => `£${v.toFixed(2)}` },
   { key: "Sessions", name: "Sessions", color: "#3a7fa8", kind: "line", axis: "right", valueFormatter: (v) => `${v}` },
 ];
@@ -68,7 +72,7 @@ function timeAgo(iso: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const { userProfile, practiceSettings } = useAuth();
+  const { userProfile, practiceSettings, isDemo, updatePracticeSettingsLocal } = useAuth();
   const allClients = useAppSelector(selectClientUsers);
   const allStubs = useAppSelector(selectAllStubs);
   const allSessions = useAppSelector((state: RootState) => state.sessions.sessions);
@@ -90,6 +94,36 @@ export default function AdminDashboard() {
   >([]);
   const [manualPayments, setManualPayments] = useState<{ paid_at: string; amount_pence: number }[]>([]);
   const [expenses, setExpenses] = useState<{ incurred_on: string; amount_pence: number }[]>([]);
+
+  // "Practice trends" legend toggle — persisted to practice_settings
+  // (keyed by chart id, since the Finance page's Overview chart reuses this
+  // same column) so it survives a reload instead of resetting like plain
+  // component state would. Demo's shared row never gets a real write — same
+  // guard as AdminSetupPage's demo path — so the toggle there only lasts
+  // the current tab.
+  const hiddenTrendKeys = useMemo(
+    () => new Set(practiceSettings?.hidden_chart_series?.practiceTrends ?? []),
+    [practiceSettings?.hidden_chart_series],
+  );
+  const toggleTrendSeries = (key: string) => {
+    const currentForChart = new Set(practiceSettings?.hidden_chart_series?.practiceTrends ?? []);
+    if (currentForChart.has(key)) currentForChart.delete(key);
+    else currentForChart.add(key);
+    const next = { ...practiceSettings?.hidden_chart_series, practiceTrends: Array.from(currentForChart) };
+    updatePracticeSettingsLocal({ hidden_chart_series: next });
+    if (!isDemo && userProfile?.id) {
+      // Postgrest's query builder is a lazy thenable — building it (even
+      // with `void` in front) never sends anything; only calling .then()
+      // (or awaiting it) actually fires the request.
+      supabase
+        .from("practice_settings")
+        .update({ hidden_chart_series: next })
+        .eq("admin_id", userProfile.id)
+        .then(({ error }) => {
+          if (error) console.error("Failed to save chart visibility:", error.message);
+        });
+    }
+  };
 
   useFetchOnIdle(
     (state: RootState) => state.userDirectory.status,
@@ -409,6 +443,9 @@ export default function AdminDashboard() {
                 valueFormatter={(v) => `£${v.toFixed(2)}`}
                 leftAxisLabel="£"
                 rightAxisLabel="Sessions"
+                toggleableLegend
+                hiddenKeys={hiddenTrendKeys}
+                onToggleKey={toggleTrendSeries}
               />
             </HideableSection>
           </CollapsibleSection>
