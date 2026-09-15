@@ -47,15 +47,19 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "all", label: "All time" },
 ];
 
-// The three overlaid measures on the Overview trend card. `Owed` is money
-// invoiced or billed to a past session that hasn't landed yet — always a
-// dashed line, whichever way the bar/line toggle is set.
+// The three overlaid measures on the Overview trend card, all following the
+// bar/line toggle together (no series pinned to one mode) — in bar mode
+// TrendChart overlaps same-axis bars with reduced opacity rather than
+// grouping them side by side, so all three stay readable as bars too.
+// `Owed` keeps a dashed stroke when it renders as a line — money invoiced or
+// billed to a past session that hasn't landed yet reads naturally as
+// "provisional", vs. Income/Outgoings' settled solid lines.
 const OVERVIEW_SERIES: TrendSeries[] = [
-  { key: "Income", name: "Income", color: "#4a665b" },
+  { key: "Income", name: "Income", color: "var(--accent)" },
   { key: "Outgoings", name: "Outgoings", color: "#a8633a" },
   // A distinct blue, not another orange/brown — Outgoings already owns that
   // band and sat too close to Owed's old olive tone to tell apart at a glance.
-  { key: "Owed", name: "Owed / overdue", color: "#3a7fa8", kind: "line", dashed: true },
+  { key: "Owed", name: "Owed / overdue", color: "#3a7fa8", dashed: true },
 ];
 
 type LedgerRow = Database["public"]["Views"]["payment_ledger_rows"]["Row"];
@@ -78,7 +82,7 @@ type ActivityItem = {
 };
 
 function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
-  const { userProfile, practiceSettings } = useAuth();
+  const { userProfile, practiceSettings, isDemo, updatePracticeSettingsLocal } = useAuth();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
   const invoicesEnabled = practiceSettings?.invoices_enabled !== false;
   const [period, setPeriod] = useState<Period>("30d");
@@ -99,7 +103,13 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
     },
     [setTrendUnit, setTrendFrom, setTrendTo],
   );
-  const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<string>>(new Set());
+  // Persisted to practice_settings (see AdminDashboard's Practice Trends
+  // widget for the matching "practiceTrends" key on the same jsonb column)
+  // instead of plain component state, so it survives a reload.
+  const hiddenSeries = useMemo(
+    () => new Set(practiceSettings?.hidden_chart_series?.financeOverview ?? []),
+    [practiceSettings?.hidden_chart_series],
+  );
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [openInvoices, setOpenInvoices] = useState<{ due: string; pence: number }[]>([]);
@@ -170,13 +180,40 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
 
   const visibleSeries = useMemo(() => OVERVIEW_SERIES.filter((s) => !hiddenSeries.has(s.key)), [hiddenSeries]);
 
-  const toggleSeries = (key: string) =>
-    setHiddenSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  // "Series shown" only ever touched the trend chart below — the stat tiles
+  // and the donut kept showing Income/Outgoings/Net regardless, so hiding a
+  // series there looked like it did nothing everywhere else on the page.
+  // Tying them to the same toggle: a tile disappears with its own series,
+  // and Net (income minus outgoings) only means anything with both present.
+  const incomeHidden = hiddenSeries.has("Income");
+  const outgoingsHidden = hiddenSeries.has("Outgoings");
+  const netHidden = incomeHidden || outgoingsHidden;
+  // With only one side of the ratio left to show, the donut's centre falls
+  // back to that side's own total instead of a "net" figure that would
+  // silently still include the hidden one.
+  const donutSoloPence = incomeHidden ? -outgoingsPence : incomePence;
+  const donutSoloLabel = incomeHidden ? "outgoings" : "income";
+
+  const toggleSeries = (key: string) => {
+    const currentForChart = new Set(hiddenSeries);
+    if (currentForChart.has(key)) currentForChart.delete(key);
+    else currentForChart.add(key);
+    const next = { ...practiceSettings?.hidden_chart_series, financeOverview: Array.from(currentForChart) };
+    updatePracticeSettingsLocal({ hidden_chart_series: next });
+    if (!isDemo && userProfile?.id) {
+      // Postgrest's query builder is a lazy thenable — building it never
+      // sends anything; only calling .then() (or awaiting it) actually
+      // fires the request. See the matching comment on AdminDashboard's
+      // toggleTrendSeries, which had the exact same silent no-op bug.
+      supabase
+        .from("practice_settings")
+        .update({ hidden_chart_series: next })
+        .eq("admin_id", userProfile.id)
+        .then(({ error }) => {
+          if (error) console.error("Failed to save chart visibility:", error.message);
+        });
+    }
+  };
 
   const activity: ActivityItem[] = useMemo(() => {
     const items: ActivityItem[] = [
@@ -251,25 +288,27 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
       </Card>
 
       <div className={styles.tiles}>
-        <StatTile label="Income" value={money(incomePence)} sub="Payments received" />
-        <StatTile label="Outgoings" value={money(outgoingsPence)} sub="Expenses recorded" />
-        <StatTile
-          label="Net"
-          value={money(netPence)}
-          sub="Income minus outgoings"
-          tone={netPence < 0 ? "danger" : "default"}
-        />
+        {!incomeHidden && <StatTile label="Income" value={money(incomePence)} sub="Payments received" />}
+        {!outgoingsHidden && <StatTile label="Outgoings" value={money(outgoingsPence)} sub="Expenses recorded" />}
+        {!netHidden && (
+          <StatTile
+            label="Net"
+            value={money(netPence)}
+            sub="Income minus outgoings"
+            tone={netPence < 0 ? "danger" : "default"}
+          />
+        )}
       </div>
 
       <div className={styles.chartsRow}>
         <DonutChart
           title="Income vs outgoings"
           slices={[
-            { name: "Income", value: incomePence / 100, color: "#4a665b" },
-            { name: "Outgoings", value: outgoingsPence / 100, color: "#a8633a" },
+            ...(incomeHidden ? [] : [{ name: "Income", value: incomePence / 100, color: "var(--accent)" }]),
+            ...(outgoingsHidden ? [] : [{ name: "Outgoings", value: outgoingsPence / 100, color: "#a8633a" }]),
           ]}
-          centerValue={money(netPence)}
-          centerLabel="net"
+          centerValue={money(netHidden ? donutSoloPence : netPence)}
+          centerLabel={netHidden ? donutSoloLabel : "net"}
         />
         <TrendChart
           title="Income & outgoings"
