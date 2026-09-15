@@ -1260,6 +1260,7 @@ export type Database = {
           id: string
           incurred_on: string
           receipt_url: string | null
+          source_private_event_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1271,6 +1272,7 @@ export type Database = {
           id?: string
           incurred_on?: string
           receipt_url?: string | null
+          source_private_event_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1282,9 +1284,18 @@ export type Database = {
           id?: string
           incurred_on?: string
           receipt_url?: string | null
+          source_private_event_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_source_private_event_id_fkey"
+            columns: ["source_private_event_id"]
+            isOneToOne: true
+            referencedRelation: "admin_private_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -1897,6 +1908,9 @@ export type Database = {
           onboarding_required: boolean
           paused_at: string | null
           paused_reason: string | null
+          payment_confirmed_email_body: string | null
+          payment_confirmed_email_heading: string | null
+          payment_confirmed_email_subject: string | null
           payment_deadline_hours: number
           phone: string | null
           promo_code: string | null
@@ -1910,7 +1924,16 @@ export type Database = {
           reminder_hours_before: number
           reschedule_cutoff_hours: number | null
           saved_locations: Json
+          session_booked_email_body: string | null
+          session_booked_email_heading: string | null
+          session_booked_email_subject: string | null
           session_buffer_minutes: number
+          session_cancelled_email_body: string | null
+          session_cancelled_email_heading: string | null
+          session_cancelled_email_subject: string | null
+          session_rescheduled_email_body: string | null
+          session_rescheduled_email_heading: string | null
+          session_rescheduled_email_subject: string | null
           show_session_reference: boolean
           stripe_connect_account_id: string | null
           stripe_connect_onboarded: boolean
@@ -1975,6 +1998,9 @@ export type Database = {
           onboarding_required?: boolean
           paused_at?: string | null
           paused_reason?: string | null
+          payment_confirmed_email_body?: string | null
+          payment_confirmed_email_heading?: string | null
+          payment_confirmed_email_subject?: string | null
           payment_deadline_hours?: number
           phone?: string | null
           promo_code?: string | null
@@ -1988,7 +2014,16 @@ export type Database = {
           reminder_hours_before?: number
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
+          session_booked_email_body?: string | null
+          session_booked_email_heading?: string | null
+          session_booked_email_subject?: string | null
           session_buffer_minutes?: number
+          session_cancelled_email_body?: string | null
+          session_cancelled_email_heading?: string | null
+          session_cancelled_email_subject?: string | null
+          session_rescheduled_email_body?: string | null
+          session_rescheduled_email_heading?: string | null
+          session_rescheduled_email_subject?: string | null
           show_session_reference?: boolean
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean
@@ -2053,6 +2088,9 @@ export type Database = {
           onboarding_required?: boolean
           paused_at?: string | null
           paused_reason?: string | null
+          payment_confirmed_email_body?: string | null
+          payment_confirmed_email_heading?: string | null
+          payment_confirmed_email_subject?: string | null
           payment_deadline_hours?: number
           phone?: string | null
           promo_code?: string | null
@@ -2066,7 +2104,16 @@ export type Database = {
           reminder_hours_before?: number
           reschedule_cutoff_hours?: number | null
           saved_locations?: Json
+          session_booked_email_body?: string | null
+          session_booked_email_heading?: string | null
+          session_booked_email_subject?: string | null
           session_buffer_minutes?: number
+          session_cancelled_email_body?: string | null
+          session_cancelled_email_heading?: string | null
+          session_cancelled_email_subject?: string | null
+          session_rescheduled_email_body?: string | null
+          session_rescheduled_email_heading?: string | null
+          session_rescheduled_email_subject?: string | null
           show_session_reference?: boolean
           stripe_connect_account_id?: string | null
           stripe_connect_onboarded?: boolean

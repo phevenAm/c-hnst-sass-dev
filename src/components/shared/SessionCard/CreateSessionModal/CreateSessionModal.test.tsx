@@ -117,6 +117,16 @@ vi.mock("@/lib/supabase.js", () => ({
   },
 }));
 
+// The modal is now paginated into steps; the Schedule/Update button only
+// exists on the final one. Click through however many "Next"s remain.
+function advanceToFinalStep() {
+  let next = screen.queryByRole("button", { name: "Next" });
+  while (next) {
+    fireEvent.click(next);
+    next = screen.queryByRole("button", { name: "Next" });
+  }
+}
+
 function renderModal(props: Partial<React.ComponentProps<typeof CreateSessionModal>> = {}) {
   const store = configureStore({ reducer: { sessions: sessionsReducer, practiceSettings: practiceSettingsReducer } });
   const onClose = vi.fn();
@@ -223,7 +233,9 @@ describe("CreateSessionModal — recurring block from session type", () => {
         /They're tracked and paid together — marking any one of them as paid marks the whole block as paid\./,
       ),
     ).toBeInTheDocument();
-    // The "Schedule sessions" (plural) button confirms block mode is on.
+    // The "Schedule sessions" (plural) button confirms block mode is on —
+    // it only exists on the final step.
+    advanceToFinalStep();
     expect(screen.getByRole("button", { name: "Schedule sessions" })).toBeInTheDocument();
   });
 
@@ -251,6 +263,7 @@ describe("CreateSessionModal — saving a block", () => {
     fireEvent.change(select, { target: { value: "pkg-3" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -294,6 +307,7 @@ describe("CreateSessionModal — saving a block", () => {
 
     // £100.01 → 10001p, 10001 / 4 → floor 2500 each, remainder 1p on the first.
     fireEvent.change(document.querySelector("#session-price")!, { target: { value: "100.01" } });
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(store.getState().sessions.sessions).toHaveLength(4));
@@ -314,6 +328,7 @@ describe("CreateSessionModal — saving a block", () => {
     fireEvent.change(select, { target: { value: "pkg-3" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toBeInTheDocument());
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
@@ -333,6 +348,7 @@ describe("CreateSessionModal — saving a block", () => {
     fireEvent.change(select, { target: { value: "pkg-1" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
@@ -357,6 +373,7 @@ describe("CreateSessionModal — double-booking guard", () => {
     fireEvent.change(select, { target: { value: "pkg-1" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
 
     await waitFor(() => expect(screen.getByText(/overlaps with an existing session/i)).toBeInTheDocument());
@@ -380,6 +397,7 @@ describe("CreateSessionModal — double-booking guard", () => {
     fireEvent.change(select, { target: { value: "pkg-3" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule sessions" }));
 
     await waitFor(() => expect(screen.getByText(/overlaps with an existing session/i)).toBeInTheDocument());
@@ -397,6 +415,7 @@ describe("CreateSessionModal — double-booking guard", () => {
     fireEvent.change(select, { target: { value: "pkg-1" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(60));
 
+    advanceToFinalStep();
     fireEvent.click(screen.getByRole("button", { name: "Schedule session" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());

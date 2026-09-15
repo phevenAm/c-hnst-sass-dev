@@ -127,6 +127,15 @@
   margin: 0;
 }
 
+.stepHeader {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .settingsLink {
   display: inline-block;
   margin-top: 0.4rem;

@@ -50,6 +50,15 @@
     color: var(--text-muted);
 }
 
+.stepHeader {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 .feeRow {
     margin-top: -$sp-2;
     padding-left: $sp-5;

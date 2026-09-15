@@ -78,11 +78,6 @@ const CreateSessionModal = ({
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
   const [referenceCode, setReferenceCode] = useState(session?.reference_code ?? "");
-  const [isSupervision, _setIsSupervision] = useState((session as any)?.is_supervision ?? false);
-  const [trackAsCpd, setTrackAsCpd] = useState(false);
-  const [supervisionCost, setSupervisionCost] = useState(
-    (session as any)?.supervision_cost_pence ? ((session as any).supervision_cost_pence / 100).toFixed(2) : "",
-  );
   const [sendConfirmation, setSendConfirmation] = useState(true);
   const [sendReminders, setSendReminders] = useState(true);
   const [sendRescheduleNotification, setSendRescheduleNotification] = useState(true);
@@ -261,12 +256,9 @@ const CreateSessionModal = ({
             reference_code: referenceCode.trim() || undefined,
             location: location,
             address: sessionAddress,
-            is_supervision: isSupervision || undefined,
-            supervision_cost_pence:
-              isSupervision && supervisionCost ? Math.round(parseFloat(supervisionCost) * 100) : undefined,
             send_reminders: sendReminders,
             created_by: authUser.id,
-            metadata: blockId
+            metadata: sessionPackages
               ? {
                   block_id: blockId,
                   block_pos: i + 1,
@@ -370,9 +362,6 @@ const CreateSessionModal = ({
           duration_minutes: sessionDuration,
           location: location,
           address: sessionAddress,
-          is_supervision: isSupervision || undefined,
-          supervision_cost_pence:
-            isSupervision && supervisionCost ? Math.round(parseFloat(supervisionCost) * 100) : undefined,
           status: "rescheduled",
         }),
       ).unwrap();
@@ -394,7 +383,36 @@ const CreateSessionModal = ({
     }
   };
 
+  // The stub-save (offline client) flow has no email-notification concept,
+  // so it gets one fewer step than the real session flow.
+  const showNotifyStep = !onSave;
+  const STEP_LABELS = ["Booking", "Notes", showNotifyStep ? "Notify" : null].filter(Boolean) as string[];
+  const [step, setStep] = useState(0);
+  const lastStep = STEP_LABELS.length - 1;
+  const goNext = () => setStep((s) => Math.min(s + 1, lastStep));
+  const goBack = () => setStep((s) => Math.max(s - 1, 0));
+
+  const selectedPackage = sessionPackages.find((p) => p.id === selectedPackageId) ?? null;
+
   const dynamicNewSessionModal = () => {
+    let primaryAction: React.ReactNode;
+    if (step < lastStep) {
+      primaryAction = <Button onClick={goNext}>Next</Button>;
+    } else if (session) {
+      primaryAction = (
+        <Button onClick={() => handleSessionUpdate(session)} disabled={!scheduledAt?.isValid() || isSaving}>
+          {isSaving ? "Updating session..." : "Update session"}
+        </Button>
+      );
+    } else {
+      primaryAction = (
+        <Button onClick={handleSave} disabled={!scheduledAt?.isValid() || isSaving}>
+          {/** biome-ignore lint/style/noNestedTernary: label depends on both save-in-flight and block-vs-single state */}
+          {isSaving ? "Scheduling…" : isRecurring ? "Schedule sessions" : "Schedule session"}
+        </Button>
+      );
+    }
+
     return (
       <Modal
         title={session ? "Update session" : `Create session - ${clientName}`}
@@ -402,256 +420,228 @@ const CreateSessionModal = ({
         size="sm"
         actions={
           <div className={styles.modalActions}>
+            {step > 0 && (
+              <Button variant="ghost" onClick={goBack}>
+                Back
+              </Button>
+            )}
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            {session ? (
-              <Button
-                onClick={() => handleSessionUpdate(session)}
-                disabled={!scheduledAt || !scheduledAt.isValid() || isSaving}
-              >
-                {isSaving ? "Updating session..." : "Update session"}
-              </Button>
-            ) : (
-              <Button onClick={handleSave} disabled={!scheduledAt || !scheduledAt.isValid() || isSaving}>
-                {/** biome-ignore lint/style/noNestedTernary: <explanation> */}
-                {isSaving ? "Scheduling…" : isRecurring ? "Schedule sessions" : "Schedule session"}
-              </Button>
-            )}
+            {primaryAction}
           </div>
         }
       >
         <div className={styles.form}>
-          <fieldset className={styles.fieldGroup}>
-            <legend className={styles.label}>Date & time</legend>
-            <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
-          </fieldset>
-
-          {sessionPackages.length > 0 ? (
-            <fieldset className={styles.fieldGroup}>
-              <legend className={styles.label}>
-                Session type
-                <InfoTooltip
-                  variant="rich"
-                  title="Session types"
-                  text={
-                    "Presets you set up once in Settings → Billing & payments → Session types & prices.\n" +
-                    "Picking one fills in the price and duration below — everything stays editable.\n" +
-                    "A recurring block creates several weekly sessions in one step, starting from the date above. The block price is split evenly across them and paid for as a unit."
-                  }
-                />
-              </legend>
-              <div className={styles.inputWrapper}>
-                <select
-                  id="session-package"
-                  className={styles.input}
-                  value={selectedPackageId}
-                  onChange={(e) => handleSelectPackage(e.target.value)}
-                >
-                  <option value="">Custom — set below</option>
-                  {sessionPackages.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — £{(p.price_pence / 100).toFixed(2)}
-                      {p.is_recurring ? ` · ${p.session_count}-week block` : ""} · {p.duration_minutes} min
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <a className={styles.settingsLink} href={SESSION_TYPES_SETTINGS_URL} target="_blank" rel="noreferrer">
-                Manage session types →
-              </a>
-            </fieldset>
-          ) : (
-            !session && (
-              <p className={styles.hint}>
-                Tip: save your usual prices and durations as{" "}
-                <a className={styles.settingsLink} href={SESSION_TYPES_SETTINGS_URL} target="_blank" rel="noreferrer">
-                  session types in Settings
-                </a>{" "}
-                — including recurring blocks — so you can pick them here instead of retyping.
-              </p>
-            )
+          {STEP_LABELS.length > 1 && (
+            <p className={styles.stepHeader}>
+              Step {step + 1} of {STEP_LABELS.length} · {STEP_LABELS[step]}
+            </p>
           )}
 
-          <fieldset className={styles.fieldGroup}>
-            <legend className={styles.label}>Session duration</legend>
-            <div className={styles.inputWrapper}>
-              <input
-                id="session-duration"
-                className={styles.input}
-                type="number"
-                min={10}
-                max={90}
-                value={sessionDuration}
-                onChange={(e) => setSessionDuration(Number(e.target.value))}
-              />
-            </div>
-          </fieldset>
-
-          <fieldset className={styles.fieldGroup}>
-            <legend className={styles.label}>Session location</legend>
-            <div className={styles.locationRadios}>
-              <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name="sessionLocation"
-                  checked={location === "in_person"}
-                  onChange={() => setLocation("in_person")}
-                />
-                In-person
-              </label>
-              <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name="sessionLocation"
-                  checked={location === "remote"}
-                  onChange={() => setLocation("remote")}
-                />
-                Remote
-              </label>
-            </div>
-            {location === "in_person" ? (
-              <Lookup
-                value={sessionAddress}
-                onChange={setSessionAddress}
-                options={savedLocations}
-                onSave={handleSaveLocation}
-                onRemove={handleRemoveLocation}
-                saving={savingLocation}
-                saveLabel="+ Save this location"
-                placeholder="e.g. 15 London Rd, LD5 4EO (optional)"
-              />
-            ) : (
-              <input
-                className={styles.input}
-                type="url"
-                placeholder="Meeting link (optional)"
-                value={sessionAddress}
-                onChange={(e) => setSessionAddress(e.target.value)}
-              />
-            )}
-          </fieldset>
-
-          {isRecurring && !session && (
-            <div className={styles.fieldGroup}>
-              <p className={styles.label}>Recurring block</p>
-              <p className={styles.hint} data-testid="recurring-summary">
-                Creates {sessionCount} sessions, one week apart starting from the date above. They're tracked and paid
-                together — marking any one of them as paid marks the whole block as paid.
-              </p>
-            </div>
-          )}
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="session-price">
-              {isRecurring && !session ? `Block fee (£) — covers ${sessionCount} sessions` : "Session fee (£)"}
-            </label>
-            <input
-              id="session-price"
-              className={styles.input}
-              type="number"
-              min={0}
-              step={0.01}
-              placeholder="e.g. 70.00"
-              value={pricePounds}
-              onChange={(e) => setPricePounds(e.target.value)}
-            />
-            {isRecurring && !session && pricePounds && sessionCount > 1 && (
-              <p className={styles.hint} data-testid="per-session-fee">
-                The client pays this once for the whole block. Each session shows £
-                {(parseFloat(pricePounds) / sessionCount).toFixed(2)}.
-              </p>
-            )}
-          </div>
-
-          <fieldset className={styles.fieldGroup}>
-            <legend className={styles.label}>Payment</legend>
-            <div className={styles.radioGroup}>
-              <label className={styles.radioLabel}>
-                <input type="radio" name="payment" checked={!isPrepaid} onChange={() => setIsPrepaid(false)} />
-                Payment pending
-              </label>
-              <label className={styles.radioLabel}>
-                <input type="radio" name="payment" checked={isPrepaid} onChange={() => setIsPrepaid(true)} />
-                Prepaid
-              </label>
-            </div>
-          </fieldset>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="session-notes">
-              Notes <span className={styles.optional}>(optional)</span>
-            </label>
-            <textarea
-              id="session-notes"
-              className={styles.textarea}
-              placeholder="Any prep notes or context for this session…"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="session-code">
-              Reference code <span className={styles.optional}>(optional)</span>
-            </label>
-            <input
-              id="session-code"
-              className={styles.input}
-              type="text"
-              placeholder="e.g. S-001"
-              maxLength={20}
-              value={referenceCode}
-              onChange={(e) => setReferenceCode(e.target.value)}
-            />
-          </div>
-
-          {/* <div className={styles.checkboxGroup}>
-            <input
-              id="is-supervision"
-              type="checkbox"
-              checked={isSupervision}
-              onChange={(e) => setIsSupervision(e.target.checked)}
-            />
-            <label htmlFor="is-supervision" className={styles.checkboxLabel}>
-              Add to supervision log
-            </label>
-          </div> */}
-
-          {isSupervision && (
+          {step === 0 && (
             <>
+              <fieldset className={styles.fieldGroup}>
+                <legend className={styles.label}>Date & time</legend>
+                <DateInput mode="datetime" value={scheduledAt} onChange={setScheduledAt} />
+              </fieldset>
+
+              {sessionPackages.length > 0 ? (
+                <fieldset className={styles.fieldGroup}>
+                  <legend className={styles.label}>
+                    Session type
+                    <InfoTooltip
+                      variant="rich"
+                      title="Session types"
+                      text={
+                        "Presets you set up once in Settings → Billing & payments → Session types & prices.\n" +
+                        "Picking one fills in the price and duration below — everything stays editable.\n" +
+                        "A recurring block creates several weekly sessions in one step, starting from the date above. The block price is split evenly across them and paid for as a unit."
+                      }
+                    />
+                  </legend>
+                  <div className={styles.inputWrapper}>
+                    <select
+                      id="session-package"
+                      className={styles.input}
+                      value={selectedPackageId}
+                      onChange={(e) => handleSelectPackage(e.target.value)}
+                    >
+                      <option value="">Custom — set below</option>
+                      {sessionPackages.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} — £{(p.price_pence / 100).toFixed(2)}
+                          {p.is_recurring ? ` · ${p.session_count}-week block` : ""} · {p.duration_minutes} min
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedPackage && (
+                    <p className={styles.hint}>
+                      {selectedPackage.is_recurring
+                        ? `Creates ${selectedPackage.session_count} weekly sessions of ${selectedPackage.duration_minutes} min, £${(selectedPackage.price_pence / 100).toFixed(2)} total.`
+                        : `${selectedPackage.duration_minutes} min · £${(selectedPackage.price_pence / 100).toFixed(2)}.`}
+                    </p>
+                  )}
+                  <a className={styles.settingsLink} href={SESSION_TYPES_SETTINGS_URL} target="_blank" rel="noreferrer">
+                    Manage session types →
+                  </a>
+                </fieldset>
+              ) : (
+                !session && (
+                  <p className={styles.hint}>
+                    Tip: save your usual prices and durations as{" "}
+                    <a
+                      className={styles.settingsLink}
+                      href={SESSION_TYPES_SETTINGS_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      session types in Settings
+                    </a>{" "}
+                    — including recurring blocks — so you can pick them here instead of retyping.
+                  </p>
+                )
+              )}
+
+              <fieldset className={styles.fieldGroup}>
+                <legend className={styles.label}>Session duration</legend>
+                <div className={styles.inputWrapper}>
+                  <input
+                    id="session-duration"
+                    className={styles.input}
+                    type="number"
+                    min={10}
+                    max={90}
+                    value={sessionDuration}
+                    onChange={(e) => setSessionDuration(Number(e.target.value))}
+                  />
+                </div>
+              </fieldset>
+
+              <fieldset className={styles.fieldGroup}>
+                <legend className={styles.label}>Session location</legend>
+                <div className={styles.locationRadios}>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="sessionLocation"
+                      checked={location === "in_person"}
+                      onChange={() => setLocation("in_person")}
+                    />
+                    In-person
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="sessionLocation"
+                      checked={location === "remote"}
+                      onChange={() => setLocation("remote")}
+                    />
+                    Remote
+                  </label>
+                </div>
+                {location === "in_person" ? (
+                  <Lookup
+                    value={sessionAddress}
+                    onChange={setSessionAddress}
+                    options={savedLocations}
+                    onSave={handleSaveLocation}
+                    onRemove={handleRemoveLocation}
+                    saving={savingLocation}
+                    saveLabel="+ Save this location"
+                    placeholder="e.g. 15 London Rd, LD5 4EO (optional)"
+                  />
+                ) : (
+                  <input
+                    className={styles.input}
+                    type="url"
+                    placeholder="Meeting link (optional)"
+                    value={sessionAddress}
+                    onChange={(e) => setSessionAddress(e.target.value)}
+                  />
+                )}
+              </fieldset>
+
               <div className={styles.fieldGroup}>
-                <label className={styles.label} htmlFor="supervision-cost">
-                  Supervision fee <span className={styles.optional}>(optional)</span>
-                </label>
+                <legend className={styles.label}>
+                  {isRecurring && !session ? `Block fee (£) — covers ${sessionCount} sessions` : "Session fee (£)"}
+                  <InfoTooltip
+                    variant="rich"
+                    title="Session Fee information"
+                    text={`Creates ${sessionCount} sessions, one week apart starting from the date above.
+                They're tracked and paid together — marking any one of them as paid marks the whole block as paid.`}
+                  />
+                </legend>
+
                 <input
-                  id="supervision-cost"
+                  id="session-price"
                   className={styles.input}
                   type="number"
                   min={0}
                   step={0.01}
-                  placeholder="e.g. 80.00"
-                  value={supervisionCost}
-                  onChange={(e) => setSupervisionCost(e.target.value)}
+                  placeholder="e.g. 70.00"
+                  value={pricePounds}
+                  onChange={(e) => setPricePounds(e.target.value)}
+                />
+                {isRecurring && !session && pricePounds && sessionCount > 1 && (
+                  <p className={styles.hint} data-testid="per-session-fee">
+                    The client pays this once for the whole block. Each session shows £
+                    {(parseFloat(pricePounds) / sessionCount).toFixed(2)}.
+                  </p>
+                )}
+              </div>
+
+              <fieldset className={styles.fieldGroup}>
+                <legend className={styles.label}>Payment</legend>
+                <div className={styles.radioGroup}>
+                  <label className={styles.radioLabel}>
+                    <input type="radio" name="payment" checked={!isPrepaid} onChange={() => setIsPrepaid(false)} />
+                    Payment pending
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input type="radio" name="payment" checked={isPrepaid} onChange={() => setIsPrepaid(true)} />
+                    Prepaid
+                  </label>
+                </div>
+              </fieldset>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="session-notes">
+                  Notes <span className={styles.optional}>(optional)</span>
+                </label>
+                <textarea
+                  id="session-notes"
+                  className={styles.textarea}
+                  placeholder="Any prep notes or context for this session…"
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
 
-              <div className={styles.checkboxGroup}>
-                <input
-                  id="track-as-cpd"
-                  type="checkbox"
-                  checked={trackAsCpd}
-                  onChange={(e) => setTrackAsCpd(e.target.checked)}
-                />
-                <label htmlFor="track-as-cpd" className={styles.checkboxLabel}>
-                  Track as CPD item
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="session-code">
+                  Reference code <span className={styles.optional}>(optional)</span>
                 </label>
+                <input
+                  id="session-code"
+                  className={styles.input}
+                  type="text"
+                  placeholder="e.g. S-001"
+                  maxLength={20}
+                  value={referenceCode}
+                  onChange={(e) => setReferenceCode(e.target.value)}
+                />
               </div>
             </>
           )}
 
-          {!onSave && !session && (
+          {step === 2 && showNotifyStep && !session && (
             <fieldset className={styles.fieldGroup}>
               <legend className={styles.label}>Email notifications</legend>
               <div className={styles.checkboxGroup}>
@@ -679,7 +669,7 @@ const CreateSessionModal = ({
             </fieldset>
           )}
 
-          {!onSave && session && (
+          {step === 2 && showNotifyStep && session && (
             <fieldset className={styles.fieldGroup}>
               <legend className={styles.label}>Email notifications</legend>
               <div className={styles.checkboxGroup}>
