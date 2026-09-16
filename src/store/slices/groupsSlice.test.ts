@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { configureStore } from "@reduxjs/toolkit";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import reducer, {
   addGroupMember,
@@ -11,6 +12,30 @@ import reducer, {
   removeGroupStaff,
   selectGroupsForStub,
 } from "./groupsSlice";
+
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.resetModules();
+});
+
+const { tables } = vi.hoisted(() => ({
+  tables: {
+    groups: { data: [] as unknown[], error: null as unknown },
+    group_members: { data: [] as unknown[], error: null as unknown },
+    group_staff: { data: [] as unknown[], error: null as unknown },
+  },
+}));
+vi.mock("@/lib/supabase.js", () => ({
+  supabase: {
+    from: (table: keyof typeof tables) => ({
+      // `groups` chains .select().eq().order(); `group_members`/`group_staff`
+      // just await .select() directly — so select() returns a real Promise
+      // (awaitable as-is) with an .eq() method also attached for the former.
+      select: () =>
+        Object.assign(Promise.resolve(tables[table]), { eq: () => ({ order: () => Promise.resolve(tables[table]) }) }),
+    }),
+  },
+}));
 
 const initial = reducer(undefined, { type: "@@INIT" });
 
@@ -123,6 +148,73 @@ describe("groupsSlice reducer", () => {
     const next = reducer(seeded, { type: addGroupMember.fulfilled.type, payload: member });
     expect(next.groups.find((g) => g.id === "g-1")?.members).toEqual([member]);
     expect(next.groups.find((g) => g.id === "g-2")?.members).toEqual([]);
+  });
+});
+
+describe("fetchGroups (thunk — exercises the real join logic against a mocked Supabase)", () => {
+  function buildStore() {
+    return configureStore({ reducer: { groups: reducer } });
+  }
+
+  it("attaches each group's own members and staff, not another group's (regression — a mis-keyed join would leak rows across groups)", async () => {
+    tables.groups.data = [
+      { id: "g-1", agency_id: "agency-1", name: "Group One", description: null, created_by: "mgr-1", created_at: "" },
+      { id: "g-2", agency_id: "agency-1", name: "Group Two", description: null, created_by: "mgr-1", created_at: "" },
+    ];
+    tables.groups.error = null;
+    tables.group_members.data = [
+      { id: "gm-1", group_id: "g-1", client_id: null, stub_id: "stub-1", added_at: "" },
+      { id: "gm-2", group_id: "g-2", client_id: null, stub_id: "stub-2", added_at: "" },
+    ];
+    tables.group_members.error = null;
+    tables.group_staff.data = [{ id: "gs-1", group_id: "g-1", user_id: "user-1", added_at: "" }];
+    tables.group_staff.error = null;
+
+    const store = buildStore();
+    await store.dispatch(fetchGroups("agency-1") as never);
+    const state = store.getState().groups;
+
+    expect(state.status).toBe("succeeded");
+    const g1 = state.groups.find((g) => g.id === "g-1");
+    const g2 = state.groups.find((g) => g.id === "g-2");
+    expect(g1?.members.map((m) => m.id)).toEqual(["gm-1"]);
+    expect(g1?.staff.map((s) => s.id)).toEqual(["gs-1"]);
+    expect(g2?.members.map((m) => m.id)).toEqual(["gm-2"]);
+    expect(g2?.staff).toEqual([]);
+  });
+
+  it("gives a group with no members/staff empty arrays rather than undefined (edge case)", async () => {
+    tables.groups.data = [
+      { id: "g-3", agency_id: "agency-1", name: "Empty group", description: null, created_by: "mgr-1", created_at: "" },
+    ];
+    tables.groups.error = null;
+    tables.group_members.data = [];
+    tables.group_members.error = null;
+    tables.group_staff.data = [];
+    tables.group_staff.error = null;
+
+    const store = buildStore();
+    await store.dispatch(fetchGroups("agency-1") as never);
+    const state = store.getState().groups;
+
+    expect(state.groups[0].members).toEqual([]);
+    expect(state.groups[0].staff).toEqual([]);
+  });
+
+  it("rejects with the real DB error message when the groups query fails (sad path)", async () => {
+    tables.groups.data = [];
+    tables.groups.error = { message: "permission denied for table groups" };
+    tables.group_members.data = [];
+    tables.group_members.error = null;
+    tables.group_staff.data = [];
+    tables.group_staff.error = null;
+
+    const store = buildStore();
+    await store.dispatch(fetchGroups("agency-1") as never);
+    const state = store.getState().groups;
+
+    expect(state.status).toBe("failed");
+    expect(state.error).toBe("permission denied for table groups");
   });
 });
 
