@@ -99,15 +99,19 @@ export const addGroupStaff = createAsyncThunk(
     // user_id, so this can go straight from the frontend — no edge function
     // needed, unlike assign-client (which also emails, since that crosses
     // from "pool" to "your caseload"; this is a lighter internal ping).
-    try {
-      await supabase.from("notifications").insert({
-        user_id: payload.user_id,
-        type: "group_assignment",
-        message: `You've been added to the group "${group_name}"`,
-        url: "/agency/groups",
-      });
-    } catch {
-      /* swallow — see comment above */
+    // Supabase never THROWS on an RLS denial or schema error here — it
+    // resolves with { error } — so a bare try/catch around this call would
+    // silently hide a real failure exactly like the Resources delete bug
+    // (2026-09-16): a write that quietly does nothing looks identical to one
+    // that succeeded unless the returned error is actually inspected.
+    const { error: notifyError } = await supabase.from("notifications").insert({
+      user_id: payload.user_id,
+      type: "group_assignment",
+      message: `You've been added to the group "${group_name}"`,
+      url: "/agency/groups",
+    });
+    if (notifyError) {
+      console.error("Couldn't notify the new group member:", notifyError.message);
     }
     return data as GroupStaffRow;
   },

@@ -21,15 +21,21 @@ const { tableSpies, nextResults } = vi.hoisted(() => ({
   tableSpies: { insert: vi.fn(), delete: vi.fn() },
   nextResults: {
     insert: { value: { data: { id: "row-new" }, error: null as unknown } },
+    notify: { value: { data: null as unknown, error: null as unknown } },
     delete: { value: { error: null as unknown } },
   },
 }));
 vi.mock("@/lib/supabase.js", () => ({
   supabase: {
     from: (table: string) => ({
+      // group_staff/group_members chain .select().single(); the plain
+      // notifications insert in groupsSlice is awaited directly with no
+      // chaining — insert() has to be a real Promise (awaitable as-is) AND
+      // carry .select() for the other callers, same trick as elsewhere.
       insert: (payload: unknown) => {
         tableSpies.insert({ table, payload });
-        return { select: () => ({ single: () => Promise.resolve(nextResults.insert.value) }) };
+        const result = table === "notifications" ? nextResults.notify.value : nextResults.insert.value;
+        return Object.assign(Promise.resolve(result), { select: () => ({ single: () => Promise.resolve(result) }) });
       },
       delete: () => ({
         eq: (_col: string, id: string) => {
@@ -181,11 +187,11 @@ describe("ManageGroupModal", () => {
   });
 
   it("still adds the staff member even if the notification insert fails (sad path — best-effort, not blocking)", async () => {
-    const originalInsert = tableSpies.insert.getMockImplementation();
-    tableSpies.insert.mockImplementation((args: { table: string }) => {
-      originalInsert?.(args);
-      if (args.table === "notifications") throw new Error("notifications insert boom");
-    });
+    // Real Supabase never THROWS on an RLS/schema failure here — it resolves
+    // with { error } — so the mock returns that shape rather than rejecting,
+    // to actually exercise the code path this test claims to cover.
+    nextResults.notify.value = { data: null, error: { message: "permission denied" } };
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     renderModal(baseGroup);
     const picker = screen.getByLabelText("Add a staff member to this group");
@@ -193,6 +199,8 @@ describe("ManageGroupModal", () => {
     fireEvent.click(within(picker.parentElement as HTMLElement).getByRole("button", { name: "Add" }));
 
     await waitFor(() => expect(screen.getByText("Sam Staff")).toBeInTheDocument());
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Couldn't notify the new group member:", "permission denied");
+    consoleErrorSpy.mockRestore();
   });
 
   it("opens a confirm dialog before deleting the group, and does not delete on cancel (sad path)", async () => {
