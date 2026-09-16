@@ -57,30 +57,46 @@ const { staffA, staffB, supabaseMock } = vi.hoisted(() => {
     duration_minutes: 50,
     status: "scheduled",
   };
+  // Regression fixture: a staff member's OFFLINE/stub-client session. Before
+  // the fix, AgencySessionsPage never queried stub_sessions at all — this
+  // simply never appeared here, with no error to explain why.
+  const stubSessionA = {
+    id: "stub-sess-a",
+    stub_id: "stub-1",
+    admin_id: "user-a",
+    scheduled_at: "2026-09-16T12:00:00Z",
+    duration_minutes: 50,
+    status: "scheduled",
+  };
+
+  // A Proxy that answers any chained method call (.select(), .gte(), .in(),
+  // .order(), whatever the real query builder needs) with itself, and
+  // resolves to `result` when awaited/`.then`ed — so it doesn't matter
+  // exactly which methods the page chains, present or future.
+  function chainable(result: unknown) {
+    const target = {};
+    const proxy: any = new Proxy(target, {
+      get(_t, prop) {
+        if (prop === "then") return (resolve: (v: unknown) => void) => resolve(result);
+        return () => proxy;
+      },
+    });
+    return proxy;
+  }
+
   const supabaseMock = {
     from: (table: string) => {
-      if (table === "sessions") {
-        return {
-          select: () => ({
-            gte: () => ({
-              lte: () => ({
-                order: () => Promise.resolve({ data: [sessionA, sessionB], error: null }),
-              }),
-            }),
-          }),
-        };
-      }
-      return {
-        select: () => ({
-          in: () =>
-            Promise.resolve({
-              data: [
-                { id: "client-1", first_name: "Cara", last_name: "Client" },
-                { id: "client-2", first_name: "Dee", last_name: "Client" },
-              ],
-            }),
-        }),
-      };
+      if (table === "sessions") return chainable({ data: [sessionA, sessionB], error: null });
+      if (table === "stub_sessions") return chainable({ data: [stubSessionA], error: null });
+      if (table === "client_stubs")
+        return chainable({ data: [{ id: "stub-1", first_name: "Eve", last_name: "Stub" }] });
+      // "users"
+      return chainable({
+        data: [
+          { id: "client-1", first_name: "Cara", last_name: "Client" },
+          { id: "client-2", first_name: "Dee", last_name: "Client" },
+        ],
+      });
     },
   };
   return { staffA, staffB, supabaseMock };
@@ -104,6 +120,46 @@ vi.mock("@/lib/supabase", () => ({ supabase: supabaseMock }));
 
 beforeEach(() => {
   state = buildState();
+});
+
+// Regression coverage for the 2026-09-16 bug: a staff member's stub-client
+// session was invisible on this page because it only ever queried
+// public.sessions, never public.stub_sessions.
+describe("AgencySessionsPage — stub (offline client) sessions", () => {
+  it("shows a staff member's stub-client session alongside their real ones (regression)", async () => {
+    render(<AgencySessionsPage />);
+    fireEvent.click(await screen.findByRole("tab", { name: "List" }));
+
+    await screen.findByText(/Cara Client/);
+    expect(screen.getByText(/Dee Client/)).toBeInTheDocument();
+    expect(screen.getByText(/Eve Stub/)).toBeInTheDocument();
+    // Attributed to the right staff member, same as a real session would be.
+    expect(screen.getByText(/Eve Stub · Alice Internal/)).toBeInTheDocument();
+  });
+
+  it("respects the internal/external staff filter for stub sessions too", async () => {
+    render(<AgencySessionsPage />);
+    fireEvent.click(await screen.findByRole("tab", { name: "List" }));
+    await screen.findByText(/Eve Stub/);
+
+    // Alice (Eve's counsellor) is "employee" — filtering to External should
+    // hide her stub session same as it would her real ones.
+    fireEvent.click(screen.getByRole("tab", { name: "External" }));
+    expect(screen.queryByText(/Eve Stub/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Dee Client/)).toBeInTheDocument();
+  });
+
+  it("hides a staff member's stub session when they're unticked in show/hide staff", async () => {
+    render(<AgencySessionsPage />);
+    fireEvent.click(await screen.findByRole("tab", { name: "List" }));
+    await screen.findByText(/Eve Stub/);
+
+    fireEvent.click(screen.getByRole("button", { name: /show\/hide staff/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Alice Internal" }));
+
+    expect(screen.queryByText(/Eve Stub/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Dee Client/)).toBeInTheDocument();
+  });
 });
 
 describe("AgencySessionsPage — per-staff show/hide", () => {

@@ -90,7 +90,6 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  justify-content: space-between;
   flex-wrap: wrap;
   padding: var(--sp-4);
   border-bottom: 1px solid var(--border);
@@ -118,6 +117,7 @@
 
 .rowMain {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
