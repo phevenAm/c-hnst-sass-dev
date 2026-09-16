@@ -56,6 +56,10 @@ type CreateSessionModalTypes = {
   // Pre-fill the date/time field for a brand-new session (e.g. the admin
   // scheduler's click-an-empty-slot flow). Ignored when editing an existing one.
   initialStart?: Dayjs | null;
+  // Agency clients only: when set, the fee is pinned to this amount and the
+  // field is read-only — the agency set this client's rate and didn't opt
+  // the assigned staff member out of it (client_stubs.allow_staff_custom_rate).
+  lockedPricePence?: number | null;
 };
 
 const CreateSessionModal = ({
@@ -65,6 +69,7 @@ const CreateSessionModal = ({
   session = null,
   onSave,
   initialStart = null,
+  lockedPricePence = null,
 }: CreateSessionModalTypes) => {
   const { authUser, isDemo } = useAuth();
   const { showToast } = useToast();
@@ -85,9 +90,10 @@ const CreateSessionModal = ({
   const [sessionCount, setSessionCount] = useState(1);
   const [sessionDuration, setSessionDuration] = useState(session?.duration_minutes ?? 50);
   const [isPrepaid, setIsPrepaid] = useState(session?.paid ?? false);
-  const [pricePounds, setPricePounds] = useState(
-    session?.price_pence ? (session.price_pence / 100).toFixed(2) : "60.00",
-  );
+  const [pricePounds, setPricePounds] = useState(() => {
+    if (lockedPricePence != null) return (lockedPricePence / 100).toFixed(2);
+    return session?.price_pence ? (session.price_pence / 100).toFixed(2) : "60.00";
+  });
   const [location, setLocation] = useState<"remote" | "in_person">(session?.location ?? "in_person");
   const [sessionAddress, setSessionAddress] = useState(session?.address ?? "");
   const [notes, setNotes] = useState(session?.notes ?? "");
@@ -198,8 +204,10 @@ const CreateSessionModal = ({
     }
     setSessionDuration(pkg.duration_minutes);
     // For a recurring type, price_pence is the whole-block price. The field
-    // below shows it as such; handleSave divides it across the rows.
-    setPricePounds((pkg.price_pence / 100).toFixed(2));
+    // below shows it as such; handleSave divides it across the rows. Never
+    // when the agency has locked this client's rate — a package pick
+    // shouldn't be a backdoor around it.
+    if (lockedPricePence == null) setPricePounds((pkg.price_pence / 100).toFixed(2));
     setIsRecurring(pkg.is_recurring);
     setSessionCount(pkg.is_recurring ? pkg.session_count : 1);
 
@@ -741,7 +749,12 @@ const CreateSessionModal = ({
                   placeholder="e.g. 70.00"
                   value={pricePounds}
                   onChange={(e) => setPricePounds(e.target.value)}
+                  readOnly={lockedPricePence != null}
+                  title={lockedPricePence != null ? "Set by your agency — you can't change this" : undefined}
                 />
+                {lockedPricePence != null && (
+                  <p className={styles.hint}>Set by your agency for this client — you can't charge a different rate.</p>
+                )}
                 {isRecurring && !session && pricePounds && sessionCount > 1 && (
                   <p className={styles.hint} data-testid="per-session-fee">
                     The client pays this once for the whole block. Each session shows £

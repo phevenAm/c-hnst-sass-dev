@@ -276,6 +276,32 @@ describe("CreateSessionModal — discard confirmation", () => {
 // passes the same value to every row) — auto-filling it when a block type is
 // picked is what actually makes that useful, instead of relying on the admin
 // to remember to type one in themselves.
+// Regression coverage (2026-09-16): an agency can lock a client's rate
+// (client_stubs.default_rate_pence + allow_staff_custom_rate) so the
+// assigned staff member can't charge more (or less) than agreed.
+describe("CreateSessionModal — agency rate lock", () => {
+  it("pins the fee to lockedPricePence, makes it read-only, and ignores a session-type pick", async () => {
+    renderModal({ lockedPricePence: 4500 });
+    goToSessionStep();
+
+    expect(document.querySelector("#session-price")).toHaveValue(45);
+    expect(document.querySelector("#session-price")).toHaveAttribute("readonly");
+    expect(screen.getByText(/Set by your agency for this client/)).toBeInTheDocument();
+
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "pkg-2" } }); // £90 package
+    expect(document.querySelector("#session-price")).toHaveValue(45);
+  });
+
+  it("leaves the fee freely editable when no lock is passed", () => {
+    renderModal();
+    goToSessionStep();
+
+    expect(document.querySelector("#session-price")).not.toHaveAttribute("readonly");
+    expect(screen.queryByText(/Set by your agency for this client/)).not.toBeInTheDocument();
+  });
+});
+
 describe("CreateSessionModal — block reference code auto-fill", () => {
   it("fills in a shared BLK- code when a recurring type is picked, visible on the Confirm step", async () => {
     renderModal();

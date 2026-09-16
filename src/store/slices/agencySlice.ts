@@ -133,7 +133,7 @@ export const fetchAgencyClients = createAsyncThunk(
       supabase
         .from("client_stubs")
         .select(
-          "id, first_name, last_name, email, codename, agency_id, default_rate_pence, availability_note, created_by, created_at, linked_user_id, previously_counselled",
+          "id, first_name, last_name, email, codename, agency_id, default_rate_pence, allow_staff_custom_rate, availability_note, created_by, created_at, linked_user_id, previously_counselled",
         )
         .eq("agency_id", agencyId)
         .order("created_at", { ascending: false }),
@@ -361,6 +361,7 @@ export const createIntakeClient = createAsyncThunk(
       last_name: string;
       email?: string | null;
       default_rate_pence?: number | null;
+      allow_staff_custom_rate?: boolean;
       availability_note?: string | null;
     },
     { rejectWithValue },

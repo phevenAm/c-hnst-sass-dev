@@ -135,6 +135,8 @@ export interface AgencyClient {
   codename: string | null;
   agency_id: string | null;
   default_rate_pence: number | null;
+  /** False (default) locks the assigned staff member to default_rate_pence when it's set — see CreateSessionModal. */
+  allow_staff_custom_rate: boolean;
   availability_note: string | null;
   created_by: string;
   created_at: string;

@@ -18,6 +18,7 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [rate, setRate] = useState("");
+  const [allowCustomRate, setAllowCustomRate] = useState(false);
   const [availability, setAvailability] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,6 +36,7 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
           last_name: lastName.trim(),
           email: email.trim() || null,
           default_rate_pence: rate.trim() ? poundsToPence(rate) : null,
+          allow_staff_custom_rate: allowCustomRate,
           availability_note: availability.trim() || null,
         }),
       ).unwrap();
@@ -120,6 +122,20 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
             placeholder="e.g. 60"
           />
         </div>
+
+        {rate.trim() && (
+          <label className={form.toggleRow} htmlFor="ic-allow-custom-rate">
+            <span className={form.toggleText}>
+              Allow the assigned staff member to charge this client a different rate
+            </span>
+            <input
+              id="ic-allow-custom-rate"
+              type="checkbox"
+              checked={allowCustomRate}
+              onChange={(e) => setAllowCustomRate(e.target.checked)}
+            />
+          </label>
+        )}
 
         <div className={form.field}>
           <label className={form.label} htmlFor="ic-avail">
