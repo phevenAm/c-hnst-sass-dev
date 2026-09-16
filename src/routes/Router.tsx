@@ -578,6 +578,15 @@ export default function AppRoutes() {
                   <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
                   <Route path="/agency/finance" element={<AgencyFinancePage />} />
                   {hasFileManager && <Route path="/agency/files" element={<AdminFilesPage />} />}
+                  {/* Reuses AdminResourcesPage exactly like /agency/files reuses
+                      AdminFilesPage — both do a plain `select * from <table>`
+                      relying on RLS, and acts_for_admin already scopes a
+                      manager's read to their own rows plus every member's, so
+                      this is an aggregated agency-wide view for free. No
+                      separate agency-scoped resources concept needed: a
+                      manager's own resources ARE the shared library once
+                      agencies.shared_resources is on (AgencySettingsPage). */}
+                  <Route path="/agency/resources" element={<AdminResourcesPage />} />
                   <Route
                     path="/agency/onboarding"
                     element={<Navigate to="/agency/settings?tab=onboarding" replace />}

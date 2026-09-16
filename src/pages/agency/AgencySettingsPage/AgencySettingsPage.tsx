@@ -92,17 +92,18 @@ const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
   {
     key: "shared_resources",
     title: "Shared resource library",
-    blurb: "Resources added by the agency appear for every member's clients.",
+    blurb: "Resources a manager adds from Resources in this agency view are shared with every member's clients.",
   },
   {
     key: "allow_staff_forms",
     title: "Staff can create their own forms",
-    blurb: "Non-manager staff can build their own questionnaires/forms, not just use the agency's.",
+    blurb:
+      "Non-manager staff can build their own questionnaires/forms, not just use a manager's. Note: this only lets them create their own — a manager's forms are never shared with staff (unlike resources above).",
   },
   {
     key: "allow_staff_resources",
     title: "Staff can create their own resources",
-    blurb: "Non-manager staff can add their own resources, not just the agency's shared library.",
+    blurb: "Non-manager staff can add their own resources, not just the shared library above.",
   },
   {
     key: "require_note_encryption",

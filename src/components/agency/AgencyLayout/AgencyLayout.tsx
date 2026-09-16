@@ -8,6 +8,7 @@ import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingSta
 import Button from "@components/shared/Button/Button";
 import {
   AssignmentClipIcon,
+  BookIcon,
   CalendarIcon,
   CancelIcon,
   FolderIcon,
@@ -54,6 +55,11 @@ const MANAGER_LINKS: NavItem[] = [
   { to: "/agency/members", label: "Staff", Icon: StaffIcon },
   { to: "/agency/finance", label: "Finance", Icon: MoneyIcon },
   { to: "/agency/files", label: "Files", Icon: FolderIcon },
+  // Reuses AdminResourcesPage — a manager's own resources ARE the agency's
+  // shared library once "Shared resource library" is on (AgencySettingsPage),
+  // same as Files: no separate agency-scoped content model, just the same
+  // acts_for_admin RLS aggregating every member's rows into this one view.
+  { to: "/agency/resources", label: "Resources", Icon: BookIcon },
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },
 ];
 
