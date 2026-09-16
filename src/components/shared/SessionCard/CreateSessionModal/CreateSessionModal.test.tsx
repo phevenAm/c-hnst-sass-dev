@@ -3,12 +3,22 @@ import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import dayjs from "dayjs";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import practiceSettingsReducer from "@store/slices/practiceSettingsSlice";
 import sessionsReducer from "@store/slices/sessionsSlice";
 
 import CreateSessionModal from "./CreateSessionModal";
+
+const INTRO_SEEN_KEY = "create_session_modal_intro_seen";
+
+// Every test in this file except the dedicated "first-time intro" describe
+// below is written for the real step content — seed the "already seen"
+// flag so the modal opens straight onto the Date & location step, same as
+// it always has for a returning admin.
+beforeEach(() => {
+  window.localStorage.setItem(INTRO_SEEN_KEY, "true");
+});
 
 afterEach(() => {
   cleanup();
@@ -127,16 +137,181 @@ function advanceToFinalStep() {
   }
 }
 
+// Date & location -> Session & fee. Session type/duration/fee moved off the
+// first step (see CreateSessionModal's 3-step regroup), so any test touching
+// them needs one Next click first.
+function goToSessionStep() {
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+}
+
 function renderModal(props: Partial<React.ComponentProps<typeof CreateSessionModal>> = {}) {
   const store = configureStore({ reducer: { sessions: sessionsReducer, practiceSettings: practiceSettingsReducer } });
   const onClose = vi.fn();
   const utils = render(
     <Provider store={store}>
-      <CreateSessionModal clientId="client-1" clientName="Ada Lovelace" onClose={onClose} {...props} />
+      <CreateSessionModal
+        clientId="client-1"
+        clientName="Ada Lovelace"
+        onClose={onClose}
+        // The date step now blocks Next until a date is picked, and DateInput
+        // is mocked to an empty div here — default to a valid date so every
+        // existing test (written for the old single-step layout) can still
+        // reach the fields it cares about. Tests exercising the date gate
+        // itself override this back to null.
+        initialStart={dayjs("2026-09-01T10:00:00.000Z")}
+        {...props}
+      />
     </Provider>,
   );
   return { store, onClose, ...utils };
 }
+
+// A first-time admin sees a one-off "here's how this works" screen before
+// the real step content; a returning one (the intro-seen flag set in the
+// file-level beforeEach above) never does.
+describe("CreateSessionModal — first-time intro", () => {
+  beforeEach(() => {
+    window.localStorage.removeItem(INTRO_SEEN_KEY);
+  });
+
+  it("shows the intro before the real fields on a first-ever open (happy path)", () => {
+    renderModal();
+    expect(screen.getByText("Booking a session takes 3 quick steps")).toBeInTheDocument();
+    expect(screen.queryByText("Date & time")).not.toBeInTheDocument();
+  });
+
+  it("never shows it when editing an existing session (sad path — nothing to explain, it's a one-off edit)", () => {
+    renderModal({
+      session: {
+        id: "sess-1",
+        scheduled_at: "2026-09-01T10:00:00.000Z",
+        duration_minutes: 50,
+        price_pence: 6000,
+      } as any,
+    });
+    expect(screen.queryByText("Booking a session takes 3 quick steps")).not.toBeInTheDocument();
+    expect(screen.getByText("Date & time")).toBeInTheDocument();
+  });
+
+  it("moves on to the real step content on Get started, and never shows again after (regression)", () => {
+    const { unmount } = renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "Get started" }));
+
+    expect(screen.getByText("Date & time")).toBeInTheDocument();
+    expect(window.localStorage.getItem(INTRO_SEEN_KEY)).toBe("true");
+
+    unmount();
+    renderModal();
+    expect(screen.queryByText("Booking a session takes 3 quick steps")).not.toBeInTheDocument();
+    expect(screen.getByText("Date & time")).toBeInTheDocument();
+  });
+});
+
+// The 3-step regroup (Date & location / Session & fee / Confirm) added a
+// requirement gate on Next that didn't exist before. Next stays clickable
+// rather than disabled — clicking it while a required field is missing
+// shows the reason instead of silently doing nothing, so the admin isn't
+// left wondering why the button "doesn't work".
+describe("CreateSessionModal — step validation", () => {
+  it("clicking Next on the date step without a date shows why, and does not advance (regression — it used to just no-op)", () => {
+    renderModal({ initialStart: null });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    // Shown twice — a proactive hint under the field, and again in the
+    // error slot once Next is actually clicked — either is fine here.
+    expect(screen.getAllByText("Pick a date & time to continue.").length).toBeGreaterThan(0);
+    // Still on the date step — Session location (step 1 content) never mounted.
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("advances once a date is present, then blocks again on the fee step for a blank fee (with a reason)", () => {
+    renderModal();
+    goToSessionStep();
+    expect(document.querySelector("#session-price")).toBeInTheDocument();
+
+    fireEvent.change(document.querySelector("#session-price")!, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getAllByText("Enter a duration and fee to continue.").length).toBeGreaterThan(0);
+    // Still on the fee step — Payment (step 2 content) never mounted.
+    expect(screen.queryByText("Payment")).not.toBeInTheDocument();
+
+    fireEvent.change(document.querySelector("#session-price")!, { target: { value: "70" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Payment")).toBeInTheDocument();
+  });
+});
+
+// Closing (Cancel, the X, backdrop, Escape — all funnel through Modal's one
+// onClose) used to discard silently. A dirty form now asks first, matching
+// the "are you sure" pattern already used for cancel/delete elsewhere.
+describe("CreateSessionModal — discard confirmation", () => {
+  it("closes immediately when nothing has changed (happy path)", () => {
+    const { onClose } = renderModal();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("asks before closing once something has changed, and only closes on confirm", () => {
+    const { onClose } = renderModal();
+    fireEvent.click(screen.getByRole("radio", { name: "Remote" }));
+    fireEvent.change(screen.getByPlaceholderText("Meeting link (optional)"), {
+      target: { value: "https://example.com/call" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByText(/unsaved changes/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, discard" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
+// Every session created for a block shares one reference_code (handleSave
+// passes the same value to every row) — auto-filling it when a block type is
+// picked is what actually makes that useful, instead of relying on the admin
+// to remember to type one in themselves.
+describe("CreateSessionModal — block reference code auto-fill", () => {
+  it("fills in a shared BLK- code when a recurring type is picked, visible on the Confirm step", async () => {
+    renderModal();
+    goToSessionStep();
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "pkg-3" } });
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
+
+    advanceToFinalStep();
+    const codeInput = document.querySelector("#session-code") as HTMLInputElement;
+    expect(codeInput.value).toMatch(/^BLK-[0-9A-F]{6}$/);
+  });
+
+  it("does not overwrite a reference code the admin typed themselves", async () => {
+    renderModal();
+    goToSessionStep();
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "pkg-3" } });
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
+
+    advanceToFinalStep();
+    const codeInput = document.querySelector("#session-code") as HTMLInputElement;
+    fireEvent.change(codeInput, { target: { value: "MY-OWN-CODE" } });
+
+    // Go back one step (Confirm -> Session & fee, where the picker lives) and
+    // re-pick the same block type — a fresh auto-fill must not clobber what
+    // was just typed by hand.
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "pkg-3" } });
+    await waitFor(() => expect(document.querySelector("#session-price")!).toHaveValue(240));
+
+    advanceToFinalStep();
+    expect((document.querySelector("#session-code") as HTMLInputElement).value).toBe("MY-OWN-CODE");
+  });
+});
 
 // Session types configured in Settings (session_packages) previously had no
 // way to be applied when actually booking a session — Settings' own copy
@@ -144,6 +319,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof CreateSessionMod
 describe("CreateSessionModal — session type picker", () => {
   it("prefills duration and price when a session type is selected (happy path)", async () => {
     renderModal();
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-2" } });
@@ -156,6 +332,7 @@ describe("CreateSessionModal — session type picker", () => {
 
   it("leaves duration and price editable after picking a type (happy path)", async () => {
     renderModal();
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
@@ -168,6 +345,7 @@ describe("CreateSessionModal — session type picker", () => {
   it("does not show the picker when no session types are configured (sad path)", async () => {
     packageRows = [];
     renderModal();
+    goToSessionStep();
 
     await waitFor(() => expect(document.querySelector("#session-duration")).toBeInTheDocument());
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
@@ -207,6 +385,7 @@ describe("CreateSessionModal — session type picker", () => {
 describe("CreateSessionModal — recurring block from session type", () => {
   it("has no manual recurring checkbox", async () => {
     renderModal();
+    goToSessionStep();
     await screen.findByRole("combobox");
     expect(screen.queryByRole("checkbox", { name: /recurring block/i })).not.toBeInTheDocument();
     expect(document.querySelector("#recurring")).not.toBeInTheDocument();
@@ -214,6 +393,7 @@ describe("CreateSessionModal — recurring block from session type", () => {
 
   it("relabels the fee as a block fee and shows the per-session split when a recurring type is picked", async () => {
     renderModal();
+    goToSessionStep();
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
 
@@ -241,6 +421,7 @@ describe("CreateSessionModal — recurring block from session type", () => {
 
   it("switching back to Custom clears block mode", async () => {
     renderModal();
+    goToSessionStep();
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
     await waitFor(() => expect(document.querySelector("#session-price")!).toBeInTheDocument());
@@ -258,6 +439,7 @@ describe("CreateSessionModal — saving a block", () => {
     insertedRows.length = 0;
     insertedCount = 0;
     const { store, onClose } = renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
@@ -300,6 +482,7 @@ describe("CreateSessionModal — saving a block", () => {
     insertedRows.length = 0;
     insertedCount = 0;
     const { store } = renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
@@ -323,6 +506,7 @@ describe("CreateSessionModal — saving a block", () => {
     insertedRows.length = 0;
     insertedCount = 0;
     renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
@@ -343,6 +527,7 @@ describe("CreateSessionModal — saving a block", () => {
     insertedRows.length = 0;
     insertedCount = 0;
     renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
@@ -368,6 +553,7 @@ describe("CreateSessionModal — double-booking guard", () => {
     insertedCount = 0;
     rpcConflict.fallback = true; // practice_slot_has_conflict → true
     const { store, onClose } = renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });
@@ -392,6 +578,7 @@ describe("CreateSessionModal — double-booking guard", () => {
     insertedCount = 0;
     rpcConflict.queue = [false, true, false, false]; // 2nd weekly slot is taken
     const { store } = renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-3" } });
@@ -410,6 +597,7 @@ describe("CreateSessionModal — double-booking guard", () => {
     insertedCount = 0;
     rpcConflict.fallback = false;
     const { store, onClose } = renderModal({ initialStart: start });
+    goToSessionStep();
 
     const select = await screen.findByRole("combobox");
     fireEvent.change(select, { target: { value: "pkg-1" } });

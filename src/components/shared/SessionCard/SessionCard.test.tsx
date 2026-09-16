@@ -27,7 +27,23 @@ beforeEach(() => {
 
 const mockShowToast = vi.fn();
 vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: mockShowToast }) }));
-vi.mock("@/lib/supabase.js", () => ({ supabase: { functions: { invoke: vi.fn() }, from: vi.fn() } }));
+// confirmMarkPaid now awaits dispatch(updateSession(...)).unwrap() (it used
+// to fire-and-forget), so the mock needs a real chain that resolves — an
+// unhandled rejection here would otherwise swallow the whole confirm flow.
+vi.mock("@/lib/supabase.js", () => ({
+  supabase: {
+    functions: { invoke: vi.fn() },
+    from: () => ({
+      update: (fields: Record<string, unknown>) => ({
+        eq: (_col: string, id: string) => ({
+          select: () => ({
+            single: () => Promise.resolve({ data: { id, ...fields }, error: null }),
+          }),
+        }),
+      }),
+    }),
+  },
+}));
 
 const baseSession: Session = {
   id: "sess-1",
@@ -111,15 +127,19 @@ describe("SessionCard — demo mode", () => {
     expect(mockShowToast).not.toHaveBeenCalledWith("Updated payment status");
   });
 
-  it("does toggle paid status for a real (non-demo) admin (sad path — confirms the guard isn't just always-on)", () => {
+  it("does toggle paid status for a real (non-demo) admin, after the confirm step (sad path — confirms the guard isn't just always-on)", async () => {
     const { container } = renderWithStore(<SessionCard session={{ ...baseSession, paid: false }} isAdmin />);
 
     clickDesktopMarkAsPaid(container);
+    // Marking paid now opens a confirm step instead of writing immediately —
+    // the mock store has no matching user/stub, so useDoesClientHaveEmail is
+    // false and the modal has no "email the client" checkbox to offer.
+    expect(mockShowToast).not.toHaveBeenCalled();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
 
-    // The mock store has no matching user/stub, so useDoesClientHaveEmail
-    // is false and the toast has no "Send email" action — just confirms
-    // the toggle went through as a real (non-demo) write.
-    expect(mockShowToast).toHaveBeenCalledWith("Marked as paid.", "success");
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, mark paid" }));
+
+    await vi.waitFor(() => expect(mockShowToast).toHaveBeenCalledWith("Marked as paid.", "success"));
   });
 });
 

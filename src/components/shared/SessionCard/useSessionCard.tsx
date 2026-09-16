@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
-import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
+import { supabase } from "@/lib/supabase.js";
 import { Session, SessionEvent } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { updateSession } from "@/store/slices/sessionsSlice";
@@ -20,12 +20,11 @@ function formatCutoffHours(hours: number): string {
   return `${hours} hour${hours === 1 ? "" : "s"}`;
 }
 
-const useSessionCard = (session: Session) => {
+const useSessionCard = (session: Session, onRequestMarkPaid: () => void) => {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
   const { rescheduleCutoffHours, isDemo } = useAuth();
   const hasClientEmail = useDoesClientHaveEmail(session.client_id);
-  const offerPaymentEmail = usePaymentConfirmationToast();
 
   // sessions IS covered by the DB's block_demo_write trigger, so a demo write
   // was never actually going through — but these fired the dispatch and then
@@ -34,20 +33,32 @@ const useSessionCard = (session: Session) => {
   // the honest "nothing happened" the other guarded actions on this page show.
   // Factored out of toggleNoShowOrPayment so the mobile SplitButton (which
   // has no DOM event to read data-action-type off) can trigger the exact
-  // same payment toggle + email offer as the desktop button, instead of the
-  // bare dispatch it used to duplicate on its own with no email option.
+  // same payment toggle as the desktop button.
+  //
+  // Marking UNPAID stays a direct one-click toggle — there's nothing to
+  // confirm or offer to email. Marking PAID opens a confirm step instead
+  // (owned by SessionCard, via onRequestMarkPaid) so the "email the client"
+  // choice is a checkbox the admin sets before confirming, not a button
+  // bolted onto the following toast.
   const togglePayment = () => {
     if (isDemo) {
       showToast("Demo mode — changes are not saved.");
       return;
     }
-    const markingPaid = !session.paid;
-    dispatch(updateSession({ id: session.id, paid: markingPaid }));
-    if (markingPaid) {
-      offerPaymentEmail(hasClientEmail, { type: "session", sessionId: session.id }, "Marked as paid.");
-    } else {
+    if (session.paid) {
+      dispatch(updateSession({ id: session.id, paid: false }));
       showToast("Updated payment status");
+    } else {
+      onRequestMarkPaid();
     }
+  };
+
+  const confirmMarkPaid = async (notify: boolean) => {
+    await dispatch(updateSession({ id: session.id, paid: true })).unwrap();
+    if (notify && hasClientEmail) {
+      supabase.functions.invoke("send-payment-notification", { body: { session_id: session.id } });
+    }
+    showToast(notify && hasClientEmail ? "Marked as paid — confirmation email sent." : "Marked as paid.", "success");
   };
 
   const toggleNoShowOrPayment = (e: MouseEvent<HTMLButtonElement>) => {
@@ -151,6 +162,8 @@ const useSessionCard = (session: Session) => {
   return {
     toggleNoShowOrPayment,
     togglePayment,
+    confirmMarkPaid,
+    hasClientEmail,
     markAttended,
     markNoShow,
     restoreSession,

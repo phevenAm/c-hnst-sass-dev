@@ -14,7 +14,6 @@ import { supabase } from "@lib/supabase";
 import type { StubSession } from "@models/globalTypes";
 
 import { useDoesClientHaveEmail } from "@/Hooks/Hooks";
-import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
 
 interface Props {
   session: StubSession;
@@ -60,13 +59,15 @@ export default function StubSessionCard({
   const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [notifyClient, setNotifyClient] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [markPaidConfirmOpen, setMarkPaidConfirmOpen] = useState(false);
+  const [notifyPaidEmail, setNotifyPaidEmail] = useState(true);
+  const [markingPaid, setMarkingPaid] = useState(false);
 
   const location = useLocation();
   const splitPath = location.pathname.split("/").filter(Boolean);
 
   const urlId = splitPath[splitPath.length - 1];
   const hasEmail = useDoesClientHaveEmail(urlId);
-  const offerPaymentEmail = usePaymentConfirmationToast();
 
   // Keep draft text in sync with incoming prop changes (e.g. realtime updates)
   // while the user is NOT actively editing.
@@ -90,17 +91,13 @@ export default function StubSessionCard({
   const isPaid = session.paid || hasAmountPaid;
   const paidAmount = hasAmountPaid ? (session.amount_paid as number) : (session.price_pence ?? 0) / 100;
 
-  const handleTogglePaid = async () => {
-    if (demoGuard()) return;
+  // A block is paid for as one unit — a DB trigger (cascade_stub_block_payment)
+  // propagates this update to every sibling sharing the same block_id server-side,
+  // but that only reaches this page via realtime later. Scoping the update itself
+  // to the whole block and re-selecting it means the UI reflects every sibling's
+  // new status immediately, same session this update triggers.
+  const applyPaidUpdate = async (update: { paid: boolean; amount_paid?: null }) => {
     setSaving(true);
-    // Marking unpaid clears both signals — leaving amount_paid set would
-    // otherwise make the session look paid again immediately.
-    const update = isPaid ? { paid: false, amount_paid: null } : { paid: true };
-    // A block is paid for as one unit — a DB trigger (cascade_stub_block_payment)
-    // propagates this update to every sibling sharing the same block_id server-side,
-    // but that only reaches this page via realtime later. Scoping the update itself
-    // to the whole block and re-selecting it means the UI reflects every sibling's
-    // new status immediately, same session this update triggers.
     const blockId = (session.metadata as { block_id?: string } | null)?.block_id;
     const query = supabase.from("stub_sessions").update(update);
     const scoped = blockId
@@ -110,12 +107,37 @@ export default function StubSessionCard({
     setSaving(false);
     if (error) {
       showToast("Failed to update.", "danger");
-      return;
+      return false;
     }
     onUpdated(data as StubSession[]);
-    if (!isPaid) {
-      offerPaymentEmail(hasEmail, { type: "stub", stubSessionId: session.id }, "Marked as paid.");
+    return true;
+  };
+
+  const handleTogglePaid = async () => {
+    if (demoGuard()) return;
+    // Marking unpaid clears both signals — leaving amount_paid set would
+    // otherwise make the session look paid again immediately. Nothing to
+    // confirm here, so it stays a direct one-click toggle.
+    if (isPaid) {
+      await applyPaidUpdate({ paid: false, amount_paid: null });
+      return;
     }
+    // Marking paid opens a confirm step with an "email the client" checkbox,
+    // instead of firing the write immediately and offering to email via a
+    // button bolted onto the toast afterwards.
+    setNotifyPaidEmail(true);
+    setMarkPaidConfirmOpen(true);
+  };
+
+  const handleConfirmMarkPaid = async () => {
+    setMarkingPaid(true);
+    const ok = await applyPaidUpdate({ paid: true });
+    setMarkingPaid(false);
+    if (!ok) return;
+    if (notifyPaidEmail && hasEmail) {
+      supabase.functions.invoke("notify-stub-payment-recorded", { body: { stub_session_id: session.id } });
+    }
+    setMarkPaidConfirmOpen(false);
   };
 
   const demoGuard = () => {
@@ -473,6 +495,28 @@ export default function StubSessionCard({
             }
           }}
         />
+      )}
+
+      {markPaidConfirmOpen && (
+        <ConfirmModal
+          title="Mark this session as paid?"
+          onClose={() => setMarkPaidConfirmOpen(false)}
+          onConfirm={handleConfirmMarkPaid}
+          confirming={markingPaid}
+          danger={false}
+          confirmLabel={markingPaid ? "Saving…" : "Yes, mark paid"}
+          notifyOption={
+            hasEmail
+              ? {
+                  label: "Email the client that their payment was recorded",
+                  checked: notifyPaidEmail,
+                  onChange: setNotifyPaidEmail,
+                }
+              : undefined
+          }
+        >
+          <p>{formatAmount((session.price_pence ?? 0) / 100, session.currency)} for this session.</p>
+        </ConfirmModal>
       )}
 
       {confirmAction === "cancel" && (
