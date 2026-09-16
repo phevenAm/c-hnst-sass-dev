@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 import dayjs from "dayjs";
 
 import Button from "@components/shared/Button/Button";
+import Modal from "@components/shared/Modal/Modal";
 import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import type { SchedulerEvent } from "@components/shared/SchedulerCalendar/schedulerUtils";
 import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
@@ -189,47 +190,30 @@ export default function AgencySessionsPage() {
             ariaLabel="Sessions view"
           />
 
-          <div style={{ position: "relative" }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setStaffPickerOpen((v) => !v)}
-              aria-expanded={staffPickerOpen}
-            >
-              {hiddenStaff.size > 0 ? `Show/hide staff (${hiddenStaff.size} hidden)` : "Show/hide staff"}
-            </Button>
-            {staffPickerOpen && (
-              <div
-                className={styles.card}
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 4px)",
-                  right: 0,
-                  zIndex: 5,
-                  minWidth: 220,
-                  boxShadow: "var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15))",
-                }}
-              >
-                <p className={styles.cardBlurb} style={{ marginTop: 0 }}>
-                  Untick anyone whose sessions you don't want to see on this calendar. Only affects your own view.
-                </p>
-                {members.map((m) => {
-                  const label =
-                    m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Member";
-                  return (
-                    <label key={m.user_id} className={styles.toggleRow}>
-                      <span className={styles.toggleText}>{label}</span>
-                      <input
-                        type="checkbox"
-                        checked={!hiddenStaff.has(m.user_id)}
-                        onChange={() => toggleStaffVisibility(m.user_id)}
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <Button variant="ghost" size="sm" onClick={() => setStaffPickerOpen(true)} aria-expanded={staffPickerOpen}>
+            {hiddenStaff.size > 0 ? `Show/hide staff (${hiddenStaff.size} hidden)` : "Show/hide staff"}
+          </Button>
+          {staffPickerOpen && (
+            <Modal title="Show/hide staff" onClose={() => setStaffPickerOpen(false)} size="sm">
+              <p className={styles.cardBlurb} style={{ marginTop: 0 }}>
+                Untick anyone whose sessions you don't want to see on this calendar. Only affects your own view.
+              </p>
+              {members.map((m) => {
+                const label =
+                  m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Member";
+                return (
+                  <label key={m.user_id} className={styles.toggleRow}>
+                    <span className={styles.toggleText}>{label}</span>
+                    <input
+                      type="checkbox"
+                      checked={!hiddenStaff.has(m.user_id)}
+                      onChange={() => toggleStaffVisibility(m.user_id)}
+                    />
+                  </label>
+                );
+              })}
+            </Modal>
+          )}
         </div>
 
         {mode === "list" && (
