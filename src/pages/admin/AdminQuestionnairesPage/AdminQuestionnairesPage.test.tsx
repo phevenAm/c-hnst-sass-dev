@@ -22,14 +22,20 @@ vi.mock("@/lib/supabase", () => {
   const make = (table: string) => {
     const q: Record<string, unknown> = {};
     const chain = () => q;
-    for (const m of ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "is"]) q[m] = chain;
+    for (const m of ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "is", "or"]) q[m] = chain;
     q.maybeSingle = () => Promise.resolve({ data: null, error: null });
     // biome-ignore lint/suspicious/noThenProperty: mimics supabase-js's thenable query builder
     q.then = (res: (v: { data: unknown[]; error: null }) => unknown) =>
       res({ data: table === "questionnaires" ? questionnaireRows : [], error: null });
     return q;
   };
-  return { supabase: { from: (t: string) => make(t), rpc: () => Promise.resolve({ data: [], error: null }) } };
+  return {
+    supabase: {
+      auth: { getUser: () => Promise.resolve({ data: { user: { id: "admin-1" } }, error: null }) },
+      from: (t: string) => make(t),
+      rpc: () => Promise.resolve({ data: [], error: null }),
+    },
+  };
 });
 
 beforeEach(() => {

@@ -23,6 +23,7 @@ const updateSpy = vi.fn();
 const rpcSpy = vi.fn(() => Promise.resolve({ data: null, error: null }));
 vi.mock("@lib/supabase", () => ({
   supabase: {
+    auth: { getUser: () => Promise.resolve({ data: { user: { id: "admin-1" } }, error: null }) },
     from: () => ({
       update: (payload: Record<string, unknown>) => {
         updateSpy(payload);
