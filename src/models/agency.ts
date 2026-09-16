@@ -177,3 +177,30 @@ export interface AgencyFinanceSummary {
   outgoings_pence: number;
   net_pence: number;
 }
+
+// A group of clients seen together (group-therapy style). v1: members are
+// drawn from the agency's client_stubs pool (client_id is reserved for a
+// future "real logged-in client" path — see group_members' schema comment).
+export interface Group {
+  id: string;
+  agency_id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GroupMember {
+  id: string;
+  group_id: string;
+  client_id: string | null;
+  stub_id: string | null;
+  added_at: string;
+}
+
+export interface GroupStaffRow {
+  id: string;
+  group_id: string;
+  user_id: string;
+  added_at: string;
+}

@@ -14,6 +14,7 @@ import {
   FolderIcon,
   HistoryIcon,
   HomeIcon,
+  LayersIcon,
   MoneyIcon,
   Settingsicon,
   StaffIcon,
@@ -53,6 +54,7 @@ const MANAGER_LINKS: NavItem[] = [
     // nest it under Clients rather than as a sibling row.
     children: [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: AssignmentClipIcon }],
   },
+  { to: "/agency/groups", label: "Groups", Icon: LayersIcon },
   { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
   { to: "/agency/finance", label: "Finance", Icon: MoneyIcon },
   { to: "/agency/files", label: "Files", Icon: FolderIcon },

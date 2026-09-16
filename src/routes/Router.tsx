@@ -96,6 +96,7 @@ const AgencyMemberDetailPage = lazyWithReload(
   () => import("../pages/agency/AgencyMemberDetailPage/AgencyMemberDetailPage"),
 );
 const AgencyClientsPage = lazyWithReload(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
+const AgencyGroupsPage = lazyWithReload(() => import("../pages/agency/AgencyGroupsPage/AgencyGroupsPage"));
 const AgencyClientDetailPage = lazyWithReload(
   () => import("../pages/agency/AgencyClientDetailPage/AgencyClientDetailPage"),
 );
@@ -573,6 +574,7 @@ export default function AppRoutes() {
                   <Route path="/agency/members/:memberId" element={<AgencyMemberDetailPage />} />
                   <Route path="/agency/clients" element={<AgencyClientsPage />} />
                   <Route path="/agency/clients/:clientId" element={<AgencyClientDetailPage />} />
+                  <Route path="/agency/groups" element={<AgencyGroupsPage />} />
                   <Route path="/agency/sessions" element={<AgencySessionsPage />} />
                   <Route path="/agency/invoices" element={<Navigate to="/agency/finance?view=invoices" replace />} />
                   <Route path="/agency/incoming" element={<AgencyIncomingPage />} />

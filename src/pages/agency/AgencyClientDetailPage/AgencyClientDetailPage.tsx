@@ -17,10 +17,11 @@ import {
   selectAgencyMembers,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
+import { fetchGroups, selectGroupsForStub } from "@store/slices/groupsSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
-import { getErrorMessage } from "@/Helpers/Helpers";
 import { formatPence } from "../agencyFormat";
 
 type ActivityRow = {
@@ -47,6 +48,7 @@ export default function AgencyClientDetailPage() {
   const agency = useAppSelector(selectAgency);
   const clients = useAppSelector(selectAgencyClients);
   const members = useAppSelector(selectAgencyMembers);
+  const groups = useAppSelector(selectGroupsForStub(clientId ?? ""));
 
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -56,7 +58,10 @@ export default function AgencyClientDetailPage() {
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
-    if (agency) dispatch(fetchAgencyClients(agency.id));
+    if (agency) {
+      dispatch(fetchAgencyClients(agency.id));
+      dispatch(fetchGroups(agency.id));
+    }
   }, [dispatch, agency]);
 
   useEffect(() => {
@@ -184,6 +189,32 @@ export default function AgencyClientDetailPage() {
               <strong>Decline reason</strong>
               <span>{client.assignment.decline_reason}</span>
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Groups</h2>
+        {groups.length === 0 ? (
+          <p className={styles.cardBlurb}>
+            Not in any group. Manage groups from the{" "}
+            <Button variant="link" size="sm" onClick={() => navigate("/agency/groups")}>
+              Groups page
+            </Button>
+            .
+          </p>
+        ) : (
+          <div className={styles.list}>
+            {groups.map((g) => (
+              <div key={g.id} className={styles.row}>
+                <div className={styles.rowMain}>
+                  <span className={styles.rowName}>{g.name}</span>
+                  <span className={styles.rowMeta}>
+                    {g.members.length} client{g.members.length === 1 ? "" : "s"} · {g.staff.length} staff
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
