@@ -152,6 +152,13 @@ export default defineConfig({
     // (reading 'config')") even though every file passes in isolation. The forks
     // pool isolates each file in a child process and runs the whole suite clean.
     pool: "forks",
+    // The default 5000ms is tight once ~108 files are each forking their own
+    // process — a fully synchronous test (no await, no waitFor) timed out here
+    // under full-suite load with nothing wrong in it (passed instantly alone),
+    // which is CPU/process-scheduling contention, not a hang. A real infinite
+    // loop still gets caught, just later.
+    testTimeout: 15000,
+    hookTimeout: 15000,
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co",
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || "placeholder-anon-key",
