@@ -748,7 +748,13 @@ const CreateSessionModal = ({
                   step={0.01}
                   placeholder="e.g. 70.00"
                   value={pricePounds}
-                  onChange={(e) => setPricePounds(e.target.value)}
+                  // readOnly alone doesn't reliably block a number input's
+                  // native spinner arrows in every browser engine — guard
+                  // the state update itself so a locked rate can't be nudged
+                  // via the spinner even if the attribute is bypassed.
+                  onChange={(e) => {
+                    if (lockedPricePence == null) setPricePounds(e.target.value);
+                  }}
                   readOnly={lockedPricePence != null}
                   title={lockedPricePence != null ? "Set by your agency — you can't change this" : undefined}
                 />

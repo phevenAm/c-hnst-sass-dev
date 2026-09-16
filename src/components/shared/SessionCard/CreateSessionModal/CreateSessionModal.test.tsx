@@ -293,6 +293,28 @@ describe("CreateSessionModal — agency rate lock", () => {
     expect(document.querySelector("#session-price")).toHaveValue(45);
   });
 
+  // Regression: `readOnly` alone doesn't reliably block a number input's
+  // native spinner arrows in every browser engine — firing a change event
+  // directly (bypassing the readOnly attribute, same as a spinner click
+  // would) must still be rejected by the handler itself.
+  it("rejects a direct change event on the fee field even if the readOnly attribute is bypassed", () => {
+    renderModal({ lockedPricePence: 4500 });
+    goToSessionStep();
+
+    fireEvent.change(document.querySelector("#session-price")!, { target: { value: "999" } });
+    expect(document.querySelector("#session-price")).toHaveValue(45);
+  });
+
+  // A locked price of exactly £0 (a free session) must still count as locked —
+  // `lockedPricePence != null` should not treat 0 as "no lock".
+  it("treats a locked price of £0 as locked, not as no lock", () => {
+    renderModal({ lockedPricePence: 0 });
+    goToSessionStep();
+
+    expect(document.querySelector("#session-price")).toHaveValue(0);
+    expect(document.querySelector("#session-price")).toHaveAttribute("readonly");
+  });
+
   it("leaves the fee freely editable when no lock is passed", () => {
     renderModal();
     goToSessionStep();

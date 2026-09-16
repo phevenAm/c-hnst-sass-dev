@@ -43,7 +43,12 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
       showToast("Client added to the pool.", "success");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't add the client");
+      // createIntakeClient rejects via rejectWithValue(error.message) — a bare
+      // string, not an Error — so `.unwrap()` throws that string directly.
+      // `err instanceof Error` alone always missed it and fell back to the
+      // generic message, silently swallowing the real DB error.
+      const message = err instanceof Error ? err.message : typeof err === "string" ? err : "Couldn't add the client";
+      setError(message);
       setBusy(false);
     }
   };
