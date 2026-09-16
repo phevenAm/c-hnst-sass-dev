@@ -12,6 +12,7 @@ import {
   type SidebarBtnPos,
   writeSidebarBtnPos,
 } from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
+import Spinner from "@components/shared/Spinner/Spinner";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
@@ -33,10 +34,10 @@ import {
 } from "@store/slices/agencySlice";
 import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 import { staffSeatUsage } from "../agencyFormat";
-import { getErrorMessage } from "@/Helpers/Helpers";
 import { effectiveSettlement, SETTLEMENT_DEFAULT_LABEL, SETTLEMENT_LABEL } from "./settlement";
 
 const PLAN_LABEL: Record<AgencyPlanKey, string> = {
@@ -243,7 +244,13 @@ export default function AgencySettingsPage() {
   };
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
-  if (!draft || !authUser) return <p className={styles.empty}>Loading…</p>;
+  if (!draft || !authUser) {
+    return (
+      <div className="inner">
+        <Spinner size={28} />
+      </div>
+    );
+  }
 
   const set = (patch: Partial<Agency>) => setDraft({ ...draft, ...patch });
 
