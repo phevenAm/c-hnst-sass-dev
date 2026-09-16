@@ -258,7 +258,12 @@ export default function AdminDashboard() {
       <div className="inner">
         <div className={styles.header} id="dash-header">
           <div>
-            <h1>Welcome, {userProfile?.first_name}</h1>
+            {/* Settings' "Display name" field explicitly promises "shown on
+                your dashboard" — it writes display_name, so this must read
+                display_name too (falling back to first_name for accounts
+                that predate that field / never set one), not first_name
+                alone, or changing it here never appears to do anything. */}
+            <h1>Welcome, {userProfile?.display_name || userProfile?.first_name}</h1>
             <p>Here's how your practice is doing</p>
           </div>
           <Card className={styles.quickActionsCard} id="dash-quick-actions">
@@ -450,8 +455,10 @@ export default function AdminDashboard() {
         <Card className={styles.sectionCard}>
           <CollapsibleSection title="Practice trends" storageKey="dash:trends">
             <HideableSection id="dashboard-practice-trends">
-              <TrendControls state={trend} hideChartType />
-              <SeriesToggleChips series={REVENUE_SERIES} hidden={hiddenTrendKeys} onToggle={toggleTrendSeries} />
+              <div className={styles.trendsControls}>
+                <TrendControls state={trend} hideChartType />
+                <SeriesToggleChips series={REVENUE_SERIES} hidden={hiddenTrendKeys} onToggle={toggleTrendSeries} />
+              </div>
               <div className={styles.trendsRow}>
                 <TrendChart
                   title="Sessions"

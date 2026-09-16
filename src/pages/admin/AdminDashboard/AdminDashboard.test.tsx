@@ -9,11 +9,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { resetStore, store } from "../../../store";
 import AdminDashboard from "./AdminDashboard";
 
+const mockUseAuth = vi.fn(() => ({
+  userProfile: { id: "admin-1", first_name: "Sam", role: "admin" },
+  practiceSettings: { admin_id: "admin-1", hidden_sections: [] },
+}));
 vi.mock("@context/AuthContext", () => ({
-  useAuth: () => ({
-    userProfile: { id: "admin-1", first_name: "Sam", role: "admin" },
-    practiceSettings: { admin_id: "admin-1", hidden_sections: [] },
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 vi.mock("@Hooks/useRealtimeTable", () => ({ useRealtimeTable: vi.fn() }));
 vi.mock("@/lib/supabase", () => {
@@ -54,6 +55,24 @@ describe("AdminDashboard", () => {
   it("renders the personalised heading once data has loaded", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "Welcome, Sam" })).toBeInTheDocument();
+  });
+
+  // Regression coverage (2026-09-16): the heading read first_name only, so
+  // changing "Display name" in Settings (which writes display_name and
+  // explicitly promises "shown on your dashboard") never actually changed
+  // what greeted the admin here.
+  it("prefers display_name over first_name when both are set", async () => {
+    const original = mockUseAuth.getMockImplementation();
+    mockUseAuth.mockReturnValue({
+      userProfile: { id: "admin-1", first_name: "Sam", display_name: "Sammy", role: "admin" },
+      practiceSettings: { admin_id: "admin-1", hidden_sections: [] },
+    } as never);
+    try {
+      renderPage();
+      expect(await screen.findByRole("heading", { name: "Welcome, Sammy" })).toBeInTheDocument();
+    } finally {
+      mockUseAuth.mockImplementation(original!);
+    }
   });
 
   it("shows the quick-action links into the main admin sections", async () => {

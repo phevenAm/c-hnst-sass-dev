@@ -525,6 +525,17 @@
 // a narrow mobile viewport (no `from-md` row) stacks it on top; the `order`
 // swap below only kicks in once there's room for both side by side, putting
 // Sessions on the right.
+// TrendControls + SeriesToggleChips have no spacing of their own between
+// them — AdminFinancesPage gets it for free from its own .controlsBar flex
+// wrapper, but CollapsibleSection's .body has no such gap, so here they sat
+// flush against each other (0px) while .trendsRow below still had normal
+// spacing — an inconsistent, "sort the spacing" jump between the two.
+.trendsControls {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
 .trendsRow {
   display: flex;
   flex-direction: column;
