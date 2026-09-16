@@ -89,9 +89,26 @@ export const removeGroupMember = createAsyncThunk(
 
 export const addGroupStaff = createAsyncThunk(
   "groups/addStaff",
-  async (payload: { group_id: string; user_id: string }, { rejectWithValue }) => {
-    const { data, error } = await supabase.from("group_staff").insert(payload).select().single();
+  async (payload: { group_id: string; user_id: string; group_name: string }, { rejectWithValue }) => {
+    const { group_name, ...insertPayload } = payload;
+    const { data, error } = await supabase.from("group_staff").insert(insertPayload).select().single();
     if (error) return rejectWithValue(error.message);
+    // Best-effort — a staff member should hear about this, but a failed
+    // notification insert shouldn't undo the (already-succeeded) assignment.
+    // RLS ("admins can insert notifications") lets any admin insert for any
+    // user_id, so this can go straight from the frontend — no edge function
+    // needed, unlike assign-client (which also emails, since that crosses
+    // from "pool" to "your caseload"; this is a lighter internal ping).
+    try {
+      await supabase.from("notifications").insert({
+        user_id: payload.user_id,
+        type: "group_assignment",
+        message: `You've been added to the group "${group_name}"`,
+        url: "/agency/groups",
+      });
+    } catch {
+      /* swallow — see comment above */
+    }
     return data as GroupStaffRow;
   },
 );

@@ -366,6 +366,16 @@ $rail: 56px;
   margin-left: $rail;
 }
 
+/* Manage mode had no way to see agency notifications at all (client
+ * assignments already insert into public.notifications, group assignments
+ * too — nothing rendered them here). No topbar existed to hang it off, so
+ * this is a minimal one: just enough room for the bell, right-aligned. */
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--sp-4);
+}
+
 .notice {
   max-width: 460px;
   margin: 15vh auto 0;

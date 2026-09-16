@@ -161,6 +161,40 @@ describe("ManageGroupModal", () => {
     });
   });
 
+  it("notifies the newly-added staff member in-app, naming the group (regression — silent group assignment)", async () => {
+    renderModal(baseGroup);
+    const picker = screen.getByLabelText("Add a staff member to this group");
+    fireEvent.change(picker, { target: { value: "staff-1" } });
+    fireEvent.click(within(picker.parentElement as HTMLElement).getByRole("button", { name: "Add" }));
+
+    await waitFor(() =>
+      expect(tableSpies.insert).toHaveBeenCalledWith({
+        table: "notifications",
+        payload: {
+          user_id: "staff-1",
+          type: "group_assignment",
+          message: 'You\'ve been added to the group "Tuesday group"',
+          url: "/agency/groups",
+        },
+      }),
+    );
+  });
+
+  it("still adds the staff member even if the notification insert fails (sad path — best-effort, not blocking)", async () => {
+    const originalInsert = tableSpies.insert.getMockImplementation();
+    tableSpies.insert.mockImplementation((args: { table: string }) => {
+      originalInsert?.(args);
+      if (args.table === "notifications") throw new Error("notifications insert boom");
+    });
+
+    renderModal(baseGroup);
+    const picker = screen.getByLabelText("Add a staff member to this group");
+    fireEvent.change(picker, { target: { value: "staff-1" } });
+    fireEvent.click(within(picker.parentElement as HTMLElement).getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(screen.getByText("Sam Staff")).toBeInTheDocument());
+  });
+
   it("opens a confirm dialog before deleting the group, and does not delete on cancel (sad path)", async () => {
     renderModal(baseGroup);
     fireEvent.click(screen.getByRole("button", { name: "Delete group" }));

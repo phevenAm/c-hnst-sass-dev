@@ -82,7 +82,7 @@ export default function ManageGroupModal({
     setError("");
     setBusyId("add-staff");
     try {
-      await dispatch(addGroupStaff({ group_id: group.id, user_id: addStaffId })).unwrap();
+      await dispatch(addGroupStaff({ group_id: group.id, user_id: addStaffId, group_name: group.name })).unwrap();
       setAddStaffId("");
     } catch (err) {
       setError(getErrorMessage(err, "Couldn't add that staff member"));

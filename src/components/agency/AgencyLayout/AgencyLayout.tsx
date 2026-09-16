@@ -20,6 +20,7 @@ import {
   StaffIcon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
+import { NotificationBell } from "@components/shared/NotificationBell/NotificationBell";
 import SidebarCollapseButton from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
 import SidebarNavGroup, { type SidebarNavGroupClasses } from "@components/shared/SidebarNavGroup/SidebarNavGroup";
 import SidebarNavItem, { type SidebarNavItemClasses } from "@components/shared/SidebarNavItem/SidebarNavItem";
@@ -68,11 +69,13 @@ const MANAGER_LINKS: NavItem[] = [
 
 // Manager-only pages (Clients, Sessions, Finance, Staff, Settings) hard-redirect
 // non-managers back to /agency/incoming — so a plain staff member's real nav
-// here is deliberately just intake + Files, once the agency has shared any.
-// Their day-to-day counselling work (Dashboard, Schedule, own Clients, Forms,
-// Finances if freelance, Resources, Logs) lives under "Counselling view" (/admin).
+// here is deliberately just intake, a read-only view of groups they
+// facilitate, and Files once the agency has shared any. Their day-to-day
+// counselling work (Dashboard, Schedule, own Clients, Forms, Finances if
+// freelance, Resources, Logs) lives under "Counselling view" (/admin).
 const COUNSELLOR_LINKS: NavItem[] = [
   { to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon },
+  { to: "/agency/groups", label: "Groups", Icon: LayersIcon },
 ];
 
 const CLIENTS_PATH = "/agency/clients";
@@ -358,6 +361,9 @@ export default function AgencyLayout() {
       </aside>
 
       <main id="main-content" className={`${styles.main} ${!isMobile && collapsed ? styles.mainCollapsed : ""}`}>
+        <div className={styles.topbar}>
+          <NotificationBell />
+        </div>
         <div className="page-content">
           <Suspense fallback={<AuthLoadingState variant="plain" />}>
             {coreDataPending ? <AuthLoadingState variant="plain" /> : <Outlet />}

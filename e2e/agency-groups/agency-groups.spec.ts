@@ -9,10 +9,13 @@ import { expect, test } from "@playwright/test";
 import { APP_URL } from "../settings/constants";
 import { createAuthUser, dbQuery } from "../settings/db";
 
+test.describe.configure({ mode: "serial" });
+
 const TAG = `agrp${Date.now()}`;
 const PASSWORD = "TmpAgencyGroups2026!";
 let agencyId: string;
 let ownerId: string;
+let staffId: string;
 let stubId: string;
 
 test.beforeAll(() => {
@@ -21,15 +24,23 @@ test.beforeAll(() => {
     password: PASSWORD,
     meta: { role: "admin", first_name: "Owner", last_name: TAG },
   });
+  staffId = createAuthUser({
+    email: `smissah321+${TAG}-staff@gmail.com`,
+    password: PASSWORD,
+    meta: { role: "admin", first_name: "Staffer", last_name: TAG },
+  });
   agencyId = dbQuery<{ id: string }>(
     `insert into public.agencies (name, owner_id) values ('E2E Groups Agency ${TAG}', '${ownerId}') returning id;`,
   ).rows[0].id;
   dbQuery(`
     insert into public.agency_members (agency_id, user_id, role, employment_type, status, joined_at)
-    values ('${agencyId}', '${ownerId}', 'manager', 'employee', 'active', now());
-    update public.users set agency_id = '${agencyId}', onboarding_completed = true where id = '${ownerId}';
+    values
+      ('${agencyId}', '${ownerId}', 'manager', 'employee', 'active', now()),
+      ('${agencyId}', '${staffId}', 'counsellor', 'employee', 'active', now());
+    update public.users set agency_id = '${agencyId}', onboarding_completed = true
+      where id in ('${ownerId}', '${staffId}');
     update public.practice_settings set subscription_status = 'active', onboarding_required = false
-      where admin_id = '${ownerId}';
+      where admin_id in ('${ownerId}', '${staffId}');
   `);
   stubId = dbQuery<{ id: string }>(
     `insert into public.client_stubs (created_by, agency_id, first_name, last_name)
@@ -40,6 +51,7 @@ test.beforeAll(() => {
 test.afterAll(() => {
   dbQuery(`delete from public.group_members where stub_id = '${stubId}';`);
   dbQuery(`delete from public.groups where agency_id = '${agencyId}';`);
+  dbQuery(`delete from public.notifications where user_id in ('${ownerId}', '${staffId}');`);
   dbQuery(`delete from public.client_stubs where id = '${stubId}';`);
   dbQuery(`delete from public.agency_members where agency_id = '${agencyId}';`);
   dbQuery(`delete from public.agencies where id = '${agencyId}';`);
@@ -95,4 +107,62 @@ test("manager creates a group, adds a client and staff, sees it on the client's 
   await page.getByRole("button", { name: "Delete group" }).click();
   await page.getByRole("button", { name: "Yes, delete group" }).click();
   await expect(page.getByText("No groups yet.")).toBeVisible({ timeout: 15_000 });
+});
+
+test("adding a staff member to a group notifies them in-app, and they see it on their own read-only view", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(90_000);
+  await page.addInitScript(() => localStorage.setItem("walkthrough_globally_dismissed", "true"));
+  await page.goto(`${APP_URL}/login`, { waitUntil: "load", timeout: 20_000 });
+  await page.fill('input[type="email"]', `smissah321+${TAG}-owner@gmail.com`);
+  await page.fill('input[type="password"]', PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 20_000 });
+
+  const groupName = `E2E Staff Notify Group ${TAG}`;
+  await page.goto(`${APP_URL}/agency/groups`, { waitUntil: "load", timeout: 20_000 });
+  await page.waitForSelector("#boot-splash", { state: "hidden", timeout: 10_000 }).catch(() => {});
+  await page.getByRole("button", { name: "New group" }).click();
+  await page.getByLabel("Group name").fill(groupName);
+  await page.getByRole("button", { name: "Create group" }).click();
+  await expect(page.getByText(groupName)).toBeVisible({ timeout: 15_000 });
+
+  await page.getByText(groupName).click();
+  await page.getByLabel("Add a staff member to this group").selectOption({ label: `Staffer ${TAG}` });
+  await page.getByRole("button", { name: "Add" }).last().click();
+  await expect(page.getByText(`Staffer ${TAG}`)).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Done" }).click();
+
+  // Now the staff member's own session: the bell shows it, and clicking it
+  // lands on the read-only "Your groups" view showing the same group.
+  const staffPage = await browser.newPage();
+  await staffPage.addInitScript(() => localStorage.setItem("walkthrough_globally_dismissed", "true"));
+  await staffPage.goto(`${APP_URL}/login`, { waitUntil: "load", timeout: 20_000 });
+  await staffPage.fill('input[type="email"]', `smissah321+${TAG}-staff@gmail.com`);
+  await staffPage.fill('input[type="password"]', PASSWORD);
+  await staffPage.click('button[type="submit"]');
+  await staffPage.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 20_000 });
+
+  await staffPage.goto(`${APP_URL}/agency/incoming`, { waitUntil: "load", timeout: 20_000 });
+  await staffPage.waitForSelector("#boot-splash", { state: "hidden", timeout: 10_000 }).catch(() => {});
+  await staffPage.getByRole("button", { name: "Notifications" }).click();
+  await expect(staffPage.getByText(`You've been added to the group "${groupName}"`)).toBeVisible({
+    timeout: 15_000,
+  });
+  await staffPage.getByText(`You've been added to the group "${groupName}"`).click();
+
+  await expect(staffPage).toHaveURL(/\/agency\/groups/);
+  await expect(staffPage.getByRole("heading", { name: "Your groups" })).toBeVisible({ timeout: 15_000 });
+  await expect(staffPage.getByText(groupName)).toBeVisible();
+  // Read-only: no manager controls leak through to a plain staff member.
+  await expect(staffPage.getByRole("button", { name: "New group" })).not.toBeVisible();
+
+  await staffPage.close();
+
+  await page.goto(`${APP_URL}/agency/groups`, { waitUntil: "load", timeout: 20_000 });
+  await page.getByText(groupName).click();
+  await page.getByRole("button", { name: "Delete group" }).click();
+  await page.getByRole("button", { name: "Yes, delete group" }).click();
 });

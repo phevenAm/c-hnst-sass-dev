@@ -11,14 +11,6 @@ afterEach(() => {
 vi.mock("@context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock("@/lib/supabase.js", () => ({ supabase: { from: () => ({ insert: vi.fn(), delete: vi.fn() }) } }));
 
-let redirected: string | null = null;
-vi.mock("react-router-dom", () => ({
-  Navigate: ({ to }: { to: string }) => {
-    redirected = to;
-    return null;
-  },
-}));
-
 const mockDispatch = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
 
 const group = {
@@ -50,14 +42,33 @@ vi.mock("@store/hooks", () => ({
   useAppSelector: (sel: (s: unknown) => unknown) => sel(state),
 }));
 
-describe("AgencyGroupsPage", () => {
-  it("redirects a non-manager away (permission gate)", () => {
-    redirected = null;
+describe("AgencyGroupsPage — staff (non-manager) view", () => {
+  it("shows a read-only list of groups they facilitate, with no manage/create controls (permission boundary)", () => {
     state = buildState({ isManager: false });
     render(<AgencyGroupsPage />);
-    expect(redirected).toBe("/agency");
+    expect(screen.getByRole("heading", { name: "Your groups" })).toBeInTheDocument();
+    expect(screen.getByText("Tuesday group")).toBeInTheDocument();
+    // Description + client count only — no staff count, no names: this view
+    // never claims to resolve names it isn't guaranteed to have RLS access to.
+    expect(screen.getByText("For anxiety · 1 client")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New group" })).not.toBeInTheDocument();
   });
 
+  it("does not open a manage modal when a group row is clicked (read-only)", () => {
+    state = buildState({ isManager: false });
+    render(<AgencyGroupsPage />);
+    fireEvent.click(screen.getByText("Tuesday group"));
+    expect(screen.queryByRole("heading", { name: "For anxiety" })).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state when facilitating no groups (sad path)", () => {
+    state = buildState({ isManager: false, groups: [] });
+    render(<AgencyGroupsPage />);
+    expect(screen.getByText(/haven't been added to any groups/)).toBeInTheDocument();
+  });
+});
+
+describe("AgencyGroupsPage — manager view", () => {
   it("lists each group with its member and staff counts (happy path)", () => {
     state = buildState();
     render(<AgencyGroupsPage />);
