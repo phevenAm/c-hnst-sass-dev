@@ -43,6 +43,8 @@ type NavItem = NavLeaf & { children?: NavLeaf[] };
 
 const MANAGER_LINKS: NavItem[] = [
   { to: "/agency", label: "Overview", end: true, Icon: HomeIcon },
+  { to: "/agency/members", label: "Employees", Icon: StaffIcon },
+
   {
     to: "/agency/clients?view=active",
     label: "Clients",
@@ -52,7 +54,6 @@ const MANAGER_LINKS: NavItem[] = [
     children: [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: AssignmentClipIcon }],
   },
   { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
-  { to: "/agency/members", label: "Staff", Icon: StaffIcon },
   { to: "/agency/finance", label: "Finance", Icon: MoneyIcon },
   { to: "/agency/files", label: "Files", Icon: FolderIcon },
   // Reuses AdminResourcesPage — a manager's own resources ARE the agency's

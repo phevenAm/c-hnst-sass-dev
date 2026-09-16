@@ -1,10 +1,12 @@
 {
   "name": "Clarity",
-  "version": "11.7.6",
+  "version": "11.7.10",
   "private": true,
   "type": "module",
   "dependencies": {
     "@axe-core/react": "^4.11.3",
+    "@azure/msal-browser": "^5.22.0",
+    "@azure/msal-react": "^5.7.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.0.0",

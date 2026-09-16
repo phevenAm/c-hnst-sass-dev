@@ -1,6 +1,12 @@
 // Shared underline tab bar for the admin + agency settings pages.
 // Component-level styling references CSS custom properties, not SCSS tokens.
 
+.card {
+  padding: var(--sp-2) var(--sp-3) var(--sp-3) var(--sp-3);
+  margin-bottom: var(--sp-5);
+
+}
+
 .wrap {
   display: flex;
   align-items: center;

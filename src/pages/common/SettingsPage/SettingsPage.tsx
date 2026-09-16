@@ -1670,15 +1670,14 @@ const SettingsPage = () => {
 
         {/* ── Tab bar ── every role gets the same accessible bar; clients just
             get a shorter list (Profile · Interface). ── */}
-        <Card className={styles.tabsCard}>
-          <SettingsTabs
-            tabs={isAdmin ? ADMIN_TABS : CLIENT_TABS}
-            value={activeTab}
-            onChange={setActiveTab}
-            ariaLabel="Settings sections"
-            idBase="settings"
-          />
-        </Card>
+
+        <SettingsTabs
+          tabs={isAdmin ? ADMIN_TABS : CLIENT_TABS}
+          value={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Settings sections"
+          idBase="settings"
+        />
 
         {/* ── Profile tab ── */}
         {activeTab === "profile" && (
