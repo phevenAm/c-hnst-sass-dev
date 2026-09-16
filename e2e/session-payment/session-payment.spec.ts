@@ -81,10 +81,13 @@ test("admin marks it paid; the client then sees it as paid", async ({ page, brow
   await page.goto(`${APP_URL}/admin/clients/${clientId}`, { waitUntil: "load", timeout: 20_000 });
   // Upcoming tab is the default; the session (now + 3d) is there with an inline
   // SessionCard. The admin "Mark as paid" button (data-action-type="payment")
-  // dispatches updateSession directly — no confirm modal. SessionCard's own
-  // price indicator is a "£" status pill (title="Payment pending"/"Paid"),
-  // not price text, so this waits on the actual button rather than a "£55"
-  // string that was never in this component's DOM.
+  // now opens a confirm step with an "email the client" checkbox instead of
+  // dispatching updateSession directly — the toast-with-a-button pattern this
+  // used to assert was dropped in favour of a checkbox-before-confirming.
+  // SessionCard's own price indicator is a "£" status pill
+  // (title="Payment pending"/"Paid"), not price text, so this waits on the
+  // actual button rather than a "£55" string that was never in this
+  // component's DOM.
   const markAsPaidButton = page
     .locator('button[data-action-type="payment"]')
     .filter({ hasText: "Mark as paid" })
@@ -92,19 +95,14 @@ test("admin marks it paid; the client then sees it as paid", async ({ page, brow
   await expect(markAsPaidButton).toBeVisible({ timeout: 15_000 });
   await markAsPaidButton.click();
 
-  // The FIXTURES client has a real email, so the toast should offer to
-  // notify them — not just confirm the status flipped. This is the toast's
-  // action button (added alongside making send-payment-notification
-  // block-aware); the toast previously had pointer-events: none, which
-  // would make this button unclickable, so actually clicking it (not just
-  // asserting visibility) is the point of this check.
-  await expect(page.getByText("Marked as paid.")).toBeVisible({ timeout: 10_000 });
-  const sendEmailAction = page.getByRole("button", { name: "Send email" });
-  await expect(sendEmailAction).toBeVisible();
-  await sendEmailAction.click();
-  await expect(page.getByText(/Confirmation email sent\.|Couldn't send the confirmation email\./)).toBeVisible({
-    timeout: 15_000,
-  });
+  // The FIXTURES client has a real email, so the confirm modal offers the
+  // notify checkbox, checked by default — confirming with it checked both
+  // marks the session paid AND fires the confirmation email in one step.
+  await expect(page.getByText("Mark this session as paid?")).toBeVisible({ timeout: 10_000 });
+  const notifyCheckbox = page.getByRole("checkbox", { name: /email the client/i });
+  await expect(notifyCheckbox).toBeChecked();
+  await page.getByRole("button", { name: "Yes, mark paid" }).click();
+  await expect(page.getByText("Marked as paid — confirmation email sent.")).toBeVisible({ timeout: 15_000 });
 
   await expect
     .poll(
@@ -159,13 +157,17 @@ test("the payments ledger's 'Mark paid' and a stub session's 'Mark as paid' both
 
     await login(page, FIXTURES.admin.email, FIXTURES.admin.password);
 
-    // ── ledger row "Mark paid" (AdminPaymentsPage.handleMarkPaid) ──
+    // ── ledger row "Mark paid" (AdminPaymentsPage.handleConfirmMarkPaid) ──
+    // Both this and the stub flow below now go through a confirm modal with
+    // an "email the client" checkbox instead of a toast-with-a-button.
     await page.goto(`${APP_URL}/admin/finances?view=income`, { waitUntil: "load", timeout: 20_000 });
     const ledgerRow = page.locator("tr").filter({ hasText: "£55.00" }).filter({ hasText: "Mark paid" });
     await expect(ledgerRow).toBeVisible({ timeout: 15_000 });
     await ledgerRow.getByRole("button", { name: "Mark paid" }).click();
+    await expect(page.getByText("Mark this session as paid?")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("checkbox", { name: /email the client/i })).toBeChecked();
+    await page.getByRole("button", { name: "Yes, mark paid" }).click();
     await expect(page.getByText("Session marked as paid.")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: "Send email" })).toBeVisible();
 
     await expect
       .poll(
@@ -175,11 +177,13 @@ test("the payments ledger's 'Mark paid' and a stub session's 'Mark as paid' both
       )
       .toBe(true);
 
-    // ── stub session "Mark as paid" (StubSessionCard.handleTogglePaid) ──
+    // ── stub session "Mark as paid" (StubSessionCard.handleConfirmMarkPaid) ──
     await page.goto(`${APP_URL}/admin/clients/stub/${stubId}`, { waitUntil: "load", timeout: 20_000 });
     await page.getByRole("button", { name: "Mark as paid" }).first().click();
-    await expect(page.getByText("Marked as paid.")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: "Send email" })).toBeVisible();
+    await expect(page.getByText("Mark this session as paid?")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("checkbox", { name: /email the client/i })).toBeChecked();
+    await page.getByRole("button", { name: "Yes, mark paid" }).click();
+    await expect(page.getByText("Marked as paid — confirmation email sent.")).toBeVisible({ timeout: 10_000 });
 
     await expect
       .poll(

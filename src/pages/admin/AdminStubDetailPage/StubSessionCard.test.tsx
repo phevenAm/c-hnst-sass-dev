@@ -178,6 +178,7 @@ describe("StubSessionCard — mark as paid", () => {
         body: { stub_session_id: "stub-sess-1" },
       }),
     );
+    expect(await screen.findByRole("status")).toHaveTextContent("Marked as paid — confirmation email sent.");
   });
 
   it("skips the email when the admin unchecks the box first (regression — the checkbox must actually gate the call)", async () => {
@@ -190,6 +191,7 @@ describe("StubSessionCard — mark as paid", () => {
 
     await vi.waitFor(() => expect(updateSpy).toHaveBeenCalledWith({ paid: true }));
     expect(invokeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole("status")).toHaveTextContent("Marked as paid.");
   });
 
   it("has no email checkbox when the client has no email on file", async () => {

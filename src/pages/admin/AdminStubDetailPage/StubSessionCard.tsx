@@ -134,9 +134,11 @@ export default function StubSessionCard({
     const ok = await applyPaidUpdate({ paid: true });
     setMarkingPaid(false);
     if (!ok) return;
-    if (notifyPaidEmail && hasEmail) {
+    const notifying = notifyPaidEmail && hasEmail;
+    if (notifying) {
       supabase.functions.invoke("notify-stub-payment-recorded", { body: { stub_session_id: session.id } });
     }
+    showToast(notifying ? "Marked as paid — confirmation email sent." : "Marked as paid.", "success");
     setMarkPaidConfirmOpen(false);
   };
 
