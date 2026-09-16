@@ -11,13 +11,14 @@ import {
   fetchAgencyExpenses,
   selectAgency,
   selectAgencyExpenses,
+  selectAgencyExpensesStatus,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
 
+import { getErrorMessage, isPageStatusLoading } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
 import AgencyInvoicesPage from "../AgencyInvoicesPage/AgencyInvoicesPage";
 import styles from "../agency.module.scss";
-import { getErrorMessage } from "@/Helpers/Helpers";
 import { formatPence, poundsToPence } from "../agencyFormat";
 
 type FinanceView = "overview" | "invoices";
@@ -36,6 +37,7 @@ export default function AgencyFinancePage() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const expenses = useAppSelector(selectAgencyExpenses);
+  const expensesStatus = useAppSelector(selectAgencyExpensesStatus);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const rawView = searchParams.get("view");
@@ -53,6 +55,7 @@ export default function AgencyFinancePage() {
 
   const [days, setDays] = useState(30);
   const [summary, setSummary] = useState<AgencyFinanceSummary | null>(null);
+  const [summaryStatus, setSummaryStatus] = useState<"idle" | "loading" | "succeeded" | "failed">("idle");
 
   const [incurredOn, setIncurredOn] = useState(today());
   const [category, setCategory] = useState("");
@@ -62,11 +65,17 @@ export default function AgencyFinancePage() {
   const [busy, setBusy] = useState(false);
 
   const loadSummary = useCallback(async () => {
-    const { data } = await supabase.rpc("agency_finance_summary", {
-      p_from: isoDaysAgo(days),
-      p_to: today(),
-    });
-    if (data) setSummary(data as AgencyFinanceSummary);
+    setSummaryStatus("loading");
+    try {
+      const { data } = await supabase.rpc("agency_finance_summary", {
+        p_from: isoDaysAgo(days),
+        p_to: today(),
+      });
+      if (data) setSummary(data as AgencyFinanceSummary);
+      setSummaryStatus("succeeded");
+    } catch {
+      setSummaryStatus("failed");
+    }
   }, [days]);
 
   useEffect(() => {
@@ -78,6 +87,9 @@ export default function AgencyFinancePage() {
   }, [isManager, loadSummary]);
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
+
+  const guard = isPageStatusLoading(expensesStatus, summaryStatus);
+  if (guard) return guard;
 
   const addExpense = async (e: FormEvent) => {
     e.preventDefault();

@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import AgencyInvoiceModal from "@components/agency/AgencyInvoiceModal/AgencyInvoiceModal";
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import Spinner from "@components/shared/Spinner/Spinner";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import type { AgencyInvoice, AgencyInvoiceStatus, AgencyMemberWithUser } from "@models/agency";
@@ -20,8 +21,8 @@ import {
   updateAgencyInvoiceStatus,
 } from "@store/slices/agencySlice";
 
-import styles from "../agency.module.scss";
 import { getErrorMessage } from "@/Helpers/Helpers";
+import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
 
 const STATUS_FILTERS: (AgencyInvoiceStatus | "all")[] = ["all", "draft", "sent", "due", "paid", "overdue", "cancelled"];
@@ -139,7 +140,11 @@ export default function AgencyInvoicesPage({ embedded = false }: { embedded?: bo
         ))}
       </div>
 
-      {status === "loading" && visible.length === 0 && <p className={styles.empty}>Loading invoices…</p>}
+      {status === "loading" && visible.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && visible.length === 0 && (
         <p className={styles.empty}>
           {activeMembers.length === 0

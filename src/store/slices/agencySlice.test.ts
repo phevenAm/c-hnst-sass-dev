@@ -119,3 +119,37 @@ describe("agencySlice setAgencyMember.fulfilled", () => {
     expect(updated?.color).toBe("#2d7264");
   });
 });
+
+describe("agencySlice expenses/onboarding status (2026-09-16 — pages had no way to tell loading from empty)", () => {
+  it("tracks expensesStatus through the fetchAgencyExpenses lifecycle", async () => {
+    const reducer = await loadReducer();
+    const initial = reducer(undefined, { type: "@@INIT" });
+    expect(initial.expensesStatus).toBe("idle");
+
+    const loading = reducer(initial, { type: "agency/fetchExpenses/pending" });
+    expect(loading.expensesStatus).toBe("loading");
+
+    const succeeded = reducer(loading, { type: "agency/fetchExpenses/fulfilled", payload: [] });
+    expect(succeeded.expensesStatus).toBe("succeeded");
+    expect(succeeded.expenses).toEqual([]);
+
+    const failed = reducer(loading, { type: "agency/fetchExpenses/rejected", payload: "boom" });
+    expect(failed.expensesStatus).toBe("failed");
+  });
+
+  it("tracks onboardingStatus through the fetchOnboardingItems lifecycle", async () => {
+    const reducer = await loadReducer();
+    const initial = reducer(undefined, { type: "@@INIT" });
+    expect(initial.onboardingStatus).toBe("idle");
+
+    const loading = reducer(initial, { type: "agency/fetchOnboarding/pending" });
+    expect(loading.onboardingStatus).toBe("loading");
+
+    const succeeded = reducer(loading, { type: "agency/fetchOnboarding/fulfilled", payload: [] });
+    expect(succeeded.onboardingStatus).toBe("succeeded");
+    expect(succeeded.onboardingItems).toEqual([]);
+
+    const failed = reducer(loading, { type: "agency/fetchOnboarding/rejected", payload: "boom" });
+    expect(failed.onboardingStatus).toBe("failed");
+  });
+});

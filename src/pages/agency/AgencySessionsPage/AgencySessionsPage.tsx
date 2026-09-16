@@ -9,6 +9,7 @@ import Modal from "@components/shared/Modal/Modal";
 import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import type { SchedulerEvent } from "@components/shared/SchedulerCalendar/schedulerUtils";
 import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
+import Spinner from "@components/shared/Spinner/Spinner";
 import type { ClientStub, Session, StubSession, UserProfile } from "@models/globalTypes";
 import { useAppSelector } from "@store/hooks";
 import { selectAgencyMembers, selectIsAgencyManager } from "@store/slices/agencySlice";
@@ -313,7 +314,9 @@ export default function AgencySessionsPage() {
 
         {error && <p className={styles.error}>{error}</p>}
         {loading && entries.length === 0 ? (
-          <p className={styles.empty}>Loading sessions…</p>
+          <div className={styles.empty}>
+            <Spinner size={28} />
+          </div>
         ) : mode === "calendar" ? (
           <SchedulerCalendar events={events} date={date} view={view} onNavigate={setDate} onView={setView} />
         ) : searchedEntries.length === 0 ? (

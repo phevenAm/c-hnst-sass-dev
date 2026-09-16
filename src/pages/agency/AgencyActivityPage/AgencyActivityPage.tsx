@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
+import Spinner from "@components/shared/Spinner/Spinner";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { fetchAgencyMembers, selectAgencyMembers, selectIsAgencyManager } from "@store/slices/agencySlice";
 
@@ -221,7 +222,11 @@ export default function AgencyActivityPage() {
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
-      {loading && <p className={styles.empty}>Loading activity…</p>}
+      {loading && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {!loading && rows.length === 0 && !error && <p className={styles.empty}>No activity in this range.</p>}
 
       {grouped.map(([day, dayRows]) => (

@@ -6,6 +6,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import Spinner from "@components/shared/Spinner/Spinner";
 import { useToast } from "@context/ToastContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -17,7 +18,7 @@ import {
   selectAgencyMembers,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
-import { fetchGroups, selectGroupsForStub } from "@store/slices/groupsSlice";
+import { fetchGroups, selectGroupsForStub, selectGroupsStatus } from "@store/slices/groupsSlice";
 
 import { getErrorMessage } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
@@ -49,6 +50,7 @@ export default function AgencyClientDetailPage() {
   const clients = useAppSelector(selectAgencyClients);
   const members = useAppSelector(selectAgencyMembers);
   const groups = useAppSelector(selectGroupsForStub(clientId ?? ""));
+  const groupsStatus = useAppSelector(selectGroupsStatus);
 
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -195,7 +197,9 @@ export default function AgencyClientDetailPage() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Groups</h2>
-        {groups.length === 0 ? (
+        {groupsStatus === "loading" && groups.length === 0 ? (
+          <Spinner size={28} />
+        ) : groups.length === 0 ? (
           <p className={styles.cardBlurb}>
             Not in any group. Manage groups from the{" "}
             <Button variant="link" size="sm" onClick={() => navigate("/agency/groups")}>
@@ -226,7 +230,7 @@ export default function AgencyClientDetailPage() {
           status changes.
         </p>
         {loadingActivity ? (
-          <p className={styles.empty}>Loading…</p>
+          <Spinner size={28} />
         ) : activity.length === 0 ? (
           <p className={styles.empty}>Nothing recorded yet.</p>
         ) : (

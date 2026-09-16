@@ -6,6 +6,7 @@ import RemoveMemberModal from "@components/agency/RemoveMemberModal/RemoveMember
 import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
+import Spinner from "@components/shared/Spinner/Spinner";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import { isAgencyOwner } from "@models/agencyPermissions";
@@ -16,6 +17,7 @@ import {
   selectAgency,
   selectAgencyClients,
   selectAgencyMembers,
+  selectAgencyMembersStatus,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
 
@@ -42,6 +44,7 @@ export default function AgencyMemberDetailPage() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const members = useAppSelector(selectAgencyMembers);
+  const membersStatus = useAppSelector(selectAgencyMembersStatus);
   const clients = useAppSelector(selectAgencyClients);
 
   const { showToast } = useToast();
@@ -113,7 +116,13 @@ export default function AgencyMemberDetailPage() {
         <Button variant="ghost" size="sm" className={styles.backButton} onClick={() => navigate("/agency/members")}>
           ← Back to staff
         </Button>
-        <p className={styles.empty}>{members.length === 0 ? "Loading…" : "This member wasn't found."}</p>
+        {membersStatus === "loading" && members.length === 0 ? (
+          <div className={styles.empty}>
+            <Spinner size={28} />
+          </div>
+        ) : (
+          <p className={styles.empty}>This member wasn't found.</p>
+        )}
       </div>
     );
   }

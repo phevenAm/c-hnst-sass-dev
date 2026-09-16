@@ -10,11 +10,15 @@ import {
   fetchAgencyMembers,
   selectAgency,
   selectAgencyClients,
+  selectAgencyClientsStatus,
   selectAgencyInvoices,
+  selectAgencyInvoicesStatus,
   selectAgencyMembers,
+  selectAgencyMembersStatus,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
 
+import { isPageStatusLoading } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
@@ -31,18 +35,27 @@ export default function AgencyOverviewPage() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const members = useAppSelector(selectAgencyMembers);
+  const membersStatus = useAppSelector(selectAgencyMembersStatus);
   const clients = useAppSelector(selectAgencyClients);
+  const clientsStatus = useAppSelector(selectAgencyClientsStatus);
   const invoices = useAppSelector(selectAgencyInvoices);
+  const invoicesStatus = useAppSelector(selectAgencyInvoicesStatus);
   const [finance, setFinance] = useState<AgencyFinanceSummary | null>(null);
+  const [financeStatus, setFinanceStatus] = useState<"idle" | "loading" | "succeeded" | "failed">("idle");
 
   useEffect(() => {
     if (!isManager || !agency) return;
     dispatch(fetchAgencyMembers());
     dispatch(fetchAgencyClients(agency.id));
     dispatch(fetchAgencyInvoices());
-    supabase.rpc("agency_finance_summary", {}).then(({ data }) => {
-      if (data) setFinance(data as AgencyFinanceSummary);
-    });
+    setFinanceStatus("loading");
+    supabase
+      .rpc("agency_finance_summary", {})
+      .then(({ data }) => {
+        if (data) setFinance(data as AgencyFinanceSummary);
+        setFinanceStatus("succeeded");
+      })
+      .catch(() => setFinanceStatus("failed"));
   }, [dispatch, isManager, agency]);
 
   const stats = useMemo(() => {
@@ -79,6 +92,9 @@ export default function AgencyOverviewPage() {
   }, [stats.activeMembers, agency?.owner_id, agency?.staff_agreement_required]);
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
+
+  const guard = isPageStatusLoading(membersStatus, clientsStatus, invoicesStatus, financeStatus);
+  if (guard) return guard;
 
   // Hex (not CSS vars) — recharts writes these straight into an SVG fill attr.
   const statusSlices: DonutSlice[] = [

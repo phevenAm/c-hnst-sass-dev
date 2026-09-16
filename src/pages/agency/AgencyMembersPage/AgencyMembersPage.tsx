@@ -7,6 +7,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
+import Spinner from "@components/shared/Spinner/Spinner";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import type { AgencyMemberWithUser } from "@models/agency";
@@ -97,7 +98,11 @@ export default function AgencyMembersPage() {
         />
       )}
 
-      {status === "loading" && members.length === 0 && <p className={styles.empty}>Loading members…</p>}
+      {status === "loading" && members.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && members.length === 0 && (
         <p className={styles.empty}>No members yet. Invite your first counsellor above.</p>
       )}

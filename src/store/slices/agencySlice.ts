@@ -1,8 +1,8 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { isFeatureEnabled } from "../../lib/featureFlags";
 import { supabase } from "../../lib/supabase.js";
-import { getErrorMessage } from "@/Helpers/Helpers";
 import type {
   Agency,
   AgencyClient,
@@ -34,7 +34,9 @@ type AgencyState = {
   incomingStatus: Status;
 
   expenses: AgencyExpense[];
+  expensesStatus: Status;
   onboardingItems: AgencyOnboardingItem[];
+  onboardingStatus: Status;
 
   invoices: AgencyInvoice[];
   invoicesStatus: Status;
@@ -58,7 +60,9 @@ const initialState: AgencyState = {
   incoming: [],
   incomingStatus: "idle",
   expenses: [],
+  expensesStatus: "idle",
   onboardingItems: [],
+  onboardingStatus: "idle",
   invoices: [],
   invoicesStatus: "idle",
   planLimits: [],
@@ -604,8 +608,16 @@ const agencySlice = createSlice({
         state.error = action.payload as string;
       })
 
+      .addCase(fetchAgencyExpenses.pending, (state) => {
+        state.expensesStatus = "loading";
+      })
       .addCase(fetchAgencyExpenses.fulfilled, (state, action) => {
+        state.expensesStatus = "succeeded";
         state.expenses = action.payload;
+      })
+      .addCase(fetchAgencyExpenses.rejected, (state, action) => {
+        state.expensesStatus = "failed";
+        state.error = action.payload as string;
       })
       .addCase(addAgencyExpense.fulfilled, (state, action) => {
         state.expenses.unshift(action.payload);
@@ -614,8 +626,16 @@ const agencySlice = createSlice({
         state.expenses = state.expenses.filter((e) => e.id !== action.payload);
       })
 
+      .addCase(fetchOnboardingItems.pending, (state) => {
+        state.onboardingStatus = "loading";
+      })
       .addCase(fetchOnboardingItems.fulfilled, (state, action) => {
+        state.onboardingStatus = "succeeded";
         state.onboardingItems = action.payload;
+      })
+      .addCase(fetchOnboardingItems.rejected, (state, action) => {
+        state.onboardingStatus = "failed";
+        state.error = action.payload as string;
       })
       .addCase(saveOnboardingItem.fulfilled, (state, action) => {
         const idx = state.onboardingItems.findIndex((i) => i.id === action.payload.id);
@@ -725,9 +745,13 @@ export const selectAgencyMembersStatus = (s: WithAgency) => s.agency.membersStat
 export const selectAgencyClients = (s: WithAgency) => s.agency.clients;
 export const selectAgencyClientsStatus = (s: WithAgency) => s.agency.clientsStatus;
 export const selectIncomingAssignments = (s: WithAgency) => s.agency.incoming;
+export const selectIncomingAssignmentsStatus = (s: WithAgency) => s.agency.incomingStatus;
 export const selectAgencyExpenses = (s: WithAgency) => s.agency.expenses;
+export const selectAgencyExpensesStatus = (s: WithAgency) => s.agency.expensesStatus;
 export const selectOnboardingItems = (s: WithAgency) => s.agency.onboardingItems;
+export const selectOnboardingItemsStatus = (s: WithAgency) => s.agency.onboardingStatus;
 export const selectAgencyInvoices = (s: WithAgency) => s.agency.invoices;
+export const selectAgencyInvoicesStatus = (s: WithAgency) => s.agency.invoicesStatus;
 export const selectAgencyPlanLimits = (s: WithAgency) => s.agency.planLimits;
 export const selectAgencyError = (s: WithAgency) => s.agency.error;
 

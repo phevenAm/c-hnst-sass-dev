@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import CreateGroupModal from "@components/agency/CreateGroupModal/CreateGroupModal";
 import ManageGroupModal from "@components/agency/ManageGroupModal/ManageGroupModal";
 import Button from "@components/shared/Button/Button";
+import Spinner from "@components/shared/Spinner/Spinner";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
   fetchAgencyClients,
@@ -47,7 +48,11 @@ function StaffGroupsView({ groups, status }: { groups: GroupWithRows[]; status: 
         </div>
       </div>
 
-      {status === "loading" && groups.length === 0 && <p className={styles.empty}>Loading groups…</p>}
+      {status === "loading" && groups.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && groups.length === 0 && (
         <p className={styles.empty}>You haven't been added to any groups yet.</p>
       )}
@@ -108,7 +113,11 @@ function ManagerGroupsView() {
         <Button onClick={() => setCreating(true)}>New group</Button>
       </div>
 
-      {status === "loading" && groups.length === 0 && <p className={styles.empty}>Loading groups…</p>}
+      {status === "loading" && groups.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && groups.length === 0 && (
         <p className={styles.empty}>No groups yet. Create one to start organising clients seen together.</p>
       )}
