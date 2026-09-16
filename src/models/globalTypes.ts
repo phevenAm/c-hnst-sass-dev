@@ -264,6 +264,8 @@ export type AdminPrivateEvent = {
   created_at: string;
   /** Last time this event was mirrored into client message threads, else null. */
   mirrored_at: string | null;
+  /** Agency staff only: when true, their agency manager was notified (in-app + email). */
+  share_with_agency: boolean;
 };
 
 export type Todo = Tables<"admin_todos">;

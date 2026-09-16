@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 
 import dayjs from "dayjs";
 
+import Button from "@components/shared/Button/Button";
 import SchedulerCalendar from "@components/shared/SchedulerCalendar/SchedulerCalendar";
 import type { SchedulerEvent } from "@components/shared/SchedulerCalendar/schedulerUtils";
 import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
@@ -15,9 +16,19 @@ import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 
 const DEFAULT_MEMBER_COLOR = "#2d7264";
+const HIDDEN_STAFF_KEY = "agencySessionsHiddenStaff";
 
 type StaffFilter = "all" | "internal" | "external";
 type ViewMode = "calendar" | "list";
+
+const readHiddenStaff = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_STAFF_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
 
 // Read-only, agency-wide sessions calendar. The manager visibility RLS policy
 // (acts_for_admin, 20260902010003) already scopes `sessions` to the caller's
@@ -32,6 +43,8 @@ export default function AgencySessionsPage() {
   const [filter, setFilter] = useState<StaffFilter>("all");
   const [mode, setMode] = useState<ViewMode>("calendar");
   const [query, setQuery] = useState("");
+  const [hiddenStaff, setHiddenStaff] = useState<Set<string>>(readHiddenStaff);
+  const [staffPickerOpen, setStaffPickerOpen] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [clients, setClients] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,13 +86,28 @@ export default function AgencySessionsPage() {
   const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   const visibleSessions = useMemo(() => {
-    if (filter === "all") return sessions;
     return sessions.filter((s) => {
+      if (hiddenStaff.has(s.created_by)) return false;
+      if (filter === "all") return true;
       const m = memberById.get(s.created_by);
       const isExternal = m?.employment_type === "freelance";
       return filter === "external" ? isExternal : !isExternal;
     });
-  }, [sessions, filter, memberById]);
+  }, [sessions, filter, memberById, hiddenStaff]);
+
+  const toggleStaffVisibility = (userId: string) => {
+    setHiddenStaff((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      try {
+        localStorage.setItem(HIDDEN_STAFF_KEY, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   const namesBySessionId = useMemo(() => {
     const map = new Map<string, { staffName: string; clientName: string }>();
@@ -160,6 +188,48 @@ export default function AgencySessionsPage() {
             onChange={setMode}
             ariaLabel="Sessions view"
           />
+
+          <div style={{ position: "relative" }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setStaffPickerOpen((v) => !v)}
+              aria-expanded={staffPickerOpen}
+            >
+              {hiddenStaff.size > 0 ? `Show/hide staff (${hiddenStaff.size} hidden)` : "Show/hide staff"}
+            </Button>
+            {staffPickerOpen && (
+              <div
+                className={styles.card}
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 4px)",
+                  right: 0,
+                  zIndex: 5,
+                  minWidth: 220,
+                  boxShadow: "var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15))",
+                }}
+              >
+                <p className={styles.cardBlurb} style={{ marginTop: 0 }}>
+                  Untick anyone whose sessions you don't want to see on this calendar. Only affects your own view.
+                </p>
+                {members.map((m) => {
+                  const label =
+                    m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Member";
+                  return (
+                    <label key={m.user_id} className={styles.toggleRow}>
+                      <span className={styles.toggleText}>{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={!hiddenStaff.has(m.user_id)}
+                        onChange={() => toggleStaffVisibility(m.user_id)}
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {mode === "list" && (

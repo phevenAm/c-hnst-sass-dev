@@ -1336,3 +1336,54 @@ test("update_agency_member_contact_info lets a manager set (only) business_name/
     `update public.practice_settings set business_name = null, phone = null, address = null where admin_id = '${ids.aStaff}';`,
   );
 });
+
+// ─── Ticking "let my agency manager see this too" on a private calendar
+// block notifies every active manager of the creator's agency — in-app
+// (notifications, realtime-enabled — the "toast") once per newly-shared
+// block, never re-fired on a later edit. Backs
+// notify_agency_of_shared_private_event() / 20260916000020. ─────────────────
+test("sharing a private event with the agency notifies the manager once, not on later edits, and never a stranger", () => {
+  test.setTimeout(90_000);
+  const event = dbQuery<{ id: string }>(
+    `insert into public.admin_private_events (admin_id, title, starts_at, ends_at, share_with_agency)
+     values ('${ids.aStaff}', '${TAG}-holiday', now() + interval '1 day', now() + interval '3 day', true)
+     returning id;`,
+  ).rows[0];
+
+  const notified = dbQuery<{ message: string }>(
+    `select message from public.notifications where user_id = '${ids.aManager}' and type = 'agency_private_event_shared' and message like '%${TAG}-holiday%';`,
+  ).rows;
+  expect(notified).toHaveLength(1);
+
+  const strangerNotified = dbQuery<{ id: string }>(
+    `select id from public.notifications where user_id = '${ids.bManager}' and message like '%${TAG}-holiday%';`,
+  ).rows;
+  expect(strangerNotified).toHaveLength(0);
+
+  // Editing the title (share_with_agency untouched, already true) must not
+  // fire a second notification for the same block.
+  dbQuery(`update public.admin_private_events set title = '${TAG}-holiday-renamed' where id = '${event.id}';`);
+  const stillOne = dbQuery<{ id: string }>(
+    `select id from public.notifications where user_id = '${ids.aManager}' and type = 'agency_private_event_shared' and message like '%${TAG}-holiday%';`,
+  ).rows;
+  expect(stillOne).toHaveLength(1);
+
+  dbQuery(`delete from public.notifications where message like '%${TAG}-holiday%';`);
+  dbQuery(`delete from public.admin_private_events where id = '${event.id}';`);
+});
+
+test("a private event NOT shared with the agency notifies nobody", () => {
+  test.setTimeout(60_000);
+  const event = dbQuery<{ id: string }>(
+    `insert into public.admin_private_events (admin_id, title, starts_at, ends_at, share_with_agency)
+     values ('${ids.aStaff}', '${TAG}-quiet-holiday', now() + interval '1 day', now() + interval '2 day', false)
+     returning id;`,
+  ).rows[0];
+
+  const notified = dbQuery<{ id: string }>(
+    `select id from public.notifications where message like '%${TAG}-quiet-holiday%';`,
+  ).rows;
+  expect(notified).toHaveLength(0);
+
+  dbQuery(`delete from public.admin_private_events where id = '${event.id}';`);
+});

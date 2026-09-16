@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase.js";
 import type { AdminPrivateEvent } from "@/models/globalTypes";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createPrivateEvent, deletePrivateEvent, updatePrivateEvent } from "@/store/slices/adminPrivateEventsSlice";
+import { selectIsAgencyManager, selectIsAgencyMember } from "@/store/slices/agencySlice";
 import { mirrorPrivateEvent } from "@/store/slices/messagesSlice";
 import { fetchAllUsers, selectClientUsers } from "@/store/slices/userDirectorySlice";
 
@@ -73,6 +74,13 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
   const [cost, setCost] = useState(event?.cost_pence != null ? (event.cost_pence / 100).toFixed(2) : "");
   const [currency, setCurrency] = useState(event?.currency ?? "GBP");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Only a non-manager agency member has anyone to share this with — a
+  // manager IS the one who'd receive it, and a solo admin has no agency at all.
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const isAgencyManagerSelf = useAppSelector(selectIsAgencyManager);
+  const canShareWithAgency = isAgencyMember && !isAgencyManagerSelf;
+  const [shareWithAgency, setShareWithAgency] = useState(event?.share_with_agency ?? false);
 
   // Mirrors the cost above into `expenses` (category "Supervision") via the
   // source_private_event_id FK, so it counts on the Expenses page without
@@ -204,6 +212,7 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
       is_cpd: isCpd,
       cost_pence: isSupervision && cost ? Math.round(parseFloat(cost) * 100) : null,
       currency,
+      share_with_agency: canShareWithAgency ? shareWithAgency : false,
     };
 
     if (isEdit && event) {
@@ -365,6 +374,17 @@ const PrivateEventModal = ({ event, onClose, initialStart = null }: PrivateEvent
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
+
+            {canShareWithAgency && (
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={shareWithAgency}
+                  onChange={(e) => setShareWithAgency(e.target.checked)}
+                />
+                Let my agency manager see this too — notifies them by email and in-app
+              </label>
+            )}
           </>
         )}
 
