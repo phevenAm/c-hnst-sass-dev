@@ -20,6 +20,7 @@ import {
 
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { formatPence } from "../agencyFormat";
 
 type ActivityRow = {
@@ -114,7 +115,7 @@ export default function AgencyClientDetailPage() {
       );
       setRemovingCounsellor(false);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't remove the counsellor", "error");
+      showToast(getErrorMessage(err, "Couldn't remove the counsellor"), "error");
     } finally {
       setRemoveBusy(false);
     }

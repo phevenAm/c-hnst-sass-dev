@@ -1,6 +1,17 @@
-import { Button } from "@/components/shared";
+import Button from "@/components/shared/Button/Button";
 import Spinner from "@/components/shared/Spinner/Spinner";
 import type { Response, UserProfile } from "../models/globalTypes";
+
+// A createAsyncThunk that rejects via rejectWithValue(str) makes `.unwrap()`
+// throw that bare string, not an Error — `err instanceof Error` alone always
+// misses it and silently falls back to the generic message, swallowing the
+// real one (found + fixed in IntakeClientModal, 2026-09-16). Use this
+// anywhere a catch block follows a `.unwrap()` call, not just `instanceof Error`.
+export const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof Error) return err.message || fallback;
+  if (typeof err === "string" && err) return err;
+  return fallback;
+};
 
 export const isQuestionnaireCheckInDue = (date: string, frequency: string) => {
   const now = new Date();

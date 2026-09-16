@@ -36,6 +36,7 @@ import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 import { staffSeatUsage } from "../agencyFormat";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { effectiveSettlement, SETTLEMENT_DEFAULT_LABEL, SETTLEMENT_LABEL } from "./settlement";
 
 const PLAN_LABEL: Record<AgencyPlanKey, string> = {
@@ -221,7 +222,7 @@ export default function AgencySettingsPage() {
       if (upErr) throw upErr;
       showToast("Teams channel settings saved.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save the Teams channel");
+      setError(getErrorMessage(err, "Couldn't save the Teams channel"));
     } finally {
       setTeamsBusy(false);
     }
@@ -235,7 +236,7 @@ export default function AgencySettingsPage() {
       if (fnErr) throw new Error(fnErr.message);
       showToast("Test message sent — check the channel.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Test message failed");
+      setError(getErrorMessage(err, "Test message failed"));
     } finally {
       setTeamsTesting(false);
     }
@@ -259,7 +260,7 @@ export default function AgencySettingsPage() {
       await dispatch(fetchAgencyMembers());
       showToast("Payment direction updated.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't update that member");
+      setError(getErrorMessage(err, "Couldn't update that member"));
     } finally {
       setSavingSettlementFor(null);
     }
@@ -294,7 +295,7 @@ export default function AgencySettingsPage() {
       ).unwrap();
       showToast("Agency settings saved.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save");
+      setError(getErrorMessage(err, "Couldn't save"));
     } finally {
       setBusy(false);
     }
@@ -317,7 +318,7 @@ export default function AgencySettingsPage() {
       }
       setConfirmSwitch({ plan, over: check.over });
     } catch (err) {
-      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't check that plan");
+      setPlanSwitchError(getErrorMessage(err, "Couldn't check that plan"));
     } finally {
       setSwitchingPlan(null);
     }
@@ -337,7 +338,7 @@ export default function AgencySettingsPage() {
       showToast(`Now on ${PLAN_LABEL[confirmSwitch.plan]}.`, "success");
       setConfirmSwitch(null);
     } catch (err) {
-      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't switch plan");
+      setPlanSwitchError(getErrorMessage(err, "Couldn't switch plan"));
     } finally {
       setSwitchingPlan(null);
     }

@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { isFeatureEnabled } from "../../lib/featureFlags";
 import { supabase } from "../../lib/supabase.js";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import type {
   Agency,
   AgencyClient,
@@ -233,7 +234,7 @@ export const createAgency = createAsyncThunk(
     try {
       return await invokeOrThrow<{ agency: Agency }>("create-agency", payload);
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't create the agency");
+      return rejectWithValue(getErrorMessage(e, "Couldn't create the agency"));
     }
   },
 );
@@ -252,7 +253,7 @@ export const inviteAgencyMember = createAsyncThunk(
     try {
       return await invokeOrThrow<{ ok: true }>("invite-agency-member", payload);
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't send the invitation");
+      return rejectWithValue(getErrorMessage(e, "Couldn't send the invitation"));
     }
   },
 );
@@ -273,7 +274,7 @@ export const setAgencyMember = createAsyncThunk(
       await invokeOrThrow("set-agency-member", payload);
       return payload;
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't update the member");
+      return rejectWithValue(getErrorMessage(e, "Couldn't update the member"));
     }
   },
 );
@@ -285,7 +286,7 @@ export const removeAgencyMember = createAsyncThunk(
       await invokeOrThrow("remove-agency-member", payload);
       return payload.member_user_id;
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't remove the member");
+      return rejectWithValue(getErrorMessage(e, "Couldn't remove the member"));
     }
   },
 );
@@ -333,7 +334,7 @@ export const assignClient = createAsyncThunk(
     try {
       return await invokeOrThrow<{ ok: true; assignment_id: string }>("assign-client", payload);
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't assign the client");
+      return rejectWithValue(getErrorMessage(e, "Couldn't assign the client"));
     }
   },
 );
@@ -345,7 +346,7 @@ export const respondToAssignment = createAsyncThunk(
       await invokeOrThrow("respond-to-assignment", payload);
       return payload.assignment_id;
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't record your response");
+      return rejectWithValue(getErrorMessage(e, "Couldn't record your response"));
     }
   },
 );

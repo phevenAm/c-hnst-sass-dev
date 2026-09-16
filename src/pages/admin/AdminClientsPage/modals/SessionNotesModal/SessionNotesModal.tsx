@@ -9,6 +9,7 @@ import { useToast } from "@context/ToastContext";
 import { supabase } from "@lib/supabase";
 import type { UserProfile } from "@models/globalTypes";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "../../AdminClientsPage.module.scss";
 
 type SessionNote = {
@@ -72,7 +73,7 @@ export default function SessionNotesModal({ user, sessionId, onClose }: Props) {
     try {
       await setupEncryption();
     } catch (err) {
-      setGateError(err instanceof Error ? err.message : "Setup failed. Please try again.");
+      setGateError(getErrorMessage(err, "Setup failed. Please try again."));
     }
     setGateWorking(false);
   };

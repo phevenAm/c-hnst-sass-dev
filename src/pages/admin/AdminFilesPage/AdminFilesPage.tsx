@@ -29,6 +29,7 @@ import {
   uploadItems,
 } from "@store/slices/filesSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/lib/supabase";
 import FileBrowser from "./FileBrowser";
@@ -94,7 +95,7 @@ export default function AdminFilesPage() {
       if (okMsg) showToast(okMsg, "success");
       return true;
     } catch (e) {
-      showToast(e instanceof Error ? e.message : String(e), "danger");
+      showToast(getErrorMessage(e, String(e)), "danger");
       return false;
     } finally {
       setBusy(false);
@@ -110,7 +111,7 @@ export default function AdminFilesPage() {
         setNameDialog(null);
         navigate(created.id);
       } catch (e) {
-        showToast(e instanceof Error ? e.message : String(e), "danger");
+        showToast(getErrorMessage(e, String(e)), "danger");
       } finally {
         setBusy(false);
       }

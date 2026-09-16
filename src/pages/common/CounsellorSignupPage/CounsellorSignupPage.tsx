@@ -13,6 +13,7 @@ import { captureReferralCode } from "@/Helpers/referral";
 import { stashPendingAgencyInvite } from "@/Hooks/useAgencyBootstrap";
 import { APP_URL } from "@/lib/appUrl";
 import { supabase } from "@/lib/supabase";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "../SignUpPage/SignUpPage.module.scss";
 
 type AgencyInvite = {
@@ -142,7 +143,7 @@ export default function CounsellorSignupPage() {
         });
         navigate("/agency", { replace: true });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Couldn't record your acceptance");
+        setError(getErrorMessage(err, "Couldn't record your acceptance"));
         setSubmitting(false);
       }
       return;
@@ -236,7 +237,7 @@ export default function CounsellorSignupPage() {
 
       setDone(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(getErrorMessage(err, "Something went wrong"));
     } finally {
       setSubmitting(false);
     }

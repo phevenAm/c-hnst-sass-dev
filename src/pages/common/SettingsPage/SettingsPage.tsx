@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { KEYWORDS } from "@constants/constants";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
-import { isPdfUrl, pickColor } from "@Helpers/Helpers";
+import { getErrorMessage, isPdfUrl, pickColor } from "@Helpers/Helpers";
 import { useResolvedTheme } from "@Hooks/useResolvedTheme";
 import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
@@ -782,7 +782,7 @@ const SettingsPage = () => {
       if (fnError) throw new Error(fnError.message);
       showToast("Test email sent — check your inbox.");
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Failed to send test email", "error");
+      showToast(getErrorMessage(err, "Failed to send test email"), "error");
     }
     setSendingTest(null);
   };
@@ -1162,7 +1162,7 @@ const SettingsPage = () => {
       const { data: usage } = await supabase.rpc("plan_change_check", { p_target: targetPlan });
       if (usage) setPlanUsage({ active: usage.active, archived: usage.archived });
     } catch (err) {
-      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't switch plan.");
+      setPlanSwitchError(getErrorMessage(err, "Couldn't switch plan."));
     } finally {
       setSwitchingPlan(null);
       setConfirmSwitch(null);
@@ -1201,7 +1201,7 @@ const SettingsPage = () => {
       window.open(data.url, "_blank", "noopener,noreferrer");
       setLoadingPortal(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+      showToast(getErrorMessage(err, "Something went wrong"), "error");
       setLoadingPortal(false);
     }
   };
@@ -1233,7 +1233,7 @@ const SettingsPage = () => {
       }
       setConfirmPauseToggle(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Couldn't change the pause status", "error");
+      showToast(getErrorMessage(err, "Couldn't change the pause status"), "error");
     } finally {
       setPausing(false);
     }
@@ -1278,7 +1278,7 @@ const SettingsPage = () => {
       showToast("Stripe disconnected. Clients can no longer pay by card.");
       setConfirmDisconnectStripe(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Couldn't disconnect Stripe — please try again.", "error");
+      showToast(getErrorMessage(err, "Couldn't disconnect Stripe — please try again."), "error");
     }
     setDisconnectingStripe(false);
   };
@@ -1308,7 +1308,7 @@ const SettingsPage = () => {
       showToast("Google Calendar disconnected.");
       setConfirmDisconnectGoogle(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Failed to disconnect Google Calendar", "error");
+      showToast(getErrorMessage(err, "Failed to disconnect Google Calendar"), "error");
     }
     setDisconnectingGoogle(false);
   };
@@ -1368,7 +1368,7 @@ const SettingsPage = () => {
       showToast("Microsoft calendar disconnected.");
       setConfirmDisconnectMicrosoft(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Failed to disconnect Microsoft calendar", "error");
+      showToast(getErrorMessage(err, "Failed to disconnect Microsoft calendar"), "error");
     }
     setDisconnectingMicrosoft(false);
   };

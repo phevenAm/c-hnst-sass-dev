@@ -21,6 +21,7 @@ import {
 } from "@store/slices/agencySlice";
 
 import styles from "../agency.module.scss";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { formatPence } from "../agencyFormat";
 
 const STATUS_FILTERS: (AgencyInvoiceStatus | "all")[] = ["all", "draft", "sent", "due", "paid", "overdue", "cancelled"];
@@ -74,7 +75,7 @@ export default function AgencyInvoicesPage({ embedded = false }: { embedded?: bo
       else await dispatch(updateAgencyInvoiceStatus({ id: inv.id, status: next })).unwrap();
       showToast(`Marked ${next}.`, "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't update the invoice", "danger");
+      showToast(getErrorMessage(err, "Couldn't update the invoice"), "danger");
     } finally {
       setBusyId(null);
     }
@@ -88,7 +89,7 @@ export default function AgencyInvoicesPage({ embedded = false }: { embedded?: bo
       showToast("Invoice deleted.", "success");
       setDeleting(null);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't delete the invoice", "danger");
+      showToast(getErrorMessage(err, "Couldn't delete the invoice"), "danger");
     } finally {
       setBusyId(null);
     }

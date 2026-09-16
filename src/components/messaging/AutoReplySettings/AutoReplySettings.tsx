@@ -8,6 +8,7 @@ import type { Json } from "@models/database.types";
 
 import { supabase } from "@/lib/supabase";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./AutoReplySettings.module.scss";
 
 type OfficeHours = { days: number[]; from: string; to: string; tz: string };
@@ -100,7 +101,7 @@ export default function AutoReplySettings({ onClose }: { onClose: () => void }) 
       showToast("Auto-reply settings saved.", "success");
       onClose();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't save", "danger");
+      showToast(getErrorMessage(err, "Couldn't save"), "danger");
     } finally {
       setSaving(false);
     }

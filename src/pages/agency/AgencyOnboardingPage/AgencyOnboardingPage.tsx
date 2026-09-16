@@ -13,6 +13,7 @@ import {
   selectOnboardingItems,
 } from "@store/slices/agencySlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "../agency.module.scss";
 
 export default function AgencyOnboardingPage({ embedded = false }: { embedded?: boolean } = {}) {
@@ -56,7 +57,7 @@ export default function AgencyOnboardingPage({ embedded = false }: { embedded?: 
       setBody("");
       setUrl("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save the item");
+      setError(getErrorMessage(err, "Couldn't save the item"));
     } finally {
       setBusy(false);
     }

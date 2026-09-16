@@ -7,6 +7,7 @@ import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./PastDueBanner.module.scss";
 
 export default function PastDueBanner() {
@@ -33,7 +34,7 @@ export default function PastDueBanner() {
       if (!data?.url) throw new Error("No portal URL returned");
       window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Something went wrong", "danger");
+      showToast(getErrorMessage(err, "Something went wrong"), "danger");
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { useToast } from "@context/ToastContext";
 import form from "@pages/agency/agency.module.scss";
 import { poundsToPence } from "@pages/agency/agencyFormat";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { createIntakeClient } from "@store/slices/agencySlice";
 
 // Manager captures a new client's intake. Creates an offline record in the
@@ -47,7 +48,7 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
       // string, not an Error — so `.unwrap()` throws that string directly.
       // `err instanceof Error` alone always missed it and fell back to the
       // generic message, silently swallowing the real DB error.
-      const message = err instanceof Error ? err.message : typeof err === "string" ? err : "Couldn't add the client";
+      const message = getErrorMessage(err, "Couldn't add the client");
       setError(message);
       setBusy(false);
     }

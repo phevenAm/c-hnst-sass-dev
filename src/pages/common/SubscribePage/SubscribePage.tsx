@@ -11,6 +11,7 @@ import { captureReferralCode, getReferralCode } from "@/Helpers/referral";
 import { supabase } from "@/lib/supabase";
 import { useAppSelector } from "@/store/hooks";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./SubscribePage.module.scss";
 
 const SLIDES = [
@@ -171,7 +172,7 @@ export default function SubscribePage() {
 
       window.location.href = data.url;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(getErrorMessage(err, "Something went wrong"));
       setLoading(false);
     }
   };

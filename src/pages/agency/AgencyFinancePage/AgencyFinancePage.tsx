@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import AgencyInvoicesPage from "../AgencyInvoicesPage/AgencyInvoicesPage";
 import styles from "../agency.module.scss";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { formatPence, poundsToPence } from "../agencyFormat";
 
 type FinanceView = "overview" | "invoices";
@@ -98,7 +99,7 @@ export default function AgencyFinancePage() {
       setNote("");
       loadSummary();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't add the expense");
+      setError(getErrorMessage(err, "Couldn't add the expense"));
     } finally {
       setBusy(false);
     }

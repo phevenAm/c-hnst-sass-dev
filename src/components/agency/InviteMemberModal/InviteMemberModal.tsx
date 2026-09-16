@@ -5,6 +5,7 @@ import Modal from "@components/shared/Modal/Modal";
 import { useToast } from "@context/ToastContext";
 import form from "@pages/agency/agency.module.scss";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { inviteAgencyMember } from "@store/slices/agencySlice";
 
 export default function InviteMemberModal({ onClose }: { onClose: () => void }) {
@@ -35,7 +36,7 @@ export default function InviteMemberModal({ onClose }: { onClose: () => void }) 
       showToast(`Invitation sent to ${email.trim()}.`, "success");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send the invitation");
+      setError(getErrorMessage(err, "Couldn't send the invitation"));
       setBusy(false);
     }
   };

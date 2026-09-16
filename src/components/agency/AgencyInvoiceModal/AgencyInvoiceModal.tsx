@@ -11,6 +11,7 @@ import type { AgencyMemberWithUser } from "@models/agency";
 import form from "@pages/agency/agency.module.scss";
 import { poundsToPence } from "@pages/agency/agencyFormat";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { createAgencyInvoice } from "@store/slices/agencySlice";
 
 const memberName = (m: AgencyMemberWithUser) =>
@@ -59,7 +60,7 @@ export default function AgencyInvoiceModal({
       showToast("Invoice created.", "success");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't create the invoice");
+      setError(getErrorMessage(err, "Couldn't create the invoice"));
       setBusy(false);
     }
   };

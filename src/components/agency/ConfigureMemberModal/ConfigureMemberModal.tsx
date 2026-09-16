@@ -6,6 +6,7 @@ import { useToast } from "@context/ToastContext";
 import type { AgencyMemberWithUser } from "@models/agency";
 import styles from "@pages/agency/agency.module.scss";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { setAgencyMember } from "@store/slices/agencySlice";
 
 const DEFAULT_MEMBER_COLOR = "#2d7264";
@@ -64,7 +65,7 @@ export default function ConfigureMemberModal({
       showToast(`${name(member)}'s settings saved.`, "success");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save these settings");
+      setError(getErrorMessage(err, "Couldn't save these settings"));
     } finally {
       setSaving(false);
     }

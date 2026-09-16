@@ -15,6 +15,7 @@ import {
 } from "@store/slices/agencySlice";
 
 import styles from "../agency.module.scss";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { formatPence } from "../agencyFormat";
 
 type ReviewAssignment = ClientAssignment & { client_name: string };
@@ -42,7 +43,7 @@ export default function AgencyIncomingPage() {
       showToast("Sent — the agency's managers have been notified.", "success");
       setLeaving(false);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't send your request", "error");
+      showToast(getErrorMessage(err, "Couldn't send your request"), "error");
     } finally {
       setLeaveBusy(false);
     }
