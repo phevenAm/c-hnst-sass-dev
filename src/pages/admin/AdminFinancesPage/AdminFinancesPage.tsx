@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import DonutChart from "@components/shared/DonutChart/DonutChart";
+import SeriesToggleChips from "@components/shared/SeriesToggleChips/SeriesToggleChips";
 import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import Spinner from "@components/shared/Spinner/Spinner";
 import StatTile from "@components/shared/StatTile/StatTile";
@@ -269,26 +270,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
 
         <TrendControls state={trend} />
 
-        <div className={styles.controlGroup}>
-          <span className={styles.controlLabel}>Series shown</span>
-          <div className={styles.seriesToggle}>
-            {OVERVIEW_SERIES.map((s) => {
-              const on = !hiddenSeries.has(s.key);
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  className={`${styles.seriesChip} ${on ? "" : styles.seriesChipOff}`}
-                  aria-pressed={on}
-                  onClick={() => toggleSeries(s.key)}
-                >
-                  <span className={styles.seriesDot} style={{ background: s.color }} />
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <SeriesToggleChips series={OVERVIEW_SERIES} hidden={hiddenSeries} onToggle={toggleSeries} />
       </Card>
 
       <div className={styles.tiles}>

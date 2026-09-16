@@ -16,6 +16,7 @@ import {
 } from "@components/shared/Icons/Icons";
 import { Card, CollapsibleSection, HideableSection, NotificationBadge } from "@components/shared/index";
 import SendAnnouncementModal from "@components/shared/SendAnnouncementModal/SendAnnouncementModal";
+import SeriesToggleChips from "@components/shared/SeriesToggleChips/SeriesToggleChips";
 import { useAuth } from "@context/AuthContext";
 import { useAppDispatch, useAppSelector, useFetchOnIdle } from "@store/hooks";
 import type { RootState } from "@store/index";
@@ -212,6 +213,11 @@ export default function AdminDashboard() {
     const sessionRows = allSessions.filter((s) => s.status !== "cancelled").map((s) => ({ date: s.scheduled_at }));
     return bucketCount(sessionRows, trend);
   }, [allSessions, trend]);
+
+  const visibleRevenueSeries = useMemo(
+    () => REVENUE_SERIES.filter((s) => !hiddenTrendKeys.has(s.key)),
+    [hiddenTrendKeys],
+  );
 
   const unpaidSessions = useMemo(
     () =>
@@ -445,6 +451,7 @@ export default function AdminDashboard() {
           <CollapsibleSection title="Practice trends" storageKey="dash:trends">
             <HideableSection id="dashboard-practice-trends">
               <TrendControls state={trend} hideChartType />
+              <SeriesToggleChips series={REVENUE_SERIES} hidden={hiddenTrendKeys} onToggle={toggleTrendSeries} />
               <div className={styles.trendsRow}>
                 <TrendChart
                   title="Sessions"
@@ -456,12 +463,9 @@ export default function AdminDashboard() {
                 <TrendChart
                   title="Revenue & outgoings"
                   data={revenueTrendData}
-                  series={REVENUE_SERIES}
+                  series={visibleRevenueSeries}
                   valueFormatter={(v) => `£${v.toFixed(2)}`}
                   leftAxisLabel="£"
-                  toggleableLegend
-                  hiddenKeys={hiddenTrendKeys}
-                  onToggleKey={toggleTrendSeries}
                 />
               </div>
             </HideableSection>
