@@ -394,19 +394,39 @@ const SettingsPage = () => {
   const agencyMembership = useAppSelector(selectAgencyMembership);
   const codenamesLockedByAgency = isAgencyMember && !!agency?.require_client_codenames;
   const consentLockedByAgency = isAgencyMember && !!agency?.locked_consent;
+  // Was DB-enforced only (enforce_agency_session_policy silently overwrote the
+  // saved value back to the agency default on every write) with zero FE
+  // awareness — a locked member could toggle this, get a "saved" toast, and
+  // have it silently reverted. Now disabled + shown pinned to the true value.
+  const sessionPolicyLockedByAgency =
+    isAgencyMember && agencyMembership?.role !== "manager" && !!agency?.locked_session_policy;
   // Employed COUNSELLOR staff don't own their business identity or email
-  // config — the agency does. Freelancers keep control of both (they may
-  // invoice clients directly, under their own name), and so does a manager
-  // (even one whose employment_type happens to be "employee") — they're the
-  // one setting policy for the agency, not receiving it from someone else.
+  // config by default — the agency does. Freelancers normally keep control of
+  // both (they may invoice clients directly, under their own name) — UNLESS
+  // the manager has explicitly turned on `locked_email_templates`, which is
+  // meant to lock every non-manager member regardless of employment_type.
+  // Previously this flag was captured but never read anywhere (dead toggle) —
+  // this was the only thing standing in for it, so a freelance member kept
+  // full control no matter what the manager set. A manager is never locked
+  // out of their own agency's policy, even one whose employment_type happens
+  // to be "employee".
   const isAgencyEmployee =
-    isAgencyMember && agencyMembership?.employment_type === "employee" && agencyMembership?.role !== "manager";
+    isAgencyMember &&
+    agencyMembership?.role !== "manager" &&
+    (agencyMembership?.employment_type === "employee" || !!agency?.locked_email_templates);
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [hideProfilePii, setHideProfilePii] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
   const [savingAutoCancel, setSavingAutoCancel] = useState(false);
+  // When locked, always show the agency's true current default rather than
+  // whatever this member's own practice_settings row last had saved — that
+  // row only gets overwritten to the new default on its next write, so it can
+  // lag behind a manager who just changed the agency default.
+  const effectiveAutoCancelEnabled = sessionPolicyLockedByAgency
+    ? !!agency?.default_auto_cancel_enabled
+    : autoCancelEnabled;
   const [rescheduleCutoffEnabled, setRescheduleCutoffEnabled] = useState(true);
   const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState(48);
   const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
@@ -2324,22 +2344,25 @@ const SettingsPage = () => {
                   <span className={styles.toggleLabel}>
                     <strong>Auto-cancel unpaid sessions</strong>
                     <span>
-                      {autoCancelEnabled
-                        ? "On — sessions will be cancelled and clients emailed when payment is missed."
-                        : "Off — no sessions will be automatically cancelled."}
+                      {sessionPolicyLockedByAgency
+                        ? `Locked ${effectiveAutoCancelEnabled ? "on" : "off"} by your agency — this follows their default and can't be changed per-member.`
+                        : effectiveAutoCancelEnabled
+                          ? "On — sessions will be cancelled and clients emailed when payment is missed."
+                          : "Off — no sessions will be automatically cancelled."}
                     </span>
                   </span>
-                  <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
+                  <span className={`${styles.toggleSwitch} ${effectiveAutoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
                     <input
                       type="checkbox"
                       className={styles.toggleInput}
-                      checked={autoCancelEnabled}
+                      checked={effectiveAutoCancelEnabled}
+                      disabled={sessionPolicyLockedByAgency}
                       onChange={(e) => setAutoCancelEnabled(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
-                {autoCancelEnabled && (
+                {effectiveAutoCancelEnabled && (
                   <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
                     <label htmlFor="paymentDeadlinePractice">Cutoff period</label>
                     <select

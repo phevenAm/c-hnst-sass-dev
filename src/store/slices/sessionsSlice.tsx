@@ -93,10 +93,26 @@ export const updateSession = createAsyncThunk<
   return data;
 });
 
+// Scoped to the caller's own sessions (created_by), deliberately narrower than
+// what RLS alone would allow: an agency manager's `acts_for_admin(created_by)`
+// policy also grants every colleague's sessions, which is exactly what /agency
+// (AgencySessionsPage) wants but is wrong here — every consumer of this thunk
+// (scheduler, dashboard, payments) is a personal /admin/* "Counselling view"
+// page. Left unscoped, a manager's own calendar silently mixed in every
+// colleague's sessions with no distinction. See project_agency_staff_sharing.
 export const fetchAllSessions = createAsyncThunk<Session[], void, { rejectValue: string }>(
   "sessions/fetchAllSessions",
   async (_, { rejectWithValue }) => {
-    const { data, error } = await supabase.from("sessions").select("*").order("scheduled_at", { ascending: false });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return rejectWithValue("Not signed in");
+
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("created_by", user.id)
+      .order("scheduled_at", { ascending: false });
     if (error) return rejectWithValue(error?.message ?? "Something went wrong, could not get sessions!");
 
     return data ?? [];

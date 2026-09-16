@@ -446,6 +446,35 @@ test("a freshly-joined agency staff member reaches /admin, not /subscribe or /ad
   dbQuery(`delete from auth.users where id = '${newStaffId}';`);
 });
 
+// ─── The inverse case: a freelance/associate staff member owns their own
+// business identity and billing (same reasoning as SettingsPage's
+// isAgencyEmployee), so unlike an employee they are NOT exempt from
+// /admin/setup — landing them straight in an empty Counselling view with no
+// session price/types ever configured was the actual "onboarding is missing
+// everything a normal admin gets" complaint. Backs AdminSetupGate. ──────────
+test("a freshly-joined FREELANCE agency staff member is sent through /admin/setup like a solo admin", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const newFreelancerId = createAuthUser({
+    email: `smissah321+${TAG}-a-freshfreelance@gmail.com`,
+    password: PASSWORD,
+    meta: { role: "admin", first_name: "Fresh", last_name: "Freelancer" },
+  });
+  dbQuery(`
+    insert into public.agency_members (agency_id, user_id, role, employment_type, status)
+    values ('${ids.agencyA}', '${newFreelancerId}', 'counsellor', 'freelance', 'active');
+    update public.users set agency_id = '${ids.agencyA}' where id = '${newFreelancerId}';
+  `);
+
+  await loginViaUi(page, `smissah321+${TAG}-a-freshfreelance@gmail.com`, PASSWORD);
+  await expect(page).toHaveURL(/\/admin\/setup$/, { timeout: 20_000 });
+
+  dbQuery(`delete from public.agency_members where user_id = '${newFreelancerId}';`);
+  dbQuery(`delete from public.users where id = '${newFreelancerId}';`);
+  dbQuery(`delete from auth.users where id = '${newFreelancerId}';`);
+});
+
 // ─── Agency ⇄ staff settlement direction: override > pinned default > auto ──
 // Backs 20260907000032. Asserts the DB resolver the FE mirrors
 // (src/pages/agency/AgencySettingsPage/settlement.ts) and that the overview
@@ -1123,4 +1152,187 @@ test("a shared folder is visible only to the staff employment_type(s) it's share
 
   dbQuery(`delete from public.file_folders where id in ('${internalOnly.id}', '${freelanceOnly.id}');`);
   dbQuery(`update public.agency_members set employment_type = 'employee' where user_id = '${ids.aStaff}';`);
+});
+
+// ─── Staff inherit the manager's shared FORMS the same way as resources —
+// read-only, never editable. Deliberately does NOT touch the fragile
+// questionnaires<->questionnaire_assignments policy pair directly (that pair
+// caused a real infinite-recursion prod outage once, 20260902010006) — this
+// test's own existence, and every other questionnaire-touching test in this
+// suite still passing, is the actual regression check for that risk. ────────
+test("a non-manager reads (never edits) the manager's forms only when shared_resources is on; can't be reached by other agencies", async () => {
+  test.setTimeout(90_000);
+  const managerForm = dbQuery<{ id: string }>(
+    `insert into public.questionnaires (admin_id, title) values ('${ids.aManager}', '${TAG}-mgr-form') returning id;`,
+  ).rows[0];
+
+  dbQuery(`update public.agencies set shared_resources = false where id = '${ids.agencyA}';`);
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+  const { data: hiddenRead } = await asAStaff.from("questionnaires").select("id").eq("id", managerForm.id);
+  expect(hiddenRead ?? []).toHaveLength(0);
+
+  dbQuery(`update public.agencies set shared_resources = true where id = '${ids.agencyA}';`);
+  const { data: sharedRead } = await asAStaff.from("questionnaires").select("id").eq("id", managerForm.id);
+  expect(sharedRead).toHaveLength(1);
+
+  // Read-only: staff can see it but never edit or delete it.
+  const { data: editAttempt } = await asAStaff
+    .from("questionnaires")
+    .update({ title: "hacked" })
+    .eq("id", managerForm.id)
+    .select();
+  expect(editAttempt ?? []).toHaveLength(0);
+  const stillTitled = dbQuery<{ title: string }>(
+    `select title from public.questionnaires where id = '${managerForm.id}';`,
+  ).rows[0];
+  expect(stillTitled.title).toBe(`${TAG}-mgr-form`);
+
+  // Cross-agency staff never see it, on or off.
+  const asBStaff = await signedInAs(`smissah321+${TAG}-b-staff@gmail.com`);
+  const { data: crossAgencyRead } = await asBStaff.from("questionnaires").select("id").eq("id", managerForm.id);
+  expect(crossAgencyRead ?? []).toHaveLength(0);
+
+  dbQuery(`delete from public.questionnaires where id = '${managerForm.id}';`);
+  dbQuery(`update public.agencies set shared_resources = false where id = '${ids.agencyA}';`);
+});
+
+// ─── assign_agency_questionnaire(): the SECURITY DEFINER RPC that lets staff
+// actually dispatch an inherited form to their own client, without any new
+// raw RLS on questionnaire_assignments (see the migration's own header for
+// why touching that table's policy directly is deliberately avoided). ──────
+test("assign_agency_questionnaire lets staff dispatch an inherited, shared form to their own client and rejects everything else", async () => {
+  test.setTimeout(90_000);
+  const managerForm = dbQuery<{ id: string }>(
+    `insert into public.questionnaires (admin_id, title) values ('${ids.aManager}', '${TAG}-mgr-form2') returning id;`,
+  ).rows[0];
+  const ownClient = dbQuery<{ id: string }>(
+    `insert into auth.users (id, instance_id, email, aud, role, raw_app_meta_data, created_at, updated_at)
+     values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'smissah321+${TAG}-a-staff-client@gmail.com',
+             'authenticated', 'authenticated', '{"provider":"email","providers":["email"]}'::jsonb, now(), now())
+     returning id;`,
+  ).rows[0];
+  dbQuery(`update public.users set admin_id = '${ids.aStaff}', role = 'client' where id = '${ownClient.id}';`);
+
+  const asAStaff = await signedInAs(`smissah321+${TAG}-a-staff@gmail.com`);
+
+  // Not shared yet — rejected.
+  dbQuery(`update public.agencies set shared_resources = false where id = '${ids.agencyA}';`);
+  const { error: notSharedErr } = await asAStaff.rpc("assign_agency_questionnaire", {
+    p_questionnaire_id: managerForm.id,
+    p_client_id: ownClient.id,
+  });
+  expect(notSharedErr?.message).toContain("FORM_NOT_SHARED");
+
+  dbQuery(`update public.agencies set shared_resources = true where id = '${ids.agencyA}';`);
+
+  // Someone else's client — rejected even once shared.
+  const { error: notYoursErr } = await asAStaff.rpc("assign_agency_questionnaire", {
+    p_questionnaire_id: managerForm.id,
+    p_client_id: ids.aClient,
+  });
+  expect(notYoursErr?.message).toContain("CLIENT_NOT_YOURS");
+
+  // Own client, shared form — succeeds.
+  const { data: assignment, error: okErr } = await asAStaff.rpc("assign_agency_questionnaire", {
+    p_questionnaire_id: managerForm.id,
+    p_client_id: ownClient.id,
+  });
+  expect(okErr).toBeNull();
+  expect((assignment as { questionnaire_id: string })?.questionnaire_id).toBe(managerForm.id);
+
+  dbQuery(`delete from public.questionnaire_assignments where questionnaire_id = '${managerForm.id}';`);
+  dbQuery(`delete from public.questionnaires where id = '${managerForm.id}';`);
+  dbQuery(`delete from public.users where id = '${ownClient.id}';`);
+  dbQuery(`delete from auth.users where id = '${ownClient.id}';`);
+  dbQuery(`update public.agencies set shared_resources = false where id = '${ids.agencyA}';`);
+});
+
+// ─── A manager could previously read a colleague's FULL practice_settings row
+// via a genuine "agency managers act for members" SELECT policy — bank_name,
+// bank_account_number, encryption key material included — because that
+// policy existed despite 20260902010003's own header comment saying the
+// table was deliberately never widened. Dropped in
+// 20260916000010_agency_member_contact_info.sql. This is the security
+// regression test for that: a manager must never again see a colleague's
+// bank details, only the narrow business_name/phone/address via the two new
+// RPCs. ──────────────────────────────────────────────────────────────────────
+test("a manager can no longer read a colleague's bank details, only business_name/phone/address via the narrow RPCs", async () => {
+  test.setTimeout(90_000);
+  dbQuery(
+    `update public.practice_settings set bank_name = '${TAG}-secret-bank', phone = '${TAG}-phone', business_name = '${TAG}-biz', address = '${TAG}-addr' where admin_id = '${ids.aStaff}';`,
+  );
+
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+
+  // The old wide-open path: selecting the row directly must now come back empty.
+  const { data: directRead } = await asAManager
+    .from("practice_settings")
+    .select("bank_name, phone")
+    .eq("admin_id", ids.aStaff);
+  expect(directRead ?? []).toHaveLength(0);
+
+  // The new narrow path: same three safe fields, nothing else.
+  const { data: viaRpc, error: rpcErr } = await asAManager
+    .rpc("get_agency_member_contact_info", { p_member_id: ids.aStaff })
+    .single();
+  expect(rpcErr).toBeNull();
+  expect(viaRpc).toEqual(
+    expect.objectContaining({ business_name: `${TAG}-biz`, phone: `${TAG}-phone`, address: `${TAG}-addr` }),
+  );
+  expect(viaRpc).not.toHaveProperty("bank_name");
+
+  // A manager from an unrelated agency gets nothing back, from either path.
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
+  const { data: crossAgencyRpc } = await asBManager
+    .rpc("get_agency_member_contact_info", { p_member_id: ids.aStaff })
+    .maybeSingle();
+  expect(crossAgencyRpc).toBeNull();
+
+  dbQuery(
+    `update public.practice_settings set bank_name = null, phone = null, business_name = null, address = null where admin_id = '${ids.aStaff}';`,
+  );
+});
+
+// ─── The write side: a manager can now actually SET a member's business_name/
+// phone/address (previously there was no entry point at all for an employed
+// staff member, who never sees the editable Business information card in
+// Settings — see isAgencyEmployee). Backs update_agency_member_contact_info()
+// and AgencyMemberDetailPage's new "Edit" control. ───────────────────────────
+test("update_agency_member_contact_info lets a manager set (only) business_name/phone/address for their own member", async () => {
+  test.setTimeout(90_000);
+  const asAManager = await signedInAs(`smissah321+${TAG}-a-mgr@gmail.com`);
+
+  const { error: okErr } = await asAManager.rpc("update_agency_member_contact_info", {
+    p_member_id: ids.aStaff,
+    p_business_name: `${TAG}-set-biz`,
+    p_phone: `${TAG}-set-phone`,
+    p_address: `${TAG}-set-addr`,
+  });
+  expect(okErr).toBeNull();
+
+  const row = dbQuery<{ business_name: string; phone: string; address: string; bank_name: string | null }>(
+    `select business_name, phone, address, bank_name from public.practice_settings where admin_id = '${ids.aStaff}';`,
+  ).rows[0];
+  expect(row.business_name).toBe(`${TAG}-set-biz`);
+  expect(row.phone).toBe(`${TAG}-set-phone`);
+  expect(row.address).toBe(`${TAG}-set-addr`);
+  expect(row.bank_name).toBeNull(); // untouched — the RPC never writes it
+
+  // Cross-agency: a manager can't touch a member who isn't theirs.
+  const asBManager = await signedInAs(`smissah321+${TAG}-b-mgr@gmail.com`);
+  const { error: notYoursErr } = await asBManager.rpc("update_agency_member_contact_info", {
+    p_member_id: ids.aStaff,
+    p_business_name: "hacked",
+    p_phone: null,
+    p_address: null,
+  });
+  expect(notYoursErr?.message).toContain("NOT_YOUR_MEMBER");
+  const unchanged = dbQuery<{ business_name: string }>(
+    `select business_name from public.practice_settings where admin_id = '${ids.aStaff}';`,
+  ).rows[0];
+  expect(unchanged.business_name).toBe(`${TAG}-set-biz`);
+
+  dbQuery(
+    `update public.practice_settings set business_name = null, phone = null, address = null where admin_id = '${ids.aStaff}';`,
+  );
 });

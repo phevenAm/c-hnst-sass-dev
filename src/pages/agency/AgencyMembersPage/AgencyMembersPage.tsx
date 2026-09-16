@@ -3,8 +3,10 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import InviteMemberModal from "@components/agency/InviteMemberModal/InviteMemberModal";
 import RemoveMemberModal from "@components/agency/RemoveMemberModal/RemoveMemberModal";
+import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
+import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import type { AgencyMemberWithUser } from "@models/agency";
@@ -22,6 +24,11 @@ import {
 
 import styles from "../agency.module.scss";
 
+type StaffFilter = "all" | "internal" | "external";
+
+const joinedLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
 const displayName = (m: AgencyMemberWithUser) =>
   m.display_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Member";
 
@@ -37,11 +44,19 @@ export default function AgencyMembersPage() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removing, setRemoving] = useState<AgencyMemberWithUser | null>(null);
+  const [filter, setFilter] = useState<StaffFilter>("all");
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
     if (agency) dispatch(fetchAgencyClients(agency.id));
   }, [dispatch, agency]);
+
+  const visibleMembers = useMemo(() => {
+    if (filter === "all") return members;
+    return members.filter((m) =>
+      filter === "external" ? m.employment_type === "freelance" : m.employment_type !== "freelance",
+    );
+  }, [members, filter]);
 
   const caseloadByMember = useMemo(() => {
     const map = new Map<string, number>();
@@ -69,13 +84,27 @@ export default function AgencyMembersPage() {
         <Button onClick={() => setInviteOpen(true)}>Invite a member</Button>
       </div>
 
+      {members.length > 0 && (
+        <SegmentedTabs
+          tabs={[
+            { value: "all", label: "All" },
+            { value: "internal", label: "Internal" },
+            { value: "external", label: "External" },
+          ]}
+          value={filter}
+          onChange={setFilter}
+          ariaLabel="Filter staff by internal/external"
+        />
+      )}
+
       {status === "loading" && members.length === 0 && <p className={styles.empty}>Loading members…</p>}
       {status !== "loading" && members.length === 0 && (
         <p className={styles.empty}>No members yet. Invite your first counsellor above.</p>
       )}
-      {members.length > 0 && (
+      {members.length > 0 && visibleMembers.length === 0 && <p className={styles.empty}>No {filter} staff.</p>}
+      {visibleMembers.length > 0 && (
         <div className={styles.list}>
-          {members.map((m) => {
+          {visibleMembers.map((m) => {
             const self = m.user_id === authUser?.id;
             return (
               <div
@@ -91,6 +120,7 @@ export default function AgencyMembersPage() {
                   }
                 }}
               >
+                <Avatar name={displayName(m)} imageSrc={m.avatar_url ?? undefined} size={40} color="sky" />
                 <div className={styles.rowMain}>
                   <span className={styles.rowName}>
                     {displayName(m)} {self && <span className={styles.rowMeta}>(you)</span>}
@@ -114,6 +144,7 @@ export default function AgencyMembersPage() {
                             (caseloadByMember.get(m.user_id) ?? 0) === 1 ? "" : "s"
                           }`
                         : null,
+                      `joined ${joinedLabel(m.joined_at)}`,
                     ]
                       .filter(Boolean)
                       .join(" · ")}

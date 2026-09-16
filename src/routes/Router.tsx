@@ -285,14 +285,24 @@ function AdminSetupGate({ children }: { children: React.ReactNode }) {
   const { isAdmin, practiceSettings, loading } = useAuth();
   const agencyStatus = useAppSelector(selectAgencyBootstrapStatus);
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const membership = useAppSelector(selectAgencyMembership);
 
   if (loading || agencyStatus === "loading" || agencyStatus === "idle") {
     return <HeroSplashBridge />;
     // return <AuthLoadingState variant="splash" />;
   }
-  // An invited agency member isn't setting up their own practice — the
-  // agency owner already did. Same exemption as SubscriptionGate above.
-  if (isAgencyMember) return <>{children}</>;
+  // An employed (non-manager) agency staff member isn't setting up their own
+  // practice — the agency owns their business identity, so there's no
+  // business name/session pricing/etc. of their own to configure. A manager
+  // and a freelance/associate staff member both bill and brand under their
+  // own name (same "own it" reasoning as SettingsPage's isAgencyEmployee), so
+  // they go through setup exactly like a solo admin — skipping it left them
+  // dropped straight into an empty Counselling view with no session price or
+  // types ever configured, which read as "onboarding missing everything a
+  // normal admin gets".
+  const exemptFromOwnSetup =
+    isAgencyMember && membership?.role !== "manager" && membership?.employment_type === "employee";
+  if (exemptFromOwnSetup) return <>{children}</>;
   if (isAdmin && practiceSettings?.onboarding_required) {
     return <Navigate to="/admin/setup" replace />;
   }

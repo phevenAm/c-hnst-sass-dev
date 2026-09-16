@@ -7,6 +7,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
+import { useToast } from "@context/ToastContext";
 import { isAgencyOwner } from "@models/agencyPermissions";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -43,29 +44,65 @@ export default function AgencyMemberDetailPage() {
   const members = useAppSelector(selectAgencyMembers);
   const clients = useAppSelector(selectAgencyClients);
 
+  const { showToast } = useToast();
   const [details, setDetails] = useState<MemberPracticeDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [removing, setRemoving] = useState(false);
   const [configuring, setConfiguring] = useState(false);
+  const [editingContact, setEditingContact] = useState(false);
+  const [contactDraft, setContactDraft] = useState<MemberPracticeDetails>({
+    business_name: "",
+    phone: "",
+    address: "",
+  });
+  const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
     if (agency) dispatch(fetchAgencyClients(agency.id));
   }, [dispatch, agency]);
 
+  // Reads through get_agency_member_contact_info() rather than the
+  // practice_settings table directly — that row also holds bank details and
+  // encryption key material, which a manager should never be able to select
+  // even inadvertently by widening the query later. See
+  // 20260916000010_agency_member_contact_info.sql.
   useEffect(() => {
     if (!memberId) return;
     setLoadingDetails(true);
     supabase
-      .from("practice_settings")
-      .select("business_name, phone, address")
-      .eq("admin_id", memberId)
+      .rpc("get_agency_member_contact_info", { p_member_id: memberId })
       .maybeSingle()
       .then(({ data }) => {
-        setDetails((data as MemberPracticeDetails) ?? null);
+        const row = (data as MemberPracticeDetails) ?? null;
+        setDetails(row);
+        setContactDraft({
+          business_name: row?.business_name ?? "",
+          phone: row?.phone ?? "",
+          address: row?.address ?? "",
+        });
         setLoadingDetails(false);
       });
   }, [memberId]);
+
+  const saveContact = async () => {
+    if (!memberId) return;
+    setSavingContact(true);
+    const { error } = await supabase.rpc("update_agency_member_contact_info", {
+      p_member_id: memberId,
+      p_business_name: contactDraft.business_name?.trim() || null,
+      p_phone: contactDraft.phone?.trim() || null,
+      p_address: contactDraft.address?.trim() || null,
+    });
+    setSavingContact(false);
+    if (error) {
+      showToast(error.message, "danger");
+      return;
+    }
+    setDetails({ ...contactDraft });
+    setEditingContact(false);
+    showToast("Contact details saved.", "success");
+  };
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
 
@@ -135,40 +172,101 @@ export default function AgencyMemberDetailPage() {
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Contact</h2>
-        <div className={styles.settingRow}>
-          <div className={styles.toggleText}>
-            <strong>Email</strong>
-            <span>{member.email || "Not set"}</span>
-          </div>
-        </div>
-        <div className={styles.settingRow}>
-          <div className={styles.toggleText}>
-            <strong>Phone</strong>
-            <span>{loadingDetails ? "Loading…" : details?.phone || "Not set"}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <h2 className={styles.cardTitle}>Contact</h2>
+          <div className={styles.settingRow}>
+            <div className={styles.toggleText}>
+              <strong>Email</strong>
+              <span>{member.email || "Not set"}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Business details</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <h2 className={styles.cardTitle}>Business details</h2>
+          {!editingContact && (
+            <Button variant="ghost" size="sm" onClick={() => setEditingContact(true)}>
+              Edit
+            </Button>
+          )}
+        </div>
         <p className={styles.cardBlurb}>
           {member.employment_type === "freelance"
-            ? "Set by this member themselves, under their own Settings — you're seeing it read-only here."
-            : `Employed staff don't set their own — this reflects ${agency?.name ?? "the agency"}'s details, not theirs personally.`}
+            ? "Set by this member themselves under their own Settings — nothing here overrides that, but you can fill it in for them, e.g. before they've had a chance to."
+            : `Employed staff don't have a Business information section of their own in Settings — this is set here instead.`}
         </p>
-        <div className={styles.settingRow}>
-          <div className={styles.toggleText}>
-            <strong>Business name</strong>
-            <span>{loadingDetails ? "Loading…" : details?.business_name || "Not set"}</span>
-          </div>
-        </div>
-        <div className={styles.settingRow}>
-          <div className={styles.toggleText}>
-            <strong>Address</strong>
-            <span>{loadingDetails ? "Loading…" : details?.address || "Not set"}</span>
-          </div>
-        </div>
+
+        {editingContact ? (
+          <>
+            <div className={styles.field}>
+              <label htmlFor="member-phone">Phone</label>
+              <input
+                id="member-phone"
+                value={contactDraft.phone ?? ""}
+                onChange={(e) => setContactDraft((d) => ({ ...d, phone: e.target.value }))}
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="member-business-name">Business name</label>
+              <input
+                id="member-business-name"
+                value={contactDraft.business_name ?? ""}
+                onChange={(e) => setContactDraft((d) => ({ ...d, business_name: e.target.value }))}
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="member-address">Address</label>
+              <input
+                id="member-address"
+                value={contactDraft.address ?? ""}
+                onChange={(e) => setContactDraft((d) => ({ ...d, address: e.target.value }))}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "var(--sp-2)" }}>
+              <Button size="sm" onClick={saveContact} disabled={savingContact}>
+                {savingContact ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setContactDraft({
+                    business_name: details?.business_name ?? "",
+                    phone: details?.phone ?? "",
+                    address: details?.address ?? "",
+                  });
+                  setEditingContact(false);
+                }}
+                disabled={savingContact}
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>Phone</strong>
+                <span>{loadingDetails ? "Loading…" : details?.phone || "Not set"}</span>
+              </div>
+            </div>
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>Business name</strong>
+                <span>{loadingDetails ? "Loading…" : details?.business_name || "Not set"}</span>
+              </div>
+            </div>
+            <div className={styles.settingRow}>
+              <div className={styles.toggleText}>
+                <strong>Address</strong>
+                <span>{loadingDetails ? "Loading…" : details?.address || "Not set"}</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className={styles.card}>
