@@ -14,6 +14,9 @@ import CreateStubModal from "@pages/admin/AdminClientsPage/modals/CreateStubModa
 import ImportStubsModal from "@pages/admin/AdminClientsPage/modals/ImportStubsModal/ImportStubsModal";
 import InviteClientModal from "@pages/admin/AdminClientsPage/modals/InviteClientModal/InviteClientModal";
 
+import { useAppSelector } from "@/store/hooks";
+import { selectAgencyMembership, selectIsAgencyMember } from "@/store/slices/agencySlice";
+
 import styles from "./AdminSetupPage.module.scss";
 
 type SessionPackage = {
@@ -92,6 +95,16 @@ export default function AdminSetupPage() {
     useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+
+  // Freelance/associate agency members still run this whole wizard (their own
+  // billing identity/pricing is theirs to set — see SettingsPage's
+  // isAgencyEmployee comment), unlike agency employees who are exempt from it
+  // entirely (AdminSetupGate). But no agency member, freelance or employee,
+  // self-adds clients — the agency assigns them (AgencyClientsPage) — so step
+  // 6 shouldn't offer to invite/import clients for a non-manager member.
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const agencyMembership = useAppSelector(selectAgencyMembership);
+  const clientsAreAssigned = isAgencyMember && agencyMembership?.role !== "manager";
 
   const [step, setStep] = useState(1);
   const [businessName, setBusinessName] = useState(practiceSettings?.business_name ?? "");
@@ -548,24 +561,32 @@ export default function AdminSetupPage() {
         </div>
       )}
 
-      {step === 6 && (
-        <div className={styles.section}>
-          <p className={styles.sectionHint}>
-            Optional — however fits how you work. You can always add clients later from the Clients page.
-          </p>
-          <div className={styles.clientActionsGrid}>
-            <Button variant="secondary" onClick={() => setInviteOpen(true)}>
-              Invite a client
-            </Button>
-            <Button variant="secondary" onClick={() => setCreateStubOpen(true)}>
-              Add an offline client
-            </Button>
-            <Button variant="secondary" onClick={() => setImportOpen(true)}>
-              Import from CSV
-            </Button>
+      {step === 6 &&
+        (clientsAreAssigned ? (
+          <div className={styles.section}>
+            <p className={styles.sectionHint}>
+              Your clients are assigned to you by your agency, not self-added — they'll show up on your Clients page
+              once assigned. Nothing to do here.
+            </p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className={styles.section}>
+            <p className={styles.sectionHint}>
+              Optional — however fits how you work. You can always add clients later from the Clients page.
+            </p>
+            <div className={styles.clientActionsGrid}>
+              <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+                Invite a client
+              </Button>
+              <Button variant="secondary" onClick={() => setCreateStubOpen(true)}>
+                Add an offline client
+              </Button>
+              <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                Import from CSV
+              </Button>
+            </div>
+          </div>
+        ))}
 
       {error && <p className={styles.error}>{error}</p>}
 
