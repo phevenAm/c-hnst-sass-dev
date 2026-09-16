@@ -24,7 +24,7 @@
 .range {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
 
   // Room for "MMM YYYY" plus the calendar-icon button without crowding it.
   :global(.MuiFormControl-root),
@@ -37,6 +37,8 @@
   @include until-sm {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--sp-5);
+    margin-top: var(--sp-2);
 
     :global(.MuiFormControl-root),
     :global(.MuiTextField-root) {

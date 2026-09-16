@@ -411,6 +411,10 @@ input.copyFieldValue {
     margin: 0 0 $sp-4;
     line-height: 1.5;
   }
+
+  &>div {
+    padding: 0;
+  }
 }
 
 // ── Logo preview ───────────────────────────────────────────
@@ -437,6 +441,7 @@ input.copyFieldValue {
 }
 
 .saveButton {
+
   // full width only on the smallest screens, where a wrapped row of one looks
   // stranded; auto width (and left-aligned by the row) everywhere else.
   @include until-md {

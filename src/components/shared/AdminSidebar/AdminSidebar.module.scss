@@ -188,7 +188,8 @@ $transition: 0.22s ease;
 .navLink {
   display: flex;
   align-items: center;
-  gap: $sp-3;
+  gap: $sp-1;
+  margin-bottom: $sp-1;
   padding: $sp-3;
   border-radius: var(--r-md);
   text-decoration: none;
@@ -196,7 +197,7 @@ $transition: 0.22s ease;
   font-size: 0.875rem;
   font-weight: 400;
   white-space: nowrap;
-  overflow: hidden;
+  // overflow: hidden;
   transition: background var(--transition-base), color var(--transition-base);
 
   &:hover {
@@ -317,6 +318,7 @@ $guide-x: 0.7rem;
   max-height: 0;
   transition: max-height $transition;
   position: relative;
+  padding-left: 1.25rem;
 
   // One continuous guide line down the left of the nested items — no per-row
   // elbows (those never lined up between the two rows).
@@ -348,7 +350,7 @@ $guide-x: 0.7rem;
   color: var(--text-secondary);
   font-size: 0.82rem;
   white-space: nowrap;
-  overflow: hidden;
+  // overflow: hidden;
   touch-action: manipulation;
   transition: background var(--transition-base), color var(--transition-base);
   margin: 1px 0;
@@ -368,12 +370,16 @@ $guide-x: 0.7rem;
     &::before {
       content: "";
       position: absolute;
-      left: calc(#{$guide-x} - 0.5px);
-      top: 6px;
+      z-index: 2;
+      top: 50%;
       bottom: 6px;
-      width: 2px;
+      width: 3px;
       border-radius: 1px;
       background: var(--accent);
+      left: -0.5rem;
+      height: 70%;
+      transform: translate(-50%, -50%);
+      transition: all 350ms ease-in-out;
     }
   }
 
