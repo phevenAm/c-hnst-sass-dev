@@ -1399,7 +1399,11 @@ const SettingsPage = () => {
       <section className={styles.businessSection}>
         <p>
           Your business details and branding are set by {agency?.name ? <strong>{agency.name}</strong> : "your agency"},
-          not per-counsellor — there's nothing to configure here.
+          not per-counsellor — you can't edit them here.
+        </p>
+        <p>
+          Need your contact number, address, or business name updated? Ask an agency manager to set it from{" "}
+          <strong>Members → your profile → Contact</strong> — that's where it's entered on your behalf.
         </p>
       </section>
     </SettingsCard>
@@ -1797,11 +1801,6 @@ const SettingsPage = () => {
                 )}
               </div>
             </Card>
-
-            {subscriptionCard}
-            {agencyManagedCard}
-            {practiceLifecycleCard}
-            {referralCard}
           </div>
         )}
 
@@ -3055,6 +3054,16 @@ const SettingsPage = () => {
                 )}
               </section>
             </SettingsCard>
+
+            {/* Subscription/account-lifecycle cards used to live on the Profile
+                tab, next to display-name/avatar fields — a user managing their
+                subscription or deleting their account had to look under
+                "Profile" for it, while Billing (the tab that exists for exactly
+                this) held only pricing/invoicing/bank/Stripe. Moved here. */}
+            {subscriptionCard}
+            {agencyManagedCard}
+            {referralCard}
+            {practiceLifecycleCard}
           </div>
         )}
 
