@@ -26,6 +26,8 @@ import {
   selectLastRejected,
   selectStorageReport,
   setCurrentFolder,
+  toggleFileShared,
+  toggleFolderShared,
   uploadItems,
 } from "@store/slices/filesSlice";
 
@@ -261,9 +263,21 @@ export default function AdminFilesPage() {
                 onRenameFolder={(folder) => setNameDialog({ mode: "renameFolder", folder })}
                 onMoveFolder={(folder) => setMove({ kind: "folder", folder })}
                 onDeleteFolder={(folder) => setDel({ kind: "folder", folder })}
+                onToggleFolderShared={(folder) =>
+                  run(
+                    dispatch(toggleFolderShared({ id: folder.id, shared: !folder.shared })),
+                    folder.shared ? "Made private." : "Shared with your agency.",
+                  )
+                }
                 onRenameFile={(file) => setNameDialog({ mode: "renameFile", file })}
                 onMoveFile={(file) => setMove({ kind: "file", file })}
                 onDeleteFile={(file) => setDel({ kind: "file", file })}
+                onToggleFileShared={(file) =>
+                  run(
+                    dispatch(toggleFileShared({ id: file.id, shared: !file.shared })),
+                    file.shared ? "Made private." : "Shared with your agency.",
+                  )
+                }
               />
             )}
           </UploadZone>

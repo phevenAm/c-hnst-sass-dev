@@ -135,3 +135,42 @@ describe("AdminResourcesPage — pinning", () => {
     expect(titles.indexOf("Pinned resource")).toBeLessThan(titles.indexOf("Plain resource"));
   });
 });
+
+describe("AdminResourcesPage — a resource shared from someone else is read-only", () => {
+  // Staff see resources shared FROM their manager alongside their own, via
+  // "staff read agency shared resources" RLS — but the DB only ever grants
+  // write access to admin_id = auth.uid(). A delete/edit/publish/pin click on
+  // someone else's resource used to render fine and dispatch fine, but the
+  // RLS-filtered write touched zero rows (no error — a WHERE clause matching
+  // nothing isn't a failure) — the resource just silently disappeared from
+  // local state as if it had actually been deleted. Regression coverage.
+  it("shows only Preview for a resource owned by someone else (permission boundary)", () => {
+    seed([resource({ id: "r-1", admin_id: "someone-else" })]);
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Preview" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Publish" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unpublish" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pin" })).not.toBeInTheDocument();
+  });
+
+  it("labels a not-owned resource as shared with you", () => {
+    seed([resource({ id: "r-1", admin_id: "someone-else" })]);
+    renderPage();
+
+    expect(screen.getByText("Shared with you")).toBeInTheDocument();
+  });
+
+  it("still shows full controls for a resource the current user owns, alongside a read-only shared one (happy path)", () => {
+    seed([
+      resource({ id: "mine", admin_id: "admin-1", title: "My own resource" }),
+      resource({ id: "theirs", admin_id: "someone-else", title: "Shared resource" }),
+    ]);
+    renderPage();
+
+    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1);
+    expect(screen.queryByText("Shared with you")).toBeInTheDocument();
+  });
+});

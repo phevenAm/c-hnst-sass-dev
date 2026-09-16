@@ -17,9 +17,11 @@ type Props = {
   onRenameFolder: (folder: FileFolder) => void;
   onMoveFolder: (folder: FileFolder) => void;
   onDeleteFolder: (folder: FileFolder) => void;
+  onToggleFolderShared: (folder: FileFolder) => void;
   onRenameFile: (file: FileObject) => void;
   onMoveFile: (file: FileObject) => void;
   onDeleteFile: (file: FileObject) => void;
+  onToggleFileShared: (file: FileObject) => void;
 };
 
 export default function FileBrowser({
@@ -32,9 +34,11 @@ export default function FileBrowser({
   onRenameFolder,
   onMoveFolder,
   onDeleteFolder,
+  onToggleFolderShared,
   onRenameFile,
   onMoveFile,
   onDeleteFile,
+  onToggleFileShared,
 }: Props) {
   const crumbs = useMemo(() => breadcrumbFor(currentFolderId, folders), [currentFolderId, folders]);
   const childFolders = useMemo(
@@ -92,6 +96,7 @@ export default function FileBrowser({
                 <FolderIcon />
               </span>
               <span className={styles.itemName}>{folder.name}</span>
+              {folder.shared && <span className={styles.sharedBadge}>Shared</span>}
             </button>
             <SplitButton
               size="sm"
@@ -99,6 +104,10 @@ export default function FileBrowser({
               primaryLabel="Open"
               primaryAction={() => onNavigate(folder.id)}
               options={[
+                {
+                  label: folder.shared ? "Make private" : "Share with agency",
+                  onClick: () => onToggleFolderShared(folder),
+                },
                 { label: "Rename", onClick: () => onRenameFolder(folder) },
                 { label: "Move", onClick: () => onMoveFolder(folder) },
                 { label: "Delete", onClick: () => onDeleteFolder(folder) },
@@ -114,6 +123,7 @@ export default function FileBrowser({
                 {file.mime_type.startsWith("image/") ? <ImageFileIcon /> : <FileGenericIcon />}
               </span>
               <span className={styles.itemName}>{file.name}</span>
+              {file.shared && <span className={styles.sharedBadge}>Shared</span>}
             </button>
             <span className={styles.itemMeta}>{formatBytes(file.size_bytes)}</span>
             <SplitButton
@@ -122,6 +132,10 @@ export default function FileBrowser({
               primaryLabel="Preview"
               primaryAction={() => onOpenFile(file)}
               options={[
+                {
+                  label: file.shared ? "Make private" : "Share with agency",
+                  onClick: () => onToggleFileShared(file),
+                },
                 { label: "Download", onClick: () => onDownloadFile(file) },
                 { label: "Rename", onClick: () => onRenameFile(file) },
                 { label: "Move", onClick: () => onMoveFile(file) },

@@ -339,6 +339,16 @@ button.treeTwisty:hover {
   flex: none;
 }
 
+.sharedBadge {
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+  background: var(--accent-subtle);
+  border-radius: var(--r-full);
+  padding: 1px 8px;
+}
+
 /* ── Search ───────────────────────────────────────────────── */
 .searchBar {
   background: var(--bg-card);

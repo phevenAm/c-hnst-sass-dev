@@ -130,6 +130,24 @@ export const moveFolder = createAsyncThunk(
   },
 );
 
+export const toggleFolderShared = createAsyncThunk(
+  "files/toggleFolderShared",
+  async (payload: { id: string; shared: boolean }, { rejectWithValue }) => {
+    const { error } = await supabase.from("file_folders").update({ shared: payload.shared }).eq("id", payload.id);
+    if (error) return rejectWithValue(friendlyFolderError(error.message));
+    // shared cascades to every descendant folder + file server-side
+    // (file_folder_cascade_shared trigger, 20260916000070) — refetch both
+    // tables rather than try to replicate that recursion here.
+    const [{ data: folders, error: fErr }, { data: objects, error: oErr }] = await Promise.all([
+      supabase.from("file_folders").select("*"),
+      supabase.from("file_objects").select("*"),
+    ]);
+    if (fErr) return rejectWithValue(fErr.message);
+    if (oErr) return rejectWithValue(oErr.message);
+    return { folders: folders as FileFolder[], objects: objects as FileObject[] };
+  },
+);
+
 export const deleteFolder = createAsyncThunk(
   "files/deleteFolder",
   async (id: string, { rejectWithValue, dispatch }) => {
@@ -161,6 +179,20 @@ export const moveFile = createAsyncThunk(
     const { data, error } = await supabase
       .from("file_objects")
       .update({ folder_id: payload.folderId })
+      .eq("id", payload.id)
+      .select()
+      .single();
+    if (error) return rejectWithValue(friendlyFolderError(error.message));
+    return data as FileObject;
+  },
+);
+
+export const toggleFileShared = createAsyncThunk(
+  "files/toggleFileShared",
+  async (payload: { id: string; shared: boolean }, { rejectWithValue }) => {
+    const { data, error } = await supabase
+      .from("file_objects")
+      .update({ shared: payload.shared })
       .eq("id", payload.id)
       .select()
       .single();
@@ -289,6 +321,10 @@ const filesSlice = createSlice({
       .addCase(moveFolder.fulfilled, (state, action) => {
         state.folders = action.payload;
       })
+      .addCase(toggleFolderShared.fulfilled, (state, action) => {
+        state.folders = action.payload.folders;
+        state.objects = action.payload.objects;
+      })
 
       .addCase(deleteFolder.fulfilled, (state, action) => {
         const removed = collectSubtree(action.payload, state.folders);
@@ -301,6 +337,9 @@ const filesSlice = createSlice({
         upsertObject(state, action.payload);
       })
       .addCase(moveFile.fulfilled, (state, action) => {
+        upsertObject(state, action.payload);
+      })
+      .addCase(toggleFileShared.fulfilled, (state, action) => {
         upsertObject(state, action.payload);
       })
       .addCase(deleteFile.fulfilled, (state, action) => {
