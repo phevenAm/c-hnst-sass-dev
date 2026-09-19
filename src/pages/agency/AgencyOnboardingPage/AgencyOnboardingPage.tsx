@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import Button from "@components/shared/Button/Button";
+import Spinner from "@components/shared/Spinner/Spinner";
 import type { OnboardingAudience } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -11,8 +12,10 @@ import {
   selectAgency,
   selectIsAgencyManager,
   selectOnboardingItems,
+  selectOnboardingItemsStatus,
 } from "@store/slices/agencySlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "../agency.module.scss";
 
 export default function AgencyOnboardingPage({ embedded = false }: { embedded?: boolean } = {}) {
@@ -20,6 +23,7 @@ export default function AgencyOnboardingPage({ embedded = false }: { embedded?: 
   const isManager = useAppSelector(selectIsAgencyManager);
   const agency = useAppSelector(selectAgency);
   const items = useAppSelector(selectOnboardingItems);
+  const itemsStatus = useAppSelector(selectOnboardingItemsStatus);
 
   const [audience, setAudience] = useState<OnboardingAudience>("client");
   const [title, setTitle] = useState("");
@@ -56,7 +60,7 @@ export default function AgencyOnboardingPage({ embedded = false }: { embedded?: 
       setBody("");
       setUrl("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save the item");
+      setError(getErrorMessage(err, "Couldn't save the item"));
     } finally {
       setBusy(false);
     }
@@ -117,9 +121,13 @@ export default function AgencyOnboardingPage({ embedded = false }: { embedded?: 
         </div>
       </form>
 
-      {visible.length === 0 ? (
-        <p className={styles.empty}>Nothing here yet.</p>
-      ) : (
+      {itemsStatus === "loading" && visible.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
+      {itemsStatus !== "loading" && visible.length === 0 && <p className={styles.empty}>Nothing here yet.</p>}
+      {visible.length > 0 && (
         <div className={styles.list}>
           {visible.map((i) => (
             <div key={i.id} className={styles.row}>

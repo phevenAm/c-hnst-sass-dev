@@ -51,7 +51,15 @@ export const updatePrivateEvent = createAsyncThunk<
   { id: string } & Partial<
     Pick<
       AdminPrivateEvent,
-      "title" | "starts_at" | "ends_at" | "notes" | "is_supervision" | "is_cpd" | "cost_pence" | "currency"
+      | "title"
+      | "starts_at"
+      | "ends_at"
+      | "notes"
+      | "is_supervision"
+      | "is_cpd"
+      | "cost_pence"
+      | "currency"
+      | "share_with_agency"
     >
   >,
   { rejectValue: string }

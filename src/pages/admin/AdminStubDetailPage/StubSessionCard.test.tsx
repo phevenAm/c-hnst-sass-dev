@@ -157,30 +157,64 @@ function clickDesktopButton(name: string | RegExp) {
 }
 
 describe("StubSessionCard — mark as paid", () => {
-  it("marks a standalone session paid, scoped by its own id, and offers to email since the client has one (happy path)", async () => {
+  it("opens a confirm step with an email checkbox (checked by default), then marks paid and emails on confirm (happy path)", async () => {
     nextResult.value = { data: [{ ...baseSession, paid: true }], error: null };
     const { onUpdated } = renderCard({}, true);
 
     clickDesktopButton("Mark as paid");
+    // Nothing written yet — marking paid now opens a confirm step instead of
+    // firing the write immediately and offering to email via a toast button.
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole("checkbox")).toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "Yes, mark paid" }));
 
     expect(updateSpy).toHaveBeenCalledWith({ paid: true });
     expect(eqSpy).toHaveBeenCalledWith("id", "stub-sess-1");
     expect(filterSpy).not.toHaveBeenCalled();
     await vi.waitFor(() => expect(onUpdated).toHaveBeenCalledWith([{ ...baseSession, paid: true }]));
-    expect(await screen.findByRole("button", { name: "Send email" })).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(invokeSpy).toHaveBeenCalledWith("notify-stub-payment-recorded", {
+        body: { stub_session_id: "stub-sess-1" },
+      }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Marked as paid — confirmation email sent.");
   });
 
-  it("scopes the update to the whole block (not just this row) when the session has a block_id", () => {
+  it("skips the email when the admin unchecks the box first (regression — the checkbox must actually gate the call)", async () => {
+    nextResult.value = { data: [{ ...baseSession, paid: true }], error: null };
+    renderCard({}, true);
+
+    clickDesktopButton("Mark as paid");
+    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, mark paid" }));
+
+    await vi.waitFor(() => expect(updateSpy).toHaveBeenCalledWith({ paid: true }));
+    expect(invokeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole("status")).toHaveTextContent("Marked as paid.");
+  });
+
+  it("has no email checkbox when the client has no email on file", async () => {
+    nextResult.value = { data: [{ ...baseSession, paid: true }], error: null };
+    renderCard({}, false);
+
+    clickDesktopButton("Mark as paid");
+    expect(await screen.findByRole("button", { name: "Yes, mark paid" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("scopes the update to the whole block (not just this row) when the session has a block_id", async () => {
     nextResult.value = { data: [], error: null };
     renderCard({ metadata: { block_id: "block-9" } });
 
     clickDesktopButton("Mark as paid");
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, mark paid" }));
 
-    expect(eqSpy).toHaveBeenCalledWith("stub_id", "stub-1");
+    await vi.waitFor(() => expect(eqSpy).toHaveBeenCalledWith("stub_id", "stub-1"));
     expect(filterSpy).toHaveBeenCalledWith("metadata->>block_id", "eq", "block-9");
   });
 
-  it("clears both paid and amount_paid when unmarking, and does not offer a payment email (sad path)", async () => {
+  it("clears both paid and amount_paid when unmarking — a direct one-click toggle, nothing to confirm (sad path)", async () => {
     nextResult.value = { data: [{ ...baseSession, paid: false }], error: null };
     renderCard({ paid: true, amount_paid: 60 });
 
@@ -188,7 +222,7 @@ describe("StubSessionCard — mark as paid", () => {
 
     expect(updateSpy).toHaveBeenCalledWith({ paid: false, amount_paid: null });
     await new Promise((r) => setTimeout(r, 0));
-    expect(screen.queryByRole("button", { name: "Send email" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Yes, mark paid" })).not.toBeInTheDocument();
   });
 
   it("shows a failure toast and does not call onUpdated when the write errors", async () => {
@@ -196,6 +230,7 @@ describe("StubSessionCard — mark as paid", () => {
     const { onUpdated } = renderCard();
 
     clickDesktopButton("Mark as paid");
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, mark paid" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Failed to update.");
     expect(onUpdated).not.toHaveBeenCalled();
@@ -286,23 +321,24 @@ describe("StubSessionCard — edge cases", () => {
     const { onUpdated } = renderCard({ price_pence: null });
 
     clickDesktopButton("Mark as paid");
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, mark paid" }));
 
     await vi.waitFor(() => expect(onUpdated).toHaveBeenCalled());
     expect(updateSpy).toHaveBeenCalledWith({ paid: true });
   });
 
-  it("only fires one edge-function call even if 'Send email' is clicked twice before it resolves (no double-send)", async () => {
+  it("only fires one edge-function call even if the confirm button is clicked twice before it resolves (no double-send)", async () => {
     let resolveInvoke: (v: { error: null }) => void = () => {};
     invokeSpy.mockImplementationOnce(() => new Promise((res) => (resolveInvoke = res)));
     nextResult.value = { data: [{ ...baseSession, paid: true }], error: null };
     renderCard({}, true);
 
     clickDesktopButton("Mark as paid");
-    const sendBtn = await screen.findByRole("button", { name: "Send email" });
-    fireEvent.click(sendBtn);
-    // The toast (and its button) is removed by `dismiss()` in the same click
-    // handler that fires the send — a second click has nothing left to hit.
-    expect(screen.queryByRole("button", { name: "Send email" })).not.toBeInTheDocument();
+    const confirmBtn = await screen.findByRole("button", { name: "Yes, mark paid" });
+    fireEvent.click(confirmBtn);
+    // Confirming disables the button via ConfirmModal's `confirming` prop —
+    // a second click while the write/email is still in flight hits nothing.
+    fireEvent.click(confirmBtn);
 
     resolveInvoke({ error: null });
     await vi.waitFor(() => expect(invokeSpy).toHaveBeenCalledTimes(1));

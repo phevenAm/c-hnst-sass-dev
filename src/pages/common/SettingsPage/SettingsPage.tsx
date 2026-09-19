@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { KEYWORDS } from "@constants/constants";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
-import { isPdfUrl, pickColor } from "@Helpers/Helpers";
+import { getErrorMessage, isPdfUrl, pickColor } from "@Helpers/Helpers";
 import { useResolvedTheme } from "@Hooks/useResolvedTheme";
 import { hardRefresh } from "@Hooks/useVersionCheck";
 import Avatar from "@components/shared/Avatar/Avatar";
@@ -86,25 +86,10 @@ const CLIENT_TABS: { id: AdminTab; label: string }[] = [
 // the plan_limits table (source of truth, shared with enforcement); the £ figures
 // live here and in the marketing page's TIERS array — keep the two in step.
 type TierKey = "starter" | "growth" | "unlimited";
-const TIER_DISPLAY: Record<
-  TierKey,
-  { label: string; monthly: number; annual: number; blurb: string; storage: string }
-> = {
-  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload", storage: "No file storage" },
-  growth: {
-    label: "Growth",
-    monthly: 16.99,
-    annual: 169,
-    blurb: "For a growing practice",
-    storage: "2.5 GB file storage",
-  },
-  unlimited: {
-    label: "Unlimited",
-    monthly: 24.99,
-    annual: 249,
-    blurb: "No client limit",
-    storage: "10 GB file storage",
-  },
+const TIER_DISPLAY: Record<TierKey, { label: string; monthly: number; annual: number; blurb: string }> = {
+  starter: { label: "Starter", monthly: 7.99, annual: 79, blurb: "For a small caseload" },
+  growth: { label: "Growth", monthly: 16.99, annual: 169, blurb: "For a growing practice" },
+  unlimited: { label: "Beyond", monthly: 24.99, annual: 249, blurb: "No client limit" },
 };
 const TIER_ORDER: TierKey[] = ["starter", "growth", "unlimited"];
 
@@ -409,19 +394,39 @@ const SettingsPage = () => {
   const agencyMembership = useAppSelector(selectAgencyMembership);
   const codenamesLockedByAgency = isAgencyMember && !!agency?.require_client_codenames;
   const consentLockedByAgency = isAgencyMember && !!agency?.locked_consent;
+  // Was DB-enforced only (enforce_agency_session_policy silently overwrote the
+  // saved value back to the agency default on every write) with zero FE
+  // awareness — a locked member could toggle this, get a "saved" toast, and
+  // have it silently reverted. Now disabled + shown pinned to the true value.
+  const sessionPolicyLockedByAgency =
+    isAgencyMember && agencyMembership?.role !== "manager" && !!agency?.locked_session_policy;
   // Employed COUNSELLOR staff don't own their business identity or email
-  // config — the agency does. Freelancers keep control of both (they may
-  // invoice clients directly, under their own name), and so does a manager
-  // (even one whose employment_type happens to be "employee") — they're the
-  // one setting policy for the agency, not receiving it from someone else.
+  // config by default — the agency does. Freelancers normally keep control of
+  // both (they may invoice clients directly, under their own name) — UNLESS
+  // the manager has explicitly turned on `locked_email_templates`, which is
+  // meant to lock every non-manager member regardless of employment_type.
+  // Previously this flag was captured but never read anywhere (dead toggle) —
+  // this was the only thing standing in for it, so a freelance member kept
+  // full control no matter what the manager set. A manager is never locked
+  // out of their own agency's policy, even one whose employment_type happens
+  // to be "employee".
   const isAgencyEmployee =
-    isAgencyMember && agencyMembership?.employment_type === "employee" && agencyMembership?.role !== "manager";
+    isAgencyMember &&
+    agencyMembership?.role !== "manager" &&
+    (agencyMembership?.employment_type === "employee" || !!agency?.locked_email_templates);
 
   const [useCodenames, setUseCodenames] = useState(false);
   const [hideProfilePii, setHideProfilePii] = useState(false);
   const [savingCodenames, setSavingCodenames] = useState(false);
   const [autoCancelEnabled, setAutoCancelEnabled] = useState(false);
   const [savingAutoCancel, setSavingAutoCancel] = useState(false);
+  // When locked, always show the agency's true current default rather than
+  // whatever this member's own practice_settings row last had saved — that
+  // row only gets overwritten to the new default on its next write, so it can
+  // lag behind a manager who just changed the agency default.
+  const effectiveAutoCancelEnabled = sessionPolicyLockedByAgency
+    ? !!agency?.default_auto_cancel_enabled
+    : autoCancelEnabled;
   const [rescheduleCutoffEnabled, setRescheduleCutoffEnabled] = useState(true);
   const [rescheduleCutoffHours, setRescheduleCutoffHours] = useState(48);
   const [savingRescheduleCutoff, setSavingRescheduleCutoff] = useState(false);
@@ -777,7 +782,7 @@ const SettingsPage = () => {
       if (fnError) throw new Error(fnError.message);
       showToast("Test email sent — check your inbox.");
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Failed to send test email", "error");
+      showToast(getErrorMessage(err, "Failed to send test email"), "error");
     }
     setSendingTest(null);
   };
@@ -1157,7 +1162,7 @@ const SettingsPage = () => {
       const { data: usage } = await supabase.rpc("plan_change_check", { p_target: targetPlan });
       if (usage) setPlanUsage({ active: usage.active, archived: usage.archived });
     } catch (err) {
-      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't switch plan.");
+      setPlanSwitchError(getErrorMessage(err, "Couldn't switch plan."));
     } finally {
       setSwitchingPlan(null);
       setConfirmSwitch(null);
@@ -1196,7 +1201,7 @@ const SettingsPage = () => {
       window.open(data.url, "_blank", "noopener,noreferrer");
       setLoadingPortal(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+      showToast(getErrorMessage(err, "Something went wrong"), "error");
       setLoadingPortal(false);
     }
   };
@@ -1228,7 +1233,7 @@ const SettingsPage = () => {
       }
       setConfirmPauseToggle(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Couldn't change the pause status", "error");
+      showToast(getErrorMessage(err, "Couldn't change the pause status"), "error");
     } finally {
       setPausing(false);
     }
@@ -1273,7 +1278,7 @@ const SettingsPage = () => {
       showToast("Stripe disconnected. Clients can no longer pay by card.");
       setConfirmDisconnectStripe(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Couldn't disconnect Stripe — please try again.", "error");
+      showToast(getErrorMessage(err, "Couldn't disconnect Stripe — please try again."), "error");
     }
     setDisconnectingStripe(false);
   };
@@ -1303,7 +1308,7 @@ const SettingsPage = () => {
       showToast("Google Calendar disconnected.");
       setConfirmDisconnectGoogle(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Failed to disconnect Google Calendar", "error");
+      showToast(getErrorMessage(err, "Failed to disconnect Google Calendar"), "error");
     }
     setDisconnectingGoogle(false);
   };
@@ -1363,7 +1368,7 @@ const SettingsPage = () => {
       showToast("Microsoft calendar disconnected.");
       setConfirmDisconnectMicrosoft(false);
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : "Failed to disconnect Microsoft calendar", "error");
+      showToast(getErrorMessage(err, "Failed to disconnect Microsoft calendar"), "error");
     }
     setDisconnectingMicrosoft(false);
   };
@@ -1394,7 +1399,11 @@ const SettingsPage = () => {
       <section className={styles.businessSection}>
         <p>
           Your business details and branding are set by {agency?.name ? <strong>{agency.name}</strong> : "your agency"},
-          not per-counsellor — there's nothing to configure here.
+          not per-counsellor — you can't edit them here.
+        </p>
+        <p>
+          Need your contact number, address, or business name updated? Ask an agency manager to set it from{" "}
+          <strong>Members → your profile → Contact</strong> — that's where it's entered on your behalf.
         </p>
       </section>
     </SettingsCard>
@@ -1602,7 +1611,6 @@ const SettingsPage = () => {
                           ? "Unlimited clients"
                           : `${limit.max_active} active + ${limit.max_archived} archived`}
                       </div>
-                      <div className={styles.tierCap}>{d.storage}</div>
                       <div className={styles.tierBlurb}>{d.blurb}</div>
                       {isCurrent ? (
                         <span className={styles.tierCurrentBadge}>Current plan</span>
@@ -1662,15 +1670,14 @@ const SettingsPage = () => {
 
         {/* ── Tab bar ── every role gets the same accessible bar; clients just
             get a shorter list (Profile · Interface). ── */}
-        <Card className={styles.tabsCard}>
-          <SettingsTabs
-            tabs={isAdmin ? ADMIN_TABS : CLIENT_TABS}
-            value={activeTab}
-            onChange={setActiveTab}
-            ariaLabel="Settings sections"
-            idBase="settings"
-          />
-        </Card>
+
+        <SettingsTabs
+          tabs={isAdmin ? ADMIN_TABS : CLIENT_TABS}
+          value={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Settings sections"
+          idBase="settings"
+        />
 
         {/* ── Profile tab ── */}
         {activeTab === "profile" && (
@@ -1793,11 +1800,6 @@ const SettingsPage = () => {
                 )}
               </div>
             </Card>
-
-            {subscriptionCard}
-            {agencyManagedCard}
-            {practiceLifecycleCard}
-            {referralCard}
           </div>
         )}
 
@@ -2340,22 +2342,25 @@ const SettingsPage = () => {
                   <span className={styles.toggleLabel}>
                     <strong>Auto-cancel unpaid sessions</strong>
                     <span>
-                      {autoCancelEnabled
-                        ? "On — sessions will be cancelled and clients emailed when payment is missed."
-                        : "Off — no sessions will be automatically cancelled."}
+                      {sessionPolicyLockedByAgency
+                        ? `Locked ${effectiveAutoCancelEnabled ? "on" : "off"} by your agency — this follows their default and can't be changed per-member.`
+                        : effectiveAutoCancelEnabled
+                          ? "On — sessions will be cancelled and clients emailed when payment is missed."
+                          : "Off — no sessions will be automatically cancelled."}
                     </span>
                   </span>
-                  <span className={`${styles.toggleSwitch} ${autoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
+                  <span className={`${styles.toggleSwitch} ${effectiveAutoCancelEnabled ? styles.toggleSwitchOn : ""}`}>
                     <input
                       type="checkbox"
                       className={styles.toggleInput}
-                      checked={autoCancelEnabled}
+                      checked={effectiveAutoCancelEnabled}
+                      disabled={sessionPolicyLockedByAgency}
                       onChange={(e) => setAutoCancelEnabled(e.target.checked)}
                     />
                     <span className={styles.toggleThumb} />
                   </span>
                 </label>
-                {autoCancelEnabled && (
+                {effectiveAutoCancelEnabled && (
                   <div className={styles.field} style={{ marginTop: "var(--sp-4)" }}>
                     <label htmlFor="paymentDeadlinePractice">Cutoff period</label>
                     <select
@@ -3048,6 +3053,16 @@ const SettingsPage = () => {
                 )}
               </section>
             </SettingsCard>
+
+            {/* Subscription/account-lifecycle cards used to live on the Profile
+                tab, next to display-name/avatar fields — a user managing their
+                subscription or deleting their account had to look under
+                "Profile" for it, while Billing (the tab that exists for exactly
+                this) held only pricing/invoicing/bank/Stripe. Moved here. */}
+            {subscriptionCard}
+            {agencyManagedCard}
+            {referralCard}
+            {practiceLifecycleCard}
           </div>
         )}
 

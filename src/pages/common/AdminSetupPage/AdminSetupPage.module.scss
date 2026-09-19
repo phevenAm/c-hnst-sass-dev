@@ -263,9 +263,13 @@ label.toggleSwitch {
 }
 
 .bankGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 $sp-3;
+  display: block;
+
+  @media (min-width: 1020px) {
+    gap: 0 $sp-3;
+    grid-template-columns: 1fr 1fr;
+    display: grid;
+  }
 
   .field {
     margin-bottom: $sp-3;

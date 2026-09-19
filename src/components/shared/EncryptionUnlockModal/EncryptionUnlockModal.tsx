@@ -4,6 +4,7 @@ import Button from "@components/shared/Button/Button";
 import Modal from "@components/shared/Modal/Modal";
 import { useEncryption } from "@context/EncryptionContext";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./EncryptionUnlockModal.module.scss";
 
 // The unlock / setup gate, lifted out of SessionNotesModal so the navbar
@@ -46,7 +47,7 @@ export default function EncryptionUnlockModal({ onClose }: { onClose: () => void
     try {
       await setupEncryption();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed. Please try again.");
+      setError(getErrorMessage(err, "Setup failed. Please try again."));
     }
     setWorking(false);
   };

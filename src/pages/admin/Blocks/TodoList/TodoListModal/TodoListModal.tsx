@@ -9,6 +9,7 @@ import { Todo } from "@/models/globalTypes";
 import { useAppDispatch } from "@/store/hooks";
 import { createTodoItem, updateTodoItem } from "@/store/slices/TodoSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./TodoListModal.module.scss";
 
 type Props = {
@@ -50,7 +51,7 @@ const TodoListModal = ({ onClose, editingTask }: Props) => {
       reset();
       if (!createMultiple) onClose();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Something went wrong, please reload and try again";
+      const message = getErrorMessage(error, "Something went wrong, please reload and try again");
       showToast(message, "danger");
     }
     setLoading(false);
@@ -66,7 +67,7 @@ const TodoListModal = ({ onClose, editingTask }: Props) => {
       showToast("Task updated", "success");
       onClose();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Something went wrong, please reload and try again";
+      const message = getErrorMessage(error, "Something went wrong, please reload and try again");
       showToast(message, "danger");
     }
     setLoading(false);

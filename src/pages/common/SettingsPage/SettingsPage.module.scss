@@ -411,6 +411,10 @@ input.copyFieldValue {
     margin: 0 0 $sp-4;
     line-height: 1.5;
   }
+
+  &>div {
+    padding: 0;
+  }
 }
 
 // ── Logo preview ───────────────────────────────────────────
@@ -437,6 +441,7 @@ input.copyFieldValue {
 }
 
 .saveButton {
+
   // full width only on the smallest screens, where a wrapped row of one looks
   // stranded; auto width (and left-aligned by the row) everywhere else.
   @include until-md {
@@ -492,10 +497,9 @@ input.copyFieldValue {
 
 // ── Tabs (admin only) ──────────────────────────────────────
 // The bar itself is <SettingsTabs> (src/components/shared/SettingsTabs); this
-// card just gives it the same inset as the panels below it.
-.tabsCard {
-  padding: $sp-2 $sp-4 0;
-}
+// card just gives it the same inset as the panels below it. Horizontal inset
+// must match .left/.card's $sp-6 (was $sp-4) — the mismatch left every tab
+// label sitting 8px less indented than the content underneath it.
 
 // ── Toggle switch ───────────────────────────────────────────
 .toggleRow {
@@ -773,11 +777,13 @@ input.copyFieldValue {
   background: var(--bg-muted);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: $sp-5;
+  padding: $sp-4 !important;
+
   margin-top: $sp-4;
 
+
   @media (max-width: 600px) {
-    padding: $sp-4;
+    padding: $sp-4 !important;
     gap: $sp-3;
   }
 }
@@ -838,6 +844,7 @@ input.copyFieldValue {
   font-weight: 400;
   line-height: 1.45;
   cursor: pointer;
+  font-size: .9rem;
 
   input {
     width: auto;
@@ -858,6 +865,12 @@ input.copyFieldValue {
   justify-content: space-between;
   padding: $sp-2 0;
   border-bottom: 1px solid var(--border);
+  font-size: .95rem !important;
+
+  &>span {
+    font-weight: 500;
+
+  }
 
   &:last-child {
     border-bottom: none;

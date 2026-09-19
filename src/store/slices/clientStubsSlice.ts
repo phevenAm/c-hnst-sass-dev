@@ -15,8 +15,21 @@ const initialState: ClientStubsState = {
   error: null,
 };
 
+// Scoped to the caller's own stubs (created_by) for the same reason as
+// fetchAllUsers/fetchAllSessions: every consumer here is a personal /admin/*
+// page, but RLS's acts_for_admin(created_by) widening (for /agency/* manage
+// mode) would otherwise mix every colleague's stubs into a manager's own list.
 export const fetchClientStubs = createAsyncThunk("clientStubs/fetchAll", async (_, { rejectWithValue }) => {
-  const { data, error } = await supabase.from("client_stubs").select("*").order("created_at", { ascending: false });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return rejectWithValue("Not signed in");
+
+  const { data, error } = await supabase
+    .from("client_stubs")
+    .select("*")
+    .eq("created_by", user.id)
+    .order("created_at", { ascending: false });
   if (error) return rejectWithValue(error.message);
   return data as ClientStub[];
 });

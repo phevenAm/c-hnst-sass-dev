@@ -527,6 +527,55 @@ describe("SettingsPage — session automation (auto-cancel unpaid sessions)", ()
   });
 });
 
+// Regression coverage for the fix in project_agency_staff_sharing_20260915:
+// locked_session_policy was DB-enforced only (enforce_agency_session_policy
+// silently overwrote a locked member's saved value back to the agency
+// default) with zero FE awareness — a member could toggle it, see "saved",
+// and have it silently reverted. The toggle must now be disabled and always
+// reflect the true (agency-default) value for a locked non-manager.
+describe("SettingsPage — agency-locked session policy (auto-cancel)", () => {
+  afterEach(() => {
+    mockAgencyState.membership = null;
+    mockAgencyState.agency = null;
+  });
+
+  it("disables the toggle for a locked non-manager and shows the agency's true default, not the stale saved row", async () => {
+    mockAgencyState.membership = { role: "counsellor", employment_type: "employee", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_session_policy: true, default_auto_cancel_enabled: true };
+    await openScheduleTab();
+
+    // initialRow.auto_cancel_enabled is false — if the fetched row (rather
+    // than the agency default) were shown, this would be unchecked.
+    const toggle = screen.getByRole("checkbox", { name: /auto-cancel unpaid sessions/i });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toBeChecked();
+    expect(screen.getByText(/locked on by your agency/i)).toBeInTheDocument();
+  });
+
+  it("a locked toggle cannot be flipped by clicking it", async () => {
+    mockAgencyState.membership = { role: "counsellor", employment_type: "employee", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_session_policy: true, default_auto_cancel_enabled: false };
+    await openScheduleTab();
+
+    const toggle = screen.getByRole("checkbox", { name: /auto-cancel unpaid sessions/i });
+    fireEvent.click(toggle);
+    expect(toggle).not.toBeChecked();
+  });
+
+  it("never locks the agency manager's own toggle, even when locked_session_policy is on", async () => {
+    mockAgencyState.membership = { role: "manager", employment_type: "employee", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_session_policy: true, default_auto_cancel_enabled: true };
+    await openScheduleTab();
+
+    expect(screen.getByRole("checkbox", { name: /auto-cancel unpaid sessions/i })).not.toBeDisabled();
+  });
+
+  it("a non-agency admin is never locked", async () => {
+    await openScheduleTab();
+    expect(screen.getByRole("checkbox", { name: /auto-cancel unpaid sessions/i })).not.toBeDisabled();
+  });
+});
+
 describe("SettingsPage — reschedule & cancellation cutoff", () => {
   it("turning the cutoff off clears reschedule_cutoff_hours so clients can act right up to session start", async () => {
     await openScheduleTab();
@@ -691,6 +740,52 @@ describe("SettingsPage — client-facing emails", () => {
   });
 });
 
+// Regression coverage for the fix in project_agency_staff_sharing_20260915:
+// locked_email_templates was captured but never read anywhere — the Emails
+// tab was gated by an unrelated employment_type/role heuristic instead, so a
+// freelance member kept full control no matter what the manager set, and an
+// employee member was always locked even with the flag off. The flag must
+// now be able to widen the lock to freelance staff too.
+describe("SettingsPage — agency-locked email templates", () => {
+  afterEach(() => {
+    mockAgencyState.membership = null;
+    mockAgencyState.agency = null;
+  });
+
+  it("locks the Emails tab for a freelance staff member when locked_email_templates is on", async () => {
+    mockAgencyState.membership = { role: "counsellor", employment_type: "freelance", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_email_templates: true };
+    await openEmailsTab();
+
+    expect(screen.getByText(/email content and delivery are configured by/i)).toBeInTheDocument();
+    expect(screen.queryByText(/control which emails go out/i)).not.toBeInTheDocument();
+  });
+
+  it("leaves a freelance staff member in control of Emails when locked_email_templates is off", async () => {
+    mockAgencyState.membership = { role: "counsellor", employment_type: "freelance", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_email_templates: false };
+    await openEmailsTab();
+
+    expect(screen.getByText(/control which emails go out/i)).toBeInTheDocument();
+  });
+
+  it("always locks an employed (non-freelance, non-manager) staff member's Emails tab regardless of the flag", async () => {
+    mockAgencyState.membership = { role: "counsellor", employment_type: "employee", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_email_templates: false };
+    await openEmailsTab();
+
+    expect(screen.getByText(/email content and delivery are configured by/i)).toBeInTheDocument();
+  });
+
+  it("never locks the agency manager's own Emails tab, even with locked_email_templates on", async () => {
+    mockAgencyState.membership = { role: "manager", employment_type: "employee", status: "active" };
+    mockAgencyState.agency = { name: "Acme Agency", locked_email_templates: true };
+    await openEmailsTab();
+
+    expect(screen.getByText(/control which emails go out/i)).toBeInTheDocument();
+  });
+});
+
 describe("SettingsPage — profile", () => {
   it("updates the display name", async () => {
     render(<SettingsPage />);
@@ -772,7 +867,7 @@ describe("SettingsPage — Google Calendar sync", () => {
 describe("SettingsPage — subscription", () => {
   it("opens the Stripe billing portal", async () => {
     currentRow.billing_customer_id = "cus_123";
-    await openProfileTab();
+    await openBillingTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
 
@@ -787,7 +882,7 @@ describe("SettingsPage — subscription", () => {
   it("never calls Stripe when the account is a demo account", async () => {
     currentRow.billing_customer_id = "cus_123";
     mockUseAuth.mockImplementation(() => ({ ...defaultAuthValue, isDemo: true }));
-    await openProfileTab();
+    await openBillingTab();
 
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
 
@@ -795,8 +890,11 @@ describe("SettingsPage — subscription", () => {
     expect(mockShowToast).toHaveBeenCalledWith(expect.stringMatching(/demo mode/i));
   });
 
-  it("does not render subscription settings on the Billing tab", async () => {
-    await openBillingTab();
+  // Regression coverage (2026-09-16): subscription/lifecycle/referral used to
+  // live on the Profile tab (next to display-name/avatar fields) instead of
+  // Billing, the tab that exists for exactly this — moved there.
+  it("does not render subscription settings on the Profile tab", async () => {
+    await openProfileTab();
 
     expect(screen.queryByRole("heading", { name: "Subscription" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
@@ -817,7 +915,7 @@ describe("SettingsPage — subscription", () => {
 
     it("swaps subscription/lifecycle for a managed-by-agency card", async () => {
       currentRow.billing_customer_id = "cus_123";
-      await openProfileTab();
+      await openBillingTab();
 
       expect(await screen.findByRole("heading", { name: "Your account" })).toBeInTheDocument();
       expect(screen.getByText(/managed by/i)).toHaveTextContent("Beacon Counselling");
@@ -837,7 +935,7 @@ describe("SettingsPage — data export", () => {
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:export");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
 
-    await openProfileTab();
+    await openBillingTab();
     fireEvent.click(await screen.findByRole("button", { name: "Export my data" }));
 
     await waitFor(() =>
@@ -849,7 +947,7 @@ describe("SettingsPage — data export", () => {
 
 describe("SettingsPage — pause / resume practice", () => {
   async function openPauseConfirm(cardButtonName: RegExp) {
-    await openProfileTab();
+    await openBillingTab();
     fireEvent.click(await screen.findByRole("button", { name: cardButtonName }));
     return within(await screen.findByRole("dialog"));
   }
@@ -962,7 +1060,7 @@ describe("SettingsPage — refer a friend", () => {
       ...defaultAuthValue,
       practiceSettings: { ...defaultAuthValue.practiceSettings, referral_code: "ABC12345" },
     }));
-    await openProfileTab();
+    await openBillingTab();
 
     expect(await screen.findByText(/register\?ref=ABC12345/)).toBeInTheDocument();
 
@@ -974,7 +1072,7 @@ describe("SettingsPage — refer a friend", () => {
   });
 
   it("does not show the card when the admin has no referral code yet (sad path)", async () => {
-    await openProfileTab();
+    await openBillingTab();
     expect(screen.queryByText("Refer a friend")).not.toBeInTheDocument();
   });
 });

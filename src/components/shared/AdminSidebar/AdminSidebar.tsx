@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useHasFileManager } from "@Hooks/useHasFileManager";
 import { useAuth } from "@context/AuthContext";
 import { useAppSelector } from "@store/hooks";
+import { selectAgencyMembership, selectIsAgencyManager, selectIsAgencyMember } from "@store/slices/agencySlice";
 import { selectTotalUnread } from "@store/slices/messagesSlice";
 
 import { isFeatureEnabled } from "@/lib/featureFlags";
@@ -46,7 +47,11 @@ const NAV: NavItem[] = [
     ? [{ to: "/admin/messages", label: "Messages", Icon: ChatIcon, exact: false } as NavLeaf]
     : []),
   { to: "/admin/forms", label: "Forms", Icon: AssignmentClipIcon, exact: false },
-  { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false },
+  // "Finances" (/admin/finances) is spliced in here at render time — hidden for
+  // agency employees (the agency bills centrally on their behalf), shown for
+  // solo admins, agency managers, and freelance/associate staff (they bill
+  // their own clients directly and settle a cut with the agency separately).
+  // See the employment_type branch in the component below.
   { to: "/admin/resources", label: "Resources", Icon: BookIcon, exact: false },
   // "Files" (/admin/files) is spliced in here at render time for tiers that have
   // storage — see the useHasFileManager() branch in the component below.
@@ -98,15 +103,33 @@ export default function AdminSidebar({
   const { isDemo } = useAuth();
   const totalUnread = useAppSelector(selectTotalUnread);
   const hasFileManager = useHasFileManager();
+  const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const isAgencyManager = useAppSelector(selectIsAgencyManager);
+  const membership = useAppSelector(selectAgencyMembership);
 
-  // Splice "Files" in after "Resources" only for tiers with storage (Growth+ /
-  // agency). Starter has a 0-byte quota, so the page is hidden for it.
+  // Solo admins and agency managers always get Finances — they run their own
+  // client billing. Freelance/associate staff bill their own clients directly
+  // too (then settle a cut with the agency separately), so they get it as
+  // well. Employees don't: the agency bills their clients centrally.
+  const showFinances = !isAgencyMember || isAgencyManager || membership?.employment_type === "freelance";
+
+  // Splice "Finances" and "Files" into NAV at render time: Finances is hidden
+  // for agency employees, Files only shows for tiers with storage (Growth+ /
+  // agency — Starter has a 0-byte quota so the page is hidden for it).
   const nav = useMemo<NavItem[]>(() => {
-    if (!hasFileManager) return NAV;
-    const at = NAV.findIndex((item) => !isGroup(item) && item.to === "/admin/resources");
-    const files: NavLeaf = { to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false };
-    return at === -1 ? [...NAV, files] : [...NAV.slice(0, at + 1), files, ...NAV.slice(at + 1)];
-  }, [hasFileManager]);
+    let items = NAV;
+    if (showFinances) {
+      const finances: NavLeaf = { to: "/admin/finances", label: "Finances", Icon: MoneyIcon, exact: false };
+      const at = items.findIndex((item) => !isGroup(item) && item.to === "/admin/forms");
+      items = at === -1 ? [...items, finances] : [...items.slice(0, at + 1), finances, ...items.slice(at + 1)];
+    }
+    if (hasFileManager) {
+      const files: NavLeaf = { to: "/admin/files", label: "Files", Icon: FolderIcon, exact: false };
+      const at = items.findIndex((item) => !isGroup(item) && item.to === "/admin/resources");
+      items = at === -1 ? [...items, files] : [...items.slice(0, at + 1), files, ...items.slice(at + 1)];
+    }
+    return items;
+  }, [showFinances, hasFileManager]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(SIDEBAR_MOBILE_QUERY).matches);
 

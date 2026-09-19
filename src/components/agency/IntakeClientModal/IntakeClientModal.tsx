@@ -6,6 +6,7 @@ import { useToast } from "@context/ToastContext";
 import form from "@pages/agency/agency.module.scss";
 import { poundsToPence } from "@pages/agency/agencyFormat";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { createIntakeClient } from "@store/slices/agencySlice";
 
 // Manager captures a new client's intake. Creates an offline record in the
@@ -18,6 +19,7 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [rate, setRate] = useState("");
+  const [allowCustomRate, setAllowCustomRate] = useState(false);
   const [availability, setAvailability] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,13 +37,19 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
           last_name: lastName.trim(),
           email: email.trim() || null,
           default_rate_pence: rate.trim() ? poundsToPence(rate) : null,
+          allow_staff_custom_rate: allowCustomRate,
           availability_note: availability.trim() || null,
         }),
       ).unwrap();
       showToast("Client added to the pool.", "success");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't add the client");
+      // createIntakeClient rejects via rejectWithValue(error.message) — a bare
+      // string, not an Error — so `.unwrap()` throws that string directly.
+      // `err instanceof Error` alone always missed it and fell back to the
+      // generic message, silently swallowing the real DB error.
+      const message = getErrorMessage(err, "Couldn't add the client");
+      setError(message);
       setBusy(false);
     }
   };
@@ -120,6 +128,20 @@ export default function IntakeClientModal({ agencyId, onClose }: { agencyId: str
             placeholder="e.g. 60"
           />
         </div>
+
+        {rate.trim() && (
+          <label className={form.toggleRow} htmlFor="ic-allow-custom-rate">
+            <span className={form.toggleText}>
+              Allow the assigned staff member to charge this client a different rate
+            </span>
+            <input
+              id="ic-allow-custom-rate"
+              type="checkbox"
+              checked={allowCustomRate}
+              onChange={(e) => setAllowCustomRate(e.target.checked)}
+            />
+          </label>
+        )}
 
         <div className={form.field}>
           <label className={form.label} htmlFor="ic-avail">

@@ -6,37 +6,6 @@
   margin: 0;
 }
 
-// ── Tab strip ─────────────────────────────────────────────
-.tabs {
-  display: flex;
-  gap: var(--sp-1);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--sp-6);
-  overflow-x: auto;
-}
-
-.tab {
-  padding: var(--sp-3) var(--sp-4);
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-  }
-}
-
-.tabActive {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
 // ── Overview ──────────────────────────────────────────────
 .overview {
   display: flex;
@@ -112,45 +81,10 @@
   color: var(--accent);
 }
 
-// ── Overview series toggle ────────────────────────────────
-.seriesToggle {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-.seriesChip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-3);
-  border: none;
-  border-radius: var(--r-full);
-  background: var(--bg-muted);
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-
-  &:hover {
-    color: var(--text-primary);
-  }
-}
-
-.seriesChipOff {
-  opacity: 0.45;
-
-  .seriesDot {
-    background: var(--text-muted) !important;
-  }
-}
-
-.seriesDot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+// Series toggle chips moved to the shared <SeriesToggleChips> component
+// (src/components/shared/SeriesToggleChips) so the Dashboard's Practice
+// Trends widget could use the exact same control instead of a differently
+// styled one.
 
 // Donut + combined trend card: donut keeps its size, the trend card takes the rest.
 .chartsRow {

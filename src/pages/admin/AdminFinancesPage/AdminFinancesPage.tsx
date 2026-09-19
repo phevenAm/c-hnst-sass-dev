@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import DonutChart from "@components/shared/DonutChart/DonutChart";
+import SeriesToggleChips from "@components/shared/SeriesToggleChips/SeriesToggleChips";
+import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import Spinner from "@components/shared/Spinner/Spinner";
 import StatTile from "@components/shared/StatTile/StatTile";
 import { useAuth } from "@context/AuthContext";
@@ -56,7 +58,10 @@ const PERIODS: { key: Period; label: string }[] = [
 // "provisional", vs. Income/Outgoings' settled solid lines.
 const OVERVIEW_SERIES: TrendSeries[] = [
   { key: "Income", name: "Income", color: "var(--accent)" },
-  { key: "Outgoings", name: "Outgoings", color: "#a8633a" },
+  // --highlight is the design system's own "second accent" (a warm
+  // terracotta reserved for decorative use, not buttons) — matches the
+  // same swap on the Dashboard's Revenue/Outgoings chart.
+  { key: "Outgoings", name: "Outgoings", color: "var(--highlight)" },
   // A distinct blue, not another orange/brown — Outgoings already owns that
   // band and sat too close to Owed's old olive tone to tell apart at a glance.
   { key: "Owed", name: "Owed / overdue", color: "#3a7fa8", dashed: true },
@@ -265,26 +270,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
 
         <TrendControls state={trend} />
 
-        <div className={styles.controlGroup}>
-          <span className={styles.controlLabel}>Series shown</span>
-          <div className={styles.seriesToggle}>
-            {OVERVIEW_SERIES.map((s) => {
-              const on = !hiddenSeries.has(s.key);
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  className={`${styles.seriesChip} ${on ? "" : styles.seriesChipOff}`}
-                  aria-pressed={on}
-                  onClick={() => toggleSeries(s.key)}
-                >
-                  <span className={styles.seriesDot} style={{ background: s.color }} />
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <SeriesToggleChips series={OVERVIEW_SERIES} hidden={hiddenSeries} onToggle={toggleSeries} />
       </Card>
 
       <div className={styles.tiles}>
@@ -305,7 +291,7 @@ function Overview({ onJump }: { onJump: (v: View, openNew: boolean) => void }) {
           title="Income vs outgoings"
           slices={[
             ...(incomeHidden ? [] : [{ name: "Income", value: incomePence / 100, color: "var(--accent)" }]),
-            ...(outgoingsHidden ? [] : [{ name: "Outgoings", value: outgoingsPence / 100, color: "#a8633a" }]),
+            ...(outgoingsHidden ? [] : [{ name: "Outgoings", value: outgoingsPence / 100, color: "var(--highlight)" }]),
           ]}
           centerValue={money(netHidden ? donutSoloPence : netPence)}
           centerLabel={netHidden ? donutSoloLabel : "net"}
@@ -395,19 +381,14 @@ export default function AdminFinancesPage() {
           <h1 className={styles.title}>Finances</h1>
         </div>
 
-        <nav className={styles.tabs} aria-label="Finances views">
-          {VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              className={`${styles.tab} ${view === v.key ? styles.tabActive : ""}`}
-              aria-current={view === v.key ? "page" : undefined}
-              onClick={() => setView(v.key)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </nav>
+        <SettingsTabs
+          tabs={VIEWS.map((v) => ({ id: v.key, label: v.label }))}
+          value={view}
+          onChange={setView}
+          ariaLabel="Finances views"
+          idBase="admin-finances"
+          syncSearchParam={false}
+        />
 
         <Suspense fallback={<Spinner />}>
           {view === "overview" && <Overview onJump={jump} />}

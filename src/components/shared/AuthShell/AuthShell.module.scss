@@ -43,6 +43,7 @@
 
 .cardWide {
   max-width: none;
+  width: fit-content;
 }
 
 .container:has(.cardWide) {

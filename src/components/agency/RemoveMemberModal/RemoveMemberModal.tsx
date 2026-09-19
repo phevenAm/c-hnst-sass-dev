@@ -6,6 +6,7 @@ import { useToast } from "@context/ToastContext";
 import type { AgencyMemberWithUser } from "@models/agency";
 import form from "@pages/agency/agency.module.scss";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { fetchAgencyMembers, removeAgencyMember } from "@store/slices/agencySlice";
 
 const name = (m: AgencyMemberWithUser) =>
@@ -42,7 +43,7 @@ export default function RemoveMemberModal({
       showToast(`${name(member)} removed from the agency.`, "success");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't remove the member");
+      setError(getErrorMessage(err, "Couldn't remove the member"));
       setBusy(false);
     }
   };

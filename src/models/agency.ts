@@ -23,6 +23,8 @@ export interface Agency {
   consent_text: string | null;
   consent_pdf_url: string | null;
   shared_resources: boolean;
+  allow_staff_forms: boolean;
+  allow_staff_resources: boolean;
   require_note_encryption: boolean;
   locked_email_templates: boolean;
   require_client_codenames: boolean;
@@ -133,6 +135,8 @@ export interface AgencyClient {
   codename: string | null;
   agency_id: string | null;
   default_rate_pence: number | null;
+  /** False (default) locks the assigned staff member to default_rate_pence when it's set — see CreateSessionModal. */
+  allow_staff_custom_rate: boolean;
   availability_note: string | null;
   created_by: string;
   created_at: string;
@@ -172,4 +176,31 @@ export interface AgencyFinanceSummary {
   income_pence: number;
   outgoings_pence: number;
   net_pence: number;
+}
+
+// A group of clients seen together (group-therapy style). v1: members are
+// drawn from the agency's client_stubs pool (client_id is reserved for a
+// future "real logged-in client" path — see group_members' schema comment).
+export interface Group {
+  id: string;
+  agency_id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GroupMember {
+  id: string;
+  group_id: string;
+  client_id: string | null;
+  stub_id: string | null;
+  added_at: string;
+}
+
+export interface GroupStaffRow {
+  id: string;
+  group_id: string;
+  user_id: string;
+  added_at: string;
 }

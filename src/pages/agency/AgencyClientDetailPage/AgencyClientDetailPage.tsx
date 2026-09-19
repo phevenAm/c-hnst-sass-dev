@@ -6,6 +6,7 @@ import Avatar from "@components/shared/Avatar/Avatar";
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import Spinner from "@components/shared/Spinner/Spinner";
 import { useToast } from "@context/ToastContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -17,7 +18,9 @@ import {
   selectAgencyMembers,
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
+import { fetchGroups, selectGroupsForStub, selectGroupsStatus } from "@store/slices/groupsSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
@@ -46,6 +49,8 @@ export default function AgencyClientDetailPage() {
   const agency = useAppSelector(selectAgency);
   const clients = useAppSelector(selectAgencyClients);
   const members = useAppSelector(selectAgencyMembers);
+  const groups = useAppSelector(selectGroupsForStub(clientId ?? ""));
+  const groupsStatus = useAppSelector(selectGroupsStatus);
 
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -55,7 +60,10 @@ export default function AgencyClientDetailPage() {
 
   useEffect(() => {
     dispatch(fetchAgencyMembers());
-    if (agency) dispatch(fetchAgencyClients(agency.id));
+    if (agency) {
+      dispatch(fetchAgencyClients(agency.id));
+      dispatch(fetchGroups(agency.id));
+    }
   }, [dispatch, agency]);
 
   useEffect(() => {
@@ -114,7 +122,7 @@ export default function AgencyClientDetailPage() {
       );
       setRemovingCounsellor(false);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't remove the counsellor", "error");
+      showToast(getErrorMessage(err, "Couldn't remove the counsellor"), "error");
     } finally {
       setRemoveBusy(false);
     }
@@ -188,13 +196,41 @@ export default function AgencyClientDetailPage() {
       </div>
 
       <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Groups</h2>
+        {groupsStatus === "loading" && groups.length === 0 ? (
+          <Spinner size={28} />
+        ) : groups.length === 0 ? (
+          <p className={styles.cardBlurb}>
+            Not in any group. Manage groups from the{" "}
+            <Button variant="link" size="sm" onClick={() => navigate("/agency/groups")}>
+              Groups page
+            </Button>
+            .
+          </p>
+        ) : (
+          <div className={styles.list}>
+            {groups.map((g) => (
+              <div key={g.id} className={styles.row}>
+                <div className={styles.rowMain}>
+                  <span className={styles.rowName}>{g.name}</span>
+                  <span className={styles.rowMeta}>
+                    {g.members.length} client{g.members.length === 1 ? "" : "s"} · {g.staff.length} staff
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.card}>
         <h2 className={styles.cardTitle}>Audit trail</h2>
         <p className={styles.cardBlurb}>
           Every stage this client has moved through with {agency?.name ?? "your agency"} — assignment, review, and
           status changes.
         </p>
         {loadingActivity ? (
-          <p className={styles.empty}>Loading…</p>
+          <Spinner size={28} />
         ) : activity.length === 0 ? (
           <p className={styles.empty}>Nothing recorded yet.</p>
         ) : (

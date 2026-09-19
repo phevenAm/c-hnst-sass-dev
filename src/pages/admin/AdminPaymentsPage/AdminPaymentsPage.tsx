@@ -14,7 +14,6 @@ import { Button } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { clientDisplayName, isPageStatusLoading } from "@/Helpers/Helpers";
-import { usePaymentConfirmationToast } from "@/Hooks/usePaymentConfirmationToast";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/models/database.types";
 import type { Session, StubSession } from "@/models/globalTypes";
@@ -137,7 +136,6 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
   const navigate = useNavigate();
   const { isDemo, practiceSettings } = useAuth();
   const { showToast } = useToast();
-  const offerPaymentEmail = usePaymentConfirmationToast();
   const useCodenames = practiceSettings?.use_client_codenames ?? false;
 
   const [selectedClientId, setSelectedClientId] = useState("all");
@@ -167,6 +165,9 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
   const [markStubPaid, setMarkStubPaid] = useState<{ id: string; currency: string } | null>(null);
   const [markAmount, setMarkAmount] = useState("");
   const [markNotify, setMarkNotify] = useState(true);
+  const [markPaidTarget, setMarkPaidTarget] = useState<{ sessionId: string; clientId: string | null } | null>(null);
+  const [markPaidNotify, setMarkPaidNotify] = useState(true);
+  const [markingPaidConfirm, setMarkingPaidConfirm] = useState(false);
   const [respondTarget, setRespondTarget] = useState<{ sessions: Session[]; approved: boolean } | null>(null);
   const [respondNotify, setRespondNotify] = useState(true);
   const [responding, setResponding] = useState(false);
@@ -450,16 +451,28 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  const handleMarkPaid = async (e: React.MouseEvent, sessionId: string, clientId: string | null) => {
+  const openMarkPaidConfirm = (e: React.MouseEvent, sessionId: string, clientId: string | null) => {
     e.stopPropagation();
     if (isDemo) {
       showToast("Demo mode — changes are not saved.", "warning");
       return;
     }
-    await dispatch(updateSession({ id: sessionId, paid: true })).unwrap();
+    setMarkPaidNotify(true);
+    setMarkPaidTarget({ sessionId, clientId });
+  };
+
+  const handleConfirmMarkPaid = async () => {
+    if (!markPaidTarget) return;
+    setMarkingPaidConfirm(true);
+    await dispatch(updateSession({ id: markPaidTarget.sessionId, paid: true })).unwrap();
     await loadLedgerPage();
-    const hasEmail = Boolean(clients.find((c) => c.id === clientId)?.email);
-    offerPaymentEmail(hasEmail, { type: "session", sessionId }, "Session marked as paid.");
+    const hasEmail = Boolean(clients.find((c) => c.id === markPaidTarget.clientId)?.email);
+    if (markPaidNotify && hasEmail) {
+      supabase.functions.invoke("send-payment-notification", { body: { session_id: markPaidTarget.sessionId } });
+    }
+    setMarkingPaidConfirm(false);
+    setMarkPaidTarget(null);
+    showToast("Session marked as paid.", "success");
   };
 
   const handleMarkUnpaid = async (e: React.MouseEvent, sessionId: string) => {
@@ -625,7 +638,7 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
         // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops the row-click from firing when an action button is used; the buttons are the real controls
         <div className={styles.actionsCell} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
           {!r.isPaid && r.source === "session" && (
-            <Button size="sm" variant="ghost" onClick={(e) => handleMarkPaid(e, r.id, r.clientId)}>
+            <Button size="sm" variant="ghost" onClick={(e) => openMarkPaidConfirm(e, r.id, r.clientId)}>
               Mark paid
             </Button>
           )}
@@ -901,6 +914,28 @@ const AdminPaymentsPage = ({ embedded = false, openNew = false }: AdminPaymentsP
             </label>
           </div>
         </Modal>
+      )}
+
+      {markPaidTarget && (
+        <ConfirmModal
+          title="Mark this session as paid?"
+          onClose={() => setMarkPaidTarget(null)}
+          onConfirm={handleConfirmMarkPaid}
+          confirming={markingPaidConfirm}
+          danger={false}
+          confirmLabel={markingPaidConfirm ? "Saving…" : "Yes, mark paid"}
+          notifyOption={
+            clients.find((c) => c.id === markPaidTarget.clientId)?.email
+              ? {
+                  label: "Email the client that their payment was recorded",
+                  checked: markPaidNotify,
+                  onChange: setMarkPaidNotify,
+                }
+              : undefined
+          }
+        >
+          <p>This marks the session as paid.</p>
+        </ConfirmModal>
       )}
 
       {respondTarget && (

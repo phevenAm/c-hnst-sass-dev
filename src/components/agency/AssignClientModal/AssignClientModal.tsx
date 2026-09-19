@@ -7,6 +7,7 @@ import type { AgencyClient, AgencyMemberWithUser } from "@models/agency";
 import form from "@pages/agency/agency.module.scss";
 import { penceToPoundsInput, poundsToPence } from "@pages/agency/agencyFormat";
 import { useAppDispatch } from "@store/hooks";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { assignClient, fetchAgencyClients } from "@store/slices/agencySlice";
 
 const memberName = (m: AgencyMemberWithUser) =>
@@ -56,7 +57,7 @@ export default function AssignClientModal({
       );
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't assign the client");
+      setError(getErrorMessage(err, "Couldn't assign the client"));
       setBusy(false);
     }
   };

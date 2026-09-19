@@ -4,6 +4,7 @@ import type { Response } from "../models/globalTypes";
 import {
   ageFromDob,
   clientDisplayName,
+  getErrorMessage,
   getInitials,
   getResponseDate,
   isAdultFromDob,
@@ -13,6 +14,32 @@ import {
   pickColor,
   timeAgo,
 } from "./Helpers";
+
+describe("getErrorMessage", () => {
+  it("returns the message from a real Error (happy path)", () => {
+    expect(getErrorMessage(new Error("boom"), "fallback")).toBe("boom");
+  });
+
+  it("returns a bare string thrown/rejected-with directly — the .unwrap() case (regression)", () => {
+    // createAsyncThunk's rejectWithValue(str) makes `.unwrap()` throw that bare
+    // string, not an Error. This is the exact bug this helper exists to fix.
+    expect(getErrorMessage("Couldn't add the client", "fallback")).toBe("Couldn't add the client");
+  });
+
+  it("falls back for non-Error, non-string rejections (sad path)", () => {
+    expect(getErrorMessage({ weird: "object" }, "fallback")).toBe("fallback");
+    expect(getErrorMessage(undefined, "fallback")).toBe("fallback");
+    expect(getErrorMessage(null, "fallback")).toBe("fallback");
+  });
+
+  it("falls back for an empty string rather than surfacing nothing (edge case)", () => {
+    expect(getErrorMessage("", "fallback")).toBe("fallback");
+  });
+
+  it("falls back for an Error with an empty message rather than surfacing nothing (edge case)", () => {
+    expect(getErrorMessage(new Error(""), "fallback")).toBe("fallback");
+  });
+});
 
 describe("isQuestionnaireCheckInDue", () => {
   it("returns true when 1 day has passed", () => {

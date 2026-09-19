@@ -6,6 +6,7 @@ import InfoTooltip from "@components/shared/InfoTooltip/InfoTooltip";
 import PasswordInput from "@components/shared/PasswordInput/PasswordInput";
 import { useAuth } from "@context/AuthContext";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./SignUpPage.module.scss";
 
 const FIELDS = [
@@ -101,7 +102,7 @@ export default function SignUpPage() {
         form.accessToken,
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(getErrorMessage(err, "An error occurred"));
     } finally {
       setLoading(false);
     }

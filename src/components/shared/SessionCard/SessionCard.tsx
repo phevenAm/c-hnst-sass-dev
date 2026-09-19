@@ -7,6 +7,7 @@ import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
 
+import ConfirmModal from "@/components/shared/ConfirmModal/ConfirmModal";
 import PaymentModal from "@/components/shared/PaymentModal/PaymentModal";
 import { downloadAdminSessionIcs } from "@/Helpers/calendarExport";
 import { supabase } from "@/lib/supabase.js";
@@ -52,6 +53,9 @@ export function SessionCard({
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isMarkAsPaidOpen, setIsMarkAsPaidOpen] = useState(false);
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [isMarkPaidConfirmOpen, setIsMarkPaidConfirmOpen] = useState(false);
+  const [markPaidNotify, setMarkPaidNotify] = useState(true);
+  const [confirmingMarkPaid, setConfirmingMarkPaid] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [openEditSession, setOpenEditSession] = useState(false);
   const [events, setEvents] = useState<SessionEvent[]>([]);
@@ -168,6 +172,8 @@ export function SessionCard({
   const {
     toggleNoShowOrPayment,
     togglePayment,
+    confirmMarkPaid,
+    hasClientEmail,
     markAttended,
     markNoShow,
     restoreSession,
@@ -175,7 +181,17 @@ export function SessionCard({
     getStatusClass,
     formatEventLabel,
     isWithinRescheduleCutoff,
-  } = useSessionCard(session);
+  } = useSessionCard(session, () => {
+    setMarkPaidNotify(true);
+    setIsMarkPaidConfirmOpen(true);
+  });
+
+  const handleConfirmMarkPaid = async () => {
+    setConfirmingMarkPaid(true);
+    await confirmMarkPaid(markPaidNotify);
+    setConfirmingMarkPaid(false);
+    setIsMarkPaidConfirmOpen(false);
+  };
 
   const isCancelled = session.status === "cancelled";
 
@@ -491,6 +507,30 @@ export function SessionCard({
           <ClientCancelModal session={session} onClose={() => setIsCancelModalOpen(false)} />
         ))}
       {isPayModalOpen && <PaymentModal session={session} onClose={() => setIsPayModalOpen(false)} />}
+      {isMarkPaidConfirmOpen && (
+        <ConfirmModal
+          title="Mark this session as paid?"
+          onClose={() => setIsMarkPaidConfirmOpen(false)}
+          onConfirm={handleConfirmMarkPaid}
+          confirming={confirmingMarkPaid}
+          danger={false}
+          confirmLabel={confirmingMarkPaid ? "Saving…" : "Yes, mark paid"}
+          notifyOption={
+            hasClientEmail
+              ? {
+                  label: "Email the client that their payment was recorded",
+                  checked: markPaidNotify,
+                  onChange: setMarkPaidNotify,
+                }
+              : undefined
+          }
+        >
+          <p>
+            £{(session.price_pence / 100).toFixed(2)} for the session on{" "}
+            {dayjs(session.scheduled_at).format("D MMM [at] h:mma")}.
+          </p>
+        </ConfirmModal>
+      )}
       {isMarkAsPaidOpen && (
         <Modal
           title="Mark as paid"

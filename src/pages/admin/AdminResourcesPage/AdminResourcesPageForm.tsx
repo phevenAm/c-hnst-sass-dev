@@ -6,6 +6,7 @@ import Modal from "@components/shared/Modal/Modal";
 import PdfUpload from "@components/shared/PdfUpload/PdfUpload";
 import { Resource } from "@models/globalTypes";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./AdminResourcesPage.module.scss";
 
 const CATEGORIES = ["Psychoeducation", "Coping Skills", "Breathwork", "Self-Compassion", "Relationships", "General"];
@@ -75,7 +76,7 @@ export function ResourceForm({
       await onSave(form);
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Couldn't save the resource. Please try again.");
+      alert(getErrorMessage(err, "Couldn't save the resource. Please try again."));
     } finally {
       setSaving(false);
     }

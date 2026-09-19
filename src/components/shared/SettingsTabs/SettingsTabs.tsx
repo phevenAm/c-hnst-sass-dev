@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { ChevronLeftIcon, ChevronRightIcon } from "@components/shared/Icons/Icons";
 
 import styles from "./SettingsTabs.module.scss";
+import Card from "../Card";
 
 export type SettingsTabDef<Id extends string = string> = { id: Id; label: string };
 
@@ -116,59 +117,61 @@ export default function SettingsTabs<Id extends string>({
   };
 
   return (
-    <div className={styles.wrap}>
-      {overflowLeft && (
-        <button
-          type="button"
-          className={styles.arrow}
-          onClick={() => scrollByStep(-1)}
-          aria-label="Scroll tabs left"
-          tabIndex={-1}
+    <Card className={styles.card}>
+      <div className={styles.wrap}>
+        {overflowLeft && (
+          <button
+            type="button"
+            className={styles.arrow}
+            onClick={() => scrollByStep(-1)}
+            aria-label="Scroll tabs left"
+            tabIndex={-1}
+          >
+            <ChevronLeftIcon />
+          </button>
+        )}
+        <div
+          ref={listRef}
+          id={`${idBase}-tabs`}
+          className={styles.list}
+          role="tablist"
+          aria-label={ariaLabel}
+          aria-orientation="horizontal"
+          onScroll={measure}
+          onWheel={onWheel}
+          onKeyDown={onKeyDown}
         >
-          <ChevronLeftIcon />
-        </button>
-      )}
-      <div
-        ref={listRef}
-        id={`${idBase}-tabs`}
-        className={styles.list}
-        role="tablist"
-        aria-label={ariaLabel}
-        aria-orientation="horizontal"
-        onScroll={measure}
-        onWheel={onWheel}
-        onKeyDown={onKeyDown}
-      >
-        {tabs.map((tab) => {
-          const selected = tab.id === value;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              id={`${idBase}-tab-${tab.id}`}
-              aria-selected={selected}
-              aria-controls={`${idBase}-panel-${tab.id}`}
-              tabIndex={selected ? 0 : -1}
-              className={`${styles.tab} ${selected ? styles.tabActive : ""}`}
-              onClick={() => onChange(tab.id)}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+          {tabs.map((tab) => {
+            const selected = tab.id === value;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                id={`${idBase}-tab-${tab.id}`}
+                aria-selected={selected}
+                aria-controls={`${idBase}-panel-${tab.id}`}
+                tabIndex={selected ? 0 : -1}
+                className={`${styles.tab} ${selected ? styles.tabActive : ""}`}
+                onClick={() => onChange(tab.id)}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        {overflowRight && (
+          <button
+            type="button"
+            className={styles.arrow}
+            onClick={() => scrollByStep(1)}
+            aria-label="Scroll tabs right"
+            tabIndex={-1}
+          >
+            <ChevronRightIcon />
+          </button>
+        )}
       </div>
-      {overflowRight && (
-        <button
-          type="button"
-          className={styles.arrow}
-          onClick={() => scrollByStep(1)}
-          aria-label="Scroll tabs right"
-          tabIndex={-1}
-        >
-          <ChevronRightIcon />
-        </button>
-      )}
-    </div>
+    </Card>
   );
 }

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { useCanCreateForms } from "@Hooks/useAgencyCreatePermission";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import Modal from "@components/shared/Modal/Modal";
+import SettingsTabs from "@components/shared/SettingsTabs/SettingsTabs";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useAuth } from "@context/AuthContext";
 import { useToast } from "@context/ToastContext";
@@ -600,6 +602,7 @@ export default function AdminQuestionnairesPage() {
   const dispatch = useAppDispatch();
   const { isDemo } = useAuth();
   const { showToast } = useToast();
+  const canCreateForms = useCanCreateForms();
   const questionnaires = useAppSelector(selectAllQuestionnaires);
   const clients = useAppSelector(selectClientUsers);
   const tags = useAppSelector(selectAllTags);
@@ -723,26 +726,24 @@ export default function AdminQuestionnairesPage() {
           </div>
           <SplitButton
             primaryLabel="New form"
-            primaryAction={() => setShowBuilder(true)}
+            primaryAction={() =>
+              canCreateForms
+                ? setShowBuilder(true)
+                : showToast("Your agency hasn't turned on staff-created forms — ask a manager to enable it.")
+            }
             options={[{ label: "Manage tags", onClick: () => setShowTagsModal(true) }]}
             secondaryLabel="More options"
           />
         </div>
 
-        <div className={styles.tabs} role="tablist">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <SettingsTabs
+          tabs={TABS}
+          value={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Form categories"
+          idBase="admin-forms"
+          syncSearchParam={false}
+        />
 
         {(tabQuestionnaires.length > 0 || needle) && (
           <input

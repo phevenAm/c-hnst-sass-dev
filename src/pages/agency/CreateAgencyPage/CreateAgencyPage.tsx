@@ -7,6 +7,7 @@ import { useToast } from "@context/ToastContext";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { createAgency, selectAgencyMembership } from "@store/slices/agencySlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./CreateAgencyPage.module.scss";
 
 // Turns the signed-in counsellor into the owner + first manager of a new agency.
@@ -40,7 +41,7 @@ export default function CreateAgencyPage() {
       showToast("Agency created — welcome to manage mode.", "success");
       navigate("/agency", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't create the agency");
+      setError(getErrorMessage(err, "Couldn't create the agency"));
       setSubmitting(false);
     }
   };

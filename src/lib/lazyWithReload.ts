@@ -2,6 +2,8 @@ import { type ComponentType, type LazyExoticComponent, lazy } from "react";
 
 import { showSplash } from "@/bootSplash";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
+
 // Vite fingerprints every code-split chunk's filename. After a deploy the
 // browser can still be holding the previous index.html, so an `import()` of a
 // route chunk 404s — "Failed to fetch dynamically imported module
@@ -47,7 +49,7 @@ const STALE_CHUNK = [
  * Pure except for the sessionStorage guard flag; exported for tests.
  */
 export function classifyImportError(err: unknown): "reload" | "rethrow" {
-  const msg = err instanceof Error ? err.message : String(err);
+  const msg = getErrorMessage(err, String(err));
   const isStale = STALE_CHUNK.some((re) => re.test(msg));
   return isStale && !readFlag() ? "reload" : "rethrow";
 }

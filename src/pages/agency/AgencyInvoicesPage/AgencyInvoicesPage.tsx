@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import AgencyInvoiceModal from "@components/agency/AgencyInvoiceModal/AgencyInvoiceModal";
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import Spinner from "@components/shared/Spinner/Spinner";
 import SplitButton from "@components/shared/SplitButton/SplitButton";
 import { useToast } from "@context/ToastContext";
 import type { AgencyInvoice, AgencyInvoiceStatus, AgencyMemberWithUser } from "@models/agency";
@@ -20,6 +21,7 @@ import {
   updateAgencyInvoiceStatus,
 } from "@store/slices/agencySlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
 
@@ -74,7 +76,7 @@ export default function AgencyInvoicesPage({ embedded = false }: { embedded?: bo
       else await dispatch(updateAgencyInvoiceStatus({ id: inv.id, status: next })).unwrap();
       showToast(`Marked ${next}.`, "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't update the invoice", "danger");
+      showToast(getErrorMessage(err, "Couldn't update the invoice"), "danger");
     } finally {
       setBusyId(null);
     }
@@ -88,7 +90,7 @@ export default function AgencyInvoicesPage({ embedded = false }: { embedded?: bo
       showToast("Invoice deleted.", "success");
       setDeleting(null);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't delete the invoice", "danger");
+      showToast(getErrorMessage(err, "Couldn't delete the invoice"), "danger");
     } finally {
       setBusyId(null);
     }
@@ -138,7 +140,11 @@ export default function AgencyInvoicesPage({ embedded = false }: { embedded?: bo
         ))}
       </div>
 
-      {status === "loading" && visible.length === 0 && <p className={styles.empty}>Loading invoices…</p>}
+      {status === "loading" && visible.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && visible.length === 0 && (
         <p className={styles.empty}>
           {activeMembers.length === 0

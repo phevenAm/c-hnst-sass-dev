@@ -19,8 +19,15 @@
   pointer-events: none;
   animation: slideDown 250ms ease-in-out;
 
+  // Most "success" confirmations in the app call showToast(msg) with no type,
+  // which lands here. It used to just tint the text and leave the default
+  // card background (--bg-card) — in dark mode that's #162622 next to a
+  // #0f1f1c page, a ~1.1:1 contrast pair barely separated by the box-shadow.
+  // Neutral is now a true inverse pill (dark-on-light / light-on-dark) so it
+  // reads clearly regardless of theme, instead of nearly vanishing into it.
   &.neutral {
-    color: var(--text-primary);
+    background: var(--text-primary);
+    color: var(--bg-base);
   }
 
   &.danger {
@@ -28,8 +35,12 @@
     color: var(--text-inverse);
   }
 
+  // Was var(--accent) — same teal used everywhere else (buttons, links,
+  // active nav), so a "success" toast never actually looked different from
+  // routine chrome. --success is its own token for exactly this reason
+  // (see index.scss dark-mode block: "own hues so dark mode isn't all teal").
   &.success {
-    background: var(--accent);
+    background: var(--success);
     color: var(--text-inverse);
   }
 

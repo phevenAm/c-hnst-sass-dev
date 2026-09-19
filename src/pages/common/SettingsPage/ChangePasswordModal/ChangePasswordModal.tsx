@@ -7,6 +7,7 @@ import { useToast } from "@context/ToastContext";
 
 import { supabase } from "@/lib/supabase";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./ChangePasswordModal.module.scss";
 
 type Props = { onClose: () => void };
@@ -38,7 +39,7 @@ export default function ChangePasswordModal({ onClose }: Props) {
       showToast("Password updated.");
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(getErrorMessage(e, "Something went wrong."));
     } finally {
       setSaving(false);
     }

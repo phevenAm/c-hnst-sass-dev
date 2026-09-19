@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { useCanCreateResources } from "@Hooks/useAgencyCreatePermission";
 import Button from "@components/shared/Button/Button";
 import Card from "@components/shared/Card/Card";
 import { ArticleIcon, DocumentIcon, LinkIcon, VideoIcon } from "@components/shared/Icons/Icons";
@@ -59,6 +60,7 @@ export default function AdminResourcesPage() {
   const dispatch = useAppDispatch();
   const { isDemo, userProfile } = useAuth();
   const { showToast } = useToast();
+  const canCreateResources = useCanCreateResources();
   const resources: Resource[] = useAppSelector(selectAllResources);
 
   const [showForm, setShowForm] = useState(false);
@@ -111,6 +113,10 @@ export default function AdminResourcesPage() {
                 showToast("Demo mode — changes are not saved.");
                 return;
               }
+              if (!canCreateResources) {
+                showToast("Your agency hasn't turned on staff-created resources — ask a manager to enable it.");
+                return;
+              }
               setShowForm(true);
             }}
           >
@@ -132,90 +138,105 @@ export default function AdminResourcesPage() {
         </div>
 
         <div className={styles.list}>
-          {filtered.map((resource) => (
-            <Card key={resource.id}>
-              <div className={styles.resourceRow}>
-                <div className={styles.resourceIcon}>{getResourceIcon(resource.type)}</div>
+          {filtered.map((resource) => {
+            // A staff member's list includes resources shared FROM their
+            // manager (agency_shares_resources RLS) alongside their own — the
+            // mutation buttons below used to render for every row regardless,
+            // so clicking Delete/Edit/Publish/Pin on someone else's resource
+            // silently did nothing (RLS filters the write to zero rows rather
+            // than erroring, so the UI can't even show a friendly failure) —
+            // it just looked like it worked. Shared-with-you is read-only.
+            const isOwner = resource.admin_id === userProfile?.id;
+            return (
+              <Card key={resource.id}>
+                <div className={styles.resourceRow}>
+                  <div className={styles.resourceIcon}>{getResourceIcon(resource.type)}</div>
 
-                <div className={styles.resourceInfo}>
-                  <div className={styles.resourceTitleRow}>
-                    <p className={styles.resourceTitle}>{resource.title}</p>
-                    <div className={styles.resourceBadges}>
-                      {resource.is_pinned && <span className={`${styles.badge} ${styles.pinned}`}>Pinned</span>}
-                      {resource.is_sensitive && (
-                        <span className={`${styles.badge} ${styles.sensitive}`}>Sensitive</span>
-                      )}
-                      <span className={`${styles.badge} ${resource.is_published ? styles.published : styles.draft}`}>
-                        {resource.is_published ? "Published" : "Draft"}
-                      </span>
+                  <div className={styles.resourceInfo}>
+                    <div className={styles.resourceTitleRow}>
+                      <p className={styles.resourceTitle}>{resource.title}</p>
+                      <div className={styles.resourceBadges}>
+                        {!isOwner && <span className={`${styles.badge} ${styles.pinned}`}>Shared with you</span>}
+                        {resource.is_pinned && <span className={`${styles.badge} ${styles.pinned}`}>Pinned</span>}
+                        {resource.is_sensitive && (
+                          <span className={`${styles.badge} ${styles.sensitive}`}>Sensitive</span>
+                        )}
+                        <span className={`${styles.badge} ${resource.is_published ? styles.published : styles.draft}`}>
+                          {resource.is_published ? "Published" : "Draft"}
+                        </span>
+                      </div>
                     </div>
+
+                    <p className={styles.resourceMeta}>
+                      {getResourceTypeLabel(resource.type).replace(/s$/, "")} · {resource.category} · Last edited:{" "}
+                      {resource.updated_at ? new Date(resource.updated_at).toLocaleDateString() : "Unknown"}
+                    </p>
                   </div>
 
-                  <p className={styles.resourceMeta}>
-                    {getResourceTypeLabel(resource.type).replace(/s$/, "")} · {resource.category} · Last edited:{" "}
-                    {resource.updated_at ? new Date(resource.updated_at).toLocaleDateString() : "Unknown"}
-                  </p>
+                  <div className={styles.resourceActions}>
+                    <Button variant="ghost" size="sm" onClick={() => setPreviewResource(resource)}>
+                      Preview
+                    </Button>
+
+                    {isOwner && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            if (isDemo) {
+                              showToast("Demo mode — changes are not saved.");
+                              return;
+                            }
+                            dispatch(togglePublished({ id: resource.id, is_published: !resource.is_published }));
+                          }}
+                        >
+                          {resource.is_published ? "Unpublish" : "Publish"}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (isDemo) {
+                              showToast("Demo mode — changes are not saved.");
+                              return;
+                            }
+                            dispatch(togglePinned({ id: resource.id, is_pinned: !resource.is_pinned }));
+                          }}
+                        >
+                          {resource.is_pinned ? "Unpin" : "Pin"}
+                        </Button>
+
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            if (isDemo) {
+                              showToast("Demo mode — changes are not saved.");
+                              return;
+                            }
+                            setEditingResource(resource);
+                          }}
+                        >
+                          Edit
+                        </Button>
+
+                        <Button
+                          variant="ghost-danger"
+                          size="sm"
+                          disabled={isDemo}
+                          onClick={() => dispatch(deleteResource(resource.id))}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-
-                <div className={styles.resourceActions}>
-                  <Button variant="ghost" size="sm" onClick={() => setPreviewResource(resource)}>
-                    Preview
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      if (isDemo) {
-                        showToast("Demo mode — changes are not saved.");
-                        return;
-                      }
-                      dispatch(togglePublished({ id: resource.id, is_published: !resource.is_published }));
-                    }}
-                  >
-                    {resource.is_published ? "Unpublish" : "Publish"}
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (isDemo) {
-                        showToast("Demo mode — changes are not saved.");
-                        return;
-                      }
-                      dispatch(togglePinned({ id: resource.id, is_pinned: !resource.is_pinned }));
-                    }}
-                  >
-                    {resource.is_pinned ? "Unpin" : "Pin"}
-                  </Button>
-
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      if (isDemo) {
-                        showToast("Demo mode — changes are not saved.");
-                        return;
-                      }
-                      setEditingResource(resource);
-                    }}
-                  >
-                    Edit
-                  </Button>
-
-                  <Button
-                    variant="ghost-danger"
-                    size="sm"
-                    disabled={isDemo}
-                    onClick={() => dispatch(deleteResource(resource.id))}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
 
           {filtered.length === 0 && (
             <p className={styles.empty}>No {getResourceTypeLabel(typeFilter).toLowerCase()} resources yet.</p>

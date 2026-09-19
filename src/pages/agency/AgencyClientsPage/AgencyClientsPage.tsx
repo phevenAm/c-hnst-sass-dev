@@ -6,6 +6,7 @@ import IntakeClientModal from "@components/agency/IntakeClientModal/IntakeClient
 import Badge from "@components/shared/Badge/Badge";
 import Button from "@components/shared/Button/Button";
 import SegmentedTabs from "@components/shared/SegmentedTabs/SegmentedTabs";
+import Spinner from "@components/shared/Spinner/Spinner";
 import type { AgencyClient } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import {
@@ -109,7 +110,11 @@ export default function AgencyClientsPage() {
         </div>
       )}
 
-      {status === "loading" && total === 0 && <p className={styles.empty}>Loading clients…</p>}
+      {status === "loading" && total === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && total === 0 && (
         <p className={styles.empty}>No clients yet. Add your first above, then assign them to a counsellor.</p>
       )}

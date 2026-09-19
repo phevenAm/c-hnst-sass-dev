@@ -15,8 +15,24 @@ const initialState: UserDirectoryState = {
   error: null,
 };
 
+// Deliberately scoped client-side to the caller's own row + own clients + other
+// admin accounts (the platform-wide "admins view other admin accounts" policy),
+// even though RLS on `users` would return more than this for an agency manager:
+// `acts_for_admin(admin_id)` also grants a manager every OTHER member's clients,
+// for the /agency/* manage-mode pages. Every consumer of this thunk is a
+// personal /admin/* "Counselling view" page (own practice, own clients) — left
+// unscoped, a manager's own client list silently included every colleague's
+// clients too, mixed in with no distinction. See project_agency_staff_sharing.
 export const fetchAllUsers = createAsyncThunk("userDirectory/fetchAllUsers", async (_, { rejectWithValue }) => {
-  const { data, error } = await supabase.from("users").select("*");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return rejectWithValue("Not signed in");
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .or(`id.eq.${user.id},admin_id.eq.${user.id},role.eq.admin`);
 
   if (error) return rejectWithValue(error.message);
 

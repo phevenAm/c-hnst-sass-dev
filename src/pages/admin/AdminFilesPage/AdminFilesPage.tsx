@@ -26,9 +26,12 @@ import {
   selectLastRejected,
   selectStorageReport,
   setCurrentFolder,
+  toggleFileShared,
+  toggleFolderShared,
   uploadItems,
 } from "@store/slices/filesSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/lib/supabase";
 import FileBrowser from "./FileBrowser";
@@ -94,7 +97,7 @@ export default function AdminFilesPage() {
       if (okMsg) showToast(okMsg, "success");
       return true;
     } catch (e) {
-      showToast(e instanceof Error ? e.message : String(e), "danger");
+      showToast(getErrorMessage(e, String(e)), "danger");
       return false;
     } finally {
       setBusy(false);
@@ -110,7 +113,7 @@ export default function AdminFilesPage() {
         setNameDialog(null);
         navigate(created.id);
       } catch (e) {
-        showToast(e instanceof Error ? e.message : String(e), "danger");
+        showToast(getErrorMessage(e, String(e)), "danger");
       } finally {
         setBusy(false);
       }
@@ -260,9 +263,21 @@ export default function AdminFilesPage() {
                 onRenameFolder={(folder) => setNameDialog({ mode: "renameFolder", folder })}
                 onMoveFolder={(folder) => setMove({ kind: "folder", folder })}
                 onDeleteFolder={(folder) => setDel({ kind: "folder", folder })}
+                onToggleFolderShared={(folder) =>
+                  run(
+                    dispatch(toggleFolderShared({ id: folder.id, shared: !folder.shared })),
+                    folder.shared ? "Made private." : "Shared with your agency.",
+                  )
+                }
                 onRenameFile={(file) => setNameDialog({ mode: "renameFile", file })}
                 onMoveFile={(file) => setMove({ kind: "file", file })}
                 onDeleteFile={(file) => setDel({ kind: "file", file })}
+                onToggleFileShared={(file) =>
+                  run(
+                    dispatch(toggleFileShared({ id: file.id, shared: !file.shared })),
+                    file.shared ? "Made private." : "Shared with your agency.",
+                  )
+                }
               />
             )}
           </UploadZone>

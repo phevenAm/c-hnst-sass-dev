@@ -9,21 +9,28 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { resetStore, store } from "../../../store";
 import AdminDashboard from "./AdminDashboard";
 
+const mockUseAuth = vi.fn(() => ({
+  userProfile: { id: "admin-1", first_name: "Sam", role: "admin" },
+  practiceSettings: { admin_id: "admin-1", hidden_sections: [] },
+}));
 vi.mock("@context/AuthContext", () => ({
-  useAuth: () => ({
-    userProfile: { id: "admin-1", first_name: "Sam", role: "admin" },
-    practiceSettings: { admin_id: "admin-1", hidden_sections: [] },
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 vi.mock("@Hooks/useRealtimeTable", () => ({ useRealtimeTable: vi.fn() }));
 vi.mock("@/lib/supabase", () => {
   const q: Record<string, unknown> = {};
   const chain = () => q;
-  for (const m of ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "is"]) q[m] = chain;
+  for (const m of ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "is", "or"]) q[m] = chain;
   q.maybeSingle = () => Promise.resolve({ data: null, error: null });
   // biome-ignore lint/suspicious/noThenProperty: mimics supabase-js's thenable query builder
   q.then = (res: (v: { data: never[]; error: null }) => unknown) => res({ data: [], error: null });
-  return { supabase: { from: () => q, rpc: () => Promise.resolve({ data: [], error: null }) } };
+  return {
+    supabase: {
+      auth: { getUser: () => Promise.resolve({ data: { user: { id: "admin-1" } }, error: null }) },
+      from: () => q,
+      rpc: () => Promise.resolve({ data: [], error: null }),
+    },
+  };
 });
 
 afterEach(() => {
@@ -50,6 +57,24 @@ describe("AdminDashboard", () => {
     expect(await screen.findByRole("heading", { name: "Welcome, Sam" })).toBeInTheDocument();
   });
 
+  // Regression coverage (2026-09-16): the heading read first_name only, so
+  // changing "Display name" in Settings (which writes display_name and
+  // explicitly promises "shown on your dashboard") never actually changed
+  // what greeted the admin here.
+  it("prefers display_name over first_name when both are set", async () => {
+    const original = mockUseAuth.getMockImplementation();
+    mockUseAuth.mockReturnValue({
+      userProfile: { id: "admin-1", first_name: "Sam", display_name: "Sammy", role: "admin" },
+      practiceSettings: { admin_id: "admin-1", hidden_sections: [] },
+    } as never);
+    try {
+      renderPage();
+      expect(await screen.findByRole("heading", { name: "Welcome, Sammy" })).toBeInTheDocument();
+    } finally {
+      mockUseAuth.mockImplementation(original!);
+    }
+  });
+
   it("shows the quick-action links into the main admin sections", async () => {
     renderPage();
     await screen.findByRole("heading", { name: "Welcome, Sam" });
@@ -66,13 +91,18 @@ describe("AdminDashboard", () => {
     expect(screen.queryByRole("heading", { name: "Welcome, Sam" })).not.toBeInTheDocument();
   });
 
-  it("shows one combined revenue/outgoings/sessions chart under Practice trends, not three separate ones", async () => {
+  // Revenue/Outgoings (money, lines) and Sessions (a count, a bar) used to
+  // share one dual-axis chart — a count on its own much smaller axis either
+  // swamped the chart as a bar or read as unrelated to the money lines next
+  // to it on a totally different scale either way. Split into two
+  // single-axis charts instead (see AdminDashboard.module.scss .trendsRow
+  // for how they lay out side by side on desktop / stacked on mobile).
+  it("shows Revenue & outgoings and Sessions as two separate charts under Practice trends, not one combined one", async () => {
     renderPage();
     await screen.findByRole("heading", { name: "Welcome, Sam" });
-    expect(screen.getByText("Revenue, outgoings & sessions")).toBeInTheDocument();
-    expect(screen.queryByText(/^Revenue \(last/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Outgoings \(last/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Sessions per week")).not.toBeInTheDocument();
+    expect(screen.getByText("Revenue & outgoings")).toBeInTheDocument();
+    expect(screen.getByText("Sessions")).toBeInTheDocument();
+    expect(screen.queryByText("Revenue, outgoings & sessions")).not.toBeInTheDocument();
   });
 
   it("defaults the Practice trends granularity to weekly", async () => {

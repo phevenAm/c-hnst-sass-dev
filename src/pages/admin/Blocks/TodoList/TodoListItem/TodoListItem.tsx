@@ -7,6 +7,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { deleteTodoItem, updateTodoItem } from "@/store/slices/TodoSlice";
 import TodoListModal from "../TodoListModal/TodoListModal";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./TodoListItem.module.scss";
 
 const PRIORITY_LABELS: Record<number, string> = { 1: "High", 2: "Med", 3: "Low" };
@@ -26,7 +27,7 @@ const TodoListItem = (todo: Todo) => {
       await dispatch(deleteTodoItem(id)).unwrap();
       showToast("Task deleted", "success");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to delete, please reload page and try again";
+      const message = getErrorMessage(error, "Failed to delete, please reload page and try again");
       showToast(message, "danger");
     } finally {
       setIsDeleting(false);

@@ -96,6 +96,7 @@ const AgencyMemberDetailPage = lazyWithReload(
   () => import("../pages/agency/AgencyMemberDetailPage/AgencyMemberDetailPage"),
 );
 const AgencyClientsPage = lazyWithReload(() => import("../pages/agency/AgencyClientsPage/AgencyClientsPage"));
+const AgencyGroupsPage = lazyWithReload(() => import("../pages/agency/AgencyGroupsPage/AgencyGroupsPage"));
 const AgencyClientDetailPage = lazyWithReload(
   () => import("../pages/agency/AgencyClientDetailPage/AgencyClientDetailPage"),
 );
@@ -285,14 +286,24 @@ function AdminSetupGate({ children }: { children: React.ReactNode }) {
   const { isAdmin, practiceSettings, loading } = useAuth();
   const agencyStatus = useAppSelector(selectAgencyBootstrapStatus);
   const isAgencyMember = useAppSelector(selectIsAgencyMember);
+  const membership = useAppSelector(selectAgencyMembership);
 
   if (loading || agencyStatus === "loading" || agencyStatus === "idle") {
     return <HeroSplashBridge />;
     // return <AuthLoadingState variant="splash" />;
   }
-  // An invited agency member isn't setting up their own practice — the
-  // agency owner already did. Same exemption as SubscriptionGate above.
-  if (isAgencyMember) return <>{children}</>;
+  // An employed (non-manager) agency staff member isn't setting up their own
+  // practice — the agency owns their business identity, so there's no
+  // business name/session pricing/etc. of their own to configure. A manager
+  // and a freelance/associate staff member both bill and brand under their
+  // own name (same "own it" reasoning as SettingsPage's isAgencyEmployee), so
+  // they go through setup exactly like a solo admin — skipping it left them
+  // dropped straight into an empty Counselling view with no session price or
+  // types ever configured, which read as "onboarding missing everything a
+  // normal admin gets".
+  const exemptFromOwnSetup =
+    isAgencyMember && membership?.role !== "manager" && membership?.employment_type === "employee";
+  if (exemptFromOwnSetup) return <>{children}</>;
   if (isAdmin && practiceSettings?.onboarding_required) {
     return <Navigate to="/admin/setup" replace />;
   }
@@ -563,11 +574,21 @@ export default function AppRoutes() {
                   <Route path="/agency/members/:memberId" element={<AgencyMemberDetailPage />} />
                   <Route path="/agency/clients" element={<AgencyClientsPage />} />
                   <Route path="/agency/clients/:clientId" element={<AgencyClientDetailPage />} />
+                  <Route path="/agency/groups" element={<AgencyGroupsPage />} />
                   <Route path="/agency/sessions" element={<AgencySessionsPage />} />
                   <Route path="/agency/invoices" element={<Navigate to="/agency/finance?view=invoices" replace />} />
                   <Route path="/agency/incoming" element={<AgencyIncomingPage />} />
                   <Route path="/agency/finance" element={<AgencyFinancePage />} />
                   {hasFileManager && <Route path="/agency/files" element={<AdminFilesPage />} />}
+                  {/* Reuses AdminResourcesPage exactly like /agency/files reuses
+                      AdminFilesPage — both do a plain `select * from <table>`
+                      relying on RLS, and acts_for_admin already scopes a
+                      manager's read to their own rows plus every member's, so
+                      this is an aggregated agency-wide view for free. No
+                      separate agency-scoped resources concept needed: a
+                      manager's own resources ARE the shared library once
+                      agencies.shared_resources is on (AgencySettingsPage). */}
+                  <Route path="/agency/resources" element={<AdminResourcesPage />} />
                   <Route
                     path="/agency/onboarding"
                     element={<Navigate to="/agency/settings?tab=onboarding" replace />}

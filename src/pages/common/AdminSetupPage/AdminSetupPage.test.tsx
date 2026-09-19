@@ -4,14 +4,20 @@ import { configureStore } from "@reduxjs/toolkit";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import agencyReducer from "@store/slices/agencySlice";
 import themeReducer from "@store/slices/themeSlice";
 
 import AdminSetupPage from "./AdminSetupPage";
 
 // LeafLogoMark (used in the page header, matching the rest of the auth
-// funnel) reads theme mode from Redux to pick the right variant.
-function renderPage() {
-  const store = configureStore({ reducer: { theme: themeReducer } });
+// funnel) reads theme mode from Redux to pick the right variant. agency's
+// default (empty) state means selectIsAgencyMember is false for every test
+// here unless a test explicitly preloads a membership.
+function renderPage(agencyState?: Parameters<typeof configureStore>[0]["preloadedState"]) {
+  const store = configureStore({
+    reducer: { theme: themeReducer, agency: agencyReducer },
+    preloadedState: agencyState,
+  });
   return render(
     <Provider store={store}>
       <AdminSetupPage />
@@ -131,8 +137,8 @@ function continueThroughOptionalSteps() {
 
 // Full happy-path walk from step 1 to step 5 (bank details), business name +
 // one package filled in.
-async function walkToBankDetailsStep() {
-  renderPage();
+async function walkToBankDetailsStep(agencyState?: Parameters<typeof renderPage>[0]) {
+  renderPage(agencyState);
   goToStep2();
   await addPackageAndGoToStep3();
   continueThroughOptionalSteps();
@@ -309,6 +315,36 @@ describe("AdminSetupPage — staged flow (happy path)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Import from CSV" }));
     expect(await screen.findByRole("heading", { name: "Import offline clients" })).toBeInTheDocument();
+  });
+
+  // Regression coverage (2026-09-16): a freelance agency member (still runs
+  // this whole wizard — see AdminSetupGate's exemption, employees-only) saw
+  // this exact step, but their clients are assigned by the agency
+  // (AgencyClientsPage), never self-added — offering to invite/import one
+  // here was a real dead-end/wrong-permission surface, not just noise.
+  it("step 6 explains agency-assigned clients instead of offering self-add, for a non-manager agency member", async () => {
+    await walkToBankDetailsStep({
+      agency: {
+        membership: { status: "active", role: "counsellor", employment_type: "freelance" },
+      } as never,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByText(/assigned to you by your agency/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Invite a client" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add an offline client" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Import from CSV" })).not.toBeInTheDocument();
+  });
+
+  // A manager still runs their own counselling practice like a non-agency
+  // admin would — they aren't assigned clients by anyone above them.
+  it("step 6 still offers self-add for an agency manager", async () => {
+    await walkToBankDetailsStep({
+      agency: { membership: { status: "active", role: "manager", employment_type: "employee" } } as never,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByText("Invite a client")).toBeInTheDocument();
   });
 
   it("removing a package on step 2 takes it out of the list", async () => {

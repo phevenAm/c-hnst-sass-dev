@@ -25,6 +25,7 @@ const { supabaseMock, rpcSpy, updateSpy, tableData } = vi.hoisted(() => {
     rpcSpy,
     updateSpy,
     supabaseMock: {
+      auth: { getUser: () => Promise.resolve({ data: { user: { id: "admin-1" } }, error: null }) },
       rpc: rpcSpy,
       from: (table: string) => {
         if (table === "stub_sessions")

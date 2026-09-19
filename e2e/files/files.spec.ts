@@ -294,3 +294,113 @@ test("cross-tenant isolation: admin B cannot see, touch, or profile admin A's fi
   const guard = await sb.from("file_folders").update({ owner_admin_id: adminIdB }).eq("id", folderA.id);
   expect(guard.error?.message ?? "").toMatch(/FOLDER_IMMUTABLE_COLUMN/);
 });
+
+// Regression (2026-09-16): "staff still can't see files". Root cause was
+// twofold — no frontend control ever set `shared` at all (fixed alongside
+// this test: FileBrowser's row menu + filesSlice's toggleFolderShared/
+// toggleFileShared), and even once set, a shared FOLDER didn't share what
+// was inside it (file_shared_with_caller only ever checked a row's own
+// flag) — fixed by the file_folder_cascade_shared trigger
+// (20260916000070). This exercises both fixes together through real
+// sessions: an agency manager and a staff member, not the solo admins above.
+test.describe("agency file sharing", () => {
+  const agencyTag = `e2efilesag${Date.now()}`;
+  const agencyPassword = "E2eFilesAgency2026!";
+  let agencyId: string;
+  let managerId: string;
+  let staffId: string;
+  let sbManager: SupabaseClient;
+  let sbStaff: SupabaseClient;
+
+  test.beforeAll(async () => {
+    managerId = createAuthUser({
+      email: `smissah321+${agencyTag}-mgr@gmail.com`,
+      password: agencyPassword,
+      meta: { role: "admin", first_name: "Manager", last_name: agencyTag },
+    });
+    staffId = createAuthUser({
+      email: `smissah321+${agencyTag}-staff@gmail.com`,
+      password: agencyPassword,
+      meta: { role: "admin", first_name: "Staffer", last_name: agencyTag },
+    });
+    agencyId = dbQuery<{ id: string }>(
+      `insert into public.agencies (name, owner_id) values ('E2E Files Agency ${agencyTag}', '${managerId}') returning id;`,
+    ).rows[0].id;
+    dbQuery(`
+      insert into public.agency_members (agency_id, user_id, role, employment_type, status, joined_at)
+      values
+        ('${agencyId}', '${managerId}', 'manager', 'employee', 'active', now()),
+        ('${agencyId}', '${staffId}', 'counsellor', 'employee', 'active', now());
+      update public.users set agency_id = '${agencyId}', onboarding_completed = true
+        where id in ('${managerId}', '${staffId}');
+      insert into public.practice_settings (admin_id, subscription_status, subscription_plan, onboarding_required)
+        values ('${managerId}', 'active', 'growth', false), ('${staffId}', 'active', 'growth', false)
+        on conflict (admin_id) do update set subscription_status = 'active', onboarding_required = false;
+    `);
+
+    sbManager = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sbStaff = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const [{ error: eM }, { error: eS }] = await Promise.all([
+      sbManager.auth.signInWithPassword({ email: `smissah321+${agencyTag}-mgr@gmail.com`, password: agencyPassword }),
+      sbStaff.auth.signInWithPassword({ email: `smissah321+${agencyTag}-staff@gmail.com`, password: agencyPassword }),
+    ]);
+    if (eM || eS) throw new Error(`sign-in failed: ${eM?.message ?? eS?.message}`);
+  });
+
+  test.afterAll(() => {
+    dbQuery(`
+      delete from public.file_objects where owner_admin_id in ('${managerId}', '${staffId}');
+      delete from public.file_folders where owner_admin_id in ('${managerId}', '${staffId}');
+      delete from public.agency_members where agency_id = '${agencyId}';
+      delete from public.agencies where id = '${agencyId}';
+      delete from public.practice_settings where admin_id in ('${managerId}', '${staffId}');
+      delete from public.users where id in ('${managerId}', '${staffId}');
+      delete from auth.users where id in ('${managerId}', '${staffId}');
+    `);
+  });
+
+  test("sharing a folder makes it AND its nested file visible to a staff member who couldn't see either before", async () => {
+    const { data: parent } = await sbManager
+      .from("file_folders")
+      .insert({ parent_id: null, name: `Shared${agencyTag}` })
+      .select()
+      .single();
+    const { data: child } = await sbManager
+      .from("file_folders")
+      .insert({ parent_id: parent.id, name: "Nested" })
+      .select()
+      .single();
+    // file_objects has no authenticated-INSERT policy — real uploads go
+    // through the file-upload edge function, so seed the row with the
+    // service-role client directly, same as the other tests in this file.
+    const fileId = dbQuery<{ id: string }>(`
+      insert into public.file_objects (owner_admin_id, folder_id, storage_path, name, mime_type, size_bytes)
+      values ('${managerId}', '${child.id}', 'u/${managerId}/${agencyTag}-shared', 'handout.pdf', 'application/pdf', 500)
+      returning id;
+    `).rows[0].id;
+
+    // Before sharing: staff sees none of it, exactly as reported.
+    expect((await sbStaff.from("file_folders").select("id").eq("id", parent.id)).data).toEqual([]);
+    expect((await sbStaff.from("file_objects").select("id").eq("id", fileId)).data).toEqual([]);
+
+    // Manager shares the top folder — this is the FileBrowser "Share with
+    // agency" action / toggleFolderShared thunk's own DB call.
+    const { error: shareErr } = await sbManager.from("file_folders").update({ shared: true }).eq("id", parent.id);
+    expect(shareErr).toBeNull();
+
+    // After: staff sees the shared folder, its nested subfolder, AND the file
+    // inside it — the cascade, not just the row that was directly toggled.
+    expect((await sbStaff.from("file_folders").select("id").eq("id", parent.id)).data).toHaveLength(1);
+    expect((await sbStaff.from("file_folders").select("id").eq("id", child.id)).data).toHaveLength(1);
+    expect((await sbStaff.from("file_objects").select("id").eq("id", fileId)).data).toHaveLength(1);
+
+    // Staff still can't write to it — sharing is read visibility, not edit rights.
+    const staffDelete = await sbStaff.from("file_objects").delete().eq("id", fileId);
+    expect(staffDelete.error).toBeNull(); // RLS filters to zero rows rather than erroring
+    expect((await sbManager.from("file_objects").select("id").eq("id", fileId)).data).toHaveLength(1); // untouched
+
+    // Un-sharing cascades back to private too.
+    await sbManager.from("file_folders").update({ shared: false }).eq("id", parent.id);
+    expect((await sbStaff.from("file_objects").select("id").eq("id", fileId)).data).toEqual([]);
+  });
+});

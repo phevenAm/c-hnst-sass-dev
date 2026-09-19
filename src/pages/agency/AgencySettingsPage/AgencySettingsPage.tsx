@@ -12,6 +12,7 @@ import {
   type SidebarBtnPos,
   writeSidebarBtnPos,
 } from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
+import Spinner from "@components/shared/Spinner/Spinner";
 import ThreeWayToggle from "@components/shared/ThreeWayToggle/ThreeWayToggle";
 import UploadAndDisplayImage from "@components/shared/UploadAndDisplayImage/UploadAndDisplayImage";
 import { useAuth } from "@context/AuthContext";
@@ -33,6 +34,7 @@ import {
 } from "@store/slices/agencySlice";
 import { selectThemeMode, setTheme } from "@store/slices/themeSlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { supabase } from "@/lib/supabase";
 import styles from "../agency.module.scss";
 import { staffSeatUsage } from "../agencyFormat";
@@ -42,7 +44,7 @@ const PLAN_LABEL: Record<AgencyPlanKey, string> = {
   starter: "Starter",
   growth: "Growth",
   scale: "Scale",
-  unlimited: "Unlimited",
+  unlimited: "Beyond",
 };
 
 const APPEARANCE_OPTIONS = [
@@ -80,13 +82,30 @@ const EMPTY_TEAMS: TeamsChannel = {
   notify_paid: true,
 };
 
-type PolicyKey = "shared_resources" | "require_note_encryption" | "locked_email_templates" | "locked_session_policy";
+type PolicyKey =
+  | "shared_resources"
+  | "allow_staff_forms"
+  | "allow_staff_resources"
+  | "require_note_encryption"
+  | "locked_email_templates"
+  | "locked_session_policy";
 
 const POLICIES: { key: PolicyKey; title: string; blurb: string }[] = [
   {
     key: "shared_resources",
     title: "Shared resource library",
-    blurb: "Resources added by the agency appear for every member's clients.",
+    blurb: "Resources a manager adds from Resources in this agency view are shared with every member's clients.",
+  },
+  {
+    key: "allow_staff_forms",
+    title: "Staff can create their own forms",
+    blurb:
+      "Non-manager staff can build their own questionnaires/forms, not just use a manager's. Note: this only lets them create their own — a manager's forms are never shared with staff (unlike resources above).",
+  },
+  {
+    key: "allow_staff_resources",
+    title: "Staff can create their own resources",
+    blurb: "Non-manager staff can add their own resources, not just the shared library above.",
   },
   {
     key: "require_note_encryption",
@@ -204,7 +223,7 @@ export default function AgencySettingsPage() {
       if (upErr) throw upErr;
       showToast("Teams channel settings saved.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save the Teams channel");
+      setError(getErrorMessage(err, "Couldn't save the Teams channel"));
     } finally {
       setTeamsBusy(false);
     }
@@ -218,14 +237,20 @@ export default function AgencySettingsPage() {
       if (fnErr) throw new Error(fnErr.message);
       showToast("Test message sent — check the channel.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Test message failed");
+      setError(getErrorMessage(err, "Test message failed"));
     } finally {
       setTeamsTesting(false);
     }
   };
 
   if (!isManager) return <Navigate to="/agency/incoming" replace />;
-  if (!draft || !authUser) return <p className={styles.empty}>Loading…</p>;
+  if (!draft || !authUser) {
+    return (
+      <div className="inner">
+        <Spinner size={28} />
+      </div>
+    );
+  }
 
   const set = (patch: Partial<Agency>) => setDraft({ ...draft, ...patch });
 
@@ -242,7 +267,7 @@ export default function AgencySettingsPage() {
       await dispatch(fetchAgencyMembers());
       showToast("Payment direction updated.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't update that member");
+      setError(getErrorMessage(err, "Couldn't update that member"));
     } finally {
       setSavingSettlementFor(null);
     }
@@ -262,6 +287,8 @@ export default function AgencySettingsPage() {
           consent_text: draft.consent_text,
           consent_pdf_url: draft.consent_pdf_url,
           shared_resources: draft.shared_resources,
+          allow_staff_forms: draft.allow_staff_forms,
+          allow_staff_resources: draft.allow_staff_resources,
           require_note_encryption: draft.require_note_encryption,
           locked_email_templates: draft.locked_email_templates,
           require_client_codenames: draft.require_client_codenames,
@@ -275,7 +302,7 @@ export default function AgencySettingsPage() {
       ).unwrap();
       showToast("Agency settings saved.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save");
+      setError(getErrorMessage(err, "Couldn't save"));
     } finally {
       setBusy(false);
     }
@@ -298,7 +325,7 @@ export default function AgencySettingsPage() {
       }
       setConfirmSwitch({ plan, over: check.over });
     } catch (err) {
-      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't check that plan");
+      setPlanSwitchError(getErrorMessage(err, "Couldn't check that plan"));
     } finally {
       setSwitchingPlan(null);
     }
@@ -318,7 +345,7 @@ export default function AgencySettingsPage() {
       showToast(`Now on ${PLAN_LABEL[confirmSwitch.plan]}.`, "success");
       setConfirmSwitch(null);
     } catch (err) {
-      setPlanSwitchError(err instanceof Error ? err.message : "Couldn't switch plan");
+      setPlanSwitchError(getErrorMessage(err, "Couldn't switch plan"));
     } finally {
       setSwitchingPlan(null);
     }

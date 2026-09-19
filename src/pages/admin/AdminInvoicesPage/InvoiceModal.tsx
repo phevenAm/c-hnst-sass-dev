@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import dayjs from "dayjs";
 
-import { clientDisplayName } from "@Helpers/Helpers";
+import { clientDisplayName, getErrorMessage } from "@Helpers/Helpers";
 import Button from "@components/shared/Button/Button";
 import DateInput from "@components/shared/DateInput/DateInput";
 import Modal from "@components/shared/Modal/Modal";
@@ -248,7 +248,7 @@ export default function InvoiceModal({
       showToast(initial ? "Invoice updated." : "Invoice created.");
       onSaved();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to save invoice", "error");
+      showToast(getErrorMessage(err, "Failed to save invoice"), "error");
     } finally {
       setSaving(false);
     }

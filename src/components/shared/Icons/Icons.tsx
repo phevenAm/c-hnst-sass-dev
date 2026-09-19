@@ -35,8 +35,6 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
-import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import WebStoriesOutlinedIcon from "@mui/icons-material/WebStoriesOutlined";
 import Lottie from "lottie-react";
 
@@ -575,8 +573,6 @@ export const PinIconOutline = () => <PushPinOutlinedIcon fontSize="inherit" />;
 
 export const Settingsicon = () => <SettingsIcon />;
 export const ChevronDown = () => <KeyboardArrowDownIcon />;
-export const EyeIcon = () => <VisibilityOutlinedIcon fontSize="inherit" />;
-export const EyeOffIcon = () => <VisibilityOffOutlinedIcon fontSize="inherit" />;
 
 export const BellIcon = () => (
   <svg

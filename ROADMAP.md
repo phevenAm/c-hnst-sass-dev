@@ -277,6 +277,10 @@ This is the largest area. Offline clients ("stubs") and real clients should shar
 
 - 🎨 `[TODO: bed56de8]` Add notification badges to sidebar nav items (e.g., unread notifications, pending reschedule requests). Sidebar dropdowns for grouped nav items on mobile.
 
+### 6.14 Web push notifications
+
+- ✨ Real build, not a small add-on: browser permission prompt + service worker (frontend), a `push_subscriptions` table + VAPID keypair as an edge secret + `web-push` sends wired into existing notification paths (backend) — session reminders, new messages, reschedule/cancellation requests, etc. Scope which events trigger a push before starting; start with one (session reminders) to prove the plumbing, then extend.
+
 ---
 
 ## PHASE 7 — Architecture, Performance & Quality

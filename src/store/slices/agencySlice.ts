@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { isFeatureEnabled } from "../../lib/featureFlags";
 import { supabase } from "../../lib/supabase.js";
 import type {
@@ -33,7 +34,9 @@ type AgencyState = {
   incomingStatus: Status;
 
   expenses: AgencyExpense[];
+  expensesStatus: Status;
   onboardingItems: AgencyOnboardingItem[];
+  onboardingStatus: Status;
 
   invoices: AgencyInvoice[];
   invoicesStatus: Status;
@@ -57,7 +60,9 @@ const initialState: AgencyState = {
   incoming: [],
   incomingStatus: "idle",
   expenses: [],
+  expensesStatus: "idle",
   onboardingItems: [],
+  onboardingStatus: "idle",
   invoices: [],
   invoicesStatus: "idle",
   planLimits: [],
@@ -133,7 +138,7 @@ export const fetchAgencyClients = createAsyncThunk(
       supabase
         .from("client_stubs")
         .select(
-          "id, first_name, last_name, email, codename, agency_id, default_rate_pence, availability_note, created_by, created_at, linked_user_id, previously_counselled",
+          "id, first_name, last_name, email, codename, agency_id, default_rate_pence, allow_staff_custom_rate, availability_note, created_by, created_at, linked_user_id, previously_counselled",
         )
         .eq("agency_id", agencyId)
         .order("created_at", { ascending: false }),
@@ -233,7 +238,7 @@ export const createAgency = createAsyncThunk(
     try {
       return await invokeOrThrow<{ agency: Agency }>("create-agency", payload);
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't create the agency");
+      return rejectWithValue(getErrorMessage(e, "Couldn't create the agency"));
     }
   },
 );
@@ -252,7 +257,7 @@ export const inviteAgencyMember = createAsyncThunk(
     try {
       return await invokeOrThrow<{ ok: true }>("invite-agency-member", payload);
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't send the invitation");
+      return rejectWithValue(getErrorMessage(e, "Couldn't send the invitation"));
     }
   },
 );
@@ -273,7 +278,7 @@ export const setAgencyMember = createAsyncThunk(
       await invokeOrThrow("set-agency-member", payload);
       return payload;
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't update the member");
+      return rejectWithValue(getErrorMessage(e, "Couldn't update the member"));
     }
   },
 );
@@ -285,7 +290,7 @@ export const removeAgencyMember = createAsyncThunk(
       await invokeOrThrow("remove-agency-member", payload);
       return payload.member_user_id;
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't remove the member");
+      return rejectWithValue(getErrorMessage(e, "Couldn't remove the member"));
     }
   },
 );
@@ -333,7 +338,7 @@ export const assignClient = createAsyncThunk(
     try {
       return await invokeOrThrow<{ ok: true; assignment_id: string }>("assign-client", payload);
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't assign the client");
+      return rejectWithValue(getErrorMessage(e, "Couldn't assign the client"));
     }
   },
 );
@@ -345,7 +350,7 @@ export const respondToAssignment = createAsyncThunk(
       await invokeOrThrow("respond-to-assignment", payload);
       return payload.assignment_id;
     } catch (e) {
-      return rejectWithValue(e instanceof Error ? e.message : "Couldn't record your response");
+      return rejectWithValue(getErrorMessage(e, "Couldn't record your response"));
     }
   },
 );
@@ -361,6 +366,7 @@ export const createIntakeClient = createAsyncThunk(
       last_name: string;
       email?: string | null;
       default_rate_pence?: number | null;
+      allow_staff_custom_rate?: boolean;
       availability_note?: string | null;
     },
     { rejectWithValue },
@@ -386,6 +392,8 @@ export const updateAgencyPolicies = createAsyncThunk(
         | "consent_text"
         | "consent_pdf_url"
         | "shared_resources"
+        | "allow_staff_forms"
+        | "allow_staff_resources"
         | "require_note_encryption"
         | "locked_email_templates"
         | "require_client_codenames"
@@ -600,8 +608,16 @@ const agencySlice = createSlice({
         state.error = action.payload as string;
       })
 
+      .addCase(fetchAgencyExpenses.pending, (state) => {
+        state.expensesStatus = "loading";
+      })
       .addCase(fetchAgencyExpenses.fulfilled, (state, action) => {
+        state.expensesStatus = "succeeded";
         state.expenses = action.payload;
+      })
+      .addCase(fetchAgencyExpenses.rejected, (state, action) => {
+        state.expensesStatus = "failed";
+        state.error = action.payload as string;
       })
       .addCase(addAgencyExpense.fulfilled, (state, action) => {
         state.expenses.unshift(action.payload);
@@ -610,8 +626,16 @@ const agencySlice = createSlice({
         state.expenses = state.expenses.filter((e) => e.id !== action.payload);
       })
 
+      .addCase(fetchOnboardingItems.pending, (state) => {
+        state.onboardingStatus = "loading";
+      })
       .addCase(fetchOnboardingItems.fulfilled, (state, action) => {
+        state.onboardingStatus = "succeeded";
         state.onboardingItems = action.payload;
+      })
+      .addCase(fetchOnboardingItems.rejected, (state, action) => {
+        state.onboardingStatus = "failed";
+        state.error = action.payload as string;
       })
       .addCase(saveOnboardingItem.fulfilled, (state, action) => {
         const idx = state.onboardingItems.findIndex((i) => i.id === action.payload.id);
@@ -721,9 +745,13 @@ export const selectAgencyMembersStatus = (s: WithAgency) => s.agency.membersStat
 export const selectAgencyClients = (s: WithAgency) => s.agency.clients;
 export const selectAgencyClientsStatus = (s: WithAgency) => s.agency.clientsStatus;
 export const selectIncomingAssignments = (s: WithAgency) => s.agency.incoming;
+export const selectIncomingAssignmentsStatus = (s: WithAgency) => s.agency.incomingStatus;
 export const selectAgencyExpenses = (s: WithAgency) => s.agency.expenses;
+export const selectAgencyExpensesStatus = (s: WithAgency) => s.agency.expensesStatus;
 export const selectOnboardingItems = (s: WithAgency) => s.agency.onboardingItems;
+export const selectOnboardingItemsStatus = (s: WithAgency) => s.agency.onboardingStatus;
 export const selectAgencyInvoices = (s: WithAgency) => s.agency.invoices;
+export const selectAgencyInvoicesStatus = (s: WithAgency) => s.agency.invoicesStatus;
 export const selectAgencyPlanLimits = (s: WithAgency) => s.agency.planLimits;
 export const selectAgencyError = (s: WithAgency) => s.agency.error;
 

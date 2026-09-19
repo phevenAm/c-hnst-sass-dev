@@ -107,6 +107,25 @@ export default function AdminStubDetailPage() {
   const [muteRowId, setMuteRowId] = useState<string | null>(null);
   const [togglingMute, setTogglingMute] = useState(false);
 
+  // Agency clients only — client_stubs.default_rate_pence/allow_staff_custom_rate
+  // aren't on the base ClientStub type the rest of this page uses, and aren't
+  // relevant off the agency path, so this is its own small fetch rather than
+  // widening the shared type. Locks the fee field in the "Add session" modal
+  // below to the agency-set rate unless the manager opted the client out.
+  const [lockedRatePence, setLockedRatePence] = useState<number | null>(null);
+  useEffect(() => {
+    if (!stubId) return;
+    supabase
+      .from("client_stubs")
+      .select("default_rate_pence, allow_staff_custom_rate")
+      .eq("id", stubId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const row = data as { default_rate_pence: number | null; allow_staff_custom_rate: boolean } | null;
+        setLockedRatePence(row && !row.allow_staff_custom_rate ? row.default_rate_pence : null);
+      });
+  }, [stubId]);
+
   useEffect(() => {
     if (stubFromRedux) setStub(stubFromRedux);
   }, [stubFromRedux]);
@@ -778,6 +797,7 @@ export default function AdminStubDetailPage() {
       {addSessionOpen && userProfile && (
         <CreateSessionModal
           clientName={displayName}
+          lockedPricePence={lockedRatePence}
           onClose={() => setAddSessionOpen(false)}
           onSave={async (values) => {
             // For batch creates, tag every session with a shared block_id so

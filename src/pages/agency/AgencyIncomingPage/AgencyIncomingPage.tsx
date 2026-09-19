@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ClientReviewModal from "@components/agency/ClientReviewModal/ClientReviewModal";
 import Button from "@components/shared/Button/Button";
 import ConfirmModal from "@components/shared/ConfirmModal/ConfirmModal";
+import Spinner from "@components/shared/Spinner/Spinner";
 import { useToast } from "@context/ToastContext";
 import type { ClientAssignment } from "@models/agency";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
@@ -14,6 +15,7 @@ import {
   selectIsAgencyManager,
 } from "@store/slices/agencySlice";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "../agency.module.scss";
 import { formatPence } from "../agencyFormat";
 
@@ -42,7 +44,7 @@ export default function AgencyIncomingPage() {
       showToast("Sent — the agency's managers have been notified.", "success");
       setLeaving(false);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Couldn't send your request", "error");
+      showToast(getErrorMessage(err, "Couldn't send your request"), "error");
     } finally {
       setLeaveBusy(false);
     }
@@ -59,7 +61,11 @@ export default function AgencyIncomingPage() {
         </div>
       </div>
 
-      {status === "loading" && incoming.length === 0 && <p className={styles.empty}>Loading…</p>}
+      {status === "loading" && incoming.length === 0 && (
+        <div className={styles.empty}>
+          <Spinner size={28} />
+        </div>
+      )}
       {status !== "loading" && incoming.length === 0 && (
         <p className={styles.empty}>Nothing waiting. New assignments will show up here.</p>
       )}

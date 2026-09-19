@@ -9,6 +9,7 @@ import { formatPence } from "@pages/agency/agencyFormat";
 import { useAppDispatch } from "@store/hooks";
 import { respondToAssignment } from "@store/slices/agencySlice";
 import { fetchClientStubs } from "@store/slices/clientStubsSlice";
+import { getErrorMessage } from "@/Helpers/Helpers";
 import { fetchAllUsers } from "@store/slices/userDirectorySlice";
 
 type ReviewAssignment = ClientAssignment & { client_name: string };
@@ -55,7 +56,7 @@ export default function ClientReviewModal({
       );
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't record your response");
+      setError(getErrorMessage(err, "Couldn't record your response"));
       setBusy(false);
     }
   };

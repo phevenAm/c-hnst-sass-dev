@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import {
   Bar,
   BarChart,
@@ -14,7 +12,6 @@ import {
 } from "recharts";
 
 import Card from "@components/shared/Card/Card";
-import { EyeIcon, EyeOffIcon } from "@components/shared/Icons/Icons";
 
 import { useInterfacePrefs } from "@/context/InterfacePrefsContext";
 import type { TrendPoint } from "../../dashboardUtils";
@@ -121,77 +118,30 @@ interface TrendChartProps {
   leftAxisLabel?: string;
   /** Short label for the right y-axis (e.g. "Sessions") — multi-series only, ignored with no right-axis series. */
   rightAxisLabel?: string;
-  /** Multi-series only. Adds a click-to-hide eye toggle to each legend item;
-   *  axes/domains recalculate from whichever series are still visible, and
-   *  an axis with nothing left on it drops out entirely (see rightSeries).
-   *  Leave off for a caller that already has its own series-visibility
-   *  control outside the chart. */
-  toggleableLegend?: boolean;
-  /** Controls the hidden-series set from outside instead of the chart's own
-   *  internal (reload-losing) state — pass both together so a caller can
-   *  persist the choice (e.g. to practice_settings) and restore it on load.
-   *  Falls back to internal state when either is omitted. */
-  hiddenKeys?: Set<string>;
-  onToggleKey?: (key: string) => void;
 }
 
 // A row of colour-swatch + name for every series — the tooltip already shows
 // this on hover, but "hover to find out what a colour means" isn't a legend.
 // Line series get a short dash swatch instead of a dot, matching how they
-// actually render on the chart.
-//
-// `onToggle` turns each item into a real button — a filled pill with an eye
-// icon — so a busy multi-series chart can be thinned out to just the one or
-// two lines someone actually wants to compare, instead of everything at
-// once being the only option. Omitting `onToggle` (the Finance page, which
-// already has its own external "Series shown" toggles) keeps the legend as
-// a plain, non-interactive colour key.
-function TrendLegend({
-  series,
-  hiddenKeys,
-  onToggle,
-}: {
-  series: TrendSeries[];
-  hiddenKeys?: Set<string>;
-  onToggle?: (key: string) => void;
-}) {
+// actually render on the chart. Purely a colour key — a caller that wants
+// click-to-hide series visibility owns that itself (see the shared
+// <SeriesToggleChips>, used above the chart on both the Finance page and
+// the Dashboard's Practice Trends widget) and pre-filters `series`/`data`
+// before they ever reach this component, rather than this legend doubling
+// as a second, differently-styled toggle.
+function TrendLegend({ series }: { series: TrendSeries[] }) {
   return (
     <ul className={styles.legend}>
-      {series.map((s) => {
-        const swatch =
-          (s.kind ?? "bar") === "line" ? (
+      {series.map((s) => (
+        <li key={s.key} className={styles.legendItem}>
+          {(s.kind ?? "bar") === "line" ? (
             <span className={styles.legendSwatchLine} style={{ background: s.color, opacity: s.dashed ? 0.6 : 1 }} />
           ) : (
             <span className={styles.legendSwatchDot} style={{ background: s.color }} />
-          );
-
-        if (!onToggle) {
-          return (
-            <li key={s.key} className={styles.legendItem}>
-              {swatch}
-              {s.name}
-            </li>
-          );
-        }
-
-        const isHidden = hiddenKeys?.has(s.key) ?? false;
-        return (
-          <li key={s.key}>
-            <button
-              type="button"
-              className={`${styles.legendItem} ${styles.legendItemButton} ${isHidden ? styles.legendItemOff : ""}`}
-              onClick={() => onToggle(s.key)}
-              aria-pressed={!isHidden}
-            >
-              {swatch}
-              {s.name}
-              <span className={styles.legendEye} aria-hidden="true">
-                {isHidden ? <EyeOffIcon /> : <EyeIcon />}
-              </span>
-            </button>
-          </li>
-        );
-      })}
+          )}
+          {s.name}
+        </li>
+      ))}
     </ul>
   );
 }
@@ -210,40 +160,19 @@ export default function TrendChart({
   height = 180,
   leftAxisLabel,
   rightAxisLabel,
-  toggleableLegend,
-  hiddenKeys: hiddenKeysProp,
-  onToggleKey: onToggleKeyProp,
 }: TrendChartProps) {
   const { reduceMotion } = useInterfacePrefs();
   // Bolder + a size up from the original 11px/var(--text-muted) — axis
   // ticks were reading as barely-there against the chart itself.
   const axis = { fill: "var(--text-secondary)", fontSize: 12, fontWeight: 500 };
 
-  const [internalHiddenKeys, setInternalHiddenKeys] = useState<Set<string>>(new Set());
-  const hiddenKeys = hiddenKeysProp ?? internalHiddenKeys;
-  const toggleSeriesKey =
-    onToggleKeyProp ??
-    ((key: string) =>
-      setInternalHiddenKeys((prev) => {
-        const next = new Set(prev);
-        if (next.has(key)) next.delete(key);
-        else next.add(key);
-        return next;
-      }));
-
   if (series && series.length > 0) {
     const rows = data as Array<Record<string, string | number>>;
     const valueAt = (d: Record<string, string | number>, k: string) => Number(d[k]) || 0;
-    // "Any data at all" stays based on the full series list — hiding every
-    // series shouldn't flip the card over to the same "No data yet." empty
-    // state a genuinely empty practice sees; see allHidden below for that.
     const hasData = rows.some((d) => series.some((s) => valueAt(d, s.key) > 0));
 
-    const visibleSeries = toggleableLegend ? series.filter((s) => !hiddenKeys.has(s.key)) : series;
-    const allHidden = toggleableLegend && visibleSeries.length === 0;
-
-    const leftSeries = visibleSeries.filter((s) => (s.axis ?? "left") === "left");
-    const rightSeries = visibleSeries.filter((s) => s.axis === "right");
+    const leftSeries = series.filter((s) => (s.axis ?? "left") === "left");
+    const rightSeries = series.filter((s) => s.axis === "right");
     const niceFor = (ss: TrendSeries[]) =>
       yDomain ? null : niceAxis(Math.max(0, ...rows.flatMap((d) => ss.map((s) => valueAt(d, s.key)))));
     const niceLeft = niceFor(leftSeries);
@@ -256,18 +185,14 @@ export default function TrendChart({
     // other, reduced fillOpacity plus a thin card-colour ring keeps every
     // one readable through the others — reads as "3 measures, one chart"
     // the way the line mode already does.
-    const barSeriesCount = visibleSeries.filter((s) => (s.kind ?? type) === "bar").length;
+    const barSeriesCount = series.filter((s) => (s.kind ?? type) === "bar").length;
     const overlapBars = barSeriesCount > 1;
-
-    let emptyMessage: string | null = null;
-    if (!hasData) emptyMessage = "No data yet.";
-    else if (allHidden) emptyMessage = "Every series is hidden — tap one in the key below to show it again.";
 
     return (
       <Card className={styles.card}>
         <h3 className={styles.title}>{title}</h3>
-        {emptyMessage ? (
-          <p className={styles.empty}>{emptyMessage}</p>
+        {!hasData ? (
+          <p className={styles.empty}>No data yet.</p>
         ) : (
           <div aria-hidden="true">
             <ResponsiveContainer width="100%" height={height}>
@@ -315,7 +240,7 @@ export default function TrendChart({
                   cursor={{ fill: "var(--bg-muted)" }}
                   content={<MultiTooltip valueFormatter={valueFormatter} series={series} />}
                 />
-                {visibleSeries.map((s) =>
+                {series.map((s) =>
                   (s.kind ?? type) === "bar" ? (
                     <Bar
                       key={s.key}
@@ -350,13 +275,7 @@ export default function TrendChart({
             </ResponsiveContainer>
           </div>
         )}
-        {hasData && (
-          <TrendLegend
-            series={series}
-            hiddenKeys={toggleableLegend ? hiddenKeys : undefined}
-            onToggle={toggleableLegend ? toggleSeriesKey : undefined}
-          />
-        )}
+        {hasData && <TrendLegend series={series} />}
       </Card>
     );
   }

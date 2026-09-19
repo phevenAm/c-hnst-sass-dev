@@ -7,6 +7,7 @@ import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./SuperAdminPage.module.scss";
 
 type Practice = {
@@ -92,7 +93,7 @@ export default function SuperAdminPage() {
       setPractices(data.practices ?? []);
       setAgencies(data.agencies ?? []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load practices");
+      setError(getErrorMessage(err, "Failed to load practices"));
     } finally {
       setLoading(false);
     }
@@ -117,7 +118,7 @@ export default function SuperAdminPage() {
       setResumingPractice(null);
       setPauseReason("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update pause status");
+      setError(getErrorMessage(err, "Failed to update pause status"));
     } finally {
       setTogglingPause(false);
     }

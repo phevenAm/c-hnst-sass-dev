@@ -65,43 +65,6 @@
   color: var(--text-primary);
 }
 
-// Toggleable legends (toggleableLegend prop) render each item as a real
-// button — a filled pill rather than bare text, since this is now a control
-// (click to hide that series), not just a colour key, and needs to read as
-// one at a glance.
-.legendItemButton {
-  border: none;
-  background: var(--bg-muted);
-  border-radius: var(--r-full);
-  padding: 6px 12px;
-  cursor: pointer;
-  transition: background-color 120ms ease, opacity 120ms ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--bg-muted) 60%, var(--text-primary) 8%);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.legendItemOff {
-  opacity: 0.45;
-
-  &:hover {
-    opacity: 0.7;
-  }
-}
-
-.legendEye {
-  display: flex;
-  font-size: 15px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
 .legendSwatchDot {
   width: 9px;
   height: 9px;

@@ -14,6 +14,8 @@ import filesReducer, {
   selectChildFolders,
   selectFolderFiles,
   setCurrentFolder,
+  toggleFileShared,
+  toggleFolderShared,
   uploadItems,
 } from "../filesSlice";
 
@@ -97,6 +99,65 @@ describe("fetchFileTree", () => {
   });
 });
 
+describe("toggleFolderShared / toggleFileShared thunks", () => {
+  it("toggleFolderShared updates the folder then refetches both tables (regression — staff couldn't see files because nothing ever set `shared`)", async () => {
+    const updateEq = vi.fn().mockResolvedValue({ error: null });
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "file_folders") {
+        return {
+          update: (payload: Record<string, unknown>) => ({
+            eq: (col: string, val: string) => updateEq(payload, col, val),
+          }),
+          select: () => Promise.resolve({ data: [folder({ shared: true })], error: null }),
+        };
+      }
+      return { select: () => Promise.resolve({ data: [object({ shared: true })], error: null }) };
+    });
+
+    const store = makeStore();
+    await store.dispatch(toggleFolderShared({ id: "f1", shared: true }));
+
+    expect(updateEq).toHaveBeenCalledWith({ shared: true }, "id", "f1");
+    const s = store.getState().files;
+    expect(s.folders[0].shared).toBe(true);
+    expect(s.objects[0].shared).toBe(true);
+  });
+
+  it("toggleFolderShared surfaces the real DB error rather than a generic one (sad path)", async () => {
+    mockFrom.mockImplementation(() => ({
+      update: () => ({ eq: () => Promise.resolve({ error: { message: "permission denied" } }) }),
+    }));
+
+    const store = makeStore();
+    const result = await store.dispatch(toggleFolderShared({ id: "f1", shared: true }));
+
+    expect(result.type).toBe(toggleFolderShared.rejected.type);
+    expect(result.payload).toBe("permission denied");
+  });
+
+  it("toggleFileShared updates just that one file", async () => {
+    const updateEq = vi.fn();
+    mockFrom.mockImplementation(() => ({
+      update: (payload: Record<string, unknown>) => ({
+        eq: (col: string, val: string) => {
+          updateEq(payload, col, val);
+          return {
+            select: () => ({
+              single: () => Promise.resolve({ data: object({ id: "o1", shared: true }), error: null }),
+            }),
+          };
+        },
+      }),
+    }));
+
+    const store = makeStore();
+    await store.dispatch(toggleFileShared({ id: "o1", shared: true }));
+
+    expect(updateEq).toHaveBeenCalledWith({ shared: true }, "id", "o1");
+    expect(store.getState().files.objects[0].shared).toBe(true);
+  });
+});
+
 describe("reducers", () => {
   it("createFolder.fulfilled appends the new folder", () => {
     const store = makeStore({ ...initial(), folders: [folder()] });
@@ -129,6 +190,35 @@ describe("reducers", () => {
     const store = makeStore({ ...initial(), folders: [folder({ name: "Old" })] });
     store.dispatch({ type: renameFolder.fulfilled.type, payload: [folder({ name: "New", path: "/New" })] });
     expect(store.getState().files.folders[0].name).toBe("New");
+  });
+
+  it("toggleFolderShared.fulfilled replaces folders and objects with the post-cascade lists", () => {
+    // The cascade itself runs server-side (file_folder_cascade_shared
+    // trigger) — the reducer's job is just to accept whatever the refetch
+    // returns, which is what this asserts.
+    const store = makeStore({
+      ...initial(),
+      folders: [folder({ shared: false })],
+      objects: [object({ shared: false })],
+    });
+    store.dispatch({
+      type: toggleFolderShared.fulfilled.type,
+      payload: { folders: [folder({ shared: true })], objects: [object({ shared: true })] },
+    });
+    const s = store.getState().files;
+    expect(s.folders[0].shared).toBe(true);
+    expect(s.objects[0].shared).toBe(true);
+  });
+
+  it("toggleFileShared.fulfilled updates just that file's shared flag", () => {
+    const store = makeStore({
+      ...initial(),
+      objects: [object({ id: "o1", shared: false }), object({ id: "o2", shared: false })],
+    });
+    store.dispatch({ type: toggleFileShared.fulfilled.type, payload: object({ id: "o1", shared: true }) });
+    const s = store.getState().files;
+    expect(s.objects.find((o) => o.id === "o1")?.shared).toBe(true);
+    expect(s.objects.find((o) => o.id === "o2")?.shared).toBe(false);
   });
 
   it("moveFile.fulfilled updates the file's folder in place", () => {

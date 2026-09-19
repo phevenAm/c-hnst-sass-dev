@@ -3,20 +3,24 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useSearchParams } from "r
 
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
+import { useHasFileManager } from "@Hooks/useHasFileManager";
 import AuthLoadingState from "@components/shared/AuthLoadingState/AuthLoadingState";
 import Button from "@components/shared/Button/Button";
 import {
   AssignmentClipIcon,
+  BookIcon,
   CalendarIcon,
   CancelIcon,
   FolderIcon,
   HistoryIcon,
   HomeIcon,
+  LayersIcon,
   MoneyIcon,
   Settingsicon,
   StaffIcon,
   UsersIcon,
 } from "@components/shared/Icons/Icons";
+import { NotificationBell } from "@components/shared/NotificationBell/NotificationBell";
 import SidebarCollapseButton from "@components/shared/SidebarCollapseButton/SidebarCollapseButton";
 import SidebarNavGroup, { type SidebarNavGroupClasses } from "@components/shared/SidebarNavGroup/SidebarNavGroup";
 import SidebarNavItem, { type SidebarNavItemClasses } from "@components/shared/SidebarNavItem/SidebarNavItem";
@@ -41,6 +45,8 @@ type NavItem = NavLeaf & { children?: NavLeaf[] };
 
 const MANAGER_LINKS: NavItem[] = [
   { to: "/agency", label: "Overview", end: true, Icon: HomeIcon },
+  { to: "/agency/members", label: "Employees", Icon: StaffIcon },
+
   {
     to: "/agency/clients?view=active",
     label: "Clients",
@@ -49,15 +55,27 @@ const MANAGER_LINKS: NavItem[] = [
     // nest it under Clients rather than as a sibling row.
     children: [{ to: "/agency/clients?view=waiting", label: "Waiting list", Icon: AssignmentClipIcon }],
   },
+  { to: "/agency/groups", label: "Groups", Icon: LayersIcon },
   { to: "/agency/sessions", label: "Sessions", Icon: CalendarIcon },
-  { to: "/agency/members", label: "Staff", Icon: StaffIcon },
   { to: "/agency/finance", label: "Finance", Icon: MoneyIcon },
   { to: "/agency/files", label: "Files", Icon: FolderIcon },
+  // Reuses AdminResourcesPage — a manager's own resources ARE the agency's
+  // shared library once "Shared resource library" is on (AgencySettingsPage),
+  // same as Files: no separate agency-scoped content model, just the same
+  // acts_for_admin RLS aggregating every member's rows into this one view.
+  { to: "/agency/resources", label: "Resources", Icon: BookIcon },
   { to: "/agency/settings", label: "Settings", Icon: Settingsicon },
 ];
 
+// Manager-only pages (Clients, Sessions, Finance, Staff, Settings) hard-redirect
+// non-managers back to /agency/incoming — so a plain staff member's real nav
+// here is deliberately just intake, a read-only view of groups they
+// facilitate, and Files once the agency has shared any. Their day-to-day
+// counselling work (Dashboard, Schedule, own Clients, Forms, Finances if
+// freelance, Resources, Logs) lives under "Counselling view" (/admin).
 const COUNSELLOR_LINKS: NavItem[] = [
   { to: "/agency/incoming", label: "Clients to review", end: true, Icon: AssignmentClipIcon },
+  { to: "/agency/groups", label: "Groups", Icon: LayersIcon },
 ];
 
 const CLIENTS_PATH = "/agency/clients";
@@ -99,6 +117,7 @@ export default function AgencyLayout() {
   const isManager = useAppSelector(selectIsAgencyManager);
   const membersStatus = useAppSelector(selectAgencyMembersStatus);
   const clientsStatus = useAppSelector(selectAgencyClientsStatus);
+  const hasFileManager = useHasFileManager();
 
   const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_Q).matches);
   // Mobile: the rail is a slim strip that `expanded` blows up into an overlay.
@@ -203,7 +222,10 @@ export default function AgencyLayout() {
     );
   }
 
-  const links = isManager ? MANAGER_LINKS : COUNSELLOR_LINKS;
+  let links = isManager ? MANAGER_LINKS : COUNSELLOR_LINKS;
+  if (!isManager && hasFileManager) {
+    links = [...COUNSELLOR_LINKS, { to: "/agency/files", label: "Files", Icon: FolderIcon }];
+  }
   const agencyName = agency?.name ?? "Agency";
   // Labelled rail vs. icon-only: on mobile that's the overlay state, on
   // tablet & up it's the persisted collapse.
@@ -339,6 +361,9 @@ export default function AgencyLayout() {
       </aside>
 
       <main id="main-content" className={`${styles.main} ${!isMobile && collapsed ? styles.mainCollapsed : ""}`}>
+        <div className={styles.topbar}>
+          <NotificationBell />
+        </div>
         <div className="page-content">
           <Suspense fallback={<AuthLoadingState variant="plain" />}>
             {coreDataPending ? <AuthLoadingState variant="plain" /> : <Outlet />}

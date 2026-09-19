@@ -7,6 +7,7 @@ import { useAuth } from "@context/AuthContext";
 
 import { supabase } from "@/lib/supabase";
 
+import { getErrorMessage } from "@/Helpers/Helpers";
 import styles from "./DemoPage.module.scss";
 
 export default function DemoPage() {
@@ -70,7 +71,7 @@ export default function DemoPage() {
       if (fnError) throw new Error(fnError.message);
       setRequestSent(true);
     } catch (err: unknown) {
-      setRequestError(err instanceof Error ? err.message : "Something went wrong — try again.");
+      setRequestError(getErrorMessage(err, "Something went wrong — try again."));
     }
     setSubmitting(false);
   };

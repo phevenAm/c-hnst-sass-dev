@@ -13,6 +13,8 @@ type Props = {
   value: Dayjs | null;
   onChange: (val: Dayjs | null) => void;
   label?: string;
+  /** MUI floating label — sits inside the field, shrinks to the border when it has a value. */
+  floatingLabel?: string;
   ariaLabel?: string;
   disabled?: boolean;
   disablePast?: boolean;
@@ -70,6 +72,16 @@ const textFieldSx = {
     // crowding the icon right up against our border.
     marginRight: 0,
     "&:hover": { color: "var(--text-secondary)", background: "transparent" },
+  },
+  // Floating label (only rendered when `floatingLabel` is passed) — there's
+  // no notched outline to cut a gap for it, so it just sits on the field's
+  // background where it overlaps the top edge, same look as a filled variant.
+  "& .MuiFormLabel-root": {
+    color: "var(--text-muted)",
+    fontFamily: "var(--font-sans)",
+    background: "var(--bg-muted)",
+    padding: "0 4px",
+    "&.Mui-focused": { color: "var(--border-focus)" },
   },
 };
 
@@ -153,6 +165,7 @@ export default function DateInput({
   format,
   className,
   dense,
+  floatingLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -173,7 +186,7 @@ export default function DateInput({
     ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
     slotProps: {
       field: { readOnly: true },
-      textField: { fullWidth: true, sx: textFieldSx },
+      textField: { fullWidth: true, sx: textFieldSx, ...(floatingLabel ? { label: floatingLabel } : {}) },
       desktopPaper: { sx: paperSx },
     },
   };
